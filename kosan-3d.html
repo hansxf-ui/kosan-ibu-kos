@@ -1,0 +1,2177 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Kosan Ibu Kos — Jalan-jalan</title>
+<meta name="description" content="Jalan-jalan di Kosan Ibu Kos: gedung biru 2 lantai, 10 kamar, ruang tamu + WiFi. Ketik namamu, lihat preview kamarmu.">
+<meta name="theme-color" content="#2E7FD6">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="stylesheet" href="fonts/fonts-local.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; background: #8ec9ee;
+    font-family: 'Nunito', system-ui, -apple-system, sans-serif; color: #1c2b3a; }
+  #scene { position: fixed; inset: 0; }
+  #scene canvas { display: block; touch-action: none; }
+
+  .hud { position: fixed; z-index: 10; }
+  #topbar { top: 0; left: 0; right: 0; display: flex; align-items: flex-start;
+    justify-content: space-between; gap: 8px; padding: 10px 12px;
+    background: linear-gradient(rgba(20,60,110,.55), rgba(20,60,110,0)); pointer-events: none; }
+  #topbar > * { pointer-events: auto; }
+  #hud-title h1 { font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 20px; line-height: 1.1;
+    color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,.45); white-space: nowrap; }
+  #hud-title p { font-size: 12px; font-weight: 800; color: #FFE9A8;
+    text-shadow: 0 1px 4px rgba(0,0,0,.5); margin-top: 2px; white-space: nowrap; }
+  #topbtns { display: flex; flex-direction: row; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+  .pillbtn { font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 13px; font-weight: 700;
+    border: none; border-radius: 999px; padding: 7px 12px; cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,.3); white-space: nowrap; }
+  #backLink { background: #fff; color: #1B5FA8; text-decoration: none; display: inline-block; }
+  #misiBtn, #ktaBtn { background: rgba(255,255,255,.75); color: #5a6b7d; cursor: default; }
+
+  #namebar { top: 74px; left: 12px; right: 12px; display: flex; gap: 8px; max-width: 480px; }
+  #nameInput { flex: 1; min-width: 0; font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 700;
+    padding: 11px 14px; border: 2px solid #fff; border-radius: 14px; outline: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,.3); color: #1c2b3a; }
+  #nameInput:focus { border-color: #FFD11A; }
+  #nameBtn { font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 15px; font-weight: 800;
+    background: #FFD11A; color: #4a3400; border: none; border-radius: 14px; padding: 11px 16px;
+    cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.3); white-space: nowrap; }
+  #nameBtn:active { transform: scale(.97); }
+
+  /* (Ronde 10b: #genderRow pindah ke dalam overlay masuk — bukan lagi
+     elemen HUD; posisinya diatur #entryOverlay #genderRow.) */
+  .gbtn { font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 13px; font-weight: 800;
+    background: rgba(255,255,255,.85); color: #5a6b7d; border: 2px solid #fff; border-radius: 999px;
+    padding: 6px 12px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,.3); white-space: nowrap; }
+  .gbtn.active { background: #2E7FD6; color: #fff; border-color: #2E7FD6; }
+  .gbtn:active { transform: scale(.97); }
+
+  /* Layar masuk (Ronde 10b — MULTIPLAYER-SPEC §4): overlay di atas dunia,
+     nama + gender dipilih SEBELUM masuk dan TERKUNCI selama di dalam game
+     (syarat multiplayer: identitas pemain lain harus stabil). */
+  #entryOverlay { position: fixed; inset: 0; z-index: 40; display: none;
+    align-items: center; justify-content: center; padding: 16px;
+    background: rgba(10, 30, 60, .55); }
+  #entryOverlay.open { display: flex; }
+  #entryCard { width: 100%; max-width: 420px; background: #fff; border-radius: 20px;
+    padding: 20px 18px; box-shadow: 0 10px 40px rgba(0,0,0,.45); text-align: center; }
+  #entryCard h1 { font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 22px; color: #1B5FA8; }
+  #entryCard .entry-sub { font-size: 14px; font-weight: 700; color: #33475c; margin: 6px 0 14px; }
+  #entryName { width: 100%; font-family: 'Nunito', sans-serif; font-size: 16px; font-weight: 700;
+    padding: 12px 14px; border: 2px solid #cfe0f2; border-radius: 14px; outline: none; color: #1c2b3a; }
+  #entryName:focus { border-color: #FFD11A; }
+  /* #genderRow tinggal di dalam kartu masuk (bukan lagi HUD): posisi
+     statis di alur kartu, bukan fixed di layar. */
+  #entryOverlay #genderRow { position: static; display: flex; gap: 8px; justify-content: center; margin: 12px 0; }
+  #entryOverlay #genderRow .gbtn { font-size: 15px; padding: 9px 16px; }
+  #entryBtn { font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 17px; font-weight: 800;
+    background: #FFD11A; color: #4a3400; border: none; border-radius: 14px;
+    padding: 12px 20px; width: 100%; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.3); }
+  #entryBtn:active { transform: scale(.98); }
+  #entryCard .entry-note { font-size: 12px; font-weight: 700; color: #5a6b7d; margin-top: 12px; line-height: 1.45; }
+  /* label identitas read-only di topbar (terkunci selama di dalam game) */
+  #whoami { font-size: 12px; font-weight: 800; color: #fff;
+    text-shadow: 0 1px 4px rgba(0,0,0,.5); margin-top: 2px; white-space: nowrap; }
+  #whoami:empty { display: none; }
+  #exitBtn { background: #fff; color: #1B5FA8; }
+  /* Multiplayer v1 — pil status (§1.3): 🟢/🟡/⚪, ketuk = coba lagi. */
+  #mpPill { background: rgba(255,255,255,.9); color: #1B5FA8; }
+
+  /* joystick MENGAMBANG ala Mobile Legends (Ronde 9): tidak ada posisi
+     tetap — alas 120px MUNCUL di titik sentuh kiri layar, hilang saat
+     lepas. Posisi diatur via JS (style.left/top); display none = tidak
+     menghalangi sentuhan (pointer-events none, semua sentuhan ke kanvas). */
+  #joy { display: none; left: 0; top: 0; width: 120px; height: 120px; border-radius: 50%;
+    background: rgba(255,255,255,.25); border: 2px solid rgba(255,255,255,.7);
+    box-shadow: 0 3px 8px rgba(0,0,0,.3); touch-action: none;
+    user-select: none; -webkit-user-select: none; pointer-events: none; }
+  #joyKnob { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px;
+    border-radius: 50%; background: rgba(255,255,255,.9); border: 2px solid #fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,.35); transform: translate(-50%, -50%);
+    pointer-events: none; }
+
+  #roomCard { left: 12px; right: 12px; bottom: 12px; max-width: 480px; margin: 0 auto;
+    background: #fff; border-radius: 18px; padding: 12px 14px 14px;
+    box-shadow: 0 6px 24px rgba(0,0,0,.35); display: none; max-height: 240px; overflow-y: auto;
+    transform: translateZ(0); }
+  #roomCard.open { display: block; }
+  /* Ronde 10a — kartu jangan menutupi avatar di tengah layar: di desktop
+     kartu berlabuh di kanan bawah (avatar di tengah layar tetap keliatan);
+     di HP tetap lembar bawah tapi bisa diciutkan jadi judul saja. */
+  @media (min-width: 421px) {
+    #roomCard { left: auto; right: 12px; bottom: 12px; width: 340px; max-width: calc(100vw - 24px); margin: 0; }
+  }
+  #roomCard.min #cardBody, #roomCard.min #cardActions { display: none; }
+  #roomCard.min { padding-bottom: 10px; }
+  #roomCard h2 { font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 18px; color: #1B5FA8;
+    margin-bottom: 4px; padding-right: 76px; }
+  #roomCard p { font-size: 14px; line-height: 1.45; font-weight: 700; color: #33475c; }
+  #roomCard .stamp { display: inline-block; margin-top: 8px; font-family: 'Baloo 2', sans-serif;
+    font-size: 12px; font-weight: 800; letter-spacing: 1px; color: #b3261e;
+    border: 2px solid #b3261e; border-radius: 6px; padding: 2px 8px; transform: rotate(-2deg); }
+  #roomCard .cardid { font-family: 'Baloo 2', sans-serif; font-size: 15px; color: #1B5FA8; }
+  #roomCard .actions { display: flex; gap: 8px; margin-top: 10px; }
+  #roomCard .actions button { font-family: 'Baloo 2', sans-serif; font-size: 14px; font-weight: 800;
+    border: none; border-radius: 12px; padding: 9px 14px; cursor: pointer; }
+  #goRoomBtn { background: #2E7FD6; color: #fff; }
+  #cardClose { position: absolute; top: 8px; right: 10px; width: 30px; height: 30px;
+    border: none; border-radius: 50%; background: #eef2f6; color: #33475c;
+    font-size: 16px; font-weight: 900; cursor: pointer; }
+  #cardToggle { position: absolute; top: 8px; right: 46px; width: 30px; height: 30px;
+    border: none; border-radius: 50%; background: #eef2f6; color: #33475c;
+    font-size: 14px; font-weight: 900; cursor: pointer; }
+  #roomCard { position: fixed; }
+  /* (Ronde 9: aturan card-open #joy DICABUT — joystick mengambang muncul
+     di titik sentuh, tidak perlu digeser saat kartu terbuka.) */
+
+  /* Ronde 10a — hint boleh membungkus (teks panjang terpotong di viewport
+     sempit kalau nowrap) + jarak aman dari tepi bawah (safe-area iPhone). */
+  #hint { left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+    max-width: calc(100vw - 24px); font-size: 12px; font-weight: 800; line-height: 1.45;
+    color: #fff; background: rgba(20,60,110,.55); padding: 6px 12px; border-radius: 999px;
+    white-space: normal; text-align: center; pointer-events: none; }
+  body.card-open #hint { display: none; }
+  @media (max-width: 420px) {
+    /* topbar jadi 2 baris: judul di atas, 3 pil sebaris di bawah (bukan kolom) */
+    #topbar { flex-direction: column; align-items: stretch; gap: 6px; padding: 8px 12px; }
+    #hud-title h1 { font-size: 16px; }
+    #hud-title p { font-size: 11px; }
+    #topbtns { justify-content: flex-start; }
+    .pillbtn { font-size: 12px; padding: 6px 10px; }
+    /* namebar di bawah topbar (topbar mobile ~81px) */
+    #namebar { top: 88px; }
+    #nameBtn { font-size: 14px; padding: 11px 13px; }
+    /* hint naik ke atas joystick + boleh 2 baris (teks panjang) */
+    #hint { bottom: calc(148px + env(safe-area-inset-bottom, 0px)); max-width: calc(100vw - 24px); white-space: normal;
+      text-align: center; line-height: 1.45; font-size: 11px; }
+    /* kartu lebih ramping di HP (tombol ciutkan tetap tersedia) */
+    #roomCard { max-height: 200px; }
+  }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three/three.module.js"
+  }
+}
+</script>
+</head>
+<body>
+
+<div id="scene"></div>
+
+<div class="hud" id="topbar">
+  <div id="hud-title">
+    <h1>🏠 Kosan Ibu Kos — Jalan-jalan</h1>
+    <p id="roomCount">10 kamar · 10 kosong</p>
+    <p id="whoami"></p>
+  </div>
+  <div id="topbtns">
+    <a id="backLink" class="pillbtn" href="index.html">← Web Utama</a>
+    <button id="misiBtn" class="pillbtn" type="button" disabled title="Segera hadir">🎯 Misi</button>
+    <button id="ktaBtn" class="pillbtn" type="button" disabled title="Segera hadir">🪪 KTA</button>
+    <button id="exitBtn" class="pillbtn" type="button" style="display:none">🚪 Keluar</button>
+    <button id="changeCharBtn" class="pillbtn" type="button" style="display:none">👤 Ganti karakter</button>
+    <button id="mpPill" class="pillbtn" type="button" title="Status multiplayer — ketuk untuk coba lagi">⚪ Sendiri</button>
+  </div>
+</div>
+
+<div class="hud" id="namebar">
+  <input id="nameInput" type="text" placeholder="Ketik namamu…" maxlength="40" autocomplete="off">
+  <button id="nameBtn" type="button">Cari kamarku</button>
+</div>
+
+<div class="hud" id="joy" aria-label="Joystick jalan">
+  <div id="joyKnob"></div>
+</div>
+
+<div class="hud" id="hint">Sentuh kiri layar buat jalan · seret kanan putar kamera · cubit buat zoom · ketuk pintu kamar</div>
+
+<div id="roomCard">
+  <button id="cardToggle" type="button" aria-label="Ciutkan">▾</button>
+  <button id="cardClose" type="button" aria-label="Tutup">✕</button>
+  <h2 id="cardTitle"></h2>
+  <div id="cardBody"></div>
+  <div class="actions" id="cardActions"></div>
+</div>
+
+<!-- Layar masuk (Ronde 10b): nama + gender dipilih di sini SEBELUM masuk
+     dunia dan terkunci di dalam game. #genderRow pindah ke sini dari HUD
+     (bukan lagi toggle gonta-ganti di dalam game). -->
+<div id="entryOverlay">
+  <div id="entryCard">
+    <h1>🏠 Kosan Ibu Kos</h1>
+    <p class="entry-sub">Ketik namamu, pilih karakter, lalu masuk.</p>
+    <input id="entryName" type="text" placeholder="Ketik namamu…" maxlength="40" autocomplete="off">
+    <div id="genderRow">
+      <button id="genderF" class="gbtn" type="button">👧 Cewek</button>
+      <button id="genderM" class="gbtn" type="button">👦 Cowok</button>
+    </div>
+    <button id="entryBtn" type="button">Masuk Kosan</button>
+    <p class="entry-note">Nama &amp; gender dikunci selama di dalam — keluar dulu untuk ganti.</p>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+
+/* ==== PURE-START ==== */
+/* Kebenaran kamar — disalin PERSIS dari web/app.js (baris 64-103).
+   Jangan diubah: nama yang sama harus selalu dapat kamar + ID yang sama
+   seperti di web utama. RESIDENTS kosong = semua kamar "Masih kosong". */
+var RESIDENTS = {};
+
+function normalize(nama) {
+  return nama.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+function roomFor(nama) {
+  var s = normalize(nama), h = 0x811c9dc5;
+  for (var i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return (h % 10) + 1;
+}
+function makeId(nama, room) {
+  var clean = normalize(nama).replace(/[^a-z0-9]/g, '').slice(0, 4).toUpperCase();
+  while (clean.length < 4) clean += 'X';
+  return 'KOSAN-' + String(room).padStart(2, '0') + '-' + clean;
+}
+function previewFor(nama) {
+  var key = normalize(nama);
+  for (var n = 1; n <= 10; n++) {
+    if (RESIDENTS[n] && normalize(RESIDENTS[n]) === key) {
+      return { room: n, resident: true, moved: false };
+    }
+  }
+  var hashRoom = roomFor(nama);
+  if (!RESIDENTS[hashRoom]) {
+    return { room: hashRoom, resident: false, moved: false };
+  }
+  for (var i = 1; i <= 10; i++) {
+    if (!RESIDENTS[i]) {
+      return { room: i, resident: false, moved: true, hashRoom: hashRoom };
+    }
+  }
+  return null; /* kosan penuh */
+}
+
+/* Batas jalan avatar (halaman berpagar) + tabrakan gedung/meja.
+   Murni matematika — bisa diuji di node tanpa WebGL. */
+var YARD = { minX: -19, maxX: 19, minZ: -17, maxZ: 17 };
+var BUILDING = { minX: -12.4, maxX: 12.4, minZ: -14.4, maxZ: -5.4 };
+var TABLE_BOX = { minX: 15.2, maxX: 16.8, minZ: -2.8, maxZ: -1.2 };
+
+function collideBuilding(x, z) {
+  var r = 0.4;
+  var bx0 = BUILDING.minX - r, bx1 = BUILDING.maxX + r;
+  var bz0 = BUILDING.minZ - r, bz1 = BUILDING.maxZ + r;
+  if (x > bx0 && x < bx1 && z > bz0 && z < bz1) {
+    var dxl = x - bx0, dxr = bx1 - x, dzl = z - bz0, dzr = bz1 - z;
+    var m = Math.min(dxl, dxr, dzl, dzr);
+    if (m === dxl) x = bx0; else if (m === dxr) x = bx1;
+    else if (m === dzl) z = bz0; else z = bz1;
+  }
+  return { x: x, z: z };
+}
+/* ---------- kontrol + kamera ala open-world-fantasy ----------
+   Di-port VERBATIM dari ~/workspace/open-world-fantasy/js/controls.js
+   (fungsi murni) + js/main.js (wiring) + js/config.js (SPEED/CAMERA).
+   Ronde 7: menggantikan TOTAL skema ronde 4-6 (D-pad -> joystick
+   avatar-relative -> joystick camera-relative + rotateCamera). Ketiga
+   skema itu semuanya ditolak pemilik ("aneh banget kontrolnya"); skema
+   fantasy ini yang sudah dia suka dan terbukti nyaman di HP-nya.
+   Yang TIDAK di-port dan kenapa:
+   - isTap: hanya untuk tombol yang berbagi layar dengan drag (tombol
+     lompat fantasy). Ketuk pintu/teras/Ibu Kosan pakai handler sendiri
+     (gerak<=10px + durasi<=1000ms, sudah lolos) — JANGAN disentuh.
+   - stepVertical/resolveVertical/easeToward/collidesAt: gravitasi,
+     lompat, air, dan tabrakan medan fantasy. Kosan: tanah datar y=0,
+     tanpa lompat/air; tabrakan gedung/meja tetap pakai collideBuilding
+     + TABLE_BOX Kosan (diterapkan axis-separated di animate).
+   - groundHeight: tanah Kosan datar (0) — cameraPos memakai lantai
+     minimum kamera 0,5 m. */
+var SPEED = { walk: 4, run: 7 }; /* fantasy config.js */
+var KOSAN_CAM = { dist: 9.5, min: 3, max: 12 }; /* dist awal 9,5 (framing spawn), zoom 3-12 ala fantasy */
+
+function clampJoystick(dx, dy) {
+  var mag = Math.hypot(dx, dy);
+  if (mag <= 1) return { x: dx, y: dy };
+  return { x: dx / mag, y: dy / mag };
+}
+
+/* Deadzone dengan histeresis (fantasy controls.js): mulai bergerak
+   lewat 0,15, berhenti hanya di bawah 0,08 — getar jempol di dekat
+   tepi stick tidak membuat karakter kejang (nyala-mati tiap frame). */
+function deadzoneLatch(rawMag, wasMoving) {
+  if (wasMoving) {
+    if (rawMag < 0.08) return { mag: 0, moving: false };
+    return { mag: rawMag, moving: true };
+  }
+  if (rawMag < 0.15) return { mag: 0, moving: false };
+  return { mag: rawMag, moving: true };
+}
+
+/* Belok jalur terpendek (fantasy turnToward): current menuju target
+   sejauh fraksi alpha, lewat sambungan ±PI yang pendek. */
+function turnToward(current, target, alpha) {
+  var a = Math.min(1, Math.max(0, alpha));
+  var d = target - current;
+  d = Math.atan2(Math.sin(d), Math.cos(d));
+  return current + d * a;
+}
+
+/* Arah gerak camera-relative (fantasy moveVector): joystick atas
+   (y = -1) = maju menjauhi kamera. Mengembalikan vektor satuan. */
+function moveVector(joy, camYaw) {
+  var mag = Math.hypot(joy.x, joy.y);
+  if (mag < 1e-6) return { x: 0, z: 0 };
+  var fx = -Math.sin(camYaw);
+  var fz = -Math.cos(camYaw);
+  var rx = Math.cos(camYaw);
+  var rz = -Math.sin(camYaw);
+  var mx = rx * joy.x + fx * -joy.y;
+  var mz = rz * joy.x + fz * -joy.y;
+  var m = Math.hypot(mx, mz) || 1;
+  return { x: mx / m, z: mz / m };
+}
+
+/* Jepit pitch kamera (fantasy clampCamera): [-0,15, 1,1] radian. */
+function clampCamera(pitch) {
+  return Math.min(1.1, Math.max(-0.15, pitch));
+}
+
+/* Posisi kamera orbit (fantasy cameraPos): dist meter dari target pada
+   yaw/pitch orbit, tidak di bawah 0,5 m dari tanah (tanah Kosan datar).
+   Target Kosan = posisi avatar (y=0); +1,2 m di rumus = tinggi kamera
+   di atas target, dan lookAt memakai target.y+1,5 (lihat animate). */
+function cameraPos(target, yaw, pitch, dist) {
+  var hDist = dist * Math.cos(pitch);
+  var x = target.x + Math.sin(yaw) * hDist;
+  var z = target.z + Math.cos(yaw) * hDist;
+  var y = Math.max(target.y + Math.sin(pitch) * dist + 1.2, 0.5);
+  return { x: x, y: y, z: z };
+}
+
+/* Zoom cubit: jari merenggang (d1 > d0) = mendekat (fantasy zoomByPinch). */
+function zoomByPinch(dist, d0, d1) {
+  if (d1 <= 0) return dist;
+  return Math.max(KOSAN_CAM.min, Math.min(KOSAN_CAM.max, dist * (d0 / d1)));
+}
+
+/* Zoom roda gulir: gulir ke atas (deltaY negatif) = mendekat. */
+function zoomByWheel(dist, deltaY) {
+  return Math.max(KOSAN_CAM.min, Math.min(KOSAN_CAM.max, dist * (1 + deltaY * 0.001)));
+}
+
+/* ==== PURE-END ==== */
+
+/* ==== MP-PURE-START ==== */
+/* Multiplayer v1 — fungsi MURNI (MULTIPLAYER-SPEC §2, §3, §8).
+   Tanpa THREE / DOM / MQTT: bisa diekstrak verbatim ke harness node.
+   Memakai YARD dari blok PURE (batas validasi §2.7). */
+var BROKERS = ['wss://broker.emqx.io:8084/mqtt', 'wss://broker.hivemq.com:8884/mqtt'];
+var MP_TOPICS = { pos: 'kosan-ibu-kos/v1/pos', presence: 'kosan-ibu-kos/v1/presence/' };
+var MP_RATE_MS = 100; /* publish pos maks tiap 100 ms (~10 Hz saat bergerak) */
+var MP_HEARTBEAT_MS = 3000; /* heartbeat pos saat diam */
+var MP_PRESENCE_MS = 30000; /* presence retained ditulis ulang tiap 30 dtk */
+var MP_TIMEOUT_MS = 5000; /* tak ada kabar 5 dtk -> hapus pemain */
+var MP_MAX_RENDER = 20; /* maks avatar remote dirender */
+var MP_MAX_ROSTER = 50; /* maks entri pemain lain disimpan */
+
+function mpRealmDikenal(realm) {
+  if (realm === 'yard' || realm === 'living') return realm;
+  if (typeof realm === 'string' && /^room-(?:[1-9]|10)$/.test(realm)) return realm;
+  return 'yard'; /* realm tak dikenal -> perlakukan sebagai yard (§2.7) */
+}
+function mpBangunPos(id, nama, gender, realm, x, z, rot, gerak, ts) {
+  return { id: id, nama: (nama || '').trim().slice(0, 40) || 'Pemain', gender: gender,
+    realm: mpRealmDikenal(realm), x: x, z: z,
+    rot: Math.atan2(Math.sin(rot), Math.cos(rot)),
+    gerak: Math.max(0, Math.min(1, gerak)), ts: ts };
+}
+function mpBangunPresence(id, nama, gender, realm, ts) {
+  return { id: id, nama: (nama || '').trim().slice(0, 40) || 'Pemain', gender: gender,
+    realm: mpRealmDikenal(realm), ts: ts };
+}
+function mpPesanPergi(id) { /* keluar bersih (§4.4): presence '' retained */
+  return { topic: MP_TOPICS.presence + id, payload: '', retain: true };
+}
+function mpValidasiPos(m, selfId) {
+  if (!m || typeof m !== 'object') return null;
+  if (typeof m.id !== 'string' || !m.id || m.id === selfId) return null;
+  if (typeof m.x !== 'number' || !isFinite(m.x) || m.x < YARD.minX - 1 || m.x > YARD.maxX + 1) return null;
+  if (typeof m.z !== 'number' || !isFinite(m.z) || m.z < YARD.minZ - 1 || m.z > YARD.maxZ + 1) return null;
+  if (typeof m.rot !== 'number' || !isFinite(m.rot)) return null;
+  if (typeof m.gerak !== 'number' || !isFinite(m.gerak) || m.gerak < 0 || m.gerak > 1) return null;
+  if (m.gender !== 'cewek' && m.gender !== 'cowok') return null;
+  var nama = (typeof m.nama === 'string' ? m.nama.trim().slice(0, 40) : '') || 'Pemain';
+  return { id: m.id, nama: nama, gender: m.gender,
+    realm: mpRealmDikenal(typeof m.realm === 'string' ? m.realm : 'yard'),
+    x: m.x, z: m.z, rot: Math.atan2(Math.sin(m.rot), Math.cos(m.rot)), gerak: m.gerak,
+    ts: (typeof m.ts === 'number' ? m.ts : 0) };
+}
+function mpValidasiPresence(m, selfId) {
+  if (!m || typeof m !== 'object') return null;
+  if (typeof m.id !== 'string' || !m.id || m.id === selfId) return null;
+  if (m.gender !== 'cewek' && m.gender !== 'cowok') return null;
+  var nama = (typeof m.nama === 'string' ? m.nama.trim().slice(0, 40) : '') || 'Pemain';
+  return { id: m.id, nama: nama, gender: m.gender,
+    realm: mpRealmDikenal(typeof m.realm === 'string' ? m.realm : 'yard'),
+    ts: (typeof m.ts === 'number' ? m.ts : 0) };
+}
+function mpProsesPesan(topik, teks, selfId) {
+  if (typeof topik !== 'string') return null;
+  var isPos = (topik === MP_TOPICS.pos);
+  var isPresence = (topik.indexOf(MP_TOPICS.presence) === 0);
+  if (!isPos && !isPresence) return null;
+  if (isPresence && teks === '') {
+    var idPergi = topik.slice(MP_TOPICS.presence.length);
+    if (!idPergi || idPergi === selfId) return null;
+    return { kind: 'hapus', id: idPergi };
+  }
+  var m;
+  try { m = JSON.parse(teks); } catch (e) { return null; }
+  if (isPos) {
+    var p = mpValidasiPos(m, selfId);
+    return p ? { kind: 'pos', msg: p } : null;
+  }
+  var pr = mpValidasiPresence(m, selfId);
+  return pr ? { kind: 'presence', msg: pr } : null;
+}
+function mpHashFase(id) { /* offset fase ayunan 0..2π, turunan dari id (§3.4) */
+  var h = 0;
+  for (var i = 0; i < id.length; i++) h = (Math.imul(h, 31) + id.charCodeAt(i)) >>> 0;
+  return (h % 628) / 100;
+}
+function mpBungkusSudut(beda) { /* bungkus beda hadap ke [-PI, PI] (§3.3) */
+  while (beda > Math.PI) beda -= Math.PI * 2;
+  while (beda < -Math.PI) beda += Math.PI * 2;
+  return beda;
+}
+function mpLerpSatu(nilai, target, dt) { /* lerp eksponensial 1-exp(-12*dt) (§3.3) */
+  return nilai + (target - nilai) * (1 - Math.exp(-12 * dt));
+}
+function mpHarusPublish(lastSent, now, bergerak) { /* rate publish (§2.4) */
+  if (now - lastSent < MP_RATE_MS) return false;
+  return bergerak || (now - lastSent >= MP_HEARTBEAT_MS);
+}
+function mpSweeperTick(entries, now) { /* id yang tak ada kabar > 5 dtk (§2.5) */
+  var out = [];
+  for (var id in entries) {
+    var e = entries[id];
+    if (e.bot) continue; /* bot tes ?bot=N tidak pernah timeout */
+    if (now - e.lastSeen > MP_TIMEOUT_MS) out.push(id);
+  }
+  return out;
+}
+function mpPilihBuang(entries, maxN) { /* roster > 50: buang lastSeen tertua (§2.7) */
+  var ids = Object.keys(entries);
+  if (ids.length <= maxN) return [];
+  ids.sort(function (a, b) { return (entries[a].lastSeen || 0) - (entries[b].lastSeen || 0); });
+  return ids.slice(0, ids.length - maxN);
+}
+function mpHitungDuplikat(entries) { /* label akhiran · #XXXX (§2.6) */
+  /* Dihitung PER ALAM: dua nama sama di alam berbeda tidak pernah tampil
+     bersama di satu layar, jadi tidak perlu akhiran. */
+  var hitung = {};
+  for (var id in entries) {
+    var e = entries[id];
+    var k = e.realm + '\n' + String(e.nama || '').trim().toLowerCase();
+    hitung[k] = (hitung[k] || 0) + 1;
+  }
+  var out = {};
+  for (var id2 in entries) {
+    var e2 = entries[id2];
+    var k2 = e2.realm + '\n' + String(e2.nama || '').trim().toLowerCase();
+    out[id2] = hitung[k2] > 1 ? (e2.nama + ' · #' + id2.slice(0, 4)) : e2.nama;
+  }
+  return out;
+}
+function mpPilihRender(entries, myX, myZ, myRealm, maxN) { /* 20 terdekat di realm sama (§3.5) */
+  var arr = [];
+  for (var id in entries) {
+    var e = entries[id];
+    if (e.realm !== myRealm) continue;
+    var dx = e.tx - myX, dz = e.tz - myZ;
+    arr.push({ id: id, d: dx * dx + dz * dz });
+  }
+  arr.sort(function (a, b) { return a.d - b.d; });
+  var out = [];
+  for (var i = 0; i < arr.length && i < maxN; i++) out.push(arr[i].id);
+  return out;
+}
+function mpTeksStatus(status, n) { /* teks pil status (§1.3) */
+  if (status === 'on') return n > 0 ? ('🟢 ' + n + ' pemain di sini') : '🟢 Tersambung';
+  if (status === 'connecting') return '🟡 Menghubungkan…';
+  return '⚪ Sendiri — ketuk untuk coba lagi';
+}
+/* ==== MP-PURE-END ==== */
+
+/* ---------- util ---------- */
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+function textTexture(text, opt) {
+  opt = opt || {};
+  var w = opt.w || 512, h = opt.h || 128;
+  var cv = document.createElement('canvas');
+  cv.width = w; cv.height = h;
+  var ctx = cv.getContext('2d');
+  function draw() {
+    ctx.clearRect(0, 0, w, h);
+    if (opt.bg) { ctx.fillStyle = opt.bg; ctx.fillRect(0, 0, w, h); }
+    if (opt.circle) {
+      ctx.fillStyle = opt.circle;
+      ctx.beginPath(); ctx.arc(w / 2, h / 2, Math.min(w, h) / 2 - 6, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.font = (opt.weight || 800) + ' ' + (opt.size || 64) + 'px "Baloo 2", "Nunito", sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    if (opt.stroke) { ctx.lineWidth = opt.strokeWidth || 10; ctx.strokeStyle = opt.stroke; ctx.strokeText(text, w / 2, h / 2 + 2); }
+    ctx.fillStyle = opt.color || '#fff';
+    ctx.fillText(text, w / 2, h / 2 + 2);
+  }
+  draw();
+  var tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  /* gambar ulang di canvas yang sama (dipakai papan setelah font web siap) */
+  tex.userData.redraw = function () { draw(); tex.needsUpdate = true; };
+  return tex;
+}
+
+/* ---------- renderer / scene / kamera ---------- */
+var container = document.getElementById('scene');
+var renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+container.appendChild(renderer.domElement);
+
+var scene = new THREE.Scene();
+scene.background = new THREE.Color(0x8ec9ee);
+scene.fog = new THREE.Fog(0x8ec9ee, 55, 110);
+
+/* ---------- kamera orbit ala open-world-fantasy (OrbitControls DICABUT
+   ronde 7 — vendor/three/OrbitControls.js tidak terpakai lagi) ----------
+   State: camYaw (azimuth), camPitch (ketinggian), camDist (jarak zoom),
+   camTarget (titik yang diikuti = posisi avatar). Nilai awal mereproduksi
+   framing spawn lama — dicek hitungannya: camTarget (0,0,12),
+   camYaw 0, camPitch 0,35, camDist 9,5 ->
+   hDist = 9,5*cos(0,35) = 8,92; kamera (0, 0+sin(0,35)*9,5+1,2, 12+8,92)
+   = (0, 4,46, 20,92) ≈ (0, 4,5, 21) lama; lookAt (0, 1,5, 12) ≈ target
+   lama (0, 1,2, 12). */
+var camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 200);
+camera.position.set(0, 4.5, 21);
+var camYaw = 0, camPitch = 0.25, camDist = KOSAN_CAM.dist; /* Ronde 10d: pitch 0,35 -> sudut atas papan KOSAN DIBUKA 29,3 deg > setengah-FOV 27,5 (terpotong di tepi atas layar spawn); 0,25 -> 25,2 deg, muat */
+var camTarget = new THREE.Vector3(0, 0, 12);
+
+/* ---------- cahaya siang ---------- */
+var sun = new THREE.DirectionalLight(0xfff2d9, 2.0);
+sun.position.set(18, 30, 14);
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.camera.left = -30; sun.shadow.camera.right = 30;
+sun.shadow.camera.top = 30; sun.shadow.camera.bottom = -30;
+sun.shadow.camera.far = 90;
+sun.shadow.bias = -0.0005;
+scene.add(sun);
+scene.add(new THREE.HemisphereLight(0xbfe3ff, 0x8fbf6a, 1.0));
+
+/* ---------- material dipakai ulang ---------- */
+var M = {
+  blueWall: new THREE.MeshLambertMaterial({ color: 0x2e8fe0 }),
+  blueDark: new THREE.MeshLambertMaterial({ color: 0x1b5fa8 }),
+  white: new THREE.MeshLambertMaterial({ color: 0xffffff }),
+  trim: new THREE.MeshLambertMaterial({ color: 0xf4f8ff }),
+  roof: new THREE.MeshLambertMaterial({ color: 0x8d9aa8 }),
+  glass: new THREE.MeshBasicMaterial({ color: 0xfff3c4 }),
+  ground: new THREE.MeshLambertMaterial({ color: 0x69b85e }),
+  path: new THREE.MeshLambertMaterial({ color: 0xd8d3c8 }),
+  fence: new THREE.MeshLambertMaterial({ color: 0xffffff }),
+  trunk: new THREE.MeshLambertMaterial({ color: 0x8a5a33 }),
+  leaf: new THREE.MeshLambertMaterial({ color: 0x3f9e4d }),
+  leaf2: new THREE.MeshLambertMaterial({ color: 0x57b368 }),
+  wood: new THREE.MeshLambertMaterial({ color: 0xa9743f }),
+  woodDark: new THREE.MeshLambertMaterial({ color: 0x7c5227 }),
+  skin: new THREE.MeshLambertMaterial({ color: 0xf2c89b }),
+  shirtRed: new THREE.MeshLambertMaterial({ color: 0xe14b4b }),
+  pantsGrey: new THREE.MeshLambertMaterial({ color: 0x8d9aa8 }),
+  capBlue: new THREE.MeshLambertMaterial({ color: 0x2e7fd6 }),
+  /* --- palet karakter "anak kos" (desain sendiri, Ronde 8) --- */
+  teeCream: new THREE.MeshLambertMaterial({ color: 0xf6ce7d }),
+  teeTeal: new THREE.MeshLambertMaterial({ color: 0x2a9d8f }),
+  shortsKhaki: new THREE.MeshLambertMaterial({ color: 0xd9c08a }),
+  shoeWhite: new THREE.MeshLambertMaterial({ color: 0xf7f9fc }),
+  skinBebaz: new THREE.MeshLambertMaterial({ color: 0xe0a97e }),
+  eyeDark: new THREE.MeshBasicMaterial({ color: 0x141414 }),
+  cheekPink: new THREE.MeshBasicMaterial({ color: 0xf28b82, transparent: true, opacity: 0.55 }),
+  smileBrown: new THREE.MeshLambertMaterial({ color: 0x5a2e22 }),
+  dressBlue: new THREE.MeshLambertMaterial({ color: 0x2e7fd6 }),
+  apron: new THREE.MeshLambertMaterial({ color: 0xff8c2e }),
+  hairDark: new THREE.MeshLambertMaterial({ color: 0x3a2a1e }),
+  hairGrey: new THREE.MeshLambertMaterial({ color: 0xd8d8d8 }),
+  routerWhite: new THREE.MeshLambertMaterial({ color: 0xf2f4f6 }),
+  ledGreen: new THREE.MeshBasicMaterial({ color: 0x2ecc40 }),
+  rug: new THREE.MeshLambertMaterial({ color: 0xd95f4b }),
+  cushion: new THREE.MeshLambertMaterial({ color: 0xffd11a }),
+  cushion2: new THREE.MeshLambertMaterial({ color: 0x2ecc71 }),
+  /* --- interior ruang tamu (Ronde 10b, "beda alam") --- */
+  wallCream: new THREE.MeshLambertMaterial({ color: 0xf3e5c8 }),
+  ceilCream: new THREE.MeshLambertMaterial({ color: 0xe8dcc0 }),
+  floorWood: new THREE.MeshLambertMaterial({ color: 0xc9a06a }),
+  cloud: new THREE.MeshLambertMaterial({ color: 0xffffff }),
+  signBg: new THREE.MeshLambertMaterial({ color: 0x1b4f8a })
+};
+var GEO = {
+  box: new THREE.BoxGeometry(1, 1, 1),
+  sphere: new THREE.SphereGeometry(1, 20, 14),
+  cyl: new THREE.CylinderGeometry(1, 1, 1, 12),
+  capsule: new THREE.CapsuleGeometry(1, 1, 4, 10)
+};
+function box(mat, sx, sy, sz, x, y, z, parent) {
+  var m = new THREE.Mesh(GEO.box, mat);
+  m.scale.set(sx, sy, sz); m.position.set(x, y, z);
+  m.castShadow = true; m.receiveShadow = true;
+  (parent || scene).add(m);
+  return m;
+}
+function ball(mat, r, x, y, z, parent, sx, sy, sz) {
+  var m = new THREE.Mesh(GEO.sphere, mat);
+  m.scale.set(r * (sx || 1), r * (sy || 1), r * (sz || 1));
+  m.position.set(x, y, z);
+  m.castShadow = true;
+  (parent || scene).add(m);
+  return m;
+}
+function cyl(mat, rt, rb, h, x, y, z, parent) {
+  var m = new THREE.Mesh(GEO.cyl, mat);
+  m.scale.set(rt, h, rb);
+  m.position.set(x, y, z);
+  m.castShadow = true;
+  (parent || scene).add(m);
+  return m;
+}
+
+/* ---------- dunia ---------- */
+var ROOM_DOORS = {};   /* n -> { mesh, pos } */
+var clickables = [];   /* mesh dengan userData.card */
+var LIVING_POS = new THREE.Vector3(16, 0.5, -2);
+
+function buildWorld() {
+  /* tanah + jalan setapak */
+  var ground = new THREE.Mesh(new THREE.PlaneGeometry(140, 140), M.ground);
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  scene.add(ground);
+  var path = box(M.path, 2.4, 0.06, 24, 0, 0.03, 6);
+  path.receiveShadow = true;
+
+  /* pagar keliling (celah gerbang di selatan) */
+  function fenceRun(x0, z0, x1, z1) {
+    var len = Math.hypot(x1 - x0, z1 - z0);
+    var m = box(M.fence, len, 0.9, 0.15, (x0 + x1) / 2, 0.45, (z0 + z1) / 2);
+    m.rotation.y = -Math.atan2(z1 - z0, x1 - x0);
+    return m;
+  }
+  fenceRun(-20, -18, 20, -18);
+  fenceRun(-20, -18, -20, 18);
+  fenceRun(20, -18, 20, 18);
+  fenceRun(-20, 18, -1.6, 18);
+  fenceRun(1.6, 18, 20, 18);
+  box(M.fence, 0.3, 1.5, 0.3, -1.6, 0.75, 18);
+  box(M.fence, 0.3, 1.5, 0.3, 1.6, 0.75, 18);
+
+  /* ---- gedung kosan: biru terang, 2 lantai ---- */
+  var bld = box(M.blueWall, 24, 7, 8, 0, 3.5, -10);
+  bld.castShadow = true;
+  /* lis putih antar lantai + lis atap */
+  box(M.trim, 24.4, 0.25, 8.3, 0, 3.35, -10);
+  box(M.trim, 24.4, 0.3, 8.3, 0, 6.95, -10);
+  /* atap datar + parapet */
+  box(M.roof, 24.6, 0.25, 8.6, 0, 7.15, -10);
+  box(M.blueDark, 24.6, 0.6, 0.25, 0, 7.5, -5.85);
+  box(M.blueDark, 24.6, 0.6, 0.25, 0, 7.5, -14.15);
+  box(M.blueDark, 0.25, 0.6, 8.3, -12.2, 7.5, -10);
+  box(M.blueDark, 0.25, 0.6, 8.3, 12.2, 7.5, -10);
+
+  /* papan KOSAN DIBUKA di atas atap depan — RONDE 2: tekstur + mesh DIBANGUN
+     SETELAH document.fonts.ready (font Baloo 2 sudah termuat), supaya teks
+     tidak pernah digambar dengan font fallback. Sebelum callback, papan
+     belum ada di scene. Fallback 3 detik kalau fonts.ready tidak kunjung
+     resolve. ?debug=sign: <img> menampilkan canvas yang SAMA dengan
+     tekstur baru. ?debug=nosign: mesh papan tidak ditambahkan ke scene
+     (diagnostik kotak biru — kalau kotak hilang, kotak = papan). */
+  var sign = null;
+  var signTex = null;
+  window.__kosanSign = null;
+  var signDebugImg = null;
+  if (location.search.indexOf('debug=sign') !== -1) {
+    signDebugImg = document.createElement('img');
+    signDebugImg.alt = 'debug tekstur papan KOSAN DIBUKA';
+    signDebugImg.style.cssText = 'position:fixed;top:8px;left:8px;z-index:9999;max-width:92vw;border:3px solid #ff0000;background:#fff;';
+    document.body.appendChild(signDebugImg);
+  }
+  var signBuilt = false;
+  function buildSign() {
+    if (signBuilt) return;
+    signBuilt = true;
+    signTex = textTexture('KOSAN DIBUKA', { w: 1024, h: 160, bg: '#1b4f8a', color: '#ffffff', size: 104 });
+    sign = new THREE.Mesh(new THREE.PlaneGeometry(13, 2.03),
+      new THREE.MeshBasicMaterial({ map: signTex, side: THREE.DoubleSide }));
+    sign.position.set(0, 8.6, -5.7);
+    sign.material.map = signTex;
+    sign.material.needsUpdate = true;
+    if (location.search.indexOf('debug=nosign') === -1) scene.add(sign);
+    window.__kosanSign = sign;
+    if (signDebugImg) signDebugImg.src = signTex.image.toDataURL();
+  }
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(buildSign);
+    setTimeout(buildSign, 3000);
+  } else {
+    buildSign();
+  }
+  /* tiang penyangga papan */
+  box(M.blueDark, 0.18, 1.6, 0.18, -5, 7.9, -5.85);
+  box(M.blueDark, 0.18, 1.6, 0.18, 5, 7.9, -5.85);
+
+  /* jendela (bingkai putih + kaca hangat) */
+  var winX = [-7.5, -2.5, 2.5, 7.5];
+  winX.forEach(function (x) {
+    [1.9, 5.3].forEach(function (y) {
+      box(M.trim, 1.7, 1.5, 0.06, x, y, -5.96);
+      var g = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 1.2), M.glass);
+      g.position.set(x, y, -5.92);
+      scene.add(g);
+    });
+  });
+
+  /* balkon lantai 2 + pagar balkon + kolom */
+  box(M.trim, 24, 0.25, 1.8, 0, 3.3, -5.1);
+  box(M.white, 24, 0.08, 0.08, 0, 4.35, -4.25);
+  for (var px = -11.5; px <= 11.5; px += 2.3) {
+    box(M.white, 0.08, 0.95, 0.08, px, 3.85, -4.25);
+  }
+  box(M.trim, 0.5, 3.3, 0.5, -11.5, 1.65, -4.6);
+  box(M.trim, 0.5, 3.3, 0.5, 11.5, 1.65, -4.6);
+
+  /* 10 pintu kamar bernomor */
+  var doorX = [-10, -5, 0, 5, 10];
+  for (var n = 1; n <= 10; n++) {
+    var floor2 = n > 5;
+    var x = doorX[(n - 1) % 5];
+    var yBase = floor2 ? 3.42 : 0;
+    var doorMat = new THREE.MeshLambertMaterial({ color: 0xa9743f });
+    var door = new THREE.Mesh(GEO.box, doorMat);
+    door.scale.set(1.3, 2.4, 0.14);
+    door.position.set(x, yBase + 1.2, -5.94);
+    door.castShadow = true;
+    door.userData = { card: 'room', room: n };
+    scene.add(door);
+    clickables.push(door);
+    /* gagang pintu */
+    ball(new THREE.MeshLambertMaterial({ color: 0xffd11a }), 0.07, x + 0.45, yBase + 1.15, -5.85);
+    /* nomor di atas pintu */
+    var numTex = textTexture(String(n), { w: 256, h: 256, circle: '#ffffff', color: '#1b5fa8', size: 150 });
+    var num = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 0.55),
+      new THREE.MeshBasicMaterial({ map: numTex, transparent: true }));
+    num.position.set(x, yBase + 2.78, -5.9);
+    scene.add(num);
+    ROOM_DOORS[n] = {
+      mesh: door,
+      pos: new THREE.Vector3(x, yBase + 1.2, -4.1)
+    };
+  }
+
+  /* ---- ruang tamu (teras di sisi kanan depan gedung) ---- */
+  var rug = box(M.rug, 5.4, 0.05, 4.2, 16, 0.03, -2);
+  rug.userData = { card: 'living' };
+  rug.castShadow = false;
+  clickables.push(rug);
+  var table = box(M.wood, 1.6, 0.12, 0.9, 16, 0.45, -2);
+  table.userData = { card: 'living' };
+  clickables.push(table);
+  box(M.woodDark, 0.12, 0.45, 0.12, 15.35, 0.22, -2.35);
+  box(M.woodDark, 0.12, 0.45, 0.12, 16.65, 0.22, -2.35);
+  box(M.woodDark, 0.12, 0.45, 0.12, 15.35, 0.22, -1.65);
+  box(M.woodDark, 0.12, 0.45, 0.12, 16.65, 0.22, -1.65);
+  /* Ronde 10b — router PINDAH KE DALAM ruang tamu (buildLivingRoom):
+     tidak ada lagi WiFi di atas meja terbuka di halaman depan (perintah
+     pemilik: tidak ada orang naruh router di luar rumah). Meja teras tetap
+     ada sebagai tempat duduk luar, tanpa router. */
+  /* bantal duduk */
+  var c1 = cyl(M.cushion, 0.42, 0.42, 0.18, 14.3, 0.09, -3.2);
+  c1.userData = { card: 'living' }; clickables.push(c1);
+  var c2 = cyl(M.cushion2, 0.42, 0.42, 0.18, 17.7, 0.09, -0.9);
+  c2.userData = { card: 'living' }; clickables.push(c2);
+  /* hit-proxy tak terlihat untuk SELURUH teras (ronde 2): router kecil susah
+     diketuk — proxy ini menjamin ketukan di area teras membuka kartu WiFi.
+     visible tetap true (raycast melewatkan visible:false); tak kasat mata
+     via opacity 0 + depthWrite false; tidak menulis bayangan. */
+  var livingHit = new THREE.Mesh(new THREE.BoxGeometry(7, 1.6, 5.4),
+    new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
+  livingHit.position.set(16, 0.8, -2);
+  livingHit.userData = { card: 'living' };
+  scene.add(livingHit);
+  clickables.push(livingHit);
+  /* papan kecil RUANG TAMU */
+  cyl(M.woodDark, 0.06, 0.06, 1.6, 13.4, 0.8, -4.6);
+  var rtTex = textTexture('RUANG TAMU', { w: 512, h: 128, bg: '#7c5227', color: '#ffffff', size: 62 });
+  var rt = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.42),
+    new THREE.MeshBasicMaterial({ map: rtTex }));
+  rt.position.set(13.4, 1.75, -4.6);
+  rt.rotation.y = Math.PI / 4;
+  scene.add(rt);
+
+  /* pohon + bangku */
+  function tree(x, z) {
+    cyl(M.trunk, 0.22, 0.3, 2.2, x, 1.1, z);
+    ball(M.leaf, 1.5, x, 3.1, z);
+    ball(M.leaf2, 1.0, x + 0.8, 2.5, z + 0.3);
+    ball(M.leaf2, 0.9, x - 0.7, 2.6, z - 0.4);
+  }
+  tree(-17, 8); tree(17.5, 9); tree(-17, -11.5);
+  box(M.wood, 1.8, 0.08, 0.5, 3.5, 0.5, 3.5);
+  box(M.woodDark, 0.08, 0.5, 0.08, 2.7, 0.25, 3.5);
+  box(M.woodDark, 0.08, 0.5, 0.08, 4.3, 0.25, 3.5);
+  box(M.wood, 1.8, 0.6, 0.08, 3.5, 0.85, 3.28);
+
+  /* awan */
+  function cloud(x, y, z, s) {
+    var g = new THREE.Group();
+    ball(M.cloud, 1.6 * s, 0, 0, 0, g);
+    ball(M.cloud, 1.1 * s, 1.6 * s, -0.2 * s, 0.3 * s, g);
+    ball(M.cloud, 1.0 * s, -1.5 * s, -0.25 * s, -0.2 * s, g);
+    g.position.set(x, y, z);
+    g.children.forEach(function (c) { c.castShadow = false; });
+    scene.add(g);
+  }
+  cloud(-22, 20, -30, 1.2); cloud(18, 23, -38, 1.5); cloud(2, 21, 30, 1.0);
+}
+
+/* ---------- ruang tamu DALAM — "beda alam" (Ronde 10b) ----------
+   Perintah pemilik 8 Nov 21:01: masuk kosan dibikin beda alam kayak Museum
+   3D Hearts2Hearts — interior adalah scene/ruang TERPISAH dari halaman
+   luar, dimasuki lewat pintu. Keputusan implementasi: scene THREE kedua
+   (livingScene), BUKAN geometri di lokasi teras. Alasan:
+   - Sesuai perintah ("beda alam", scene terpisah) + MULTIPLAYER-SPEC §8
+     (realm = field di pesan; 'living' sudah disiapkan sejak v1).
+   - Halaman tidak perlu dirombak: buildWorld() tidak disentuh sama
+     sekali; kamera/joystick/animate yang sama dipakai ulang dengan
+     realm aktif sebagai saklar (render + tabrakan + ketuk).
+   - Dinding satu-sisi (menghadap ke dalam): kamera orbit tidak pernah
+     terhalang dinding saat zoom-out — avatar selalu kelihatan.
+   Router ada DI DALAM ruangan ini (meja + 2 antena + LED hijau),
+   bukan lagi di atas meja terbuka di halaman depan. */
+var livingScene = new THREE.Scene();
+livingScene.background = new THREE.Color(0x2b2118);
+var livingClickables = []; /* target ketuk di alam 'living' */
+/* Batas jalan + tabrakan di dalam ruangan 9x7 (dinding dikurangi radius
+   avatar 0,4); meja router di sisi utara. */
+var LIVING = { minX: -4.0, maxX: 4.0, minZ: -3.0, maxZ: 3.0 };
+var LIVING_TABLE = { minX: -1.1, maxX: 1.1, minZ: -2.9, maxZ: -1.3 };
+/* Ronde 10d (perintah pemilik 22:33): perabot 10c DICABUT — isi kosan
+   dibangun lewat komen + like terbanyak, fasilitas muncul di 3D HANYA
+   setelah dibangun di episode. Ruangan kembali sederhana: meja router
+   (Ep2, sudah dibangun) + alas + 2 bantal. */
+var LIVING_SPAWN = { x: 1.2, z: -0.5, rot: Math.PI }; /* tengah ruangan menghadap meja router (Ronde 10d: spawn lama z 2,5 + kamera selatan dist 5 -> kamera z 7,2 DI LUAR ruangan, panel pintu memenuhi layar masuk; spawn digeser ke utara supaya kamera selatan tetap di dalam, pintu tidak masuk frame. Ronde 10e: x 0 -> 1,2 supaya router (x 0) terlihat DI SAMPING avatar saat masuk — dulu avatar di x 0 tepat menutupi router dari kamera selatan) */
+var myRealm = 'yard'; /* alam aktif: 'yard' | 'living' (MULTIPLAYER-SPEC §8) */
+var savedYard = { x: 0, z: 12, rot: Math.PI, camDist: KOSAN_CAM.dist, camYaw: 0, camPitch: 0.25, camTarget: { x: 0, y: 0, z: 12 } }; /* posisi + framing halaman sebelum masuk ruangan (Ronde 10c: yaw/pitch ikut disimpan; Ronde 10d: pitch ikut 0,25 spawn; Ronde 10e: camTarget ikut disimpan — dulu hanya posisi avatar yang dipakai sebagai target bidik, padahal camTarget tertinggal sampai 0,38 m di belakang avatar kalau masuk tepat setelah berhenti jalan -> framing pulih bergeser) */
+
+function buildLivingRoom() {
+  /* cahaya hangat dalam ruangan (tanpa bayangan — hemat, cukup) */
+  livingScene.add(new THREE.HemisphereLight(0xfff2d9, 0x8a6a4a, 0.9));
+  var lamp = new THREE.PointLight(0xffd9a0, 15, 12, 2);
+  lamp.position.set(0, 2.6, -1);
+  livingScene.add(lamp);
+  /* lantai kayu */
+  box(M.floorWood, 9, 0.1, 7, 0, -0.05, 0, livingScene);
+  /* dinding satu-sisi menghadap ke dalam + langit-langit menghadap bawah */
+  function wallPlane(w, h, mat, x, y, z, ry, rx) {
+    var m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
+    m.position.set(x, y, z);
+    if (ry) m.rotation.y = ry;
+    if (rx) m.rotation.x = rx;
+    m.receiveShadow = true;
+    livingScene.add(m);
+    return m;
+  }
+  wallPlane(9, 3.2, M.wallCream, 0, 1.6, -3.5); /* utara */
+  wallPlane(3.8, 3.2, M.wallCream, -2.6, 1.6, 3.5, Math.PI); /* selatan kiri */
+  wallPlane(3.8, 3.2, M.wallCream, 2.6, 1.6, 3.5, Math.PI); /* selatan kanan */
+  wallPlane(1.4, 0.8, M.wallCream, 0, 2.8, 3.5, Math.PI); /* ambang atas pintu */
+  wallPlane(7, 3.2, M.wallCream, -4.5, 1.6, 0, Math.PI / 2); /* barat */
+  wallPlane(7, 3.2, M.wallCream, 4.5, 1.6, 0, -Math.PI / 2); /* timur */
+  wallPlane(9, 7, M.ceilCream, 0, 3.2, 0, 0, Math.PI / 2); /* langit-langit */
+  /* pintu KELUAR (dinding selatan, diketuk untuk kembali ke halaman).
+     Ronde 10e — panel MENUTUP lubang pintu (x -0,71..0,71, z 3,44),
+     tepat di bawah papan "KELUAR", dan papan ikut BISA DIKETUK.
+     Diagnosis playtest 10d: panel lama menempel di segmen dinding kiri
+     (x -1,35) sementara papan "KELUAR" + lubang ada di x 0 — yang
+     diketuk pengguna (tengah pintu / papan / tepi) adalah lubang + papan,
+     keduanya TIDAK ada di livingClickables (raycast 0 hit), jadi ketuk
+     mati; panel yang bisa diklik malah terbaca sebagai dinding. Panel di
+     lubang AMAN buat layar masuk: kamera masuk di z 3,26 DI DALAM
+     ruangan (Ronde 10d), panel di z 3,44 ada DI BELAKANG kamera, jadi
+     tidak menutupi avatar (masalah 10c dulu karena kamera masih di luar,
+     z 7,2). Lubang kini tertutup panel — tidak ada lagi area mati. */
+  var exitDoor = box(M.wood, 1.42, 2.4, 0.1, 0, 1.2, 3.44, livingScene);
+  exitDoor.userData = { card: 'exit-living' };
+  livingClickables.push(exitDoor);
+  ball(new THREE.MeshLambertMaterial({ color: 0xffd11a }), 0.07, 0.45, 1.15, 3.37, livingScene);
+  var outTex = textTexture('KELUAR', { w: 512, h: 128, bg: '#7c5227', color: '#ffffff', size: 62 });
+  var outSign = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.42),
+    new THREE.MeshBasicMaterial({ map: outTex }));
+  outSign.position.set(0, 2.65, 3.42);
+  outSign.rotation.y = Math.PI;
+  livingScene.add(outSign);
+  outSign.userData = { card: 'exit-living' }; /* Ronde 10e: papan ikut bisa diketuk — mengetuk tulisan KELUAR harus keluar juga */
+  livingClickables.push(outSign);
+  /* karpet + meja + router DI DALAM ruangan (sisi utara) */
+  var rugIn = box(M.rug, 4, 0.05, 3, 0, 0.03, -1.6, livingScene);
+  rugIn.userData = { card: 'living' };
+  livingClickables.push(rugIn);
+  var tableIn = box(M.wood, 1.6, 0.12, 0.9, 0, 0.45, -2.1, livingScene);
+  tableIn.userData = { card: 'living' };
+  livingClickables.push(tableIn);
+  box(M.woodDark, 0.12, 0.45, 0.12, -0.65, 0.22, -2.45, livingScene);
+  box(M.woodDark, 0.12, 0.45, 0.12, 0.65, 0.22, -2.45, livingScene);
+  box(M.woodDark, 0.12, 0.45, 0.12, -0.65, 0.22, -1.75, livingScene);
+  box(M.woodDark, 0.12, 0.45, 0.12, 0.65, 0.22, -1.75, livingScene);
+  /* router putih 2 antena + LED hijau di atas meja DALAM ruangan */
+  var routerIn = box(M.routerWhite, 0.55, 0.12, 0.38, 0, 0.58, -2.1, livingScene);
+  routerIn.userData = { card: 'living' };
+  livingClickables.push(routerIn);
+  var antIn1 = cyl(M.routerWhite, 0.02, 0.02, 0.4, -0.2, 0.8, -2.25, livingScene);
+  antIn1.rotation.z = 0.25;
+  var antIn2 = cyl(M.routerWhite, 0.02, 0.02, 0.4, 0.2, 0.8, -2.25, livingScene);
+  antIn2.rotation.z = -0.25;
+  var ledIn = ball(M.ledGreen, 0.035, 0.15, 0.65, -1.92, livingScene);
+  ledIn.castShadow = false;
+  ledIn.userData = { card: 'living' };
+  livingClickables.push(ledIn);
+  /* bantal duduk */
+  var cIn1 = cyl(M.cushion, 0.42, 0.42, 0.18, -1.7, 0.09, -2.1, livingScene);
+  cIn1.userData = { card: 'living' }; livingClickables.push(cIn1);
+  var cIn2 = cyl(M.cushion2, 0.42, 0.42, 0.18, 1.7, 0.09, -2.1, livingScene);
+  cIn2.userData = { card: 'living' }; livingClickables.push(cIn2);
+  /* ---- Ronde 10d: ruangan SEDERHANA (perintah pemilik) — tanpa perabot
+     10c (sofa/kursi/meja kopi/TV/tanaman/bingkai/poster dicabut; isi
+     kosan dibangun lewat komen). Yang tersisa: alas + meja router +
+     2 bantal + papan RUANG TAMU. ---- */
+  /* papan RUANG TAMU di dinding utara */
+  var rtInTex = textTexture('RUANG TAMU', { w: 512, h: 128, bg: '#7c5227', color: '#ffffff', size: 62 });
+  var rtIn = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.42),
+    new THREE.MeshBasicMaterial({ map: rtInTex }));
+  rtIn.position.set(0, 2.2, -3.44);
+  livingScene.add(rtIn);
+}
+buildLivingRoom();
+
+/* Pindah alam (MULTIPLAYER-SPEC §8.3): ganti scene lokal -> set realm ->
+   (multiplayer nanti: publish presence + pos realm baru segera). Posisi
+   halaman disimpan dan dipulihkan saat keluar. */
+function enterLiving() {
+  if (myRealm === 'living') return;
+  savedYard = { x: avatarPos.x, z: avatarPos.z, rot: avatar.rotation.y, camDist: camDist, camYaw: camYaw, camPitch: camPitch, camTarget: { x: camTarget.x, y: camTarget.y, z: camTarget.z } }; /* Ronde 10c: framing ikut disimpan; Ronde 10e: camTarget ASLI ikut disimpan (bukan posisi avatar) — camTarget tertinggal di belakang avatar saat jalan */
+  myRealm = 'living';
+  if (avatar && avatar.parent) avatar.parent.remove(avatar);
+  livingScene.add(avatar);
+  avatarPos.x = LIVING_SPAWN.x; avatarPos.z = LIVING_SPAWN.z;
+  avatar.rotation.y = LIVING_SPAWN.rot;
+  avatar.position.set(avatarPos.x, 0, avatarPos.z);
+  camTarget.set(avatarPos.x, 0, avatarPos.z);
+  camYaw = 0; camPitch = 0.35; camDist = 4; /* Ronde 10d: dist 4 + spawn z -0,5 -> kamera z 3,26 DI DALAM ruangan (dinding 3,5); dulu dist 5 + spawn 2,5 -> kamera z 7,2 di luar, pintu memenuhi layar */
+  flyTarget = null; flyKeep = false;
+  document.getElementById('exitBtn').style.display = 'inline-block';
+  closeCard();
+  mpSaatPindahAlam(); /* MULTIPLAYER-SPEC §8.3: realm baru -> publish presence + pos segera + snap */
+}
+function exitLiving() {
+  if (myRealm === 'yard') return;
+  myRealm = 'yard';
+  if (avatar && avatar.parent) avatar.parent.remove(avatar);
+  scene.add(avatar);
+  avatarPos.x = savedYard.x; avatarPos.z = savedYard.z;
+  avatar.rotation.y = savedYard.rot;
+  avatar.position.set(avatarPos.x, 0, avatarPos.z);
+  /* Ronde 10c — framing kamera kembali ke halaman: pulihkan camYaw /
+     camPitch / camDist yang disimpan saat masuk, lewat flyTarget supaya
+     lerp halus (bukan snap). Dulu: camYaw di-snap 0 + camPitch tidak
+     dipulihkan -> kamera ikut sudut dalam ruangan (gedung terpotong).
+     Ronde 10d — fly ini DILINDUNGI (flyKeep): satu sentuhan kanvas di
+     tengah fly dulu membatalkan pemulihan dan membekukan kamera di
+     framing dalam (playtest 10c: dekat + miring dari kiri, dua
+     screenshot identik). flyToDoor menimpa flyTarget ini belakangan
+     kalau "Lihat kamarku" dipencet — tidak bentrok. */
+  flyTarget = {
+    camTarget: new THREE.Vector3(savedYard.camTarget.x, savedYard.camTarget.y, savedYard.camTarget.z), /* Ronde 10e: target bidik ASLI yang disimpan saat masuk — dulu posisi avatar, padahal camTarget bisa tertinggal 0,38 m */
+    camYaw: savedYard.camYaw, camPitch: savedYard.camPitch, camDist: savedYard.camDist
+  };
+  flyKeep = true;
+  document.getElementById('exitBtn').style.display = 'none';
+  closeCard();
+  mpSaatPindahAlam(); /* MULTIPLAYER-SPEC §8.3: realm baru -> publish presence + pos segera + snap */
+}
+
+/* ---------- avatar chibi (kepala besar bulat, badan pendek gemuk) ---------- */
+function makeChibi(opt) {
+  opt = opt || {};
+  var g = new THREE.Group();
+  /* badan (baju) */
+  var body = new THREE.Mesh(GEO.capsule, opt.shirt || M.shirtRed);
+  body.scale.set(0.42, 0.32, 0.42);
+  body.position.y = 0.62;
+  body.castShadow = true;
+  g.add(body);
+  /* kaki */
+  var legL = new THREE.Mesh(GEO.capsule, opt.pants || M.pantsGrey);
+  legL.scale.set(0.13, 0.16, 0.13); legL.position.set(-0.16, 0.18, 0);
+  legL.castShadow = true; g.add(legL);
+  var legR = legL.clone(); legR.position.x = 0.16; g.add(legR);
+  /* tangan */
+  var armL = new THREE.Mesh(GEO.capsule, opt.shirt || M.shirtRed);
+  armL.scale.set(0.09, 0.16, 0.09); armL.position.set(-0.48, 0.62, 0);
+  g.add(armL);
+  var armR = armL.clone(); armR.position.x = 0.48; g.add(armR);
+  /* kepala besar bulat */
+  var head = new THREE.Mesh(GEO.sphere, M.skin);
+  head.scale.set(0.42, 0.42, 0.42);
+  head.position.y = 1.28;
+  head.castShadow = true;
+  g.add(head);
+  /* mata */
+  var eyeMat = new THREE.MeshBasicMaterial({ color: 0x222222 });
+  var eL = ball(eyeMat, 0.045, -0.15, 1.3, 0.38, g);
+  eL.castShadow = false;
+  var eR = ball(eyeMat, 0.045, 0.15, 1.3, 0.38, g);
+  eR.castShadow = false;
+  /* topi / rambut */
+  if (opt.cap) {
+    var cap = ball(M.capBlue, 0.44, 0, 1.42, 0, g, 1, 0.55, 1);
+    cap.castShadow = false;
+    var brim = cyl(M.capBlue, 0.48, 0.48, 0.05, 0, 1.32, 0.1, g);
+    brim.scale.set(0.48, 0.05, 0.6);
+  } else if (opt.bun) {
+    var hair = ball(M.hairDark, 0.43, 0, 1.36, -0.03, g, 1, 0.8, 1);
+    hair.castShadow = false;
+    var bun = ball(M.hairDark, 0.16, 0, 1.72, -0.05, g);
+    bun.castShadow = false;
+    var streak = ball(M.hairGrey, 0.1, 0.18, 1.55, 0.3, g, 1, 0.6, 0.5);
+    streak.castShadow = false;
+  }
+  /* daster + celemek (Ibu Kos) */
+  if (opt.dress) {
+    var dress = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.55, 0.75, 14), M.dressBlue);
+    dress.position.y = 0.42; dress.castShadow = true; g.add(dress);
+    var apron = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.55), M.apron);
+    apron.position.set(0, 0.5, 0.44); g.add(apron);
+    body.visible = false; legL.visible = false; legR.visible = false;
+  }
+  return g;
+}
+
+/* ---------- karakter pengunjung "anak kos" (desain sendiri, Ronde 8) ----------
+   Outfit ORIGINAL khas Kosan — BUKAN seragam sekolahbebaz (jaket varsity
+   merah + panel kuning + topi ala bebaz DICABUT TOTAL di ronde ini).
+   Proporsi dipertahankan dari ronde 6 (kepala r 0,27 dari tinggi ~1,82,
+   grup x1,1 = ~2,06 m) — yang berubah hanya OUTFIT + RAMBUT:
+   - CEWEK (default — audiens IG 77,4% wanita, terbanyak usia 18–24):
+     rambut sebahu gelap, kaus krem-kuning hangat polos, rok biru
+     (nyambung gedung kosan yang biru), kaki polos + sepatu putih.
+     Siluet: rok mengembang + rambut panjang = jelas beda dari cowok.
+   - COWOK: rambut pendek gelap (tanpa topi — topi itu ciri bebaz,
+     jangan dipakai), kaus teal polos, celana pendek khaki,
+     kaki polos + sepatu putih.
+   Keduanya: wajah sama (mata + pipi + senyum di +z), depan vs belakang
+   JELAS (wajah + detail outfit di depan, polos di belakang); lengan
+   pendek (lengan atas kaus, lengan bawah kulit). Animasi: ayunan
+   kaki/tangan dari pivot sendi, y SELALU 0 (0 bobbing). */
+function makeKosanAvatar(gender) {
+  var isF = (gender !== 'cowok'); /* default cewek */
+  var g = new THREE.Group();
+  var tubuh = new THREE.Group();
+  g.add(tubuh);
+  var parts = { g: g, tubuh: tubuh, legL: null, legR: null, armL: null, armR: null };
+
+  function pivot(x, y, z, rz) {
+    var p = new THREE.Group();
+    p.position.set(x, y, z);
+    if (rz) p.rotation.z = rz;
+    tubuh.add(p);
+    return p;
+  }
+  function mesh(geo, mat, x, y, z, parent, shadow) {
+    var m = new THREE.Mesh(geo, mat);
+    m.position.set(x, y, z);
+    m.castShadow = shadow !== false;
+    (parent || tubuh).add(m);
+    return m;
+  }
+
+  var shirt = isF ? M.teeCream : M.teeTeal;
+
+  /* kaki: pivot di pinggul (±0,12, 0,72, 0); kaki polos (kulit) + sepatu putih */
+  [-1, 1].forEach(function (sx, k) {
+    var legGeo = new THREE.CylinderGeometry(0.09, 0.1, 0.62, 10);
+    legGeo.translate(0, -0.31, 0); /* pusat geometri ke pinggul */
+    var leg = pivot(sx * 0.12, 0.72, 0);
+    mesh(legGeo, M.skinBebaz, 0, 0, 0, leg);
+    mesh(new THREE.BoxGeometry(0.17, 0.1, 0.3), M.shoeWhite, 0, -0.67, 0.04, leg);
+    if (k === 0) parts.legL = leg; else parts.legR = leg;
+  });
+  /* bawahan: rok biru mengembang (cewek) / celana pendek khaki (cowok) */
+  if (isF) {
+    mesh(new THREE.CylinderGeometry(0.30, 0.44, 0.5, 14), M.dressBlue, 0, 0.60, 0);
+  } else {
+    mesh(new THREE.BoxGeometry(0.42, 0.24, 0.28), M.shortsKhaki, 0, 0.70, 0);
+  }
+  /* tangan lengan pendek: lengan atas kaus + lengan bawah kulit + telapak */
+  [-1, 1].forEach(function (sx, k) {
+    var sleeveGeo = new THREE.CapsuleGeometry(0.085, 0.16, 4, 10);
+    sleeveGeo.translate(0, -0.08, 0);
+    var arm = pivot(sx * 0.34, 1.16, 0, sx * 0.2);
+    mesh(sleeveGeo, shirt, 0, 0, 0, arm);
+    var foreGeo = new THREE.CapsuleGeometry(0.06, 0.2, 4, 10);
+    foreGeo.translate(0, -0.28, 0);
+    mesh(foreGeo, M.skinBebaz, 0, 0, 0, arm);
+    mesh(new THREE.SphereGeometry(0.07, 10, 8), M.skinBebaz, sx * 0.05, -0.46, 0, arm);
+    if (k === 0) parts.armL = arm; else parts.armR = arm;
+  });
+  /* badan: kaus kapsul polos (tanpa panel/saku) */
+  mesh(new THREE.CapsuleGeometry(0.27, 0.36, 6, 14), shirt, 0, 1.0, 0);
+  /* kepala + wajah (semua di +z = depan) — sama untuk kedua gender */
+  mesh(new THREE.SphereGeometry(0.27, 20, 16), M.skinBebaz, 0, 1.55, 0);
+  [-1, 1].forEach(function (sx) {
+    var eye = mesh(new THREE.SphereGeometry(0.042, 12, 10), M.eyeDark, sx * 0.095, 1.585, 0.235, tubuh, false);
+    eye.scale.y = 1.35;
+    mesh(new THREE.SphereGeometry(0.013, 8, 6), M.white, sx * 0.083, 1.605, 0.272, tubuh, false);
+    var cheek = mesh(new THREE.CircleGeometry(0.04, 16), M.cheekPink, sx * 0.16, 1.51, 0.222, tubuh, false);
+    cheek.rotation.y = sx * 0.6;
+  });
+  var smile = mesh(new THREE.TorusGeometry(0.05, 0.012, 6, 16, Math.PI), M.smileBrown, 0, 1.5, 0.255, tubuh, false);
+  smile.rotation.z = Math.PI;
+  /* rambut gelap (tanpa topi): cewek sebahu, cowok pendek */
+  if (isF) {
+    /* Ronde 10a — rambut panjang sebahu yang MENUTUPI SELURUH belakang
+       kepala. Panel lama cuma ±55% lebar kepala + datar kayak papan
+       (tepi lurus, bawah bergerigi) → kulit tan keliatan di kiri-kanan
+       panel, belakang kepala tampak botak di samping panel. Kepala r 0,27
+       (lebar 0,54): cangkang 0,62 + panel 0,59 (> kepala), sampai bahu.
+       - kubah atas: garis rambut di atas mata (tenggelam di cangkang,
+         tepinya tidak keliatan dari belakang)
+       - cangkang belakang: membalut belakang + samping kepala; celah
+         depan 1,8 rad menghadap +z = wajah (phi depan +z = PI/2)
+       - panel panjang: helai belakang sampai bahu, ujung bawah membulat
+         + 2 jambul samping yang menyatu dengannya */
+    mesh(new THREE.SphereGeometry(0.29, 18, 10, 0, Math.PI * 2, 0, Math.PI * 0.45), M.hairDark, 0, 1.57, -0.02);
+    var shellGeo = new THREE.SphereGeometry(0.30, 20, 14, Math.PI / 2 + 0.9, Math.PI * 2 - 1.8, 0, Math.PI * 0.62);
+    var shell = mesh(shellGeo, M.hairDark, 0, 1.55, -0.03);
+    shell.scale.set(1.03, 1.06, 0.98);
+    var backGeo = new THREE.CapsuleGeometry(0.19, 0.22, 4, 12);
+    var back = mesh(backGeo, M.hairDark, 0, 1.38, -0.21);
+    back.scale.set(1.55, 1, 0.62);
+    [-1, 1].forEach(function (sx) {
+      var lockGeo = new THREE.CapsuleGeometry(0.065, 0.28, 4, 8);
+      var lock = mesh(lockGeo, M.hairDark, sx * 0.26, 1.28, 0.02);
+      lock.rotation.z = -sx * 0.08;
+    });
+  } else {
+    /* Ronde 10a — potongan pendek yang MEMBALUT kepala sampai tengkuk.
+       Kubah lama cuma nutup ±40% atas + bola belakang sempit (lebar 0,40
+       vs kepala 0,54) → pita lebar kulit telanjang di belakang kepala +
+       bercak gelap di tengkuk. (Catatan: bercak itu bola rambut belakang
+       lama yang sempit, bukan mesh wajah depan — diganti cangkang penuh.) Cangkang lebar 0,60 (> kepala), turun s.d. y 1,41
+       (tengkuk); sisa kulit 1,28–1,41 di belakang = leher, wajar. */
+    mesh(new THREE.SphereGeometry(0.285, 18, 10, 0, Math.PI * 2, 0, Math.PI * 0.45), M.hairDark, 0, 1.56, -0.02);
+    var shellGeo = new THREE.SphereGeometry(0.30, 20, 14, Math.PI / 2 + 0.9, Math.PI * 2 - 1.8, 0, Math.PI * 0.66);
+    var shell = mesh(shellGeo, M.hairDark, 0, 1.55, -0.02);
+    shell.scale.set(1.0, 1.0, 0.97);
+  }
+
+  g.scale.setScalar(1.1); /* tinggi total ~2,06 m (pintu kosan 2,4 m) */
+  return parts;
+}
+
+function fitFont(ctx, text, maxW, baseSize) {
+  var size = baseSize;
+  ctx.font = '800 ' + size + 'px "Baloo 2", "Nunito", sans-serif';
+  while (size > 28 && ctx.measureText(text).width > maxW) {
+    size -= 4;
+    ctx.font = '800 ' + size + 'px "Baloo 2", "Nunito", sans-serif';
+  }
+  return size;
+}
+function makeLabel(text) {
+  var cv = document.createElement('canvas');
+  cv.width = 512; cv.height = 128;
+  var ctx = cv.getContext('2d');
+  fitFont(ctx, text, 480, 58);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.lineWidth = 12; ctx.strokeStyle = 'rgba(20,40,70,0.85)';
+  ctx.strokeText(text, 256, 66);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(text, 256, 66);
+  var tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  var spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
+  spr.scale.set(2.4, 0.6, 1);
+  spr.position.y = 2.05;
+  return { sprite: spr, canvas: cv, ctx: ctx, texture: tex };
+}
+function setLabel(label, text) {
+  var ctx = label.ctx;
+  ctx.clearRect(0, 0, 512, 128);
+  fitFont(ctx, text, 480, 58);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.lineWidth = 12; ctx.strokeStyle = 'rgba(20,40,70,0.85)';
+  ctx.strokeText(text, 256, 66);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(text, 256, 66);
+  label.texture.needsUpdate = true;
+}
+
+/* ---------- avatar pengunjung + Ibu Kos ---------- */
+var avatar, avatarLabel, avatarPos = { x: 0, z: 12 };
+var avTubuh, avLegL, avLegR, avArmL, avArmR; /* pivot anggota gerak avatar */
+var ibuAvatar;
+var visitorRoom = 0, visitorId = '', visitorName = 'kamu';
+/* gender pengunjung (Ronde 8): 'cewek' default — audiens IG 77,4% wanita,
+   usia terbanyak 18–24. Disimpan di localStorage 'kosanGender'. */
+var visitorGender = 'cewek';
+try {
+  var savedGender = localStorage.getItem('kosanGender');
+  if (savedGender === 'cowok' || savedGender === 'cewek') visitorGender = savedGender;
+} catch (e) { /* abaikan */ }
+
+function spawnAvatar(name) {
+  visitorName = name || 'kamu';
+  setLabel(avatarLabel, visitorName);
+}
+/* Bangun (ulang) avatar pengunjung sesuai gender. Dipakai saat load dan
+   saat picker gender ditekan: posisi + hadap + nama + kamar TIDAK berubah
+   (hanya mesh grup yang diganti); kartu tidak disentuh. */
+function buildVisitorAvatar() {
+  var rotY = avatar ? avatar.rotation.y : Math.PI;
+  if (avatar && avatar.parent) avatar.parent.remove(avatar);
+  var avParts = makeKosanAvatar(visitorGender);
+  avatar = avParts.g;
+  avTubuh = avParts.tubuh; avLegL = avParts.legL; avLegR = avParts.legR;
+  avArmL = avParts.armL; avArmR = avParts.armR;
+  avatar.rotation.y = rotY;
+  avatar.position.set(avatarPos.x, 0, avatarPos.z);
+  /* Ronde 10b — avatar tinggal di scene alam aktif (halaman / ruang tamu). */
+  (myRealm === 'living' ? livingScene : scene).add(avatar);
+  if (avatarLabel && location.search.indexOf('debug=nolabel') === -1) avatar.add(avatarLabel.sprite);
+}
+buildWorld();
+
+avatarLabel = makeLabel('kamu');
+avatarLabel.sprite.position.y = 2.0; /* ruang grup: x1,1 = 2,2 dunia, di atas rambut (~2,06) */
+buildVisitorAvatar();
+/* Picker gender (Ronde 8): dua tombol di bawah namebar. Ganti pilihan ->
+   avatar langsung rebuild di tempat; nama/kamar/kartu tidak berubah. */
+var genderFBtn = document.getElementById('genderF');
+var genderMBtn = document.getElementById('genderM');
+function updateGenderButtons() {
+  genderFBtn.classList.toggle('active', visitorGender === 'cewek');
+  genderMBtn.classList.toggle('active', visitorGender === 'cowok');
+}
+function setGender(g) {
+  if (g !== 'cowok' && g !== 'cewek') return;
+  if (g === visitorGender) return;
+  visitorGender = g;
+  try { localStorage.setItem('kosanGender', g); } catch (e) { /* abaikan */ }
+  updateGenderButtons();
+  buildVisitorAvatar();
+}
+genderFBtn.addEventListener('click', function () { setGender('cewek'); });
+genderMBtn.addEventListener('click', function () { setGender('cowok'); });
+updateGenderButtons();
+
+ibuAvatar = makeChibi({ bun: true, dress: true });
+ibuAvatar.position.set(10.5, 0, -2.5);
+ibuAvatar.rotation.y = 0; /* menghadap halaman (+z), tempat pengunjung jalan */
+ibuAvatar.traverse(function (o) { o.userData.card = 'ibu'; clickables.push(o); });
+scene.add(ibuAvatar);
+
+/* ---------- kartu ---------- */
+var cardEl = document.getElementById('roomCard');
+var cardTitle = document.getElementById('cardTitle');
+var cardBody = document.getElementById('cardBody');
+var cardActions = document.getElementById('cardActions');
+var roomCountEl = document.getElementById('roomCount');
+
+function updateRoomCount() {
+  var empty = 0;
+  for (var n = 1; n <= 10; n++) if (!RESIDENTS[n]) empty++;
+  roomCountEl.textContent = '10 kamar · ' + empty + ' kosong';
+}
+function openCard() { cardEl.classList.add('open'); cardEl.classList.remove('min'); document.body.classList.add('card-open'); var t = document.getElementById('cardToggle'); if (t) t.textContent = '▾'; }
+function closeCard() {
+  cardEl.classList.remove('open'); document.body.classList.remove('card-open');
+}
+document.getElementById('cardClose').addEventListener('click', closeCard);
+/* Ronde 10a — ciutkan kartu jadi judul saja (avatar di tengah layar
+   tidak tertutup); kartu baru yang dibuka selalu tampil penuh. */
+document.getElementById('cardToggle').addEventListener('click', function () {
+  var min = cardEl.classList.toggle('min');
+  document.getElementById('cardToggle').textContent = min ? '▴' : '▾';
+});
+
+function showRoomCard(n, isPreview, preview) {
+  var resident = RESIDENTS[n];
+  var ownRoom = !resident && n === visitorRoom && visitorId;
+  cardTitle.textContent = 'Kamar ' + n;
+  var html = resident
+    ? '<p>Penghuni: <b>' + escapeHtml(resident) + '</b></p>'
+    : '<p>Masih kosong.</p>';
+  if (isPreview && preview) {
+    html += '<p class="cardid" style="margin-top:4px">ID: ' + escapeHtml(makeId(visitorName, preview.room)) + '</p>';
+    html += '<p style="margin-top:4px"><span class="stamp" style="margin-top:0">KARTU PREVIEW KAMAR</span> belum tercatat.</p>';
+    if (preview.moved) {
+      html += '<p style="margin-top:4px">Kamar hash (' + preview.hashRoom + ') sudah dihuni, jadi preview pindah ke kamar kosong ini.</p>';
+    }
+  } else if (ownRoom) {
+    /* ronde 2: kartu ketukan di kamar preview sendiri = sama seperti kartu
+       "Cari kamarku" (stempel + "belum tercatat." + tombol Lihat kamarku).
+       Baris "Ini kamarmu" tetap membawa ID: di jalur ketukan ini tidak ada
+       baris ID terpisah seperti di jalur "Cari kamarku", jadi ID di sini
+       tidak boleh dihapus. */
+    html += '<p style="margin-top:4px">Ini kamarmu (preview) — ID ' + escapeHtml(visitorId) + '.</p>';
+    html += '<p style="margin-top:4px"><span class="stamp" style="margin-top:0">KARTU PREVIEW KAMAR</span> belum tercatat.</p>';
+  }
+  cardBody.innerHTML = html;
+  cardActions.innerHTML = '';
+  if (isPreview && preview) {
+    var b = document.createElement('button');
+    b.id = 'goRoomBtn';
+    b.textContent = 'Lihat kamarku';
+    b.addEventListener('click', function () { flyToDoor(preview.room); });
+    cardActions.appendChild(b);
+  } else if (ownRoom) {
+    var b2 = document.createElement('button');
+    b2.id = 'goRoomBtn';
+    b2.textContent = 'Lihat kamarku';
+    b2.addEventListener('click', function () { flyToDoor(n); });
+    cardActions.appendChild(b2);
+  }
+  openCard();
+}
+function showLivingCard() {
+  cardTitle.textContent = 'Ruang Tamu';
+  cardBody.innerHTML = '<p>Tempat kumpul semua penghuni — nonton bareng, ngobrol, numpang WiFi. 📶 Router baru terpasang di sini, sinyal penuh, internetnya ngebut! WiFi kenceng — request terbanyak di Episode 2, Ibu bangun buat semua penghuni.</p>';
+  cardActions.innerHTML = '';
+  /* Ronde 10b — kartu ruang tamu adalah PINTU masuk/keluar alam 'living':
+     di halaman: "Masuk Ruang Tamu"; di dalam: "Keluar ke Halaman". */
+  var b = document.createElement('button');
+  if (myRealm === 'living') {
+    b.id = 'exitLivingBtn';
+    b.textContent = 'Keluar ke Halaman';
+    b.addEventListener('click', function () { exitLiving(); });
+  } else {
+    b.id = 'enterLivingBtn';
+    b.textContent = '🚪 Masuk Ruang Tamu';
+    b.addEventListener('click', function () { enterLiving(); });
+  }
+  cardActions.appendChild(b);
+  openCard();
+}
+function showIbuCard() {
+  cardTitle.textContent = 'Ibu Kos';
+  cardBody.innerHTML = '<p>Pemilik kosan ini. Kosan dibangun lewat komen kalian: follow = Penghuni Baru, komen = request bebas, like terbanyak = langsung Ibu bangun. 🏠</p>';
+  cardActions.innerHTML = '';
+  openCard();
+}
+
+/* ---------- nama -> kamar ---------- */
+var nameInput = document.getElementById('nameInput');
+function submitName(fly) {
+  var nama = nameInput.value;
+  if (!normalize(nama)) { nameInput.focus(); return; }
+  var preview = previewFor(nama);
+  if (!preview) {
+    cardTitle.textContent = 'Kosan penuh';
+    cardBody.innerHTML = '<p>Sepuluh kamar sudah terisi semua — belum ada kamar kosong untuk di-preview.</p>';
+    cardActions.innerHTML = '';
+    openCard();
+    return;
+  }
+  visitorRoom = preview.room;
+  visitorId = makeId(nama, preview.room);
+  spawnAvatar(nama.trim());
+  try { localStorage.setItem('kosan3d-nama', nama.trim()); } catch (e) { /* abaikan */ }
+  showRoomCard(preview.room, true, preview);
+  if (fly) flyToDoor(preview.room);
+}
+document.getElementById('nameBtn').addEventListener('click', function () { submitName(false); });
+nameInput.addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') submitName(false);
+});
+
+/* ---------- layar masuk (Ronde 10b — MULTIPLAYER-SPEC §4) ----------
+   Nama + gender dipilih di overlay masuk SEBELUM masuk dunia dan
+   TERKUNCI selama di dalam game (syarat multiplayer: identitas pemain
+   lain harus stabil). Namebar HUD tetap ada untuk preview kamar (ketik
+   nama -> kartu), tapi gender TIDAK berubah dari HUD — #genderRow hanya
+   hidup di dalam overlay masuk. Ganti karakter = buka lagi overlay
+   lewat tombol "Ganti karakter" (tindakan sadar, bukan toggle santai). */
+var entered = false; /* sudah masuk dunia (overlay disembunyikan) */
+var playerId = null; /* id permanen 'kosan3d-id' (pola kantormisi-id, §4.4) */
+var entryOverlay = document.getElementById('entryOverlay');
+var entryName = document.getElementById('entryName');
+var entryBtn = document.getElementById('entryBtn');
+var whoamiEl = document.getElementById('whoami');
+var changeCharBtn = document.getElementById('changeCharBtn');
+function ensurePlayerId() {
+  try {
+    playerId = localStorage.getItem('kosan3d-id');
+    if (!playerId) {
+      playerId = 'p' + Math.random().toString(36).slice(2, 10);
+      localStorage.setItem('kosan3d-id', playerId);
+    }
+  } catch (e) {
+    if (!playerId) playerId = 'p' + Math.random().toString(36).slice(2, 10);
+  }
+  return playerId;
+}
+function updateWhoami() {
+  whoamiEl.textContent = entered
+    ? ('👤 ' + visitorName + ' · ' + (visitorGender === 'cewek' ? 'Cewek' : 'Cowok'))
+    : '';
+}
+function showEntry() {
+  try {
+    var sn = localStorage.getItem('kosan3d-nama');
+    if (sn) { entryName.value = sn; nameInput.value = sn; }
+  } catch (e) { /* abaikan */ }
+  updateGenderButtons();
+  entryOverlay.classList.add('open');
+}
+function masukKosan() {
+  var nama = entryName.value;
+  if (!normalize(nama)) { entryName.focus(); return; }
+  ensurePlayerId();
+  nameInput.value = nama.trim(); /* sinkron ke namebar HUD (preview kamar) */
+  /* Masuk ulang tanpa perubahan nama + sudah di dalam = sekadar tutup
+     overlay (bukan submit ulang + bukan kartu pop-up lagi). */
+  if (!entered || normalize(nama) !== normalize(visitorName)) {
+    submitName(false); /* kamar + ID + label + kartu preview */
+  }
+  entered = true;
+  entryOverlay.classList.remove('open');
+  updateWhoami();
+  changeCharBtn.style.display = 'inline-block';
+  mpMulai(); /* MULTIPLAYER-SPEC §1.4: MQTT mulai sesudah masuk eksplisit */
+  mpKirimPresence(); /* masuk ulang: nama/gender bisa berubah — tulis ulang segera */
+  mpKirimPos();
+}
+entryBtn.addEventListener('click', masukKosan);
+entryName.addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') masukKosan();
+});
+changeCharBtn.addEventListener('click', showEntry);
+document.getElementById('exitBtn').addEventListener('click', function () { exitLiving(); });
+
+/* Ronde 10b — auto-submit saat load DICABUT (MULTIPLAYER-SPEC §4.2):
+   masuk harus ketukan eksplisit di layar masuk. Nama tersimpan hanya
+   mengisi awal field (di showEntry). */
+try {
+  var saved = localStorage.getItem('kosan3d-nama');
+  if (saved) { nameInput.value = saved; }
+} catch (e) { /* abaikan */ }
+updateRoomCount();
+showEntry(); /* layar masuk tampil di atas dunia */
+
+/* ---------- kamera: ikuti avatar + fly-to ---------- */
+/* Fly "Lihat kamarku" di atas kamera orbit fantasy: selama fly, camTarget /
+   camYaw / camPitch / camDist di-lerp menuju tampilan pintu, lalu follow
+   normal dilanjutkan. Nilai fly dihitung supaya framing AKHIR sama persis
+   dengan fly lama (kamera (p.x, p.y+1,6, p.z+6) menatap (p.x, p.y, p.z)):
+   lookAt baru = camTarget + 1,5 -> camTarget = (p.x, p.y-1,5, p.z);
+   cameraPos menambah +1,2 -> selisih vertikal kamera-target = 3,1-1,2
+   = 1,9 pada jarak horizontal 6 -> camDist = hypot(6, 1,9) = 6,29,
+   camPitch = asin(1,9/6,29) = 0,307, camYaw = 0 (kamera di selatan pintu).
+   Cek: y kamera = (p.y-1,5)+1,9+1,2 = p.y+1,6 ✓; z = p.z+6,29*cos(0,307)
+   = p.z+6,0 ✓. Sentuhan/drag di kanvas membatalkan fly (dulu:
+   controls 'start' — lihat handler pointerdown kanvas). */
+var flyTarget = null;
+var flyKeep = false; /* Ronde 10d: true = fly pemulihan keluar (exitLiving) — TIDAK boleh dibatalkan sentuhan kanvas */
+function flyToDoor(n) {
+  /* Ronde 10b — "Lihat kamarku" = pintu di halaman: kalau sedang di
+     dalam ruang tamu, keluar dulu ke halaman baru terbang. */
+  if (myRealm !== 'yard') exitLiving();
+  var p = ROOM_DOORS[n].pos;
+  var flyDist = Math.hypot(6, 1.9);
+  flyTarget = {
+    camTarget: new THREE.Vector3(p.x, p.y - 1.5, p.z),
+    camYaw: 0,
+    camPitch: Math.asin(1.9 / flyDist),
+    camDist: flyDist
+  };
+  flyKeep = false; /* fly "Lihat kamarku" tetap bisa dibatalkan sentuhan (perilaku lama) */
+}
+
+/* ---------- kontrol jalan: joystick analog + keyboard + drag ---------- */
+var keys = { up: false, down: false, left: false, right: false };
+
+/* Joystick MENGAMBANG ala Mobile Legends (Ronde 9): tidak terkunci di
+   satu titik. Sentuh di KIRI layar (kanvas, 45% lebar kiri) -> alas
+   muncul di titik sentuh itu; knob mengikuti jari; lepas -> alas
+   hilang + input reset. Routing sentuhan ada di handler kanvas di
+   bawah (SATU handler, bercabang berdasar wilayah + pointerId) —
+   #joy di sini MURNI VISUAL (pointer-events:none, semua sentuhan
+   masuk ke kanvas). Nilai joy MENTAH (tanpa deadzone di sini) —
+   deadzoneLatch diterapkan per-frame di animate. Alas 120px, knob
+   52px, stick visual translate 32px, radius input 60px (fantasy).
+   Asal (ox,oy) = titik sentuh; alas dijepit ke dalam layar supaya
+   tidak terpotong — input dihitung dari titik sentuh asli, jadi
+   jepitan visual di tepi layar tidak mengubah arah (hanya alasnya
+   yang bergeser, knob tetap mengikuti jari). */
+var JOY_R = 60; /* radius input joystick (setengah alas 120px) */
+var JOY_ZONE_W = 0.45; /* wilayah joystick: 45% lebar kiri layar */
+var joy = { x: 0, y: 0, active: false, id: null, ox: 0, oy: 0 };
+var joyEl = document.getElementById('joy');
+var joyKnob = document.getElementById('joyKnob');
+function joyShow(x, y) {
+  /* alas muncul di titik sentuh, dijepit ke dalam layar */
+  var cx = Math.max(JOY_R, Math.min(window.innerWidth - JOY_R, x));
+  var cy = Math.max(JOY_R, Math.min(window.innerHeight - JOY_R, y));
+  joyEl.style.left = (cx - JOY_R) + 'px';
+  joyEl.style.top = (cy - JOY_R) + 'px';
+  joyEl.style.display = 'block';
+}
+function joyHide() {
+  joyEl.style.display = 'none';
+  joyKnob.style.transform = 'translate(-50%, -50%)';
+}
+function joyStart(e) {
+  joy.active = true;
+  joy.id = e.pointerId;
+  joy.ox = e.clientX;
+  joy.oy = e.clientY;
+  joy.x = 0; joy.y = 0;
+  joyShow(e.clientX, e.clientY);
+}
+function joyMove(e) {
+  if (!joy.active || e.pointerId !== joy.id) return;
+  var j = clampJoystick((e.clientX - joy.ox) / JOY_R, (e.clientY - joy.oy) / JOY_R);
+  joy.x = j.x;
+  joy.y = j.y;
+  joyKnob.style.transform = 'translate(calc(-50% + ' + (j.x * 32) + 'px), calc(-50% + ' + (j.y * 32) + 'px))';
+}
+function endJoy(e) {
+  if (!joy.active || e.pointerId !== joy.id) return;
+  joy.active = false;
+  joy.id = null;
+  joy.x = 0;
+  joy.y = 0;
+  joyHide();
+}
+/* state latch fantasy (dipakai di animate): wasMoving = deadzoneLatch,
+   wasRunning = ambang lari 0,9/0,75. */
+var wasMoving = false, wasRunning = false;
+
+/* Overlay debug ?debug=joy: nilai LIVE tiap frame, dibaca dari screenshot
+   (browser otomasi tidak bisa evaluasi JS). */
+var joyDbg = null;
+if (location.search.indexOf('debug=joy') !== -1) {
+  joyDbg = document.createElement('div');
+  joyDbg.id = 'joyDbg';
+  joyDbg.style.cssText = 'position:fixed;left:12px;top:' + (window.innerWidth <= 420 ? 186 : 172) + 'px;z-index:30;pointer-events:none;font:11px/1.5 monospace,monospace;color:#fff;background:rgba(10,40,80,.75);padding:4px 8px;border-radius:8px;max-width:calc(100vw - 24px);white-space:normal;'; /* top di bawah baris gender (Ronde 8) */
+  document.body.appendChild(joyDbg);
+}
+
+var KEYMAP = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down',
+  ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right' };
+window.addEventListener('keydown', function (e) {
+  /* jangan telan huruf saat mengetik di kolom (Bug 1): WASD adalah huruf
+     biasa di dalam input — handler gerak hanya berlaku di luar input */
+  if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+  var k = KEYMAP[e.code];
+  if (k) { keys[k] = true; e.preventDefault(); }
+});
+window.addEventListener('keyup', function (e) {
+  if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+  var k = KEYMAP[e.code];
+  if (k) { keys[k] = false; e.preventDefault(); }
+});
+
+/* ---------- routing sentuhan: joystick mengambang + orbit + pinch + ketuk ----------
+   SATU handler kanvas, bercabang berdasar wilayah + pointerId (Ronde 9).
+   Wilayah: KIRI (x < 45% lebar) = joystick mengambang ala Mobile Legends;
+   KANAN = orbit kamera. Jari ke-2: kanan = orbit (dua jempol independen,
+   jalan + putar barengan); kiri = diabaikan. Dua jari di KANVAS (bukan
+   joystick) = pinch zoom. Pointer joystick TIDAK masuk canvasPointers,
+   jadi tidak pernah jadi pinch/orbit.
+   KETUK tetap jalan di mana saja: tiap pointer dicatat tapInfo-nya
+   (posisi + waktu turun); saat lepas, kalau gerak <= 10px dan durasi
+   <= 1000ms (ambang lama yang sudah lolos) -> raycast pintu/teras/Ibu,
+   walau joystick sempat muncul. Gestur 2 jari bukan ketukan.
+   Kamera orbit + pinch ala open-world-fantasy (main.js): drag 1 jari =
+   orbit (0,005 rad/px, pitch clamp fantasy); 2 jari = pinch zoom
+   (zoomByPinch pada camDist, 3-12); roda gulir = zoomByWheel.
+   Pointer capture + id tracking; jari yang lepas di tengah pinch
+   membuat pasangan sisa di-re-baseline (fantasy endCam). */
+var raycaster = new THREE.Raycaster();
+var pointerNDC = new THREE.Vector2();
+var tapInfo = new Map(); /* pointerId -> {x, y, t} posisi+waktu turun (tes ketuk per pointer) */
+var canvasPointers = new Map(); /* pointerId -> {x, y} di atas kanvas (BUKAN joystick) */
+var camDrag = null; /* {id, x, y} — drag orbit 1 jari */
+var pinch = null; /* {d0, dist0} — baseline pinch */
+renderer.domElement.addEventListener('pointerdown', function (e) {
+  if (!flyKeep) flyTarget = null; /* sentuhan kanvas membatalkan fly — KECUALI fly pemulihan keluar (Ronde 10d) */
+  renderer.domElement.setPointerCapture(e.pointerId);
+  if (e.clientX < window.innerWidth * JOY_ZONE_W) {
+    /* wilayah KIRI: joystick mengambang (jari ke-2 di kiri diabaikan total) */
+    if (!joy.active) {
+      tapInfo.set(e.pointerId, { x: e.clientX, y: e.clientY, t: Date.now() });
+      joyStart(e);
+    }
+    return;
+  }
+  /* wilayah KANAN: orbit / pinch */
+  tapInfo.set(e.pointerId, { x: e.clientX, y: e.clientY, t: Date.now() });
+  canvasPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (canvasPointers.size === 2) {
+    var pts = Array.from(canvasPointers.values());
+    pinch = { d0: Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y), dist0: camDist };
+    camDrag = null;
+    /* gestur 2 jari: bukan ketukan — hapus tapInfo kedua jari pinch */
+    canvasPointers.forEach(function (p, id) { tapInfo.delete(id); });
+  } else if (canvasPointers.size === 1) {
+    camDrag = { id: e.pointerId, x: e.clientX, y: e.clientY };
+  }
+});
+renderer.domElement.addEventListener('pointermove', function (e) {
+  if (joy.active && e.pointerId === joy.id) { joyMove(e); return; }
+  if (!canvasPointers.has(e.pointerId)) return;
+  canvasPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  /* Ronde 10e — selama fly pemulihan keluar (flyKeep) abaikan orbit/zoom:
+     seret di tengah fly dulu menggeser camYaw/camPitch dan pinch mengubah
+     camDist, melawan lerp fly (playtest 10d: framing akhir salah).
+     Baseline drag/pinch tetap di-update supaya tidak ada lompatan saat
+     fly selesai dan seret berlanjut. Joystick (di atas) tetap jalan. */
+  if (flyKeep) {
+    if (camDrag && e.pointerId === camDrag.id) camDrag = { id: e.pointerId, x: e.clientX, y: e.clientY };
+    if (pinch && canvasPointers.size === 2) {
+      var pts = Array.from(canvasPointers.values());
+      pinch = { d0: Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y), dist0: camDist };
+    }
+    return;
+  }
+  if (pinch && canvasPointers.size === 2) {
+    var pts = Array.from(canvasPointers.values());
+    var d = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+    if (d > 0) camDist = zoomByPinch(pinch.dist0, pinch.d0, d);
+    return;
+  }
+  if (!camDrag || e.pointerId !== camDrag.id) return;
+  camYaw -= (e.clientX - camDrag.x) * 0.005;
+  camPitch = clampCamera(camPitch + (e.clientY - camDrag.y) * 0.005);
+  camDrag = { id: e.pointerId, x: e.clientX, y: e.clientY };
+});
+function endCam(e) {
+  var wasPinch = !!pinch;
+  canvasPointers.delete(e.pointerId);
+  if (canvasPointers.size < 2) pinch = null;
+  if (camDrag && e.pointerId === camDrag.id) camDrag = null;
+  if (wasPinch && canvasPointers.size === 2) {
+    /* Jari ketiga lepas di tengah pinch: re-baseline pada pasangan sisa. */
+    var pts = Array.from(canvasPointers.values());
+    pinch = { d0: Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y), dist0: camDist };
+  } else if (wasPinch && canvasPointers.size === 1) {
+    /* Jari yang tersisa menjadi drag orbit baru. */
+    var entry = Array.from(canvasPointers.entries())[0];
+    camDrag = { id: entry[0], x: entry[1].x, y: entry[1].y };
+  }
+}
+renderer.domElement.addEventListener('wheel', function (e) {
+  e.preventDefault();
+  if (flyKeep) return; /* Ronde 10e: zoom roda diabaikan selama fly pemulihan keluar */
+  camDist = zoomByWheel(camDist, e.deltaY);
+}, { passive: false });
+/* Tes ketuk (logika lama, tidak diubah — hanya downPos global diganti
+   tapInfo per pointer): gerak <= 10px, durasi <= 1000ms. */
+function canvasTap(e, wasPinch) {
+  if (wasPinch) return; /* gestur 2 jari: bukan ketukan */
+  var info = tapInfo.get(e.pointerId);
+  if (!info) return;
+  var moved = Math.hypot(e.clientX - info.x, e.clientY - info.y);
+  var dt = Date.now() - info.t;
+  if (moved > 10 || dt > 1000) return; /* ketuk vs seret: gerakan yang membedakan (Bug 4) */
+  pointerNDC.set((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
+  raycaster.setFromCamera(pointerNDC, camera);
+  /* Ronde 10b — ketuk hanya ke target alam aktif (halaman / ruang tamu). */
+  var targets = myRealm === 'living' ? livingClickables : clickables;
+  var hits = raycaster.intersectObjects(targets, false);
+  if (!hits.length) return;
+  var ud = hits[0].object.userData;
+  if (ud.card === 'room') {
+    pulseDoor(ud.room);
+    showRoomCard(ud.room, false, null);
+  } else if (ud.card === 'living') {
+    showLivingCard();
+  } else if (ud.card === 'exit-living') {
+    exitLiving();
+  } else if (ud.card === 'ibu') {
+    showIbuCard();
+  }
+}
+/* Satu akhir sentuhan untuk semua pointer kanvas: tes ketuk dulu,
+   lalu matikan joystick ATAU kamera/pinch sesuai pointerId-nya. */
+function canvasPointerEnd(e) {
+  var wasPinch = !!pinch;
+  canvasTap(e, wasPinch);
+  tapInfo.delete(e.pointerId);
+  if (joy.active && e.pointerId === joy.id) { endJoy(e); return; }
+  endCam(e);
+}
+renderer.domElement.addEventListener('pointerup', canvasPointerEnd);
+renderer.domElement.addEventListener('pointercancel', canvasPointerEnd);
+/* Jaring pengaman lepas joystick (Ronde 9): kalau pointer capture di
+   kanvas bocor dan pointerup luput dari kanvas (pernah kejadian di
+   browser otomasi, ronde 5), joystick tidak boleh nyangkut jalan terus
+   — window ikut mendengar lepas dan mematikan joystick. Tidak mengubah
+   rasa di HP (di sana kanvas selalu dapat pointerup-nya; pemanggilan
+   kedua ini no-op karena endJoy memeriksa joy.active + id). */
+window.addEventListener('pointerup', function (e) {
+  if (joy.active && e.pointerId === joy.id) endJoy(e);
+});
+window.addEventListener('pointercancel', function (e) {
+  if (joy.active && e.pointerId === joy.id) endJoy(e);
+});
+
+function pulseDoor(n) {
+  var door = ROOM_DOORS[n].mesh;
+  var mat = door.material;
+  mat.emissive = new THREE.Color(0xffd11a);
+  mat.emissiveIntensity = 0.55;
+  setTimeout(function () { mat.emissiveIntensity = 0; }, 700);
+}
+
+/* ---------- resize + loop ---------- */
+window.addEventListener('resize', function () {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+/* (rotateCamera ronde 6 DICABUT ronde 7 — heading/kamera sekarang murni
+   state camYaw fantasy; tidak ada lagi putar posisi kamera manual.) */
+
+/* ================= MULTIPLAYER v1 (MULTIPLAYER-SPEC) =================
+   MQTT publik pola Kantor Misi: broker EMQX utama + HiveMQ cadangan,
+   mqtt.js 5.10.1 via unpkg dimuat DINAMIS hanya sesudah "Masuk Kosan".
+   Tanpa backend / akun / server. Kalau MQTT gagal -> mode sendiri
+   (game tetap jalan normal). Realm = FIELD di pesan (§8). */
+var klien = null; /* klien mqtt.js (null = belum tersambung) */
+var mpStatus = 'off'; /* 'off' | 'connecting' | 'on' | 'solo' */
+var remotePlayers = {}; /* id -> entri pemain lain (§3.2) */
+var mpMag = 0; /* besar gerak lokal saat ini (publish pos, §2.4) */
+var lastPosSent = 0, lastPresenceSent = 0;
+var mpRenderTimer = 0; /* akumulasi dt untuk hitung ulang 20 terdekat */
+var mpSudahKeluar = false; /* penjaga keluar bersih sekali saja */
+var mpPill = document.getElementById('mpPill');
+var mqttJanji = null;
+function muatSkrip(src) {
+  return new Promise(function (res, rej) {
+    var s = document.createElement('script');
+    s.src = src;
+    s.onload = function () { res(); };
+    s.onerror = function () { rej(new Error('gagal muat ' + src)); };
+    document.head.appendChild(s);
+  });
+}
+function pustakaJaringan() {
+  if (typeof mqtt !== 'undefined') return Promise.resolve();
+  if (!mqttJanji) {
+    mqttJanji = muatSkrip('https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js')
+      .catch(function (e) { mqttJanji = null; throw e; });
+  }
+  return mqttJanji;
+}
+function mpHitungSekitar() {
+  var n = 0;
+  for (var id in remotePlayers) if (remotePlayers[id].realm === myRealm) n++;
+  return n;
+}
+function mpPerbaruiPil() {
+  if (!mpPill) return;
+  mpPill.textContent = mpTeksStatus(mpStatus, mpHitungSekitar());
+}
+function mpSetStatus(s) { mpStatus = s; mpPerbaruiPil(); }
+function mpModeSendiri() { mpSetStatus('solo'); }
+function mpSambung(idxBroker) {
+  if (typeof mqtt === 'undefined') { mpModeSendiri(); return null; }
+  var c = mqtt.connect(BROKERS[idxBroker], {
+    clientId: 'kosan-' + playerId + '-' + Math.random().toString(36).slice(2, 6),
+    reconnectPeriod: 2000, connectTimeout: 8000,
+    will: { topic: MP_TOPICS.presence + playerId, payload: '', retain: true }
+  });
+  mpPasangPenangan(c);
+  var dibuka = false, selesai = false;
+  var batas = setTimeout(function () {
+    if (dibuka || selesai) return;
+    selesai = true;
+    try { c.end(true); } catch (e) {}
+    if (idxBroker + 1 < BROKERS.length) mpSambung(idxBroker + 1);
+    else mpModeSendiri();
+  }, 10000);
+  c.on('connect', function () {
+    if (!dibuka) { dibuka = true; clearTimeout(batas); }
+    klien = c;
+    try { c.subscribe([MP_TOPICS.pos, MP_TOPICS.presence + '#']); } catch (e) {}
+    mpSetStatus('on');
+    mpKirimPresence();
+    mpKirimPos();
+  });
+  c.on('close', function () { if (dibuka) mpSetStatus('connecting'); });
+  c.on('error', function () { /* gagal sebelum dibuka ditangani batas 10 dtk */ });
+  return c;
+}
+function mpPasangPenangan(c) {
+  c.on('message', function (t, payload) {
+    var aksi = mpProsesPesan(t, payload.toString(), playerId);
+    if (!aksi) return;
+    if (aksi.kind === 'hapus') { mpHapusRemote(aksi.id); return; }
+    if (aksi.kind === 'pos') mpTerimaPos(aksi.msg);
+    else if (aksi.kind === 'presence') mpTerimaPresence(aksi.msg);
+  });
+}
+function mpBuatRemote(id, nama, gender, realm, x, z, rot) {
+  var parts = makeKosanAvatar(gender);
+  var label = makeLabel(nama);
+  parts.g.add(label.sprite);
+  parts.g.position.set(x, 0, z);
+  parts.g.rotation.y = rot;
+  (realm === 'living' ? livingScene : scene).add(parts.g);
+  var entri = { id: id, nama: nama, gender: gender, realm: realm, realmTs: 0,
+    group: parts.g, parts: parts, label: label, labelTeks: nama,
+    tx: x, tz: z, trot: rot, gerak: 0, walkPhase: mpHashFase(id),
+    lastSeen: Date.now(), snapped: true, punyaPos: true, bot: false };
+  remotePlayers[id] = entri;
+  perbaruiLabelDuplikat();
+  mpTerapkanRender();
+  return entri;
+}
+function mpBangunUlangRemote(entri) { /* gender berubah: rebuild avatar, label tetap */
+  var lama = entri.group;
+  var parts = makeKosanAvatar(entri.gender);
+  var g = parts.g;
+  g.add(entri.label.sprite);
+  g.position.copy(lama.position);
+  g.rotation.y = lama.rotation.y;
+  g.visible = lama.visible;
+  if (lama.parent) lama.parent.add(g);
+  if (lama.parent) lama.parent.remove(lama);
+  entri.group = g; entri.parts = parts;
+}
+function mpPindahRealmRemote(entri, realm, ts) { /* realm baru (ts lebih baru) -> snap */
+  if (ts < (entri.realmTs || 0)) return;
+  if (realm !== entri.realm) {
+    entri.realm = realm; entri.snapped = false;
+    var tujuan = (realm === 'living') ? livingScene : scene;
+    if (entri.group.parent !== tujuan) {
+      if (entri.group.parent) entri.group.parent.remove(entri.group);
+      tujuan.add(entri.group);
+    }
+    mpTerapkanRender();
+    perbaruiLabelDuplikat(); /* pindah alam mengubah hitungan duplikat (§2.6) */
+  }
+  if (ts > (entri.realmTs || 0)) entri.realmTs = ts;
+}
+function mpTerimaPos(m) {
+  var entri = remotePlayers[m.id];
+  if (!entri) {
+    var buang = mpPilihBuang(remotePlayers, MP_MAX_ROSTER);
+    if (buang.length) mpHapusRemote(buang[0]);
+    entri = mpBuatRemote(m.id, m.nama, m.gender, m.realm, m.x, m.z, m.rot);
+    entri.punyaPos = true;
+  }
+  mpPindahRealmRemote(entri, m.realm, m.ts);
+  entri.tx = m.x; entri.tz = m.z; entri.trot = m.rot; entri.gerak = m.gerak;
+  if (!entri.punyaPos) { entri.snapped = false; entri.punyaPos = true; }
+  if (m.nama !== entri.nama) { entri.nama = m.nama; perbaruiLabelDuplikat(); }
+  if (m.gender !== entri.gender) { entri.gender = m.gender; mpBangunUlangRemote(entri); }
+  entri.lastSeen = Date.now();
+}
+function mpTerimaPresence(m) {
+  var entri = remotePlayers[m.id];
+  if (!entri) {
+    var buang = mpPilihBuang(remotePlayers, MP_MAX_ROSTER);
+    if (buang.length) mpHapusRemote(buang[0]);
+    entri = mpBuatRemote(m.id, m.nama, m.gender, m.realm, 0, 12, Math.PI);
+    entri.punyaPos = false; /* posisi belum diketahui — pos pertama nanti snap */
+  }
+  mpPindahRealmRemote(entri, m.realm, m.ts);
+  if (m.nama !== entri.nama) { entri.nama = m.nama; perbaruiLabelDuplikat(); }
+  if (m.gender !== entri.gender) { entri.gender = m.gender; mpBangunUlangRemote(entri); }
+  entri.lastSeen = Date.now();
+}
+function mpHapusRemote(id) {
+  var entri = remotePlayers[id];
+  if (!entri) return;
+  if (entri.group.parent) entri.group.parent.remove(entri.group);
+  entri.label.texture.dispose();
+  delete remotePlayers[id];
+  perbaruiLabelDuplikat();
+  mpTerapkanRender();
+}
+function perbaruiLabelDuplikat() { /* akhiran · #XXXX bila nama sama (§2.6) */
+  var peta = mpHitungDuplikat(remotePlayers);
+  for (var id in remotePlayers) {
+    var entri = remotePlayers[id];
+    var teks = peta[id];
+    if (teks && teks !== entri.labelTeks) { entri.labelTeks = teks; setLabel(entri.label, teks); }
+  }
+}
+function mpTerapkanRender() { /* 20 terdekat di realm sama (§3.5) */
+  var tampil = mpPilihRender(remotePlayers, avatarPos.x, avatarPos.z, myRealm, MP_MAX_RENDER);
+  for (var id in remotePlayers) {
+    var entri = remotePlayers[id];
+    var mau = tampil.indexOf(id) !== -1;
+    if (mau && !entri.group.visible) entri.snapped = false; /* baru tampil -> snap */
+    entri.group.visible = mau;
+  }
+  mpPerbaruiPil();
+}
+function mpKirimPos() {
+  if (!entered || !klien || mpStatus !== 'on') return;
+  var msg = mpBangunPos(playerId, visitorName, visitorGender, myRealm,
+    avatarPos.x, avatarPos.z, avatar.rotation.y, mpMag, Date.now());
+  try { klien.publish(MP_TOPICS.pos, JSON.stringify(msg)); } catch (e) {}
+  lastPosSent = Date.now();
+}
+function mpKirimPresence() {
+  if (!entered || !klien || mpStatus !== 'on') return;
+  var msg = mpBangunPresence(playerId, visitorName, visitorGender, myRealm, Date.now());
+  try { klien.publish(MP_TOPICS.presence + playerId, JSON.stringify(msg), { retain: true }); } catch (e) {}
+  lastPresenceSent = Date.now();
+}
+function mpSaatPindahAlam() { /* kontrak §8.3: realm baru -> publish segera + snap */
+  for (var id in remotePlayers) {
+    if (remotePlayers[id].realm === myRealm) remotePlayers[id].snapped = false;
+  }
+  mpTerapkanRender();
+  mpKirimPresence();
+  mpKirimPos();
+}
+function mpMulai() { /* mulai MQTT sesudah "Masuk Kosan" (§1.4); no-op bila jalan */
+  if (!entered) return;
+  if (mpStatus === 'on' || mpStatus === 'connecting') return;
+  mpSetStatus('connecting');
+  pustakaJaringan().then(function () { mpSambung(0); }).catch(function () { mpModeSendiri(); });
+}
+function mpTeksDebug() { /* baris debug ?debug=joy (§7.3) */
+  var ikon = mpStatus === 'on' ? '🟢' : (mpStatus === 'connecting' ? '🟡' : '⚪');
+  var n = 0, tertua = 0, now = Date.now();
+  for (var id in remotePlayers) {
+    var e = remotePlayers[id];
+    if (e.realm !== myRealm) continue;
+    n++;
+    tertua = Math.max(tertua, now - e.lastSeen);
+  }
+  return 'mp ' + ikon + ' · remote ' + n + ' · lastSeen tertua ' + tertua + ' ms';
+}
+setInterval(function () { /* publish pos (§2.4) + presence 30 dtk (§2.3) */
+  if (!entered || !klien || mpStatus !== 'on') return;
+  var now = Date.now();
+  if (mpHarusPublish(lastPosSent, now, mpMag > 0.01)) mpKirimPos();
+  if (now - lastPresenceSent >= MP_PRESENCE_MS) mpKirimPresence();
+}, 100);
+setInterval(function () { /* sweeper 500 ms (§2.5) + jalanin bot tes ?bot=N */
+  var now = Date.now();
+  for (var bid in remotePlayers) {
+    var be = remotePlayers[bid];
+    if (!be.bot) continue;
+    be.lastSeen = now;
+    if (Math.random() < 0.4) {
+      be.tx = Math.random() * 30 - 15; be.tz = Math.random() * 26 - 13;
+      be.trot = Math.atan2(be.tx - be.group.position.x, be.tz - be.group.position.z);
+      be.gerak = 0.7;
+    } else if (Math.random() < 0.2) { be.gerak = 0; }
+  }
+  var hapus = mpSweeperTick(remotePlayers, now);
+  for (var i = 0; i < hapus.length; i++) mpHapusRemote(hapus[i]);
+}, 500);
+/* Bot tes ?bot=N (§7.3): N avatar remote palsu jalan acak di halaman
+   (tanpa MQTT) untuk uji batas render 20 + performa. Tidak aktif tanpa param. */
+(function () {
+  var m = /[?&]bot=(\d+)/.exec(location.search);
+  var n = m ? Math.max(0, Math.min(25, parseInt(m[1], 10) || 0)) : 0;
+  for (var i = 0; i < n; i++) {
+    var e = mpBuatRemote('bot-' + i, 'Bot ' + (i + 1), (i % 2 === 0) ? 'cewek' : 'cowok',
+      'yard', Math.random() * 20 - 10, Math.random() * 20 - 10, Math.random() * Math.PI * 2);
+    e.bot = true; e.gerak = 0.6; e.punyaPos = true;
+  }
+})();
+/* Keluar bersih (§4.4): presence '' + flush 150 ms + end. Last-will
+   jadi jaring pengaman kalau jeda tidak sempat jalan. */
+function mpKeluarBersih() {
+  if (mpSudahKeluar) return;
+  mpSudahKeluar = true;
+  if (!klien || mpStatus !== 'on' || !playerId) return;
+  try {
+    var pergi = mpPesanPergi(playerId);
+    klien.publish(pergi.topic, pergi.payload, { retain: pergi.retain });
+  } catch (e) { /* abaikan */ }
+  setTimeout(function () { try { klien.end(true); } catch (e) {} }, 150);
+}
+window.addEventListener('beforeunload', mpKeluarBersih);
+window.addEventListener('pagehide', mpKeluarBersih);
+if (mpPill) mpPill.addEventListener('click', function () { mpMulai(); });
+mpPerbaruiPil();
+/* ================= AKHIR MULTIPLAYER v1 ================= */
+
+var clock = new THREE.Clock();
+var walkT = 0; /* jam absolut animasi jalan (fase ayunan kaki/tangan) */
+function animate() {
+  requestAnimationFrame(animate);
+  var dt = Math.min(clock.getDelta(), 0.05);
+
+  /* gerak avatar ala open-world-fantasy (main.js): joystick + keyboard
+     digabung ke vektor satuan -> deadzoneLatch (histeresis 0,15/0,08)
+     -> moveVector(joy, camYaw) -> SPEED walk/run latch (0,9 mulai lari,
+     0,75 bertahan lari) -> posisi axis-separated (x lalu z, tabrakan
+     gedung/meja Kosan) -> hadap turnToward(dt*12). INSTAN tanpa ramp. */
+  var kJoy = {
+    x: (keys.right ? 1 : 0) - (keys.left ? 1 : 0),
+    y: (keys.down ? 1 : 0) - (keys.up ? 1 : 0)
+  };
+  var jIn = clampJoystick(joy.x + kJoy.x, joy.y + kJoy.y);
+  var rawMag = Math.hypot(jIn.x, jIn.y);
+  var latched = deadzoneLatch(rawMag, wasMoving);
+  wasMoving = latched.moving;
+  var mag = latched.mag;
+  var dir = moveVector(jIn, camYaw);
+  var running = wasRunning ? mag >= 0.75 : mag >= 0.9;
+  wasRunning = running;
+  var speed = running ? SPEED.run : SPEED.walk;
+  var move = speed * mag;
+  if (mag > 0.01) {
+    /* Ronde 10b — batas + tabrakan per alam (MULTIPLAYER-SPEC §8):
+       'yard' = YARD + gedung + meja teras; 'living' = dinding + meja
+       ruang tamu dalam. */
+    var bounds = myRealm === 'living' ? LIVING : YARD;
+    var nx = Math.max(bounds.minX, Math.min(bounds.maxX, avatarPos.x + dir.x * move * dt));
+    var nz = Math.max(bounds.minZ, Math.min(bounds.maxZ, avatarPos.z + dir.z * move * dt));
+    if (myRealm === 'living') {
+      /* meja ruang tamu dalam: dorong keluar ke sisi terdekat (sumbu z) */
+      if (nx > LIVING_TABLE.minX - 0.4 && nx < LIVING_TABLE.maxX + 0.4 &&
+          nz > LIVING_TABLE.minZ - 0.4 && nz < LIVING_TABLE.maxZ + 0.4) {
+        nz = (nz > (LIVING_TABLE.minZ + LIVING_TABLE.maxZ) / 2)
+          ? LIVING_TABLE.maxZ + 0.4 : LIVING_TABLE.minZ - 0.4;
+      }
+    } else {
+      var c = collideBuilding(nx, nz);
+      nx = c.x; nz = c.z;
+      /* meja teras: dorong keluar ke sisi terdekat (sumbu z) */
+      if (nx > TABLE_BOX.minX - 0.4 && nx < TABLE_BOX.maxX + 0.4 &&
+          nz > TABLE_BOX.minZ - 0.4 && nz < TABLE_BOX.maxZ + 0.4) {
+        nz = (nz > (TABLE_BOX.minZ + TABLE_BOX.maxZ) / 2)
+          ? TABLE_BOX.maxZ + 0.4 : TABLE_BOX.minZ - 0.4;
+      }
+    }
+    avatarPos.x = nx; avatarPos.z = nz;
+    avatar.rotation.y = turnToward(avatar.rotation.y, Math.atan2(dir.x, dir.z), Math.min(1, dt * 12));
+  }
+  avatar.position.set(avatarPos.x, 0, avatarPos.z);
+  avatar.rotation.y = Math.atan2(Math.sin(avatar.rotation.y), Math.cos(avatar.rotation.y)); /* normalisasi ke [-PI, PI] — rot tidak menumpuk (overlay terbaca) */
+  /* overlay debug ?debug=joy: nilai live tiap frame */
+  if (joyDbg) {
+    joyDbg.textContent = 'joy x ' + joy.x.toFixed(2) + ' y ' + joy.y.toFixed(2)
+      + ' | mag ' + mag.toFixed(2)
+      + ' | ox ' + Math.round(joy.ox) + ' oy ' + Math.round(joy.oy)
+      + ' | camYaw ' + camYaw.toFixed(2) + ' rot ' + avatar.rotation.y.toFixed(2)
+      + ' | id ' + (joy.id === null ? '-' : joy.id)
+      + ' | dist ' + camDist.toFixed(2)
+      + ' | realm ' + myRealm;
+  }
+  if (joyDbg) joyDbg.textContent += ' | ' + mpTeksDebug(); /* multiplayer (§7.3) */
+  /* animasi jalan: ayunan kaki/tangan, goyangan idle.
+     Badan TIDAK PERNAH naik-turun — avatar.position.y SELALU 0,
+     kaki menapak (aturan tetap pemilik; bobbing DIHAPUS TOTAL). */
+  walkT += dt;
+  var gerak = mag; /* amplitudo ayunan = besar defleksi ter-latch */
+  mpMag = mag; /* multiplayer: besar gerak untuk publish pos (§2.4) */
+  var sw = Math.sin(walkT * 11);
+  avLegL.rotation.x = sw * 0.55 * gerak;
+  avLegR.rotation.x = -sw * 0.55 * gerak;
+  avArmL.rotation.x = -sw * 0.6 * gerak;
+  avArmR.rotation.x = sw * 0.6 * gerak;
+  avTubuh.rotation.y = Math.sin(walkT * 1.3) * 0.25 * (1 - gerak);
+  avatar.position.y = 0;
+
+  /* kamera orbit fantasy: follow dengan lerp 0,15; fly "Lihat kamarku"
+     me-lerp camTarget/camYaw/camPitch/camDist ke tampilan pintu. */
+  if (flyTarget) {
+    var k = 1 - Math.exp(-2.5 * dt);
+    camTarget.lerp(flyTarget.camTarget, k);
+    camYaw = turnToward(camYaw, flyTarget.camYaw, k);
+    camPitch += (flyTarget.camPitch - camPitch) * k;
+    camDist += (flyTarget.camDist - camDist) * k;
+    var flyCam = cameraPos(flyTarget.camTarget, flyTarget.camYaw, flyTarget.camPitch, flyTarget.camDist);
+    if (Math.hypot(camera.position.x - flyCam.x, camera.position.y - flyCam.y, camera.position.z - flyCam.z) < 0.2) {
+      /* Ronde 10d — sampai: jepret TEPAT ke nilai target (sisa lerp
+         eksponensial dulu menyisakan selisih camDist sampai 0,07 >
+         toleransi 0,05) */
+      camTarget.copy(flyTarget.camTarget);
+      camYaw = flyTarget.camYaw; camPitch = flyTarget.camPitch; camDist = flyTarget.camDist;
+      flyTarget = null; flyKeep = false;
+    }
+  } else {
+    camTarget.lerp(avatar.position, 0.15);
+  }
+  var cp = cameraPos(camTarget, camYaw, camPitch, camDist);
+  camera.position.set(cp.x, cp.y, cp.z);
+  camera.lookAt(camTarget.x, camTarget.y + 1.5, camTarget.z);
+  /* Ronde 10a — label nama 3D diskalakan berdasar jarak kamera: sprite
+     berukuran dunia tetap (2,4) membesar menutupi gedung/langit saat zoom
+     dekat. Skala ∝ camDist (acuan 9,5 = jarak default), dijepit 0,35–1,3
+     supaya tetap terbaca dari dekat maupun jauh. */
+  if (avatarLabel) {
+    var ls = Math.max(0.35, Math.min(1.3, camDist / 9.5));
+    avatarLabel.sprite.scale.set(2.4 * ls, 0.6 * ls, 1);
+  }
+  /* multiplayer: pemain lain — lerp posisi + hadap (§3.3), ayunan kaki
+     rumus lokal + offset fase (§3.4), label diskala seperti lokal. */
+  var mpK = 1 - Math.exp(-12 * dt);
+  for (var mpId in remotePlayers) {
+    var re = remotePlayers[mpId];
+    if (!re.group.visible) continue; /* realm lain / di luar 20 terdekat */
+    if (!re.snapped) {
+      re.group.position.set(re.tx, 0, re.tz);
+      re.group.rotation.y = re.trot;
+      re.snapped = true;
+    } else {
+      re.group.position.x += (re.tx - re.group.position.x) * mpK;
+      re.group.position.z += (re.tz - re.group.position.z) * mpK;
+      re.group.rotation.y += mpBungkusSudut(re.trot - re.group.rotation.y) * mpK;
+    }
+    var rsw = Math.sin(walkT * 11 + re.walkPhase);
+    re.parts.legL.rotation.x = rsw * 0.55 * re.gerak;
+    re.parts.legR.rotation.x = -rsw * 0.55 * re.gerak;
+    re.parts.armL.rotation.x = -rsw * 0.6 * re.gerak;
+    re.parts.armR.rotation.x = rsw * 0.6 * re.gerak;
+    re.parts.tubuh.rotation.y = Math.sin(walkT * 1.3) * 0.25 * (1 - re.gerak);
+    re.group.position.y = 0;
+    var rls = Math.max(0.35, Math.min(1.3, camDist / 9.5));
+    re.label.sprite.scale.set(2.4 * rls, 0.6 * rls, 1);
+  }
+  /* hitung ulang 20 terdekat tiap 1 dtk (§3.5) */
+  mpRenderTimer += dt;
+  if (mpRenderTimer >= 1) { mpRenderTimer = 0; mpTerapkanRender(); }
+  renderer.render(myRealm === 'living' ? livingScene : scene, camera);
+}
+animate();
+</script>
+</body>
+</html>
