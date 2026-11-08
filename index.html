@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kosan Ibu Kos — Ketik Namamu, Dapat Nomor Kamar</title>
+<meta name="description" content="Kosan yang dibangun lewat komen. Ketik namamu, lihat preview nomor kamarmu. Simpan kartunya, pamerin di komen episode terbaru.">
+<meta name="theme-color" content="#2E7FD6">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Kosan Ibu Kos — Ketik Namamu, Dapat Nomor Kamar">
+<meta property="og:description" content="10 kamar, 1 Ibu Kos, 0 ampun buat yang telat bayar. Ketik namamu, lihat preview nomor kamarmu.">
+<meta property="og:image" content="assets/og.jpg">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="stylesheet" href="fonts/fonts-local.css">
+<link rel="stylesheet" href="style.css">
+<script src="vendor/confetti.min.js"></script>
+<script src="vendor/html2canvas.min.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="#">
+      <span class="brand-mark">🏠</span>
+      <span class="brand-text">KOSAN <b>IBU KOS</b></span>
+    </a>
+    <span class="badge-open">KOSAN DIBUKA</span>
+  </div>
+</header>
+
+<main>
+  <!-- HERO -->
+  <section class="hero">
+    <div class="cloud c1" aria-hidden="true"></div>
+    <div class="cloud c2" aria-hidden="true"></div>
+    <div class="cloud c3" aria-hidden="true"></div>
+    <div class="sun" aria-hidden="true">☀️</div>
+    <div class="wrap hero-inner">
+      <p class="hero-eyebrow reveal">🏠 Kosan yang dibangun lewat komen</p>
+      <h1 class="reveal">Ketik Namamu,<br>Dapat <span class="hl">Nomor Kamar</span></h1>
+      <p class="hero-sub reveal">Sepuluh kamar, satu Ibu Kos, nol ampun buat yang telat bayar. Ketik namamu di bawah — lihat preview nomor kamarmu. Kamarnya masih kosong, isinya nanti dari komenmu.</p>
+      <figure class="hero-fig reveal">
+        <img src="assets/hero.jpg" alt="Gedung Kosan Ibu Kos — gedung biru dua lantai, jemuran, Ibu Kos dan para penghuni di halaman" width="900" height="1125" fetchpriority="high">
+        <figcaption>📍 Kosan Ibu Kos — gedung biru dua lantai, 10 kamar kosong nunggu dibangun lewat komen</figcaption>
+      </figure>
+      <div class="hero-chips reveal">
+        <span>🛏️ 10 Kamar</span>
+        <span>💸 Gratis, tanpa DP</span>
+        <span>📶 WiFi&hellip; jangan ditanya</span>
+      </div>
+      <a class="btn btn-primary btn-big" href="#cek-kamar">🔑 Cek Kamarku ↓</a>
+    </div>
+    <div class="grass" aria-hidden="true"></div>
+  </section>
+
+  <!-- CEK KAMAR -->
+  <section class="name-section" id="cek-kamar">
+    <div class="wrap">
+      <div class="ibu-row reveal">
+        <img class="ibu-avatar" src="assets/ibu-kos.webp" alt="Ibu Kos bersedekap" width="120" height="120">
+        <div class="bubble">
+          <p class="bubble-who">Ibu Kos</p>
+          <p>&ldquo;Namamu siapa? Ketik yang bener, jangan nama mantan.&rdquo;</p>
+        </div>
+      </div>
+
+      <form id="nameForm" class="reveal" autocomplete="off">
+        <label for="nama">Nama kamu</label>
+        <input id="nama" name="nama" type="text" maxlength="30" placeholder="contoh: Budi Santoso" enterkeyhint="go">
+        <p class="hint" id="nameHint">Ini preview saja — kamarmu belum tercatat di denah. Nama yang sama = kamar yang sama.</p>
+        <button class="btn btn-primary btn-big" type="submit">🔑 Cek Kamarku</button>
+      </form>
+
+      <div id="cardWrap" hidden>
+        <div class="card" id="residentCard">
+          <img class="card-batik" src="assets/batik-strip.svg" alt="" width="600" height="28">
+          <div class="card-head">
+            <img class="card-avatar" src="assets/ibu-kos.webp" alt="Ibu Kos" width="96" height="96">
+            <div class="card-head-text">
+              <p class="card-kicker" id="cardKicker">KARTU PREVIEW KAMAR</p>
+              <p class="card-kosan">KOSAN IBU KOS</p>
+              <p class="card-since">Sejak Episode 1 &bull; 2026</p>
+            </div>
+            <div class="card-stamp" id="cardStamp">PREVIEW</div>
+          </div>
+          <div class="card-room">
+            <p class="card-room-label">NOMOR KAMARMU</p>
+            <p class="card-room-num" id="cardRoomNum">–</p>
+            <p class="card-room-name" id="cardRoomName">–</p>
+            <p class="card-room-perk" id="cardRoomPerk">–</p>
+          </div>
+          <div class="card-name-row">
+            <p class="card-name-label" id="cardNameLabel">Namamu (preview)</p>
+            <p class="card-name" id="cardName">–</p>
+          </div>
+          <div class="card-foot">
+            <p class="card-sign">Tertanda,<br><span class="sign-name">Ibu Kos</span></p>
+            <p class="card-id" id="cardId">ID: KOSAN-00-XXXX</p>
+          </div>
+        </div>
+
+        <div class="card-actions">
+          <button id="btnDownload" class="btn btn-primary" type="button">💾 Simpan Kartu (PNG)</button>
+          <button id="btnShare" class="btn btn-ghost" type="button">🔗 Bagikan Kamarku</button>
+          <button id="btnAgain" class="btn btn-text" type="button">Coba nama lain ↺</button>
+        </div>
+        <p class="card-note" id="cardNote">Ini preview — namamu belum tercatat di denah. Biar tercatat, komen di episode dan tunggu Ibu absen!</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- DENAH -->
+  <section class="denah-section">
+    <div class="wrap">
+      <h2 class="reveal">🗺️ Denah Kosan</h2>
+      <p class="section-sub reveal">Sepuluh kamar dan satu ruang tamu, dua lantai — kamar yang udah ada namanya berarti udah ada penghuninya (dicatat Ibu dari episode). Ketuk buat lihat. Preview kamarmu ditandai kuning.</p>
+
+      <div class="building reveal">
+        <div class="building-sign">KOSAN DIBUKA</div>
+        <div class="floor">
+          <span class="floor-label">Lantai 2</span>
+          <div class="rooms" id="roomsL2"></div>
+        </div>
+        <div class="floor">
+          <span class="floor-label">Lantai 1</span>
+          <div class="rooms" id="roomsL1"></div>
+          <button type="button" class="room shared" id="ruangTamu" aria-label="Ruang Tamu, ruang bersama penghuni"><span class="room-ico">🛋️</span><span class="room-shared-label">Ruang Tamu</span><span class="room-shared-sub">ruang bersama</span></button>
+        </div>
+        <div class="building-base">
+          <span class="door">🚪 Pintu Utama</span>
+          <span class="fence">🌿🌿🌿</span>
+        </div>
+      </div>
+
+      <div class="room-detail reveal" id="roomDetail">
+        <p class="room-detail-kicker" id="detailKicker">KAMAR <span id="detailNum">–</span></p>
+        <p class="room-detail-name" id="detailName">Ketuk salah satu kamar di denah</p>
+        <p class="room-detail-perk" id="detailPerk">Kamar ini masih kosong. Belum ada yang dibangun — komen di episode mau diisi apa!</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ATURAN -->
+  <section class="rules-section">
+    <div class="wrap">
+      <h2 class="reveal">📋 Aturan Kosan No. 1</h2>
+      <p class="section-sub reveal">Tiga aturan. Nggak ada yang keempat. Ibu yang bikin, Ibu yang ngawasin.</p>
+      <div class="rules">
+        <article class="rule reveal">
+          <p class="rule-emoji">🏠</p>
+          <h3>Follow = Penghuni Baru</h3>
+          <p>Follow @ibu__kos, kamu resmi jadi penghuni. Ketik namamu di atas buat lihat preview nomor kamarmu — nama di denah dicatat Ibu setelah kamu komen di episode.</p>
+        </article>
+        <article class="rule reveal">
+          <p class="rule-emoji">💬</p>
+          <h3>Komen = Request Bebas</h3>
+          <p>Mau kamar mandi dalam, WiFi kenceng, parkiran luas? Tulis aja di komen, Ibu baca semua.</p>
+        </article>
+        <article class="rule reveal">
+          <p class="rule-emoji">❤️</p>
+          <h3>Like Terbanyak = Ibu Bangun</h3>
+          <p>Request yang like-nya paling banyak langsung Ibu bangun. Beneran, bukan janji manis.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA IG -->
+  <section class="cta-section">
+    <div class="wrap">
+      <div class="cta-card reveal">
+        <img class="cta-avatar" src="assets/ibu-kos.webp" alt="Ibu Kos" width="96" height="96">
+        <h2>Udah lihat preview kamarmu?<br>Sekarang giliranmu komen.</h2>
+        <p>Tonton Episode 1, terus komen nomor kamarmu di bawah videonya. Ibu absen satu-satu di Episode 3.</p>
+        <div class="cta-btns">
+          <a class="btn btn-yellow" href="https://www.instagram.com/reel/DfZnSOUjmO7/" target="_blank" rel="noopener">▶️ Tonton Episode 1</a>
+          <a class="btn btn-white" href="https://www.instagram.com/ibu__kos/" target="_blank" rel="noopener">📷 Follow @ibu__kos</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <img class="footer-batik" src="assets/batik-strip.svg" alt="" width="600" height="28">
+  <div class="wrap">
+    <p class="footer-title">🏠 KOSAN IBU KOS</p>
+    <p>Kosan yang dibangun lewat komen. Follow = penghuni, komen = request, like terbanyak = Ibu bangun.</p>
+    <p class="footer-small">Nomor kamar dihitung dari namamu — ini cuma preview, kamarmu belum tercatat di denah. Yang tercatat cuma penghuni dari episode. Web ini cuma buat seru-seruan, jangan ditagih ke Ibu.</p>
+  </div>
+</footer>
+
+<div id="toast" role="status" aria-live="polite"></div>
+<script src="app.js"></script>
+</body>
+</html>
