@@ -20,7 +20,7 @@ Aturan mainnya:
 | File | Isi |
 | --- | --- |
 | `index.html` + `app.js` + `style.css` | Halaman utama: ketik nama → kartu penghuni + nomor kamar (10 kamar, kosong semua sampai ada yang tampil di episode) |
-| `kosan-3d.html` | Tur 3D kosan (Three.js, self-hosted di `vendor/three/`): halaman kosan, teras, dan ruang dalam — kontrol jalan + kamera ala game, joystick di HP |
+| `kosan-3d.html` | Tur 3D kosan (Three.js, self-hosted di `vendor/three/`): halaman kosan, teras, dan ruang dalam — kontrol jalan + kamera ala game, joystick di HP. Termasuk multiplayer v1 (MQTT publik, lihat `docs/MULTIPLAYER-SPEC.md`) — sudah ada di kode, belum di-deploy ke live |
 | `assets/` | Gambar: hero, foto Ibu Kos, favicon, OG image |
 | `fonts/` | Font lokal (Baloo 2, Caveat, Nunito) — tanpa CDN |
 | `vendor/` | Pustaka lokal: Three.js, confetti, html2canvas |
@@ -48,7 +48,7 @@ Deploy ke Vercel/Netlify/GitHub Pages: root directory = repo ini, tanpa build co
 - `docs/KOSAN-3D-SPEC.md` — spek situs 3D (3 fase: halaman → teras → ruang dalam)
 - `docs/KOSAN-3D-PLAN.md` — rencana build 3D
 - `docs/KOSAN-3D-BUILD-NOTES.md` — catatan build per ronde
-- `docs/MULTIPLAYER-SPEC.md` — spek multiplayer (MQTT publik EMQX/HiveMQ, belum diimplementasi)
+- `docs/MULTIPLAYER-SPEC.md` — spek + implementasi multiplayer v1 (MQTT publik EMQX/HiveMQ, failover 10 dtk/broker, realm per alam); kode sudah ada di `kosan-3d.html`, belum di-deploy ke live
 - `docs/PENGHUNI.md` — aturan siapa boleh jadi penghuni
 - `docs/AUDIT-WEB-2026-11-07.md` — audit web
 - `docs/episode-01-naskah.md`, `docs/episode-02-naskah.md` — naskah episode 1–2
