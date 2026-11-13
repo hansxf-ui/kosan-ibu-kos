@@ -19,11 +19,12 @@ const BATAS = { masuk: 20, setup: 20, kamar: 60 }; /* per jaringan (HMAC IP, IPv
    kunci lama itu kemungkinan hanya muncul untuk PIN yang benar (lihat
    komentar Ronde 61 di index.html), sehingga bisa jadi penunjuk PIN. */
 const GERBANG = { maks: 5, jendelaDetik: 15 * 60, kunciDetik: 20 * 60 };
-/* Jendela dihitung dari percobaan TERAKHIR (geser). KALAU penghitung gagal
-   kosan_login juga direset sesudah 15 menit sepi ([CEK] runbook langkah 1),
-   kuncinya (15 menit sejak kegagalan ke-5) sudah habis sebelum gerbang
-   mulai menghitung dari nol lagi. Kalau tidak, penunjuk PIN bisa muncul
-   lagi, tapi tiap tebakan tetap memakai jatah gerbang (maks 5/15 menit).
+/* Jendela dihitung dari percobaan TERAKHIR (geser). Hitungan kosan_login
+   kumulatif (tidak meluruh), jadi saat gerbang pin:<room> mulai dari nol
+   karena sepi, kosan_gerbang_ambil ikut menghapus kosan_login_attempts
+   kamar itu: satu PIN salah = satu hitungan, dengan peluruhan yang sama.
+   Kunci kosan_login (15 menit sejak kegagalan ke-5) sudah habis sebelum
+   itu terjadi (butuh 15 menit sepi sesudah percobaan terakhir).
    Trade-off yang DITERIMA: orang yang tahu username bisa terus mengunci
    akun (6 tebakan tiap 20 menit). Pemilik membuka dengan
    kosan_akun_buka(N) — lihat docs/RASA-AMAN-FASE-A.md. */

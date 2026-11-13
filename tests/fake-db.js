@@ -12,6 +12,8 @@ function buatFakeDb({ penghuni, sekarang = () => Date.now() }) {
   const t = { akun: new Map(), sesi: [], log: [], batas: new Map(), gerbang: new Map() };
   const iso = (ms) => new Date(ms).toISOString();
   const panggilan = [];
+  /* tiru DELETE FROM kosan_login_attempts WHERE name IN (penghuni kamar) */
+  const hapusAttempts = (room) => { for (const p of lama) if (p.room === room) { p.gagal = 0; p.kunci = 0; } };
 
   return {
     _t: t, _lama: lama, _panggilan: panggilan,
@@ -20,8 +22,9 @@ function buatFakeDb({ penghuni, sekarang = () => Date.now() }) {
       panggilan.push('loginPin');
       const p = lama.find((x) => x.name.toLowerCase() === String(name).trim().toLowerCase());
       if (!p) return { ok: false };
-      /* Tiru perilaku yang dicurigai di kosan_login asli: saat terkunci,
-         "Terlalu banyak percobaan" HANYA untuk PIN benar (penunjuk PIN). */
+      /* Tiru kosan_login asli (terverifikasi Postgres): hitungan gagal
+         kumulatif tanpa peluruhan, kunci 15 menit di kegagalan ke-5, dan
+         saat terkunci "Terlalu banyak percobaan" HANYA untuk PIN benar. */
       if (p.kunci > sekarang()) return p.pin_hash === h ? { ok: false, terkunci: true } : { ok: false };
       if (p.pin_hash !== h) { if (++p.gagal >= 5) { p.kunci = sekarang() + 15 * 60000; p.gagal = 0; } return { ok: false }; }
       p.gagal = 0;
@@ -46,11 +49,11 @@ function buatFakeDb({ penghuni, sekarang = () => Date.now() }) {
     },
     async akunBerhasil(room) { const a = t.akun.get(room); if (a) { a.gagal_count = 0; a.gagal_sejak = null; } },
     async akunBuka(room) {
-      t.gerbang.delete('pin:' + room); t.gerbang.delete('pw:' + room);
+      t.gerbang.delete('pin:' + room); t.gerbang.delete('pw:' + room); hapusAttempts(room);
       const a = t.akun.get(room); if (a) Object.assign(a, { kunci_sampai: null, gagal_count: 0, gagal_sejak: null });
     },
     async akunReset(room) {
-      t.gerbang.delete('pin:' + room); t.gerbang.delete('pw:' + room);
+      t.gerbang.delete('pin:' + room); t.gerbang.delete('pw:' + room); hapusAttempts(room);
       const a = t.akun.get(room);
       if (a) Object.assign(a, { password_hash: null, password_dibuat: null, gagal_count: 0, gagal_sejak: null, kunci_sampai: null });
       for (const s of t.sesi) if (s.room === room && !s.dicabut) s.dicabut = iso(sekarang());
@@ -72,9 +75,14 @@ function buatFakeDb({ penghuni, sekarang = () => Date.now() }) {
        tidak ada await di dalamnya */
     async gerbangAmbil(kunci, g) {
       const now = sekarang();
+      const baru = !t.gerbang.has(kunci);
       const x = t.gerbang.get(kunci) || { n: 0, terakhir: now, kunci: 0 };
       if (x.kunci > now) { t.gerbang.set(kunci, x); return false; }
-      if (x.terakhir < now - g.jendelaDetik * 1000 || x.kunci) { x.n = 0; x.kunci = 0; }
+      if (baru || x.terakhir < now - g.jendelaDetik * 1000) {
+        const m = /^pin:(\d{1,2})$/.exec(kunci);
+        if (m) hapusAttempts(+m[1]);
+        x.n = 0; x.kunci = 0;
+      } else if (x.kunci) { x.n = 0; x.kunci = 0; }
       x.n += 1; x.terakhir = now;
       if (x.n > g.maks) { x.kunci = now + g.kunciDetik * 1000; t.gerbang.set(kunci, x); return false; }
       t.gerbang.set(kunci, x); return true;

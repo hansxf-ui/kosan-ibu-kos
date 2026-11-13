@@ -136,18 +136,32 @@ end $$;
 -- Cadangkan satu percobaan. Percobaan ke-(p_maks+1) tanpa jeda sepi
 -- p_jendela detik -> terkunci p_kunci_detik detik. Baris dikunci FOR
 -- UPDATE, jadi aman untuk permintaan paralel. true = boleh mencoba.
--- Jendela dihitung dari percobaan TERAKHIR. Kalau penghitung gagal
--- kosan_login juga direset sesudah 15 menit sepi, gerbang tidak terbuka
--- lagi selagi kunci 15 menit kosan_login masih aktif.
+-- Jendela dihitung dari percobaan TERAKHIR (geser).
+-- Hitungan kosan_login (tabel lama kosan_login_attempts) KUMULATIF: hitungan
+-- 1-4 tidak pernah meluruh sendiri (terverifikasi di Postgres). Supaya PIN
+-- salah tidak dihitung dobel dengan peluruhan berbeda, saat gerbang pin:<room>
+-- mulai dari nol karena sepi (atau baris gerbang baru), baris
+-- kosan_login_attempts penghuni kamar itu ikut dihapus. Definisi kosan_login
+-- tidak diubah. Gerbang pw: tidak menyentuh hitungan PIN.
 create or replace function public.kosan_gerbang_ambil(p_kunci text, p_maks int, p_jendela int, p_kunci_detik int)
 returns boolean language plpgsql security definer set search_path = '' as $$
-declare g public.kosan_gerbang%rowtype;
+declare g public.kosan_gerbang%rowtype; v_baru boolean; v_n int; v_room int;
 begin
   insert into public.kosan_gerbang (kunci) values (p_kunci) on conflict (kunci) do nothing;
+  get diagnostics v_n = row_count;
+  v_baru := v_n = 1;
   select * into g from public.kosan_gerbang where kunci = p_kunci for update;
   if not found then return false; end if; -- baris terhapus di antara 2 perintah: tolak (aman)
   if g.kunci_sampai is not null and g.kunci_sampai > now() then return false; end if;
-  if g.kunci_sampai is not null or g.terakhir < now() - make_interval(secs => p_jendela) then
+  if v_baru or g.terakhir < now() - make_interval(secs => p_jendela) then
+    -- sepi: mulai dari nol, termasuk hitungan PIN lama kamar ini
+    if p_kunci ~ '^pin:[0-9]{1,2}$' then
+      v_room := substr(p_kunci, 5)::int;
+      delete from public.kosan_login_attempts
+        where name in (select r.name from public.kosan_residents r where r.room = v_room); -- kamar kosong = no-op
+    end if;
+    g.jumlah := 0; g.kunci_sampai := null;
+  elsif g.kunci_sampai is not null then
     g.jumlah := 0; g.kunci_sampai := null;
   end if;
   g.jumlah := g.jumlah + 1;
@@ -166,7 +180,7 @@ $$;
 --   select kosan_akun_reset(13);
 -- Penghuni lalu login pertama lagi pakai PIN kamarnya + buat password baru.
 -- PIN tidak berubah. Semua sesi kamar itu dicabut, gerbang percobaan
--- kamar itu dibuka.
+-- kamar itu dibuka, dan kunci PIN lama (kosan_login_attempts) dihapus.
 -- Membuka kunci SAJA (tanpa reset password), mis. akun dikunci orang iseng:
 --   select kosan_akun_buka(13);
 create or replace function public.kosan_akun_reset(p_room int)
@@ -177,6 +191,8 @@ begin
   where room = p_room;
   update public.kosan_sesi set dicabut = now() where room = p_room and dicabut is null;
   delete from public.kosan_gerbang where kunci in ('pin:' || p_room, 'pw:' || p_room);
+  delete from public.kosan_login_attempts
+    where name in (select r.name from public.kosan_residents r where r.room = p_room);
 end $$;
 
 create or replace function public.kosan_akun_buka(p_room int)
@@ -184,6 +200,8 @@ returns void language plpgsql security definer set search_path = '' as $$
 begin
   delete from public.kosan_gerbang where kunci in ('pin:' || p_room, 'pw:' || p_room);
   update public.kosan_akun set kunci_sampai = null, gagal_count = 0, gagal_sejak = null where room = p_room;
+  delete from public.kosan_login_attempts
+    where name in (select r.name from public.kosan_residents r where r.room = p_room);
 end $$;
 
 -- Retensi (§8.1): log perangkat 90 hari, sesi mati 7 hari, penghitung 2 hari.

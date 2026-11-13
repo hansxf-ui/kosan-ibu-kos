@@ -326,11 +326,10 @@ test('review 2 #1: pemilik bisa membuka kunci tanpa reset password; reset juga m
   await db.akunBuka(13);
   /* password langsung terbuka */
   assert.equal((await app.masuk(post({ username: 'dilla', password: PW }))).status, 200);
-  /* PIN: kunci 15 menit milik kosan_login lama (data penghuni, tidak
-     disentuh) masih berlaku sampai habis sendiri */
-  assert.equal((await app.kamarMasuk(denganCookie(post({ room: 13, pin: '135790' }), tok))).status, 429);
-  majukan(15 * 60000 + 1);
+  /* PIN juga langsung terbuka: kosan_akun_buka ikut menghapus baris
+     kosan_login_attempts kamar itu (temuan verifikasi #2) */
   assert.equal((await app.kamarMasuk(denganCookie(post({ room: 13, pin: '135790' }), tok))).status, 200);
+  void majukan;
   /* reset juga membuka gerbang */
   for (let i = 0; i < 6; i++) await app.masuk(post({ username: 'dilla', password: 'salah-lagi-' + i }));
   await db.akunReset(13);
@@ -340,6 +339,51 @@ test('review 2 #1: pemilik bisa membuka kunci tanpa reset password; reset juga m
 test('review 2 #6: alamat IPv4-mapped (::ffff:) dihitung sebagai IPv4 masing-masing', () => {
   assert.equal(I.kunciBatasIp(RAHASIA, '::ffff:36.80.1.23'), I.kunciBatasIp(RAHASIA, '36.80.1.23'));
   assert.notEqual(I.kunciBatasIp(RAHASIA, '::ffff:36.80.1.23'), I.kunciBatasIp(RAHASIA, '::ffff:36.80.1.24'));
+});
+
+/* ---------- temuan verifikasi Postgres (Vesper) ---------- */
+test('verifikasi #1: sepi 20 menit menghapus juga hitungan kosan_login (tidak dobel-hitung)', async () => {
+  const { app, majukan } = siapkan();
+  const pin = (p) => app.setupPin(post({ username: 'dilla', pin: p }));
+  for (let i = 0; i < 3; i++) assert.equal((await pin('00000' + i)).status, 401);
+  majukan(20 * 60000);
+  for (let i = 0; i < 2; i++) assert.equal((await pin('10000' + i)).status, 401);
+  const benar = await pin('135790');
+  assert.equal(benar.status, 200, 'penghuni terkunci oleh hitungan lama kosan_login');
+  assert.ok(benar.body.tiket);
+  /* masih dalam jendela: 2 salah + 1 benar (jatahnya dikembalikan) + 3 salah = 5 jatah terpakai */
+  for (let i = 0; i < 3; i++) assert.equal((await pin('20000' + i)).status, 401);
+  const keenam = await pin('135790');
+  assert.equal(keenam.status, 429, 'percobaan ke-6 dalam jendela harus terkunci');
+});
+
+test('verifikasi #1: gerbang pw: tidak menyentuh hitungan PIN kosan_login', async () => {
+  const { app, db, majukan } = siapkan();
+  await setupLengkap(app, 'rina', '246810');
+  for (let i = 0; i < 4; i++) await db.loginPin('rina', 'x' + i); /* 4 PIN salah lewat jalur lama */
+  majukan(20 * 60000);
+  await app.masuk(post({ username: 'rina', password: 'salah-salah-1' })); /* gerbang pw: reset karena sepi */
+  assert.equal(db._lama.find((p) => p.name === 'rina').gagal, 4);
+});
+
+test('verifikasi #2: kunci lama kosan_login (5x PIN salah) dibuka kosan_akun_buka', async () => {
+  const { app, db } = siapkan();
+  const tok = tokenDari(await setupLengkap(app, 'dilla', '135790', true));
+  for (let i = 0; i < 5; i++) await db.loginPin('dilla', 'salah' + i); /* kunci lewat sistem lama */
+  assert.equal((await app.kamarMasuk(denganCookie(post({ room: 13, pin: '135790' }), tok))).status, 429);
+  await db.akunBuka(13);
+  assert.equal((await app.kamarMasuk(denganCookie(post({ room: 13, pin: '135790' }), tok))).status, 200);
+});
+
+test('verifikasi #2: kunci lama kosan_login dibuka kosan_akun_reset, lalu setup ulang berhasil', async () => {
+  const { app, db } = siapkan();
+  await setupLengkap(app, 'dilla', '135790', true);
+  for (let i = 0; i < 5; i++) await db.loginPin('dilla', 'salah' + i);
+  await db.akunReset(13);
+  const a = await app.setupPin(post({ username: 'dilla', pin: '135790' }));
+  assert.equal(a.status, 200, JSON.stringify(a.body));
+  const b = await app.setupPassword(post({ tiket: a.body.tiket, password: 'password-baru-kos' }));
+  assert.equal(b.status, 200);
 });
 
 test('review #2: 40 password paralel tidak bisa melewati kunci akun', async () => {

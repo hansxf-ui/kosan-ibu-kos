@@ -29,18 +29,22 @@ memverifikasi PIN lewat RPC lama `kosan_login` dengan service role.
    bergantung padanya: semua cek PIN (setup + kamar) lewat gerbang
    `kosan_gerbang` per kamar (5 percobaan/15 menit, kunci 20 menit),
    sehingga selama terkunci PIN benar dan salah dijawab sama, dan
-   `kosan_login` tidak dipanggil. **[CEK]** apakah penghitung gagal
-   `kosan_login` direset sendiri sesudah 15 menit tanpa percobaan. Kalau
-   tidak, penunjuk PIN bisa muncul lagi di sela jendela (tetap dibatasi 5
-   tebakan/15 menit oleh gerbang); kabari supaya gerbang disesuaikan.
+   `kosan_login` tidak dipanggil. Hitungan gagal `kosan_login`
+   (`kosan_login_attempts`) terverifikasi kumulatif, tidak meluruh. Supaya
+   tidak dobel-hitung, setiap kali gerbang `pin:<kamar>` mulai dari nol
+   karena sepi 15 menit, baris `kosan_login_attempts` penghuni kamar itu
+   ikut dihapus (definisi `kosan_login` tidak diubah).
 2. **Migrasi.** Jalankan `supabase/migrations/20261113_rasa_aman_fase_a.sql`
    di SQL Editor. File ini idempoten. Lalu jalankan dua cek di bagian bawah
    file (anon ditolak, service_role boleh `kosan_login`).
-   **SQL ini belum pernah dijalankan di Postgres asli** (sandbox tidak punya
-   Postgres). Tes server memakai database palsu yang meniru perilakunya.
-   Sebelum produksi, jalankan dulu di branch/proyek Supabase uji, lalu uji
+   Sebelum produksi, jalankan dulu di proyek Supabase uji, lalu uji
    balapan `kosan_gerbang_ambil` dari dua sesi SQL sekaligus (harus total
-   tepat 5 `true`, sisanya `false`).
+   tepat 5 `true`, sisanya `false`). Migrasi versi sebelumnya sudah lolos
+   uji Postgres 16 + race test. Versi ini menambah DELETE ke
+   `kosan_login_attempts` (lewat `kosan_residents`) di `kosan_gerbang_ambil`,
+   `kosan_akun_buka`, `kosan_akun_reset`, dan belum diuji ulang di Postgres:
+   ulangi skenario dobel-hitung (3 salah, sepi 20 menit, 2 salah → PIN
+   benar harus berhasil) dan skenario buka-kunci lama.
 3. **Env var Vercel** (Production + Preview), jangan pernah di repo:
    - `SUPABASE_URL` = `https://lpuvkrbdctankydvmzpy.supabase.co`
    - `SUPABASE_SERVICE_ROLE_KEY` = service role / secret key proyek
@@ -56,22 +60,27 @@ memverifikasi PIN lewat RPC lama `kosan_login` dengan service role.
 6. **Promote ke produksi**, lalu tes live §12.4 nomor 1–3.
 7. **Sesudah klien baru live ≥24 jam:** cabut login PIN-saja dari browser,
    `REVOKE EXECUTE ON FUNCTION public.kosan_login(text, text) FROM anon;`
-   (§7.5). Klien Fase A sudah tidak memanggilnya.
+   (§7.5). Klien Fase A sudah tidak memanggilnya. Jangan ditunda lama:
+   selama anon masih bisa memanggil `kosan_login` langsung, penebak bisa
+   menyelipkan satu percobaan lewat server sesudah 15 menit sepi (yang
+   menghapus hitungan lama) di antara tebakan lewat jalur anon, sehingga
+   jatahnya kira-kira dua kali lipat per 15 menit.
 
 ## Operasional
 
 - **Lupa password** (sesudah verifikasi lewat DM IG):
   `select kosan_akun_reset(<kamar>);` Semua sesi kamar itu dicabut dan
-  kuncinya dibuka. Penghuni login pertama lagi pakai PIN kamarnya.
+  semua kuncinya dibuka (gerbang Fase A + kunci PIN lama
+  `kosan_login_attempts`). Penghuni login pertama lagi pakai PIN kamarnya.
 - **Akun terkunci karena orang iseng (trade-off yang diterima).** Username
   penghuni publik, jadi siapa pun bisa sengaja salah 6x tiap 20 menit
   (password atau PIN) dan menjaga akun itu terkunci terus. Penghuni yang
   sudah punya sesi "Ingat saya" tetap bisa masuk dunia, tapi tidak bisa
   masuk kamar selama gerbang PIN terkunci. Kalau ada penghuni lapor
   "terkunci terus": `select kosan_akun_buka(<kamar>);` (membuka kunci saja,
-  password dan sesi tidak berubah). Login password langsung terbuka. PIN
-  bisa masih tertahan sampai 15 menit oleh kunci lama `kosan_login`, yang
-  sengaja tidak disentuh karena ada di data penghuni. Lihat pola serangan di
+  password dan sesi tidak berubah). Password dan PIN langsung terbuka:
+  fungsi ini menghapus gerbang Fase A sekaligus baris `kosan_login_attempts`
+  kamar itu (kunci 5x PIN salah dari sistem lama). Lihat pola serangan di
   `select * from kosan_gerbang where kunci like '%:<kamar>';` dan, kalau
   berulang, kabari untuk ronde berikutnya (mis. kunci per IP + kamar).
 - **Pembersihan data** (retensi 90 hari): `select kosan_bersihkan();`
