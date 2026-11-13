@@ -19,9 +19,13 @@ const BATAS = { masuk: 20, setup: 20, kamar: 60 }; /* per jaringan (HMAC IP, IPv
    kunci lama itu kemungkinan hanya muncul untuk PIN yang benar (lihat
    komentar Ronde 61 di index.html), sehingga bisa jadi penunjuk PIN. */
 const GERBANG = { maks: 5, jendelaDetik: 15 * 60, kunciDetik: 20 * 60 };
-/* kunciDetik 20 menit > kunci kosan_login 15 menit: selama gerbang kita
-   terkunci, kosan_login tidak dipanggil sama sekali, dan saat gerbang
-   terbuka lagi kunci lama sudah habis. */
+/* Jendela dihitung dari percobaan TERAKHIR (geser). Kunci kosan_login (15
+   menit sejak kegagalan ke-5) selalu sudah habis sebelum gerbang mulai
+   menghitung dari nol lagi: hitungan baru butuh 15 menit sepi sesudah
+   percobaan terakhir, dan pembukaan sesudah kunci 20 menit > 15 menit.
+   Trade-off yang DITERIMA: orang yang tahu username bisa terus mengunci
+   akun (6 tebakan tiap 20 menit). Pemilik membuka dengan
+   kosan_akun_buka(N) — lihat docs/RASA-AMAN-FASE-A.md. */
 
 function balas(status, body, cookies) { return cookies ? { status, body, cookies } : { status, body }; }
 const galat = (status, kode, pesan) => balas(status, { galat: kode, pesan });
@@ -116,7 +120,7 @@ function buatApp({ db, rahasia, sekarang = () => Date.now(), aman = true }) {
     const akun = await db.akunAmbil(penghuni.room);
     if (!akunBerlaku(akun, penghuni)) return balas(200, { perlu_setup: true });
     if (!password) return galat(400, 'password_kosong', 'Masukkan password-mu.');
-    const terkunci = () => galat(429, 'terkunci', 'Terlalu banyak percobaan — coba lagi 15 menit lagi.');
+    const terkunci = () => galat(429, 'terkunci', 'Terlalu banyak percobaan — coba lagi sekitar 20 menit lagi.');
     if (akun.kunci_sampai && Date.parse(akun.kunci_sampai) > sekarang()) return terkunci();
     if (!(await cadangkan('pw', penghuni.room))) return terkunci();
     if (!(await I.cekPassword(password, akun.password_hash))) {
@@ -143,7 +147,7 @@ function buatApp({ db, rahasia, sekarang = () => Date.now(), aman = true }) {
     const akun = await db.akunAmbil(penghuni.room);
     if (akunBerlaku(akun, penghuni)) return galat(409, 'sudah_setup', 'Akun ini sudah punya password. Masuk pakai password ya.');
     const r = await (await cekPinKamar(penghuni))(pin);
-    if (r === 'terkunci') return galat(429, 'terkunci', 'Terlalu banyak percobaan — coba lagi 15 menit lagi.');
+    if (r === 'terkunci') return galat(429, 'terkunci', 'Terlalu banyak percobaan — coba lagi sekitar 20 menit lagi.');
     if (r === 'salah') return galat(401, 'pin_salah', 'PIN salah. Coba lagi ya.');
     const gender = r.row && r.row.gender === 'Cowok' ? 'cowok' : 'cewek';
     const tiket = I.buatTiket(rahasia, { room: penghuni.room, nama_norm: I.normalize(penghuni.name), gender, exp: sekarang() + UMUR_TIKET });
@@ -208,7 +212,7 @@ function buatApp({ db, rahasia, sekarang = () => Date.now(), aman = true }) {
     if (typeof pin !== 'string' || !/^\d{6}$/.test(pin)) return galat(400, 'format', 'Masukkan PIN kamar 6 digit.');
     if (await lewatBatas('kamar', ctx)) return galat(429, 'terkunci', 'Terlalu banyak percobaan — coba lagi nanti.');
     const r = await (await cekPinKamar(s.sah.penghuni))(pin);
-    if (r === 'terkunci') return galat(429, 'terkunci', 'Terlalu banyak percobaan — coba lagi 15 menit lagi.');
+    if (r === 'terkunci') return galat(429, 'terkunci', 'Terlalu banyak percobaan — coba lagi sekitar 20 menit lagi.');
     if (r === 'salah') return galat(401, 'pin_salah', 'PIN salah. Coba lagi ya.');
     return balas(200, { ok: true });
   }

@@ -45,7 +45,12 @@ function buatFakeDb({ penghuni, sekarang = () => Date.now() }) {
       if (a.gagal_count >= 5) { a.kunci_sampai = iso(sekarang() + 15 * 60000); a.gagal_count = 0; a.gagal_sejak = null; }
     },
     async akunBerhasil(room) { const a = t.akun.get(room); if (a) { a.gagal_count = 0; a.gagal_sejak = null; } },
+    async akunBuka(room) {
+      t.gerbang.delete('pin:' + room); t.gerbang.delete('pw:' + room);
+      const a = t.akun.get(room); if (a) Object.assign(a, { kunci_sampai: null, gagal_count: 0, gagal_sejak: null });
+    },
     async akunReset(room) {
+      t.gerbang.delete('pin:' + room); t.gerbang.delete('pw:' + room);
       const a = t.akun.get(room);
       if (a) Object.assign(a, { password_hash: null, password_dibuat: null, gagal_count: 0, gagal_sejak: null, kunci_sampai: null });
       for (const s of t.sesi) if (s.room === room && !s.dicabut) s.dicabut = iso(sekarang());
@@ -67,10 +72,10 @@ function buatFakeDb({ penghuni, sekarang = () => Date.now() }) {
        tidak ada await di dalamnya */
     async gerbangAmbil(kunci, g) {
       const now = sekarang();
-      const x = t.gerbang.get(kunci) || { n: 0, sejak: now, kunci: 0 };
+      const x = t.gerbang.get(kunci) || { n: 0, terakhir: now, kunci: 0 };
       if (x.kunci > now) { t.gerbang.set(kunci, x); return false; }
-      if (x.sejak < now - g.jendelaDetik * 1000 || x.kunci) { x.n = 0; x.sejak = now; x.kunci = 0; }
-      x.n += 1;
+      if (x.terakhir < now - g.jendelaDetik * 1000 || x.kunci) { x.n = 0; x.kunci = 0; }
+      x.n += 1; x.terakhir = now;
       if (x.n > g.maks) { x.kunci = now + g.kunciDetik * 1000; t.gerbang.set(kunci, x); return false; }
       t.gerbang.set(kunci, x); return true;
     },

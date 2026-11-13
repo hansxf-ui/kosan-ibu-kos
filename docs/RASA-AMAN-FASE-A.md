@@ -35,6 +35,9 @@ memverifikasi PIN lewat RPC lama `kosan_login` dengan service role.
    file (anon ditolak, service_role boleh `kosan_login`).
    **SQL ini belum pernah dijalankan di Postgres asli** (sandbox tidak punya
    Postgres). Tes server memakai database palsu yang meniru perilakunya.
+   Sebelum produksi, jalankan dulu di branch/proyek Supabase uji, lalu uji
+   balapan `kosan_gerbang_ambil` dari dua sesi SQL sekaligus (harus total
+   tepat 5 `true`, sisanya `false`).
 3. **Env var Vercel** (Production + Preview), jangan pernah di repo:
    - `SUPABASE_URL` = `https://lpuvkrbdctankydvmzpy.supabase.co`
    - `SUPABASE_SERVICE_ROLE_KEY` = service role / secret key proyek
@@ -55,8 +58,19 @@ memverifikasi PIN lewat RPC lama `kosan_login` dengan service role.
 ## Operasional
 
 - **Lupa password** (sesudah verifikasi lewat DM IG):
-  `select kosan_akun_reset(<kamar>);` Semua sesi kamar itu dicabut.
-  Penghuni login pertama lagi pakai PIN kamarnya.
+  `select kosan_akun_reset(<kamar>);` Semua sesi kamar itu dicabut dan
+  kuncinya dibuka. Penghuni login pertama lagi pakai PIN kamarnya.
+- **Akun terkunci karena orang iseng (trade-off yang diterima).** Username
+  penghuni publik, jadi siapa pun bisa sengaja salah 6x tiap 20 menit
+  (password atau PIN) dan menjaga akun itu terkunci terus. Penghuni yang
+  sudah punya sesi "Ingat saya" tetap bisa masuk dunia, tapi tidak bisa
+  masuk kamar selama gerbang PIN terkunci. Kalau ada penghuni lapor
+  "terkunci terus": `select kosan_akun_buka(<kamar>);` (membuka kunci saja,
+  password dan sesi tidak berubah). Login password langsung terbuka. PIN
+  bisa masih tertahan sampai 15 menit oleh kunci lama `kosan_login`, yang
+  sengaja tidak disentuh karena ada di data penghuni. Lihat pola serangan di
+  `select * from kosan_gerbang where kunci like '%:<kamar>';` dan, kalau
+  berulang, kabari untuk ronde berikutnya (mis. kunci per IP + kamar).
 - **Pembersihan data** (retensi 90 hari): `select kosan_bersihkan();`
   manual, atau jadwalkan dengan pg_cron (lihat akhir file migrasi).
 - **Kandidat akun ganda** (Fase D): sementara bisa dilihat manual,

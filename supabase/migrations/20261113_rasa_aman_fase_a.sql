@@ -53,11 +53,13 @@ create table if not exists public.kosan_batas (
 );
 
 -- Gerbang percobaan per kamar (password + PIN), dicadangkan SEBELUM
--- verifikasi supaya permintaan paralel tidak lolos.
+-- verifikasi supaya permintaan paralel tidak lolos. `terakhir` = waktu
+-- percobaan terakhir (jendela geser: hitungan baru mulai lagi hanya kalau
+-- sudah sepi selama jendela).
 create table if not exists public.kosan_gerbang (
   kunci        text primary key,
   jumlah       int not null default 0,
-  sejak        timestamptz not null default now(),
+  terakhir     timestamptz not null default now(),
   kunci_sampai timestamptz
 );
 
@@ -131,22 +133,26 @@ begin
   return n;
 end $$;
 
--- Cadangkan satu percobaan. Lebih dari p_maks dalam p_jendela detik ->
--- terkunci p_kunci_detik detik. Baris dikunci (FOR UPDATE lewat upsert),
--- jadi aman untuk permintaan paralel. true = boleh mencoba.
+-- Cadangkan satu percobaan. Percobaan ke-(p_maks+1) tanpa jeda sepi
+-- p_jendela detik -> terkunci p_kunci_detik detik. Baris dikunci FOR
+-- UPDATE, jadi aman untuk permintaan paralel. true = boleh mencoba.
+-- Jendela dihitung dari percobaan TERAKHIR, jadi gerbang tidak pernah
+-- terbuka lagi selagi kunci 15 menit kosan_login (dihitung dari kegagalan
+-- ke-5) masih aktif.
 create or replace function public.kosan_gerbang_ambil(p_kunci text, p_maks int, p_jendela int, p_kunci_detik int)
 returns boolean language plpgsql security definer set search_path = '' as $$
 declare g public.kosan_gerbang%rowtype;
 begin
   insert into public.kosan_gerbang (kunci) values (p_kunci) on conflict (kunci) do nothing;
   select * into g from public.kosan_gerbang where kunci = p_kunci for update;
+  if not found then return false; end if; -- baris terhapus di antara 2 perintah: tolak (aman)
   if g.kunci_sampai is not null and g.kunci_sampai > now() then return false; end if;
-  if g.kunci_sampai is not null or g.sejak < now() - make_interval(secs => p_jendela) then
-    g.jumlah := 0; g.sejak := now(); g.kunci_sampai := null;
+  if g.kunci_sampai is not null or g.terakhir < now() - make_interval(secs => p_jendela) then
+    g.jumlah := 0; g.kunci_sampai := null;
   end if;
   g.jumlah := g.jumlah + 1;
   if g.jumlah > p_maks then g.kunci_sampai := now() + make_interval(secs => p_kunci_detik); end if;
-  update public.kosan_gerbang set jumlah = g.jumlah, sejak = g.sejak, kunci_sampai = g.kunci_sampai where kunci = p_kunci;
+  update public.kosan_gerbang set jumlah = g.jumlah, terakhir = now(), kunci_sampai = g.kunci_sampai where kunci = p_kunci;
   return g.kunci_sampai is null;
 end $$;
 
@@ -159,7 +165,10 @@ $$;
 -- RUNBOOK lupa password (pemilik, sesudah verifikasi lewat DM IG):
 --   select kosan_akun_reset(13);
 -- Penghuni lalu login pertama lagi pakai PIN kamarnya + buat password baru.
--- PIN tidak berubah. Semua sesi kamar itu dicabut.
+-- PIN tidak berubah. Semua sesi kamar itu dicabut, gerbang percobaan
+-- kamar itu dibuka.
+-- Membuka kunci SAJA (tanpa reset password), mis. akun dikunci orang iseng:
+--   select kosan_akun_buka(13);
 create or replace function public.kosan_akun_reset(p_room int)
 returns void language plpgsql security definer set search_path = '' as $$
 begin
@@ -167,6 +176,14 @@ begin
     gagal_count = 0, gagal_sejak = null, kunci_sampai = null
   where room = p_room;
   update public.kosan_sesi set dicabut = now() where room = p_room and dicabut is null;
+  delete from public.kosan_gerbang where kunci in ('pin:' || p_room, 'pw:' || p_room);
+end $$;
+
+create or replace function public.kosan_akun_buka(p_room int)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  delete from public.kosan_gerbang where kunci in ('pin:' || p_room, 'pw:' || p_room);
+  update public.kosan_akun set kunci_sampai = null, gagal_count = 0, gagal_sejak = null where room = p_room;
 end $$;
 
 -- Retensi (§8.1): log perangkat 90 hari, sesi mati 7 hari, penghitung 2 hari.
@@ -175,7 +192,7 @@ returns void language sql security definer set search_path = '' as $$
   delete from public.kosan_perangkat_log where dibuat < now() - interval '90 days';
   delete from public.kosan_sesi where kedaluwarsa < now() - interval '7 days' or dicabut < now() - interval '7 days';
   delete from public.kosan_batas where jendela < now() - interval '2 days';
-  delete from public.kosan_gerbang where sejak < now() - interval '2 days' and (kunci_sampai is null or kunci_sampai < now());
+  delete from public.kosan_gerbang where terakhir < now() - interval '2 days' and (kunci_sampai is null or kunci_sampai < now());
 $$;
 
 revoke all on function public.kosan_akun_setup(int, text, text, text) from public, anon, authenticated;
@@ -183,6 +200,7 @@ revoke all on function public.kosan_akun_gagal(int)                    from publ
 revoke all on function public.kosan_akun_berhasil(int)                 from public, anon, authenticated;
 revoke all on function public.kosan_batas_tambah(text, int)            from public, anon, authenticated;
 revoke all on function public.kosan_akun_reset(int)                    from public, anon, authenticated;
+revoke all on function public.kosan_akun_buka(int)                     from public, anon, authenticated;
 revoke all on function public.kosan_bersihkan()                        from public, anon, authenticated;
 revoke all on function public.kosan_gerbang_ambil(text, int, int, int)  from public, anon, authenticated;
 revoke all on function public.kosan_gerbang_lepas(text)                 from public, anon, authenticated;

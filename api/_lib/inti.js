@@ -124,7 +124,7 @@ function prefiksIp(ip) {
    (satu pelanggan biasanya punya satu /64 — memutar alamat di dalamnya
    tidak boleh memberi jatah baru). */
 function kunciBatasIp(rahasia, ip) {
-  const s = String(ip || '').trim();
+  const s = String(ip || '').trim().replace(/^::ffff:(?=\d+\.\d+\.\d+\.\d+$)/i, '');
   let k = s;
   if (s.indexOf(':') !== -1) {
     const [kiri, kanan] = s.split('::');

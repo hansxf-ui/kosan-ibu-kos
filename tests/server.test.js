@@ -306,6 +306,42 @@ test('review #1: PIN benar tidak menghabiskan jatah (penghuni asli tidak terkunc
   for (let i = 0; i < 12; i++) assert.equal((await app.kamarMasuk(denganCookie(post({ room: 13, pin: '135790' }), tok))).status, 200);
 });
 
+test('review 2 #2: tebakan dicicil (5 dalam 15 menit) tidak membuka celah penunjuk PIN', async () => {
+  const { app, majukan } = siapkan();
+  for (let i = 0; i < 5; i++) { await app.setupPin(post({ username: 'dilla', pin: '00000' + i })); majukan(3 * 60000); }
+  majukan(10 * 1000); /* t = 15:10 sejak tebakan pertama */
+  const salah = await app.setupPin(post({ username: 'dilla', pin: '999999' }));
+  const benar = await app.setupPin(post({ username: 'dilla', pin: '135790' }));
+  assert.equal(salah.status, benar.status); assert.deepEqual(salah.body, benar.body);
+  assert.equal(benar.body.tiket, undefined);
+});
+
+test('review 2 #1: pemilik bisa membuka kunci tanpa reset password; reset juga membuka', async () => {
+  const { app, db, majukan } = siapkan();
+  const tok = tokenDari(await setupLengkap(app, 'dilla', '135790', true));
+  for (let i = 0; i < 6; i++) await app.kamarMasuk(denganCookie(post({ room: 13, pin: '00000' + i }), tok));
+  for (let i = 0; i < 6; i++) await app.masuk(post({ username: 'dilla', password: 'salah-salah-' + i }));
+  assert.equal((await app.kamarMasuk(denganCookie(post({ room: 13, pin: '135790' }), tok))).status, 429);
+  assert.equal((await app.masuk(post({ username: 'dilla', password: PW }))).status, 429);
+  await db.akunBuka(13);
+  /* password langsung terbuka */
+  assert.equal((await app.masuk(post({ username: 'dilla', password: PW }))).status, 200);
+  /* PIN: kunci 15 menit milik kosan_login lama (data penghuni, tidak
+     disentuh) masih berlaku sampai habis sendiri */
+  assert.equal((await app.kamarMasuk(denganCookie(post({ room: 13, pin: '135790' }), tok))).status, 429);
+  majukan(15 * 60000 + 1);
+  assert.equal((await app.kamarMasuk(denganCookie(post({ room: 13, pin: '135790' }), tok))).status, 200);
+  /* reset juga membuka gerbang */
+  for (let i = 0; i < 6; i++) await app.masuk(post({ username: 'dilla', password: 'salah-lagi-' + i }));
+  await db.akunReset(13);
+  assert.deepEqual((await app.masuk(post({ username: 'dilla', password: '' }))).body, { perlu_setup: true });
+});
+
+test('review 2 #6: alamat IPv4-mapped (::ffff:) dihitung sebagai IPv4 masing-masing', () => {
+  assert.equal(I.kunciBatasIp(RAHASIA, '::ffff:36.80.1.23'), I.kunciBatasIp(RAHASIA, '36.80.1.23'));
+  assert.notEqual(I.kunciBatasIp(RAHASIA, '::ffff:36.80.1.23'), I.kunciBatasIp(RAHASIA, '::ffff:36.80.1.24'));
+});
+
 test('review #2: 40 password paralel tidak bisa melewati kunci akun', async () => {
   const { app } = siapkan();
   await setupLengkap(app, 'rina', '246810');
