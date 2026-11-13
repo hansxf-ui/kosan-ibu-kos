@@ -30,6 +30,10 @@ tetangga, dan melihat kosnya makin lama makin jadi.
 | `vendor/mqtt/` | mqtt.js 5.10.1 lokal (di-vendor, tanpa CDN unpkg) |
 | `vercel.json` | Header keamanan (CSP, nosniff, anti-iframe). Kalau menambah sumber eksternal baru (script/broker), daftarkan di CSP di sini |
 | `docs/MULTIPLAYER-SPEC.md` | Spek multiplayer |
+| `api/` | Vercel Functions login penghuni + PIN kamar (rasa aman Fase A). `api/_lib/` bukan endpoint |
+| `supabase/migrations/` | SQL tabel + fungsi baru (dijalankan manual di SQL Editor) |
+| `tests/` | Tes server (`node --test tests/server.test.js`) + playtest browser; tidak di-deploy |
+| `docs/RASA-AMAN-DESAIN.md`, `docs/RASA-AMAN-FASE-A.md` | Desain ronde rasa aman + runbook deploy Fase A |
 | `.kiro/steering/konteks-game.md` | Konteks game (dimuat di setiap sesi Kiro) |
 
 ## Deploy
@@ -38,6 +42,8 @@ Proyek Vercel ini **tidak punya integrasi Git** — merge ke `main` TIDAK
 auto-deploy. Deploy dilakukan manual lewat API Vercel (`vercel_deploy.py`),
 dengan daftar file eksplisit (20 file, termasuk `vendor/mqtt/mqtt.min.js` dan
 `vercel.json`). Sesudah deploy, verifikasi sha live = sha lokal.
+Sejak rasa aman Fase A, daftar itu wajib ditambah 8 file `api/` + env var
+Vercel (lihat `docs/RASA-AMAN-FASE-A.md`).
 
 ## Aturan kerja
 

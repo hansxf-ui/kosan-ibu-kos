@@ -1,0 +1,329 @@
+'use strict';
+/* Tes Fase A (docs/RASA-AMAN-DESAIN.md §12.1). Jalankan: node --test tests/
+   Tanpa jaringan, tanpa Supabase asli, tanpa PIN asli penghuni. */
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const I = require('../api/_lib/inti');
+const { buatApp, UMUR_INGAT } = require('../api/_lib/app');
+const { buatDb } = require('../api/_lib/db');
+const { jalankan } = require('../api/_lib/jalankan');
+const { buatFakeDb } = require('./fake-db');
+
+const RAHASIA = 'uji-'.repeat(10); /* rahasia UJI, bukan rahasia produksi */
+const PW = 'kos-rumah-kedua';
+const PENGHUNI = [
+  { room: 3, name: 'rina', gender: 'Cewek', pin: '246810' },
+  { room: 13, name: 'dilla', gender: 'Cewek', pin: '135790' },
+  { room: 14, name: 'dil', gender: 'Cowok', pin: '135790' }
+];
+
+function siapkan() {
+  let jam = Date.parse('2026-11-14T03:00:00Z');
+  const db = buatFakeDb({ penghuni: PENGHUNI, sekarang: () => jam });
+  const app = buatApp({ db, rahasia: RAHASIA, sekarang: () => jam });
+  const majukan = (ms) => { jam += ms; };
+  return { db, app, majukan };
+}
+const H = { 'content-type': 'application/json', host: 'kosan.test', origin: 'https://kosan.test', 'sec-fetch-site': 'same-origin' };
+const post = (body, extra) => ({ method: 'POST', headers: Object.assign({}, H, extra || {}), body, ip: '36.80.1.23' });
+const tokenDari = (out) => {
+  const c = (out.cookies || []).find((x) => x.startsWith('__Host-kosan_sesi='));
+  return c ? c.split(';')[0].split('=')[1] : null;
+};
+const denganCookie = (ctx, token) => { ctx.headers.cookie = '__Host-kosan_sesi=' + token; return ctx; };
+
+async function setupLengkap(app, username, pin, ingat) {
+  const a = await app.setupPin(post({ username, pin }));
+  assert.equal(a.status, 200, JSON.stringify(a.body));
+  const b = await app.setupPassword(post({ tiket: a.body.tiket, password: PW, ingat: !!ingat }));
+  assert.equal(b.status, 200, JSON.stringify(b.body));
+  return b;
+}
+
+/* ---------- inti ---------- */
+test('pinHash server = pinHash di index.html (salinan verbatim)', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const awal = html.indexOf("var PIN_SALT = 'kosan-ibu-kos-pin-v1';");
+  const akhir = html.indexOf('\n}\n', html.indexOf('function pinHash', awal)) + 3;
+  assert.ok(awal > 0 && akhir > awal, 'pinHash tidak ditemukan di index.html');
+  const klien = new Function(html.slice(awal, akhir) + '\nreturn pinHash;')();
+  for (const v of ['000000', '123456', '999999', '024680', '', 'abc']) assert.equal(I.pinHash(v), klien(v), v);
+});
+
+test('scrypt: cocok, salah, format rusak, salt beda tiap hash', async () => {
+  const h1 = await I.hashPassword(PW), h2 = await I.hashPassword(PW);
+  assert.match(h1, /^scrypt\$32768\$8\$1\$/);
+  assert.notEqual(h1, h2);
+  assert.equal(await I.cekPassword(PW, h1), true);
+  assert.equal(await I.cekPassword(PW + 'x', h1), false);
+  assert.equal(await I.cekPassword(PW, 'scrypt$1$1$1$aa$bb'), false);
+  assert.equal(await I.cekPassword(PW, PW), false);
+  assert.ok(!h1.includes(PW));
+});
+
+test('aturan password', () => {
+  assert.match(I.cekAturanPassword('pendek', 'rina'), /minimal 8/);
+  assert.match(I.cekAturanPassword('aaaaaaaaa', 'rina'), /gampang/);
+  assert.match(I.cekAturanPassword('Bismillah', 'rina'), /umum/);
+  assert.match(I.cekAturanPassword('kosanibukos', 'rina'), /umum/);
+  assert.match(I.cekAturanPassword('dilla.cantik', 'dilla.cantik'), /username/);
+  assert.match(I.cekAturanPassword('x'.repeat(129), 'rina'), /maksimal/);
+  assert.equal(I.cekAturanPassword(PW, 'rina'), null);
+});
+
+test('tiket setup: tanda tangan, kedaluwarsa, diubah', () => {
+  const t = I.buatTiket(RAHASIA, { room: 13, nama_norm: 'dilla', gender: 'cewek', exp: 2000 });
+  assert.deepEqual(I.bacaTiket(RAHASIA, t, 1000), { room: 13, nama_norm: 'dilla', gender: 'cewek', exp: 2000 });
+  assert.equal(I.bacaTiket(RAHASIA, t, 2000), null);
+  assert.equal(I.bacaTiket('lain-'.repeat(10), t, 1000), null);
+  const [json, sig] = t.split('.');
+  const palsu = Buffer.from(JSON.stringify({ room: 3, nama_norm: 'rina', gender: 'cewek', exp: 2000 })).toString('base64url');
+  assert.equal(I.bacaTiket(RAHASIA, palsu + '.' + sig, 1000), null);
+  assert.equal(I.bacaTiket(RAHASIA, json + '.', 1000), null);
+});
+
+test('IP disimpan sebagai HMAC + prefiks, bukan IP mentah', () => {
+  const a = I.ipHmac(RAHASIA, '36.80.1.23'), b = I.ipHmac(RAHASIA, '36.80.1.99');
+  assert.match(a.ip_hmac, /^[0-9a-f]{64}$/);
+  assert.notEqual(a.ip_hmac, b.ip_hmac);
+  assert.equal(a.ip_prefiks_hmac, b.ip_prefiks_hmac);
+  assert.ok(!JSON.stringify(a).includes('36.80'));
+  assert.equal(I.prefiksIp('2001:db8:abcd:12::1'), '2001:db8:abcd::/48');
+  assert.equal(I.prefiksIp('2001:db8::1'), '2001:db8:0::/48');
+});
+
+test('cookie sesi: HttpOnly, Secure, SameSite=Strict, __Host-, Max-Age hanya kalau ingat', () => {
+  const c1 = I.cookieSesi('a'.repeat(43), { ingat: true, aman: true, maxAgeDetik: 2592000 });
+  assert.match(c1, /^__Host-kosan_sesi=a{43}; Path=\/; HttpOnly; SameSite=Strict; Secure; Max-Age=2592000$/);
+  const c2 = I.cookieSesi('a'.repeat(43), { ingat: false, aman: true, maxAgeDetik: 2592000 });
+  assert.ok(!/Max-Age/.test(c2));
+  assert.equal(I.bacaCookie('x=1; __Host-kosan_sesi=' + 'b'.repeat(43), '__Host-kosan_sesi'), 'b'.repeat(43));
+  assert.equal(I.bacaCookie('__Host-kosan_sesi=<script>', '__Host-kosan_sesi'), null);
+});
+
+/* ---------- alur penghuni ---------- */
+test('penghuni lama: perlu setup -> PIN lama -> buat password -> sesi', async () => {
+  const { app, db } = siapkan();
+  const a = await app.masuk(post({ username: '@Dilla', password: 'apa-saja-123' }));
+  assert.equal(a.status, 200); assert.deepEqual(a.body, { perlu_setup: true });
+  const b = await app.setupPin(post({ username: 'dilla', pin: '000000' }));
+  assert.equal(b.status, 401); assert.equal(b.body.galat, 'pin_salah');
+  const c = await setupLengkap(app, 'dilla', '135790', true);
+  assert.deepEqual(c.body, { room: 13, name: 'dilla', gender: 'cewek' });
+  assert.ok(tokenDari(c));
+  const akun = await db.akunAmbil(13);
+  assert.match(akun.password_hash, /^scrypt\$/);
+  assert.deepEqual(db._t.log.map((x) => x.peristiwa), ['setup_pin', 'setup']);
+});
+
+test('data penghuni lama tidak diubah (nama, kamar, gender, pin_hash)', async () => {
+  const { app, db } = siapkan();
+  const sebelum = JSON.stringify(db._lama.map(({ room, name, gender, pin_hash }) => ({ room, name, gender, pin_hash })));
+  await setupLengkap(app, 'dilla', '135790');
+  await app.masuk(post({ username: 'dilla', password: PW }));
+  const sesudah = JSON.stringify(db._lama.map(({ room, name, gender, pin_hash }) => ({ room, name, gender, pin_hash })));
+  assert.equal(sesudah, sebelum);
+});
+
+test('RED->GREEN: akun dengan password tidak bisa dibuka lagi lewat PIN saja', async () => {
+  const { app } = siapkan();
+  await setupLengkap(app, 'dilla', '135790');
+  const a = await app.setupPin(post({ username: 'dilla', pin: '135790' }));
+  assert.equal(a.status, 409); assert.equal(a.body.galat, 'sudah_setup');
+  assert.equal(a.body.tiket, undefined);
+});
+
+test('tiket setup sekali pakai: dipakai dua kali -> ditolak', async () => {
+  const { app } = siapkan();
+  const a = await app.setupPin(post({ username: 'dilla', pin: '135790' }));
+  const b1 = await app.setupPassword(post({ tiket: a.body.tiket, password: PW }));
+  const b2 = await app.setupPassword(post({ tiket: a.body.tiket, password: 'password-penyusup' }));
+  assert.equal(b1.status, 200); assert.equal(b2.status, 409);
+});
+
+test('tiket setup kedaluwarsa 5 menit', async () => {
+  const { app, majukan } = siapkan();
+  const a = await app.setupPin(post({ username: 'dilla', pin: '135790' }));
+  majukan(5 * 60000 + 1);
+  const b = await app.setupPassword(post({ tiket: a.body.tiket, password: PW }));
+  assert.equal(b.status, 401); assert.equal(b.body.galat, 'tiket_habis');
+});
+
+test('password lemah ditolak saat setup', async () => {
+  const { app } = siapkan();
+  const a = await app.setupPin(post({ username: 'dilla', pin: '135790' }));
+  const b = await app.setupPassword(post({ tiket: a.body.tiket, password: '12345678' }));
+  assert.equal(b.status, 400); assert.equal(b.body.galat, 'password_lemah');
+});
+
+test('login: password benar -> sesi; salah -> 401; 5x salah -> terkunci 15 menit', async () => {
+  const { app, majukan } = siapkan();
+  await setupLengkap(app, 'rina', '246810');
+  const ok = await app.masuk(post({ username: 'rina', password: PW }));
+  assert.equal(ok.status, 200); assert.ok(tokenDari(ok));
+  for (let i = 0; i < 5; i++) assert.equal((await app.masuk(post({ username: 'rina', password: 'salah-salah-' + i }))).status, 401);
+  const kunci = await app.masuk(post({ username: 'rina', password: PW }));
+  assert.equal(kunci.status, 429);
+  majukan(15 * 60000 + 1);
+  assert.equal((await app.masuk(post({ username: 'rina', password: PW }))).status, 200);
+});
+
+test('password kosong: perlu_setup kalau belum punya password, 400 (tanpa hitung gagal) kalau sudah', async () => {
+  const { app, db } = siapkan();
+  assert.deepEqual((await app.masuk(post({ username: 'rina', password: '' }))).body, { perlu_setup: true });
+  await setupLengkap(app, 'rina', '246810');
+  const r = await app.masuk(post({ username: 'rina', password: '' }));
+  assert.equal(r.status, 400); assert.equal((await db.akunAmbil(3)).gagal_count, 0);
+});
+
+test('username tidak terdaftar -> 401 tanpa sesi', async () => {
+  const { app } = siapkan();
+  const a = await app.masuk(post({ username: 'orang-asing', password: PW }));
+  assert.equal(a.status, 401); assert.equal(a.cookies, undefined);
+});
+
+test('batas 20 percobaan masuk per IP per jam', async () => {
+  const { app } = siapkan();
+  let terakhir;
+  for (let i = 0; i < 21; i++) terakhir = await app.masuk(post({ username: 'orang-asing', password: 'x' }));
+  assert.equal(terakhir.status, 429);
+});
+
+test('tidak ada password mentah di database, respons, atau cookie', async () => {
+  const { app, db } = siapkan();
+  const outs = [];
+  outs.push(await app.setupPin(post({ username: 'dilla', pin: '135790' })));
+  outs.push(await app.setupPassword(post({ tiket: outs[0].body.tiket, password: PW, ingat: true })));
+  outs.push(await app.masuk(post({ username: 'dilla', password: PW, ingat: true })));
+  const semua = JSON.stringify({ akun: [...db._t.akun.values()], sesi: db._t.sesi, log: db._t.log, outs });
+  assert.ok(!semua.includes(PW), 'password mentah bocor');
+  assert.ok(!semua.includes('135790'), 'PIN mentah bocor');
+  const token = tokenDari(outs[2]);
+  assert.ok(!JSON.stringify(db._t.sesi).includes(token), 'token sesi mentah tersimpan');
+  assert.equal(db._t.sesi[1].token_sha256, I.sha256hex(token));
+});
+
+/* ---------- sesi ("Ingat saya") ---------- */
+test('sesi: cookie sah -> identitas; tanpa cookie -> 401', async () => {
+  const { app } = siapkan();
+  const s = await setupLengkap(app, 'rina', '246810', true);
+  const r = await app.sesi(denganCookie({ method: 'GET', headers: {} }, tokenDari(s)));
+  assert.equal(r.status, 200); assert.deepEqual(r.body, { room: 3, name: 'rina', gender: 'cewek' });
+  assert.equal((await app.sesi({ method: 'GET', headers: {} })).status, 401);
+});
+
+test('sesi Ingat saya diperpanjang (sliding) dan habis sesudah 30 hari tanpa dipakai', async () => {
+  const { app, majukan } = siapkan();
+  const tok = tokenDari(await setupLengkap(app, 'rina', '246810', true));
+  majukan(2 * 3600000);
+  const r = await app.sesi(denganCookie({ method: 'GET', headers: {} }, tok));
+  assert.equal(r.status, 200); assert.ok(r.cookies && /Max-Age=2592000/.test(r.cookies[0]));
+  majukan(UMUR_INGAT + 1);
+  const habis = await app.sesi(denganCookie({ method: 'GET', headers: {} }, tok));
+  assert.equal(habis.status, 401); assert.match(habis.cookies[0], /Max-Age=0/);
+});
+
+test('sesi tanpa Ingat saya dibatasi 12 jam di server', async () => {
+  const { app, majukan } = siapkan();
+  const tok = tokenDari(await setupLengkap(app, 'rina', '246810', false));
+  majukan(12 * 3600000 + 1);
+  assert.equal((await app.sesi(denganCookie({ method: 'GET', headers: {} }, tok))).status, 401);
+});
+
+test('keluar mencabut sesi', async () => {
+  const { app } = siapkan();
+  const tok = tokenDari(await setupLengkap(app, 'rina', '246810', true));
+  const k = await app.keluar(denganCookie(post({}), tok));
+  assert.equal(k.status, 200); assert.match(k.cookies[0], /Max-Age=0/);
+  assert.equal((await app.sesi(denganCookie({ method: 'GET', headers: {} }, tok))).status, 401);
+});
+
+test('reset password oleh pemilik mencabut sesi lama', async () => {
+  const { app, db } = siapkan();
+  const tok = tokenDari(await setupLengkap(app, 'rina', '246810', true));
+  await db.akunReset(3);
+  assert.equal((await app.sesi(denganCookie({ method: 'GET', headers: {} }, tok))).status, 401);
+  assert.deepEqual((await app.masuk(post({ username: 'rina', password: PW }))).body, { perlu_setup: true });
+});
+
+/* ---------- PIN kamar ---------- */
+test('RED->GREEN: masuk kamar butuh sesi penghuni + PIN benar, tiap kali', async () => {
+  const { app } = siapkan();
+  const tok = tokenDari(await setupLengkap(app, 'dilla', '135790', true));
+  const tamu = await app.kamarMasuk(post({ room: 13, pin: '135790' }));
+  assert.equal(tamu.status, 401); assert.equal(tamu.body.galat, 'perlu_login');
+  const lain = await app.kamarMasuk(denganCookie(post({ room: 14, pin: '135790' }), tok));
+  assert.equal(lain.status, 403); assert.equal(lain.body.galat, 'bukan_kamarmu');
+  const salah = await app.kamarMasuk(denganCookie(post({ room: 13, pin: '000000' }), tok));
+  assert.equal(salah.status, 401); assert.equal(salah.body.galat, 'pin_salah');
+  const ok = await app.kamarMasuk(denganCookie(post({ room: 13, pin: '135790' }), tok));
+  assert.equal(ok.status, 200);
+  const lagi = await app.kamarMasuk(denganCookie(post({ room: 13 }), tok));
+  assert.equal(lagi.status, 400);
+});
+
+test('PIN kamar ikut kunci PIN lama (5x salah)', async () => {
+  const { app } = siapkan();
+  const tok = tokenDari(await setupLengkap(app, 'dilla', '135790', true));
+  for (let i = 0; i < 5; i++) await app.kamarMasuk(denganCookie(post({ room: 13, pin: '00000' + i }), tok));
+  const r = await app.kamarMasuk(denganCookie(post({ room: 13, pin: '135790' }), tok));
+  assert.equal(r.status, 429);
+});
+
+test('dua penghuni dengan PIN sama tetap terpisah (PIN tidak dipaksa unik)', async () => {
+  const { app } = siapkan();
+  const tokDil = tokenDari(await setupLengkap(app, 'dil', '135790', true));
+  const r = await app.kamarMasuk(denganCookie(post({ room: 13, pin: '135790' }), tokDil));
+  assert.equal(r.status, 403);
+});
+
+/* ---------- CSRF / format ---------- */
+test('POST dari origin lain / bukan JSON ditolak', async () => {
+  const { app } = siapkan();
+  assert.equal((await app.masuk(post({ username: 'rina', password: PW }, { origin: 'https://jahat.example' }))).status, 403);
+  assert.equal((await app.masuk(post({ username: 'rina', password: PW }, { 'sec-fetch-site': 'cross-site' }))).status, 403);
+  assert.equal((await app.masuk(post({ username: 'rina', password: PW }, { 'content-type': 'text/plain' }))).status, 415);
+  assert.equal((await app.masuk(Object.assign(post(null)))).status, 400);
+});
+
+test('app menolak jalan tanpa KOSAN_SECRET yang cukup panjang', () => {
+  assert.throws(() => buatApp({ db: {}, rahasia: '' }));
+  assert.throws(() => buatApp({ db: {}, rahasia: 'pendek' }));
+});
+
+/* ---------- adapter Supabase + pembungkus Vercel ---------- */
+test('db.js: header service role, path aman, kunci PIN dipetakan', async () => {
+  const log = [];
+  const fetchFn = async (url, o) => {
+    log.push({ url, o });
+    if (url.endsWith('rpc/kosan_login')) return { ok: false, status: 400, text: async () => JSON.stringify({ message: 'Terlalu banyak percobaan' }) };
+    return { ok: true, status: 200, text: async () => '[]' };
+  };
+  const db = buatDb({ url: 'https://x.supabase.co/', kunci: 'eyJ.service', fetchFn });
+  assert.deepEqual(await db.loginPin('rina', 'abcd1234'), { ok: false, terkunci: true });
+  assert.equal(await db.akunAmbil(3), null);
+  await assert.rejects(db.akunAmbil('3;drop'));
+  await assert.rejects(db.sesiAmbil('bukan-hex'));
+  assert.equal(log[0].url, 'https://x.supabase.co/rest/v1/rpc/kosan_login');
+  assert.equal(log[0].o.headers.Authorization, 'Bearer eyJ.service');
+  const db2 = buatDb({ url: 'https://x.supabase.co', kunci: 'sb_secret_abc', fetchFn });
+  await db2.akunAmbil(3);
+  assert.equal(log[log.length - 1].o.headers.Authorization, undefined);
+});
+
+test('pembungkus Vercel: env kosong -> 503, metode salah -> 405, Set-Cookie diteruskan', async () => {
+  const res = () => { const r = { headers: {}, setHeader(k, v) { r.headers[k] = v; }, end(b) { r.body = b; } }; return r; };
+  const r1 = res();
+  await jalankan('masuk', 'POST', () => { throw new Error('KOSAN_SECRET kosong'); })({ method: 'POST', headers: {} }, r1);
+  assert.equal(r1.statusCode, 503);
+  const r2 = res();
+  await jalankan('masuk', 'POST', () => ({}))({ method: 'GET', headers: {} }, r2);
+  assert.equal(r2.statusCode, 405);
+  const r3 = res();
+  const palsu = { masuk: async () => ({ status: 200, body: { ok: 1 }, cookies: ['a=b'] }) };
+  await jalankan('masuk', 'POST', () => palsu)({ method: 'POST', headers: { 'x-forwarded-for': '1.2.3.4, 10.0.0.1' }, body: {} }, r3);
+  assert.equal(r3.statusCode, 200); assert.deepEqual(r3.headers['Set-Cookie'], ['a=b']);
+  assert.equal(r3.headers['Cache-Control'], 'no-store');
+});
