@@ -56,6 +56,11 @@ memverifikasi PIN lewat RPC lama `kosan_login` dengan service role.
 5. **Cek preview:**
    - `curl -s -o /dev/null -w '%{http_code}' https://<preview>/api/sesi` → `401`
      (bukan 404/503).
+   - Region fungsi: `curl -sI https://<preview>/api/sesi | grep -i x-vercel-id`
+     harus memuat `sin1` (`vercel.json` → `"regions": ["sin1"]`). **[CEK]**
+     region proyek Supabase: `/api/sesi` memanggil database 3 kali berurutan,
+     jadi kalau Supabase bukan di Singapura (`ap-southeast-1`), sin1 bisa
+     malah lebih lambat. Bandingkan waktu `/api/sesi` sebelum dan sesudah.
    - Playtest dua tab sesuai `docs/RASA-AMAN-DESAIN.md` §12.3.
 6. **Promote ke produksi**, lalu tes live §12.4 nomor 1–3.
 7. **Sesudah klien baru live ≥24 jam:** cabut login PIN-saja dari browser,
@@ -98,8 +103,10 @@ baru boleh dibiarkan: tidak ada yang membacanya selain `/api/*`.
 ## Menjalankan tes
 
 ```bash
-node --test tests/server.test.js         # 29 tes server, tanpa jaringan
+node --test tests/server.test.js         # 43 tes server, tanpa jaringan
 PLAYWRIGHT_CORE=... CHROME_PATH=... node tests/e2e-fase-a.js          # playtest klien baru
 PLAYWRIGHT_CORE=... CHROME_PATH=... node tests/e2e-fase-a.js --lama   # klien dari main (RED)
+PLAYWRIGHT_CORE=... CHROME_PATH=... node tests/e2e-perbaikan2.js       # perbaikan ronde 2 (jaringan diperlambat 3 dtk/panggilan)
+PLAYWRIGHT_CORE=... CHROME_PATH=... node tests/e2e-perbaikan2.js --ref=<commit>   # klien dari commit lain (RED)
 node tests/lokal.js 8790                 # server uji lokal (database palsu)
 ```
