@@ -54,7 +54,11 @@ function akunBerlaku(akun, penghuni) {
   return !!(akun && penghuni && akun.password_hash && akun.nama_norm === I.normalize(penghuni.name));
 }
 
-function buatApp({ db, rahasia, sekarang = () => Date.now(), aman = true }) {
+const PESAN_BOCOR = 'Password ini pernah bocor di internet. Pakai password lain yang belum pernah dipakai di mana pun.';
+
+/* hibpFetch: fetch untuk cek password bocor (default fetch bawaan Node;
+   tes menyuntikkan tiruan). Dipakai HANYA di setupPassword. */
+function buatApp({ db, rahasia, sekarang = () => Date.now(), aman = true, hibpFetch = globalThis.fetch, hibpTimeoutMs = 3000 }) {
   if (!db) throw new Error('db wajib');
   if (typeof rahasia !== 'string' || rahasia.length < 32) throw new Error('KOSAN_SECRET minimal 32 karakter');
 
@@ -166,10 +170,21 @@ function buatApp({ db, rahasia, sekarang = () => Date.now(), aman = true }) {
     if (await lewatBatas('setup', ctx)) return galat(429, 'terkunci', 'Terlalu banyak percobaan — coba lagi nanti.');
     const penghuni = I.penghuniKamar(await db.occupants(), t.room);
     if (!penghuni || I.normalize(penghuni.name) !== t.nama_norm) return galat(409, 'kamar_berubah', 'Data kamar berubah. Ulangi dari awal ya.');
+    /* tiket yang sudah terpakai ditolak SEBELUM scrypt / HIBP (murah) */
+    if (akunBerlaku(await db.akunAmbil(t.room), penghuni)) return galat(409, 'sudah_setup', 'Akun ini sudah punya password. Masuk pakai password ya.');
+    /* 14 Nov (perbaikan 7) — tolak password yang pernah bocor, SEBELUM di-hash.
+       Dicek sesudah syarat panjang (8–128) tapi SEBELUM daftar password umum,
+       supaya password bocor yang juga "umum" (mis. password123) dapat pesan
+       bocor. HIBP tidak terjangkau -> fail open: aturan lama (termasuk daftar
+       umum) tetap berlaku seperti sebelumnya. */
+    const panjang = typeof password === 'string' ? password.normalize('NFC').length : 0;
+    if (panjang >= 8 && panjang <= 128) {
+      const bocor = await I.passwordBocor(password, hibpFetch, hibpTimeoutMs);
+      if (bocor === true) return galat(400, 'password_bocor', PESAN_BOCOR);
+      if (bocor === null) console.warn('[kosan] cek password bocor dilewati: HIBP tidak terjangkau (fail open)');
+    }
     const aturan = I.cekAturanPassword(password, penghuni.name);
     if (aturan) return galat(400, 'password_lemah', aturan);
-    /* tiket yang sudah terpakai ditolak SEBELUM scrypt (murah) */
-    if (akunBerlaku(await db.akunAmbil(t.room), penghuni)) return galat(409, 'sudah_setup', 'Akun ini sudah punya password. Masuk pakai password ya.');
     const hash = await I.hashPassword(password);
     const ok = await db.akunSetup({ room: t.room, nama_norm: t.nama_norm, gender: t.gender, password_hash: hash });
     if (!ok) return galat(409, 'sudah_setup', 'Akun ini sudah punya password. Masuk pakai password ya.');
@@ -222,4 +237,4 @@ function buatApp({ db, rahasia, sekarang = () => Date.now(), aman = true }) {
   return { masuk, setupPin, setupPassword, sesi, keluar, kamarMasuk };
 }
 
-module.exports = { buatApp, UMUR_INGAT, UMUR_BIASA, UMUR_TIKET, BATAS, GERBANG };
+module.exports = { buatApp, UMUR_INGAT, UMUR_BIASA, UMUR_TIKET, BATAS, GERBANG, PESAN_BOCOR };

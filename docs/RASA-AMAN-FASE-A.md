@@ -76,6 +76,24 @@ memverifikasi PIN lewat RPC lama `kosan_login` dengan service role.
    menghapus hitungan lama) di antara tebakan lewat jalur anon, sehingga
    jatahnya kira-kira dua kali lipat per 15 menit.
 
+## Password bocor (14 Nov, perbaikan 7)
+
+- Saat **membuat password** (setup pertama / sesudah reset), server
+  menolak password yang pernah bocor menurut Have I Been Pwned, SEBELUM
+  di-hash: "Password ini pernah bocor di internet. Pakai password lain
+  yang belum pernah dipakai di mana pun."
+- Yang dikirim ke `https://api.pwnedpasswords.com/range/` hanya 5 karakter
+  pertama SHA-1 (k-anonymity + header `Add-Padding`). Password, hash utuh,
+  dan sisa hash tidak pernah keluar dari server dan tidak ditulis ke log.
+- Timeout 3 detik. HIBP tidak terjangkau / error → **fail open**: setup
+  tetap jalan dengan aturan lama (min. 8 karakter + daftar password umum).
+  Log Vercel hanya mencatat `cek password bocor dilewati` (tanpa password).
+- Login TIDAK memanggil HIBP. Password yang sudah tersimpan tidak dicek
+  ulang: penghuni dengan password bocor (mis. rina) perlu
+  `select kosan_akun_reset(<kamar>);` lalu setup ulang. Itu tindakan pemilik.
+- Fungsi Vercel butuh akses keluar ke `api.pwnedpasswords.com` (HTTPS,
+  sisi server; CSP browser tidak terpengaruh).
+
 ## Operasional
 
 - **Lupa password** (sesudah verifikasi lewat DM IG):
@@ -108,7 +126,7 @@ baru boleh dibiarkan: tidak ada yang membacanya selain `/api/*`.
 ## Menjalankan tes
 
 ```bash
-node --test tests/server.test.js         # 43 tes server, tanpa jaringan
+node --test tests/server.test.js         # 51 tes server (43 lama + 8 password bocor), tanpa jaringan; HIBP di-mock (tests/fake-hibp.js)
 node --test tests/klien.test.js          # 7 tes klien (ketuk pintu, catatan dihapus, autocomplete password)
 PLAYWRIGHT_CORE=... CHROME_PATH=... node tests/e2e-fase-a.js          # playtest klien baru
 PLAYWRIGHT_CORE=... CHROME_PATH=... node tests/e2e-fase-a.js --lama   # klien dari main (RED)

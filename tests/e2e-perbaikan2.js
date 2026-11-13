@@ -203,7 +203,7 @@ async function keModeMasuk(page) {
               tombolBawah: Math.round(Math.max(...btn.map((r) => r.bottom))), tombolAtas: Math.round(Math.min(...btn.map((r) => r.top))) };
           });
           cek('D7 keypad muat tanpa terpotong/gulir (' + label + ')', ukur.top >= 0 && ukur.bawah <= ukur.tinggi && ukur.tombolBawah <= ukur.tinggi && ukur.gulir <= 1, JSON.stringify(ukur));
-          if (label.startsWith('landscape 915')) await page.screenshot({ path: path.join(ROOT, 'tests', '__keypad-landscape.png') }).catch(() => {});
+          if (label.startsWith('landscape 915')) await page.screenshot({ path: path.join(require('node:os').tmpdir(), 'kosan-keypad-landscape.png') }).catch(() => {});
           await page.click('#pinClose').catch(() => page.evaluate(() => document.getElementById('pinClose').click()));
         }
       }

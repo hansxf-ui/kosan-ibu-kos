@@ -96,6 +96,39 @@ function cekAturanPassword(pw, username) {
   return null;
 }
 
+/* ---------- password bocor (Have I Been Pwned, k-anonymity) ----------
+   Vonis Ryan 14 Nov 06:00: game tidak boleh menerima password yang pernah
+   bocor (kalau diterima, Chrome memperingatkan "sandi dibobol" dan game
+   terlihat seperti yang membobol). Yang dikirim ke HIBP HANYA 5 karakter
+   pertama SHA-1 (huruf besar); pencocokan sisa hash dilakukan di sini.
+   Header Add-Padding meminta HIBP menambah baris palsu (count 0) supaya
+   ukuran respons tidak membocorkan apa pun.
+   Hasil: true = bocor, false = bersih, null = tidak bisa dicek (timeout,
+   jaringan, status bukan 200) -> pemanggil FAIL OPEN.
+   JANGAN pernah menulis password / hash-nya ke log. */
+const HIBP_URL = 'https://api.pwnedpasswords.com/range/';
+async function passwordBocor(pw, fetchFn, timeoutMs = 3000) {
+  if (typeof pw !== 'string' || typeof fetchFn !== 'function') return null;
+  const sha = crypto.createHash('sha1').update(pw.normalize('NFC'), 'utf8').digest('hex').toUpperCase();
+  const prefix = sha.slice(0, 5), suffix = sha.slice(5);
+  const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  let t;
+  const habis = new Promise((res) => { t = setTimeout(() => { if (ctl) ctl.abort(); res(null); }, timeoutMs); });
+  const cek = (async () => {
+    const r = await fetchFn(HIBP_URL + prefix, { method: 'GET', headers: { 'Add-Padding': 'true' }, signal: ctl ? ctl.signal : undefined });
+    if (!r || !r.ok) return null;
+    const teks = await r.text();
+    if (typeof teks !== 'string') return null;
+    for (const baris of teks.split('\n')) {
+      const i = baris.indexOf(':');
+      if (i !== 35) continue; /* format "SUFFIX(35 hex):COUNT" */
+      if (baris.slice(0, 35).toUpperCase() === suffix && parseInt(baris.slice(36), 10) > 0) return true;
+    }
+    return false;
+  })().catch(() => null);
+  try { return await Promise.race([cek, habis]); } finally { clearTimeout(t); }
+}
+
 /* ---------- token, hash, sub-kunci ---------- */
 function tokenAcak() { return crypto.randomBytes(32).toString('base64url'); }
 function sha256hex(s) { return crypto.createHash('sha256').update(String(s)).digest('hex'); }
@@ -199,7 +232,7 @@ function perangkatSah(p) { return typeof p === 'string' && /^[A-Za-z0-9-]{8,64}$
 
 module.exports = {
   PIN_SALT, pinHash, normalize, usernameValid, cariPenghuni, penghuniKamar,
-  hashPassword, cekPassword, cekAturanPassword, PASSWORD_UMUM,
+  hashPassword, cekPassword, cekAturanPassword, PASSWORD_UMUM, passwordBocor, HIBP_URL,
   tokenAcak, sha256hex, subKunci, samaAman, prefiksIp, ipHmac, kunciBatasIp,
   buatTiket, bacaTiket, namaCookie, bacaCookie, cookieSesi, cookieHapus, perangkatSah
 };

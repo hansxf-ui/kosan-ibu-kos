@@ -2,6 +2,7 @@
 /* Tes Fase A (docs/RASA-AMAN-DESAIN.md §12.1). Jalankan: node --test tests/
    Tanpa jaringan, tanpa Supabase asli, tanpa PIN asli penghuni. */
 const test = require('node:test');
+const crypto = require('node:crypto');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -10,6 +11,7 @@ const { buatApp, UMUR_INGAT } = require('../api/_lib/app');
 const { buatDb } = require('../api/_lib/db');
 const { jalankan } = require('../api/_lib/jalankan');
 const { buatFakeDb } = require('./fake-db');
+const { buatFakeHibp } = require('./fake-hibp');
 
 const RAHASIA = 'uji-'.repeat(10); /* rahasia UJI, bukan rahasia produksi */
 const PW = 'kos-rumah-kedua';
@@ -19,12 +21,13 @@ const PENGHUNI = [
   { room: 14, name: 'dil', gender: 'Cowok', pin: '135790' }
 ];
 
-function siapkan() {
+function siapkan(opsiHibp) {
   let jam = Date.parse('2026-11-14T03:00:00Z');
   const db = buatFakeDb({ penghuni: PENGHUNI, sekarang: () => jam });
-  const app = buatApp({ db, rahasia: RAHASIA, sekarang: () => jam });
+  const hibp = buatFakeHibp(opsiHibp); /* tidak pernah ke jaringan asli */
+  const app = buatApp({ db, rahasia: RAHASIA, sekarang: () => jam, hibpFetch: hibp.fetchFn, hibpTimeoutMs: 200 });
   const majukan = (ms) => { jam += ms; };
-  return { db, app, majukan };
+  return { db, app, majukan, hibp };
 }
 const H = { 'content-type': 'application/json', host: 'kosan.test', origin: 'https://kosan.test', 'sec-fetch-site': 'same-origin' };
 const post = (body, extra) => ({ method: 'POST', headers: Object.assign({}, H, extra || {}), body, ip: '36.80.1.23' });
@@ -474,4 +477,90 @@ test('pembungkus Vercel: env kosong -> 503, metode salah -> 405, Set-Cookie dite
   await jalankan('masuk', 'POST', () => palsu)({ method: 'POST', headers: { 'x-forwarded-for': '1.2.3.4, 10.0.0.1' }, body: {} }, r3);
   assert.equal(r3.statusCode, 200); assert.deepEqual(r3.headers['Set-Cookie'], ['a=b']);
   assert.equal(r3.headers['Cache-Control'], 'no-store');
+});
+
+/* ---------- 14 Nov perbaikan 7: tolak password bocor saat setup (HIBP di-mock) ---------- */
+const { PESAN_BOCOR } = require('../api/_lib/app');
+async function cobaSetup(app, password) {
+  const a = await app.setupPin(post({ username: 'dilla', pin: '135790' }));
+  assert.equal(a.status, 200);
+  return app.setupPassword(post({ tiket: a.body.tiket, password }));
+}
+
+test('bocor #1: password yang pernah bocor ditolak 400 dengan pesan, akun tetap tanpa password', async () => {
+  const { app, db } = siapkan();
+  const r = await cobaSetup(app, 'password123');
+  assert.equal(r.status, 400); assert.equal(r.body.galat, 'password_bocor'); assert.equal(r.body.pesan, PESAN_BOCOR);
+  assert.equal(r.cookies, undefined);
+  assert.equal(await db.akunAmbil(13), null);
+});
+
+test('bocor #2: password lolos daftar umum tapi ada di HIBP tetap ditolak', async () => {
+  const { app } = siapkan();
+  assert.equal(I.cekAturanPassword('kosrumahkedua2024', 'dilla'), null); /* bukan di PASSWORD_UMUM */
+  const r = await cobaSetup(app, 'kosrumahkedua2024');
+  assert.equal(r.status, 400); assert.equal(r.body.galat, 'password_bocor');
+});
+
+test('bocor #3: password acak yang kuat diterima seperti biasa', async () => {
+  const { app, db } = siapkan();
+  const r = await cobaSetup(app, 'Jemuran-Lantai2-Gazebo!' + crypto.randomBytes(4).toString('hex'));
+  assert.equal(r.status, 200); assert.ok((r.cookies || [])[0]);
+  assert.match((await db.akunAmbil(13)).password_hash, /^scrypt\$/);
+});
+
+test('bocor #4: hanya 5 karakter prefix SHA-1 yang dikirim (k-anonymity), tanpa password/hash utuh', async () => {
+  const { app, hibp } = siapkan();
+  const pw = 'Rahasia-Kos-' + crypto.randomBytes(4).toString('hex');
+  await cobaSetup(app, pw);
+  assert.equal(hibp.log.length, 1);
+  const sha = crypto.createHash('sha1').update(pw).digest('hex').toUpperCase();
+  const { url, opt } = hibp.log[0];
+  assert.equal(url, 'https://api.pwnedpasswords.com/range/' + sha.slice(0, 5));
+  assert.equal(opt.method, 'GET'); assert.equal(opt.body, undefined);
+  const semua = JSON.stringify({ url, headers: opt.headers });
+  assert.ok(!semua.includes(pw)); assert.ok(!semua.includes(sha.slice(5))); assert.ok(!semua.toLowerCase().includes(sha.slice(5).toLowerCase()));
+  assert.equal(opt.headers['Add-Padding'], 'true');
+});
+
+test('bocor #5: HIBP mati / lambat / error -> fail open, setup tetap jalan (aturan lama tetap berlaku)', async () => {
+  for (const mode of ['mati', 'lambat', '500']) {
+    const { app } = siapkan({ mode });
+    const t0 = Date.now();
+    const r = await cobaSetup(app, 'kosrumahkedua2024'); /* "bocor" di tiruan, tapi HIBP tak terjangkau */
+    assert.equal(r.status, 200, mode + ': ' + JSON.stringify(r.body));
+    assert.ok(Date.now() - t0 < 3000, mode + ' terlalu lama');
+    const { app: app2 } = siapkan({ mode });
+    const r2 = await cobaSetup(app2, 'password123'); /* daftar umum lama tetap menolak */
+    assert.equal(r2.status, 400); assert.equal(r2.body.galat, 'password_lemah');
+  }
+});
+
+test('bocor #6: login TIDAK memanggil HIBP (bersih maupun salah password)', async () => {
+  const { app, hibp } = siapkan();
+  await setupLengkap(app, 'rina', '246810');
+  const n = hibp.log.length;
+  assert.equal((await app.masuk(post({ username: 'rina', password: PW }))).status, 200);
+  assert.equal((await app.masuk(post({ username: 'rina', password: 'password123' }))).status, 401);
+  assert.equal((await app.masuk(post({ username: 'dilla', password: 'password123' }))).status, 200); /* perlu_setup */
+  assert.equal(hibp.log.length, n);
+});
+
+test('bocor #7: ditolak karena bocor tidak memakai gerbang percobaan (tiket masih bisa dipakai ulang dengan password lain)', async () => {
+  const { app } = siapkan();
+  const a = await app.setupPin(post({ username: 'dilla', pin: '135790' }));
+  assert.equal((await app.setupPassword(post({ tiket: a.body.tiket, password: 'password123' }))).status, 400);
+  const b = await app.setupPassword(post({ tiket: a.body.tiket, password: 'Kunci-Kamar-13-' + crypto.randomBytes(3).toString('hex') }));
+  assert.equal(b.status, 200);
+});
+
+test('bocor #8: passwordBocor murni — bocor/bersih/tak-terjangkau + baris padding count 0 diabaikan', async () => {
+  const hibp = buatFakeHibp({ bocor: ['abc12345'] });
+  assert.equal(await I.passwordBocor('abc12345', hibp.fetchFn, 200), true);
+  assert.equal(await I.passwordBocor('belum-pernah-bocor-' + crypto.randomBytes(4).toString('hex'), hibp.fetchFn, 200), false);
+  const sha = crypto.createHash('sha1').update('padding-saja').digest('hex').toUpperCase();
+  const padOnly = async () => ({ ok: true, text: async () => sha.slice(5) + ':0\r\n' });
+  assert.equal(await I.passwordBocor('padding-saja', padOnly, 200), false);
+  assert.equal(await I.passwordBocor('apa', undefined, 200), null);
+  assert.equal(await I.passwordBocor('apa', buatFakeHibp({ mode: 'lambat' }).fetchFn, 100), null);
 });

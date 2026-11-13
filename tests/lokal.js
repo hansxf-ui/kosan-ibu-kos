@@ -9,6 +9,7 @@ const path = require('node:path');
 const { buatApp } = require('../api/_lib/app');
 const { jalankan } = require('../api/_lib/jalankan');
 const { buatFakeDb } = require('./fake-db');
+const { buatFakeHibp } = require('./fake-hibp');
 
 const ROOT = path.join(__dirname, '..');
 function buatServer(port) {
@@ -17,7 +18,7 @@ const db = buatFakeDb({ penghuni: [
   { room: 13, name: 'dilla', gender: 'Cewek', pin: '135790' },
   { room: 14, name: 'dil', gender: 'Cowok', pin: '135790' }
 ] });
-const app = buatApp({ db, rahasia: 'lokal-uji-'.repeat(4), aman: false });
+const app = buatApp({ db, rahasia: 'lokal-uji-'.repeat(4), aman: false, hibpFetch: buatFakeHibp().fetchFn }); /* HIBP tiruan: tanpa jaringan */
 const rute = {
   '/api/masuk': jalankan('masuk', 'POST', () => app),
   '/api/sesi': jalankan('sesi', 'GET', () => app),
