@@ -1,28 +1,29 @@
-# RASA-AMAN-DESAIN — login penghuni, broker ber-login, PIN kamar
+# RASA-AMAN-DESAIN — login penghuni, relay ber-token, PIN kamar
 
-> **Status:** DESAIN, diajukan untuk disetujui. Belum ada kode yang diubah.
-> Ditulis 13 Nov 2026 dari brief ronde "rasa aman" (berbasis `main` 1876ae3).
-> Tujuan ronde: tutup tiga celah yang merusak rasa aman penghuni, yaitu
-> menyamar jadi tetangga, menghilangkan avatar orang, dan nama kasar.
+> **Status:** DESAIN v2, disetujui 13 Nov 2026. Broker diganti Cloudflare
+> Durable Objects (keputusan pemilik sesudah perbandingan broker). Fase A
+> (server + login + PIN kamar) sedang diimplementasi.
+> Berbasis `main` 1876ae3. Tujuan ronde: tutup tiga celah yang merusak rasa
+> aman penghuni, yaitu menyamar jadi tetangga, menghilangkan avatar orang,
+> dan nama kasar.
 >
-> Tanda **[CEK]** = fakta yang belum bisa saya verifikasi dari sandbox dan
-> wajib dicek di console sebelum implementasi. Kalau hasil cek berbeda,
-> bagian yang ditandai punya rencana cadangan.
+> Tanda **[CEK]** = fakta yang belum terverifikasi dan wajib dicek sebelum
+> fase yang memakainya. Bagian yang ditandai punya rencana cadangan.
 
 ---
 
-## 0. Ringkasan keputusan yang diminta
+## 0. Ringkasan keputusan
 
-| # | Usulan | Alternatif |
+| # | Keputusan | Status |
 |---|---|---|
-| 1 | **Broker: EMQX Cloud Serverless.** HiveMQ Cloud Serverless sudah tidak bisa dibuat baru dan mati 31 Des 2026 (§2). | HiveMQ Starter/Launch berbayar (mulai $299/bln) |
-| 2 | **Jalur server: Vercel Functions di domain yang sama** (`/api/*`). IP klien dari Vercel tidak bisa dipalsukan, dan sesi bisa disimpan di cookie HttpOnly (§3). | Supabase Edge Functions (IP dari `x-forwarded-for` dilaporkan bisa dipalsukan) |
-| 3 | **Kredensial MQTT: JWT berumur 1 jam** kalau JWT tersedia di Serverless **[CEK]**. Cadangan: user bawaan EMQX yang dibuat/dihapus lewat API. | — |
-| 4 | **Protokol multiplayer v2:** id pemain pindah ke TOPIK (`.../pos/<id>`), broker hanya mengizinkan publish ke topik id sendiri, dan nama penghuni diambil dari daftar penghuni, bukan dari isi pesan (§7). | — |
-| 5 | **PIN TIDAK diwajibkan unik.** Memaksa unik justru membocorkan PIN orang lain (§6.3). Ini menyimpang dari brief, jadi perlu persetujuan. | Ikuti brief (ganti PIN 2 penghuni) |
-| 6 | **Batas belanja EMQX ±$5/bln**, bukan $0. Dengan $0, multiplayer mati begitu kuota gratis 1 GB habis (§2.3). | $0 (multiplayer bisa mati di tengah bulan) |
-| 7 | **Sembunyikan pemain:** penghuni = permanen, tamu = per sesi (§9.2). | Semua per sesi |
-| 8 | **Retensi log IP + perangkat 90 hari**, IP disimpan sebagai HMAC (bukan IP mentah) (§8). | Simpan IP mentah |
+| 1 | **Relay multiplayer: Cloudflare Durable Objects**, SATU DO global, Hibernation API (§2, §7). Pengganti broker MQTT. | Disetujui |
+| 2 | **Jalur server: Vercel Functions di domain yang sama** (`/api/*`). IP klien dari Vercel tidak bisa dipalsukan, dan sesi disimpan di cookie HttpOnly (§3). | Disetujui |
+| 3 | **Kredensial relay: token bertanda tangan HMAC berumur 1 jam**, diterbitkan Vercel untuk penghuni (dari sesi) dan tamu (§7.2). Tidak ada provisioning user, tidak ada cron. | Disetujui |
+| 4 | **Protokol v2: id ditempel oleh relay**, bukan oleh pengirim. Nama penghuni diambil dari daftar penghuni (§7). | Disetujui |
+| 5 | **PIN TIDAK diwajibkan unik** (§6.3). | Disetujui |
+| 6 | **Biaya target $0 (Workers Free).** Kalau batas keras 100 ribu/hari ternyata dihitung per pesan mentah (bukan 20:1), naik ke Workers Paid ±$9/bln (§2.3). **[CEK]** lewat deploy percobaan. | Menunggu cek Vesper |
+| 7 | **Sembunyikan pemain:** penghuni = permanen, tamu = per sesi (§9.2). | Disetujui |
+| 8 | **Retensi log IP + perangkat 90 hari**, IP disimpan sebagai HMAC (§8). | Disetujui |
 
 ---
 
@@ -60,56 +61,71 @@ Ini hasil membaca `index.html` di `main` 1876ae3, bukan dugaan:
 
 ---
 
-## 2. Pilihan broker
+## 2. Pilihan relay
 
-### 2.1 Perbandingan
+### 2.1 Perbandingan (versi akhir, dengan koreksi Vesper)
 
-| | HiveMQ Cloud Serverless | EMQX Cloud Serverless |
+| Pilihan | Biaya | Kenapa dipilih / gugur |
 |---|---|---|
-| Status | **Dipensiunkan 31 Des 2026. Cluster Serverless baru sudah tidak bisa dibuat** ([HiveMQ docs](https://docs.hivemq.com/hivemq-cloud), [halaman EOL](https://docs.hivemq.com/hivemq-cloud/serverless-end-of-life.html)) | Aktif |
-| Koneksi bersamaan gratis | 100 ([HiveMQ](https://hivemq.atlassian.net/wiki/spaces/HCSP/pages/2539683951/How+can+I+calculate+my+estimated+costs)) | Maks 1.000 ([batas EMQX](https://docs.emqx.com/en/cloud/latest/create/restriction.html)), ditagih per menit sesi |
-| Kuota gratis/bulan | 10 GB trafik | **1 GB trafik** ([EMQX](https://docs.emqx.com/en/cloud/latest/deployments/alerts_guide/free_traffic_limit_reached.html)) + 1 juta menit sesi ([EMQX](https://docs.emqx.com/en/cloud/latest/deployments/alerts_guide/free_minutes_limit_reached.html)) |
-| Lewat kuota | Tidak relevan (pensiun) | $0,15/GB. Kalau batas belanja $0, deployment **berhenti** sampai bulan berikut ([EMQX](https://docs.emqx.com/en/cloud/latest/deployments/spend_limit.html)) |
-| ACL per pengguna | Serverless cuma punya aturan otorisasi dasar. Manajemen akses lanjutan + REST API ada di Starter ([HiveMQ](https://www.hivemq.com/blog/hivemq-cloud-serverless-vs-starter-mqtt-iot-or-iiot/)) | Otorisasi bawaan dengan placeholder `${username}` di topik ([EMQX](https://docs.emqx.com/en/cloud/latest/best_practices/acl_v5.html), [default authz](https://docs.emqx.com/en/cloud/latest/deployments/default_authz.html)) **[CEK: tersedia di Serverless]** |
-| Provisioning kredensial | Console. API hanya di paket berbayar | API deployment (AppID/Secret) + impor massal ([EMQX](https://emqx.com/en/blog/mastering-iot-solution-with-emqx-cloud-serverless-addition)). JWT ([EMQX](https://docs.emqx.com/en/cloud/latest/deployments/jwt_auth.html)) **[CEK: tersedia di Serverless]** |
-| Paket berikutnya | Mulai $299/bln ([HiveMQ pricing](https://www.hivemq.com/pricing/)) | Bayar sesuai pakai, di paket yang sama |
+| **Cloudflare Durable Objects** | $0 (Workers Free) atau ±$9/bln (Paid, kalau [CEK] §2.3 gagal) | **Dipilih.** Tanpa server yang dijaga pemilik. Relay sendiri yang menempelkan id, jadi lebih kuat dari ACL topik |
+| EMQX Cloud Serverless | $0–5 | Kuota 1 GB/bln. Tanpa JWT di Serverless, jadi setiap tamu harus dibuatkan user lewat API + cron pembersih |
+| Self-host EMQX di VPS pemilik | $0 | Cadangan kalau Cloudflare tidak bisa dipakai. Pemilik mengurus uptime + TLS; VPS mati = Wabot + bot Discord ikut kena |
+| Self-host Mosquitto | $0 | Tanpa JWT bawaan. (Koreksi: alasan "`%u`/`%c` tidak jalan di dynamic-security" sudah kedaluwarsa, diperbaiki di Mosquitto 2.1.0, Jan 2026.) |
+| HiveMQ Cloud Serverless | — | Dipensiunkan 31 Des 2026, cluster baru tidak bisa dibuat. Starter ±$243–253/bln |
+| Supabase Realtime | >$150/bln di 10 Hz | Kuota gratis 2 juta pesan/bln, setiap penerima dihitung. Habis ±2 jam main/bln |
+| Ably | Habis ±5 jam main/bln | 6 juta pesan/bln, setiap penerima dihitung |
+| flespi | €130/bln (Start) | Koreksi: batas Free terpublikasi dan tidak cukup (10 device, 500 pesan/menit/channel, 20.000 pesan MQTT/menit) |
 
-**Rekomendasi: EMQX Cloud Serverless.** HiveMQ gugur karena paketnya tidak
-bisa dibuat lagi dan mati 7 minggu dari sekarang.
+### 2.2 Aturan wajib relay (dari verifikasi Vesper)
 
-### 2.2 [CEK] yang harus dipastikan di console EMQX sebelum mulai
+1. **Hibernation API wajib:** `this.ctx.acceptWebSocket(ws, tags)`, BUKAN
+   `ws.accept()`. Tanpa hibernasi, DO ditagih durasi selama ada socket
+   terbuka. Contoh resmi tanpa hibernasi: $142,95/bln.
+2. **Satu DO global** (`idFromName('kosan-dunia')`), bukan satu DO per alam.
+   Tiap DO aktif ditagih durasi sendiri: 10 DO aktif × 4 jam/hari =
+   18.000 GB-s/hari, di atas batas Free 13.000.
+3. **Jangan tulis SQLite per pesan posisi.** Meter tulis Free 100 ribu/hari
+   habis dalam <1 jam di 10 Hz. Relay v2 tidak menulis storage sama sekali.
+   Daftar pemain untuk snapshot saat join diambil dari memori.
+4. **State di memori hilang saat hibernasi.** Daftar pemain dibangun ulang di
+   constructor dari attachment tiap socket (`deserializeAttachment`, maks
+   2.048 byte per socket). Selama main di 10 Hz DO tidak pernah hibernasi
+   (hibernasi hanya kalau tidak ada event), jadi ini soal antar-sesi.
+5. **Klien wajib bisa reconnect.** Saat runtime Cloudflare diperbarui,
+   koneksi yang ada diberi waktu maks 20 menit lalu diputus (§7.6).
+6. **Filter per alam:** tag WebSocket dipasang saat `acceptWebSocket`
+   (maks 10 tag). **[CEK]** Menurut saya tag tidak bisa diubah sesudah
+   accept. Kalau benar, tag hanya dipakai untuk `id:<id>` (cari socket
+   lama untuk ditendang), sedangkan alam disimpan di attachment + peta di
+   memori, dan siaran per alam menyaring dari peta itu. Dengan ≤220 socket,
+   menyaring di memori murah.
 
-1. Apakah autentikasi JWT tersedia di Serverless? Kalau tidak → pakai user
-   bawaan via API (§7.2 opsi B).
-2. Apakah placeholder `${username}` di ACL bawaan berlaku di Serverless?
-   Kalau tidak → aturan ACL per user dibuat lewat API (2 aturan per user).
-3. Bisakah aturan "tidak ada yang cocok = tolak" diatur?
-4. Batas jumlah user bawaan, batas ukuran pesan, dan batas laju pesan per
-   klien.
-5. Apakah ACL juga diperiksa untuk pesan last-will?
+### 2.3 Biaya dan kuota
 
-### 2.3 Perkiraan trafik (angka kasar, wajib diukur di minggu pertama)
+Model trafik sama dengan desain v1: 10 Hz saat bergerak (30% waktu),
+heartbeat 3 detik saat diam, rata-rata ±3,2 pesan masuk/detik per pemain.
+Hanya pesan MASUK ke DO yang dihitung request. Pesan keluar tidak.
 
-Asumsi:
-- Satu pesan `pos` v2 ≈ 120 byte di jaringan (isi pesan diringkas, sudah
-  termasuk overhead MQTT/WebSocket/TLS).
-- Tiap pemain bergerak 30% waktu di 10 Hz, sisanya heartbeat tiap 3 detik.
-  Rata-rata ≈ 3,2 pesan/detik per pemain.
-- Langganan per alam (§7.3), dan MQTT 5 `noLocal` aktif (pesan sendiri tidak
-  dikirim balik).
-
-| Pemain online bersamaan | Trafik/jam | Kuota 1 GB habis dalam | Biaya kalau 2 jam/hari selama sebulan |
+| Skenario | Pesan masuk/hari | Request/hari kalau 20:1 | Kalau 1:1 |
 |---|---|---|---|
-| 5 | ~35 MB | ~29 jam main | ~$0,2 |
-| 10 | ~140 MB | ~7 jam main | ~$1,1 |
-| 20 | ~550 MB | ~2 jam main | ~$4,8 |
+| 10 pemain × 2 jam | ±232.600 | ±11.600 | ±232.600 |
+| 20 pemain × 4 jam | ±930.000 | ±46.500 | ±930.000 |
 
-Kesimpulan:
-- Kuota gratis 1 GB bisa habis dalam beberapa hari kalau satu video ramai.
-  Karena itu saya usul batas belanja ±$5/bln, bukan $0.
-- Kalau mau lebih hemat: turunkan laju gerak 10 Hz → 5 Hz. Trafik turun
-  ±45%, dan gerakan tetap mulus karena ada lerp.
-- **Pertanyaan:** berapa pemain online bersamaan di jam ramai sekarang?
+- **Durasi:** 1 DO aktif selama ada yang main. 4 jam/hari × 0,128 GB =
+  ±1.840 GB-s/hari, di bawah batas Free 13.000.
+- **[CEK] 20:1 belum terjawab.** Dokumentasi menyebut rasio 20:1 untuk
+  penagihan request komputasi, dan "tidak memengaruhi metrik". Tidak ada
+  kalimat eksplisit bahwa batas keras Free 100.000/hari memakai hitungan
+  20:1. Kalau ternyata 1:1, kuota habis dalam ±52 menit main agregat/hari
+  (10 pemain), dan biaya jadi ±$9/bln di Workers Paid ($5 dasar + ±$4
+  overage, hitungan Vesper). Vesper menjawabnya lewat deploy percobaan kecil
+  + meter dashboard begitu akun Cloudflare pemilik jadi. **Arsitektur tidak
+  berubah apa pun jawabannya.**
+- **Kalau kuota habis:** bukan hanya koneksi baru yang ditolak. Pesan masuk
+  dari pemain yang sudah tersambung juga berhenti diproses. Game jatuh ke
+  mode sendiri sampai kuota pulih (00:00 UTC = 07.00 WIB), atau sampai naik
+  ke Paid.
+- Penghematan yang tersedia: laju gerak 10 → 5 Hz menurunkan pesan ±45%.
 
 ---
 
@@ -120,39 +136,40 @@ Browser (index.html)
   │  HTTPS, domain sama: /api/*  (cookie sesi HttpOnly)
   ▼
 Vercel Functions (Node) ── service role ──► Supabase Postgres
-  │  - login / setup password / logout     (tabel + RPC, RLS tertutup)
-  │  - kredensial MQTT (penghuni + tamu)
+  │  - masuk / setup password / sesi / keluar     (tabel baru, RLS tertutup)
   │  - masuk kamar (cek PIN)
-  │  - lapor
+  │  - token relay (penghuni) + tamu              [Fase B]
+  │  - lapor                                      [Fase C]
   │  - catat IP (dari header Vercel) + id perangkat
   │
-  └─ menerbitkan JWT / user MQTT ──► EMQX Cloud Serverless (wss, ber-login, ACL)
-                                         ▲
-Browser ── wss (kredensial dari /api) ───┘
+  └─ token HMAC 1 jam (RELAY_SECRET) ─┐
+                                      ▼
+Browser ── wss + token ──► Cloudflare Worker ──► 1 Durable Object "kosan-dunia"
+                           (cek token saat upgrade)   (Hibernation API, siaran per alam)
 ```
 
-Kenapa Vercel Functions, bukan Supabase Edge Functions:
+Kenapa Vercel Functions (tidak berubah dari v1):
 
 - **IP klien.** Vercel menimpa `X-Forwarded-For` supaya IP tidak bisa
   dipalsukan ([Vercel docs](https://vercel.com/docs/headers/request-headers)).
-  Di Supabase, ada laporan bahwa header ini bisa dipalsukan pengirim
-  ([diskusi Supabase](https://github.com/orgs/supabase/discussions/34647)).
-- **"Ingat saya" tanpa token yang bisa dibaca JavaScript.** Karena domainnya
-  sama, token sesi bisa disimpan di cookie `HttpOnly; Secure;
-  SameSite=Strict`. Script di halaman (termasuk script jahat kalau ada XSS)
-  tidak bisa membacanya. Edge Function ada di domain lain (`supabase.co`),
-  jadi cookie-nya dianggap pihak ketiga dan diblokir Safari/in-app browser
-  IG.
-- **CSP lebih sempit.** `connect-src` cukup `'self'` + broker EMQX.
+- **"Ingat saya" tanpa token yang bisa dibaca JavaScript.** Domain sama, jadi
+  token sesi disimpan di cookie `HttpOnly; Secure; SameSite=Strict`.
+- **CSP sempit.** `connect-src` = `'self'` + host Worker relay. Sesudah
+  cut-over, broker publik dan `vendor/mqtt` tidak dipakai lagi.
 
-**[CEK]** Pipeline deploy Vesper (`vercel_deploy.py`, daftar file eksplisit)
-harus bisa ikut men-deploy `api/*.js` dan env var. Kalau tidak bisa, cadangan
-= Supabase Edge Functions. Akibatnya: sidik IP jadi sinyal lemah (bisa
-dipalsukan), dan token sesi disimpan di `localStorage`.
+Rahasia (env var, tidak pernah di repo/kode browser):
 
-Rahasia hanya ada di env var Vercel: `SUPABASE_SERVICE_ROLE_KEY`,
-`EMQX_JWT_SECRET` (atau `EMQX_APP_ID`/`EMQX_APP_SECRET`), `IP_HMAC_SECRET`.
-**Tidak ada kredensial di repo atau di kode browser.**
+| Nama | Di mana | Fase |
+|---|---|---|
+| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Vercel | A |
+| `KOSAN_SECRET` (≥32 byte acak; sub-kunci untuk HMAC IP + tiket setup diturunkan darinya) | Vercel | A |
+| `RELAY_SECRET` (≥32 byte acak, SAMA di dua tempat) | Vercel + secret Worker | B |
+
+**[CEK]** Pipeline deploy Vesper harus bisa membawa `api/` + env var ke
+Vercel. Deploy Worker lewat `wrangler` dengan API token template "Edit
+Cloudflare Workers" (izin minimum Account → Workers Scripts: Edit). Vesper
+yang deploy begitu pemilik memberi token. Pemilik membuat akun Cloudflare
+pakai email.
 
 ---
 
@@ -167,11 +184,10 @@ Rahasia hanya ada di env var Vercel: `SUPABASE_SERVICE_ROLE_KEY`,
   tidak perlu dilonggarkan.
 - Browser tidak lagi membuat `playerId` sendiri untuk multiplayer.
   `kosan3d-id` lama dibiarkan dan tidak dipakai.
-- **Satu penghuni, satu avatar.** `clientId` MQTT = `playerId` persis.
-  Kalau penghuni masuk dari perangkat kedua, koneksi lama ditendang broker.
-  Klien yang ditendang (reason code MQTT 5 `0x8E`) TIDAK menyambung ulang
-  otomatis, dan menampilkan "Kamu masuk dari tab/perangkat lain". Tanpa
-  aturan ini, dua tab akan saling tendang tiap 2 detik.
+- **Satu penghuni, satu avatar.** Kalau penghuni masuk dari perangkat
+  kedua, relay menutup socket lama dengan kode `4001` (§7.3). Klien yang
+  ditendang TIDAK menyambung ulang otomatis, dan menampilkan "Kamu masuk dari
+  tab/perangkat lain". Tanpa aturan ini, dua tab akan saling tendang terus.
 
 ---
 
@@ -182,23 +198,28 @@ Rahasia hanya ada di env var Vercel: `SUPABASE_SERVICE_ROLE_KEY`,
 1. Layar masuk: **username + password** + centang **"Ingat saya"**.
 2. `POST /api/masuk {username, password, perangkat}` →
    - server: cek batas percobaan → scrypt verify → buat sesi.
-   - set cookie `kosan_sesi`:
-     - "Ingat saya" dicentang: `Max-Age` 30 hari, diperpanjang tiap
-       dipakai.
-     - Tidak dicentang: cookie sesi biasa, hilang saat browser ditutup.
-   - balas `{room, name, gender, playerId}`.
-3. Kunjungan berikut: `GET /api/sesi`. Kalau cookie masih berlaku, pemain
-   langsung masuk tanpa mengetik apa pun.
+   - set cookie `__Host-kosan_sesi` (`HttpOnly; Secure; SameSite=Strict;
+     Path=/`):
+     - "Ingat saya" dicentang: `Max-Age` 30 hari, diperpanjang saat dipakai.
+     - Tidak dicentang: cookie sesi biasa (hilang saat browser ditutup), dan
+       server tetap membatasi umurnya 12 jam.
+   - balas `{room, name, gender}`.
+3. Kunjungan berikut: `GET /api/sesi`. Kalau cookie masih berlaku, layar
+   masuk menampilkan "Masuk sebagai @nama" dengan satu tombol, tanpa
+   mengetik apa pun. Satu ketukan tetap perlu karena layar penuh + kunci
+   landscape hanya boleh dari gestur pengguna. Ada tautan "Bukan kamu?
+   Keluar akun".
 4. Yang tersimpan di perangkat **hanya token sesi acak 256-bit** (di cookie
    HttpOnly). Di database yang disimpan hanya SHA-256 dari token itu.
    Password tidak pernah disimpan di perangkat, baik di `localStorage`,
    `sessionStorage`, maupun cookie yang bisa dibaca JS.
-5. **Keluar:** `POST /api/keluar` mencabut sesi, cookie dihapus, dan
-   kredensial MQTT ikut dicabut (§7.2).
+5. **Keluar:** `POST /api/keluar` mencabut sesi dan menghapus cookie. Token
+   relay tidak diperpanjang lagi (§7.2).
 
 Aturan password:
-- minimal 8 karakter, ditolak kalau ada di daftar ±1.000 password umum,
-  tanpa aturan "wajib simbol";
+- 8–128 karakter, ditolak kalau ada di daftar password umum (±150 entri,
+  termasuk pola lokal seperti `bismillah`, `sayang`, `kosanibukos`), sama
+  dengan username, atau satu karakter diulang. Tanpa aturan "wajib simbol";
 - di-hash di server dengan `crypto.scrypt` bawaan Node (N=2^15, r=8, p=1,
   salt acak 16 byte per akun), tanpa dependensi tambahan.
 
@@ -215,9 +236,12 @@ Untuk 20 penghuni yang `password_hash`-nya masih kosong:
    `perlu_setup` (tanpa memeriksa password).
 2. UI: "Login pertama sejak pembaruan. Masukkan **PIN kamarmu** dulu ya."
 3. `POST /api/setup/pin {username, pin}` → server menghitung hash lama
-   (`pinHash` FNV, port 1:1 dari klien) dari PIN mentah dan membandingkan
-   dengan `pin_hash`. **PIN dan `pin_hash` tidak diubah.** Lalu server
-   menerbitkan tiket setup sekali pakai (5 menit).
+   (`pinHash` FNV, port 1:1 dari klien) dari PIN mentah, lalu memanggil RPC
+   lama `kosan_login` dengan service role (§10), sehingga kunci PIN 5x/15
+   menit yang sudah ada ikut berlaku. **PIN dan `pin_hash` tidak diubah.**
+   Lalu server menerbitkan tiket setup bertanda tangan (5 menit). Tiket itu
+   sekali pakai karena penyimpanan password bersyarat `password_hash IS
+   NULL` dan atomik.
 4. UI: "Buat password" (2x) → `POST /api/setup/password {tiket, password}` →
    simpan hash scrypt, buat sesi, catat perangkat + IP (event `setup`).
 5. **Sejak itu login hanya lewat username + password.** Jalur PIN-saja
@@ -238,7 +262,8 @@ atas dengan PIN-nya.
      charset `usernameValid` mencegah homoglyph);
    - tolak nama yang kena filter kata (§9.1);
    - batas: 10 tamu per IP per jam, maks 200 tamu aktif;
-   - terbitkan `pt...` + kredensial MQTT tamu (12 jam).
+   - terbitkan `pt...` + token relay tamu (1 jam, diperpanjang selama
+     bermain) [Fase B].
 3. Tamu tidak punya sesi, jadi `/api/kamar/masuk` selalu menolak (§6).
 4. Kalau `/api/tamu` gagal (server down), tamu tetap masuk dalam **mode
    sendiri**. Game tidak boleh mati.
@@ -293,87 +318,90 @@ orang tertentu.
 
 ---
 
-## 7. Kredensial MQTT, ACL, protokol v2
+## 7. Relay v2 (Fase B)
 
-### 7.1 Topik v2 (realm ada di topik)
+### 7.1 Pesan (JSON di atas WebSocket)
 
-| Topik | Siapa boleh publish | Retained |
+Klien → relay:
+
+| Pesan | Isi | Aturan relay |
 |---|---|---|
-| `kosan-ibu-kos/v2/<alam>/pos/<id>` | hanya `<id>` itu | tidak |
-| `kosan-ibu-kos/v2/presence/<id>` | hanya `<id>` itu | ya |
+| `pos` | `{"t":"pos","x":2.53,"z":8.1,"r":3.14,"g":0.8,"p":"duduk"}` | Angka finite, dalam batas alam + 1 m, `g` 0..1, `p` dari daftar pose |
+| `alam` | `{"t":"alam","a":"dapur"}` | `a` ∈ `yard`, `living`, `dapur`, `room-1..20`. `room-N` hanya untuk penghuni Kamar N |
+| `perpanjang` | `{"t":"perpanjang","token":"..."}` | Token baru harus sah dan id-nya sama |
 
-- `<alam>` = `yard`, `living`, `dapur`, `room-1`…`room-20`.
-- ACL (satu set aturan untuk semua, pakai placeholder **[CEK]**):
-  - izinkan publish `kosan-ibu-kos/v2/+/pos/${username}`
-  - izinkan publish `kosan-ibu-kos/v2/presence/${username}`
-  - izinkan subscribe `kosan-ibu-kos/v2/+/pos/+` dan
-    `kosan-ibu-kos/v2/presence/+`
-  - selain itu: tolak
-- Efek ACL:
-  - tidak ada yang bisa publish atas nama id lain;
-  - tidak ada yang bisa mengosongkan presence orang lain (celah "ngilangin
-    avatar orang");
-  - tidak ada yang bisa menanam pesan retained di topik id lain.
+Relay → klien:
 
-### 7.2 Penerbitan kredensial
+| Pesan | Isi |
+|---|---|
+| `snap` | Saat bergabung: daftar pemain di alam yang sama `[{id,jenis,nama,x,z,r,g,p}]` dari memori |
+| `pos` | `{"t":"pos","id":"pk13",...}`. **`id` ditempel relay dari token**, bukan dari pengirim |
+| `masuk` / `pergi` | Pemain bergabung ke / keluar dari alam (termasuk socket tertutup) |
 
-**Opsi A (diusulkan, kalau JWT tersedia di Serverless):**
-- `GET /api/mqtt` (sesi penghuni / token tamu) → JWT HS256
-  `{username: playerId, exp: 1 jam}`, plus klaim ACL kalau didukung.
-- Klien menyambung dengan `username = playerId`, `password = JWT`.
-- Klien meminta JWT baru ±5 menit sebelum kedaluwarsa, lalu menyambung
-  ulang.
-- **Pencabutan:** server berhenti menerbitkan JWT untuk sesi yang dicabut.
-  Jendela paling lama 1 jam.
+- Pemain hanya menerima pesan dari alam yang sama. Pindah alam = relay
+  mengirim `pergi` ke alam lama dan `masuk` + `snap` ke alam baru.
+- Relay **tidak pernah menulis storage**. Presence retained (v1) diganti
+  `snap`, last-will (v1) diganti `webSocketClose`/`webSocketError`.
 
-**Opsi B (cadangan): user bawaan EMQX lewat API.**
-- `/api/mqtt` membuat user `playerId` + password acak 32 byte (rotasi tiap
-  24 jam) dan membalasnya ke klien.
-- **Pencabutan:** hapus user lewat API, langsung berlaku.
-- Butuh pembersihan: cron (Vercel Cron atau `pg_cron`) menghapus kredensial
-  tamu yang lebih dari 12 jam.
+### 7.2 Token relay
 
-Di kedua opsi, kredensial MQTT memang harus bisa dibaca JS (mqtt.js butuh).
-Itu sebabnya umurnya pendek. Sesi panjang tetap di cookie HttpOnly.
+- Format: `base64url(json).base64url(HMAC-SHA256(RELAY_SECRET, json))`,
+  isi `{id, jenis:"penghuni"|"tamu", room?, nama, exp}`, umur 1 jam.
+- Penghuni: `GET /api/relay/token` dengan cookie sesi → `id = pk<room>`,
+  `nama` = nama terdaftar.
+- Tamu: `POST /api/tamu` (§5.3) → `id = pt<8 acak>`, `nama` sudah lolos
+  filter + bukan nama penghuni.
+- Dikirim lewat subprotocol WebSocket (`new WebSocket(url, ['kosan.v2',
+  token])`), bukan query string, supaya tidak tercatat di log URL.
+- Klien mengirim `perpanjang` ±5 menit sebelum `exp`. Relay mengecek `exp`
+  di setiap pesan. Lewat `exp` + 60 detik → tutup dengan kode `4003`.
+- **Pencabutan:** sesi dicabut → Vercel berhenti menerbitkan token (jendela
+  maks 1 jam), dan bisa menendang langsung lewat `POST /admin/tendang
+  {id}` ke Worker (ditandatangani `RELAY_SECRET`).
 
-### 7.3 Isi pesan + langganan per alam
+### 7.3 Aturan relay (di atas §2.2)
 
-- `pos` v2 diringkas: `{"x":2.53,"z":8.1,"r":3.14,"g":0.8,"p":"duduk"}`.
-  Tanpa `id`/`nama`/`gender`/`realm`, karena semuanya sudah ada di topik
-  atau presence.
-- Klien hanya subscribe `v2/<alamku>/pos/+` dan presence. Pindah alam =
-  unsubscribe lalu subscribe baru. Pemain di kamar hampir tidak menerima
-  trafik.
-- MQTT 5 + `noLocal`. mqtt.js 5.10.1 di `vendor/mqtt/` mendukungnya.
+- **Satu id, satu socket.** Socket baru dengan id yang sama menutup socket
+  lama dengan kode `4001` ("masuk dari tempat lain"). Klien yang menerima
+  `4001` TIDAK menyambung ulang otomatis.
+- **Batas laju per socket:** token bucket 15 pesan/detik. Kelebihan dibuang.
+  Lebih dari 3× batas selama 5 detik → tutup `4008`.
+- **Batas ukuran pesan:** 512 byte. Lebih → buang.
+- **Batas jumlah:** maks 200 tamu tersambung. Lebih → tolak upgrade `503`.
+- Attachment per socket (≤2.048 byte): `{id, jenis, room, nama, alam, exp}`.
+  Posisi terakhir hanya di memori (hilang saat hibernasi, terisi lagi dari
+  heartbeat 3 detik).
 
-### 7.4 Aturan penerima (lapisan kedua, di atas ACL)
+### 7.4 Aturan penerima (lapisan kedua, tetap ada)
 
-`mpProsesPesan` diperluas. Cek lama tetap ada, ditambah:
+Pertahanan ronde port tetap (`mpIdSah`, token bucket, `Object.create(null)`,
+validasi pesan). Ditambah:
 
-1. `id` diambil dari **topik**. Isi pesan tidak boleh membawa id lain.
-2. **Nama penghuni dari `OCCUPANTS`, bukan dari pesan.** `pk13` selalu
-   bernama penghuni Kamar 13, apa pun isi pesannya.
-3. **Nama tamu:**
-   - tampil dengan penanda (mis. `Budi · tamu`);
-   - kalau nama tamu sama dengan nama penghuni (`normalize`) atau kena
-     filter → tampil `Tamu #8f2k`.
-4. Pesan di alam `room-N` dari id selain `pk<N>` → dibuang.
-5. Id di daftar sembunyi (§9.2) → tidak dirender.
-
-Penegakan di sisi penerima sudah cukup untuk tampilan. Pengirim nakal bisa
-mengubah layarnya sendiri, tapi tidak bisa mengubah apa yang dilihat orang
-lain.
+1. Nama penghuni `pk<N>` selalu dari `OCCUPANTS` kamar N.
+2. Tamu tampil dengan penanda (mis. `Budi · tamu`). Nama tamu yang sama
+   dengan nama penghuni atau kena filter → `Tamu #8f2k`.
+3. Pesan alam `room-N` dari id selain `pk<N>` → dibuang.
+4. Id di daftar sembunyi (§9.2) → tidak dirender.
+5. `dapur` masuk daftar alam yang dikenal (temuan §1.7).
 
 ### 7.5 Cut-over dari broker publik
 
-- Versi baru **berhenti total** memakai `broker.emqx.io` / `broker.hivemq.com`.
-  Keduanya dihapus dari `BROKERS` dan dari CSP `connect-src`.
-- Klien lama yang masih ter-cache tetap di dunia lama (broker publik) dan
-  tidak terlihat di dunia baru. Tidak ada yang rusak. Mereka pindah sendiri
-  setelah reload.
-- `kosan_login` (login PIN-saja) dicabut aksesnya dari `anon` saat cut-over
-  (`REVOKE EXECUTE ... FROM anon`). Sesudah itu, PIN hanya diperiksa lewat
-  server dengan service role.
+- Versi baru berhenti total memakai `broker.emqx.io`/`broker.hivemq.com` dan
+  `vendor/mqtt`. Keduanya dihapus dari kode dan CSP `connect-src`.
+- Klien lama ter-cache tetap di dunia lama dan tidak terlihat di dunia baru.
+  Tidak ada yang rusak; mereka pindah sendiri sesudah reload.
+- `REVOKE EXECUTE ON FUNCTION kosan_login(...) FROM anon` saat cut-over.
+  Klien Fase A sudah tidak memanggil `kosan_login` lagi, jadi pencabutan ini
+  bisa dimajukan begitu klien Fase A live ≥24 jam.
+
+### 7.6 Reconnect klien
+
+| Kejadian | Perilaku klien |
+|---|---|
+| Kode `1001`/`1006`/`1012` (runtime update, jaringan putus) | Sambung ulang dengan jeda 1, 2, 5, 10, 30 detik (+ acak ±20%) |
+| `4003` (token habis) | Ambil token baru, lalu sambung ulang |
+| `4001` (masuk dari tempat lain) | Berhenti. Tampilkan "Kamu masuk dari tab/perangkat lain" |
+| Upgrade ditolak / kuota habis | Mode sendiri. Coba lagi tiap 60 detik + tombol coba lagi di pil status |
 
 ---
 
@@ -482,30 +510,35 @@ Tabel `kosan_laporan`:
 
 ## 10. Skema data (tambahan saja, tabel lama tidak diubah)
 
-**[CEK]** Saya belum melihat skema Supabase asli (SQL tidak ada di repo).
-Mohon kirim definisi tabel penghuni + fungsi `kosan_*`, tanpa data.
+**Fase A tidak butuh skema tabel penghuni.** Server memverifikasi PIN dengan
+memanggil RPC lama `kosan_login(p_name, p_pin_hash)` memakai service role, dan
+membaca nama + kamar dari `kosan_occupants()`. Tabel baru dikunci pada
+`room` + `nama_norm` (bukan FK), jadi kalau kamar berganti penghuni, akun
+lama otomatis tidak berlaku. **[CEK]** `kosan_login` bisa dieksekusi
+`service_role`, mengembalikan baris berisi `gender`, dan hanya menulis
+penghitung kunci PIN-nya sendiri.
 
-| Tabel baru | Isi |
-|---|---|
-| `kosan_akun` | FK ke baris penghuni, `password_hash`, `password_dibuat`, `gagal_count`, `kunci_sampai` |
-| `kosan_sesi` | `id`, FK akun, `token_sha256`, `ingat`, `dibuat`, `dipakai`, `kedaluwarsa`, `dicabut` |
-| `kosan_perangkat_log` | FK akun null, `peristiwa`, `perangkat`, `ip_hmac`, `ip_prefiks_hmac`, `dibuat` |
-| `kosan_kata_terlarang` | `kata`, `tingkat` |
-| `kosan_laporan` | §9.3 |
-| `kosan_batas` | penghitung batas percobaan: `kunci`, `jendela`, `jumlah` (RPC increment atomik) |
+| Tabel baru | Isi | Fase |
+|---|---|---|
+| `kosan_akun` | `room` (PK), `nama_norm`, `gender`, `password_hash`, `password_dibuat`, `gagal_count`, `kunci_sampai` | A |
+| `kosan_sesi` | `id`, `room`, `nama_norm`, `token_sha256`, `ingat`, `dibuat`, `dipakai`, `kedaluwarsa`, `dicabut` | A |
+| `kosan_perangkat_log` | `room` null, `peristiwa`, `perangkat`, `ip_hmac`, `ip_prefiks_hmac`, `dibuat` | A |
+| `kosan_batas` | penghitung batas percobaan per jendela waktu | A |
+| `kosan_kata_terlarang` | `kata`, `tingkat` | C |
+| `kosan_laporan` | §9.3 | C |
 
-Semua RLS aktif. Semua RPC tulis hanya untuk `service_role`. Yang tetap
-publik: `kosan_occupants` (nama + kamar memang publik) dan
-`kosan_kata_list`.
+Semua RLS aktif tanpa policy. Hak `anon`/`authenticated` dicabut eksplisit.
+Semua RPC baru hanya untuk `service_role`. Yang tetap publik:
+`kosan_occupants` dan (Fase C) `kosan_kata_list`.
 
 ---
 
 ## 11. Urutan rilis
 
-1. **Fase A, server + login:** tabel, Vercel Functions, layar login +
-   setup password, PIN kamar via server. Multiplayer tetap v1 sementara.
-2. **Fase B, broker v2:** EMQX, protokol v2, cut-over (§7.5), cabut `anon`
-   dari `kosan_login`.
+1. **Fase A, server + login:** tabel, Vercel Functions, layar login + setup
+   password, PIN kamar via server. Multiplayer tetap v1 sementara.
+2. **Fase B, relay v2:** Worker + DO, protokol v2, token relay + tamu,
+   reconnect, cut-over (§7.5).
 3. **Fase C, pendamping:** filter, sembunyikan, lapor.
 4. **Fase D, duplikat:** view kandidat. Pemilik meninjau, lalu memutuskan.
 
@@ -518,23 +551,34 @@ avatar.
 
 ### 12.1 Unit test (RED di kode sekarang → GREEN sesudah fix)
 
-Fungsi murni diekstrak verbatim seperti harness ronde port:
+Server (Fase A):
 
-1. Pesan `pos` di topik `pk13` yang mengaku nama lain → label tetap nama
-   penghuni Kamar 13.
-2. Tamu `pt..` dengan nama penghuni / nama kena filter → label
-   `Tamu #xxxx`.
-3. Pesan alam `room-13` dari `pk14` / `pt..` → dibuang.
-4. Id di daftar sembunyi → tidak dirender. Penghuni tersimpan permanen,
-   tamu tidak.
-5. Filter: normalisasi leet / spasi / pengulangan. Tingkat keras vs lunak.
-   Whitelist nama penghuni.
-6. Server: `/api/tamu` menolak nama penghuni. `/api/kamar/masuk` menolak
-   tamu, menolak penghuni lain, dan menolak PIN salah. Kunci aktif sesudah
-   5 salah.
-7. Port `pinHash` server = klien untuk vektor uji (tanpa PIN asli).
-8. Akun dengan password: jalur PIN-saja ditolak.
-9. Regresi: semua tes ronde port tetap lolos.
+1. Login hanya lewat username + password. Akun yang sudah punya password
+   tidak bisa dibuka lagi lewat jalur setup PIN.
+2. Setup sekali pakai: tiket kedua ditolak.
+3. Password tersimpan sebagai scrypt. Token sesi tersimpan sebagai SHA-256.
+   Tidak ada password mentah di database palsu, di respons, atau di cookie.
+4. Kunci akun sesudah 5 password salah.
+5. `/api/kamar/masuk` menolak tamu (tanpa sesi), menolak penghuni kamar lain,
+   menolak PIN salah.
+6. Port `pinHash` server = klien untuk vektor uji (tanpa PIN asli).
+7. POST dari origin lain ditolak.
+
+Klien (Fase A): masuk kamar meminta PIN setiap kali, dan login penghuni tidak
+lagi memakai PIN saja.
+
+Relay (Fase B), fungsi murni diekstrak dari Worker:
+
+8. Token: tanda tangan salah / kedaluwarsa / id beda saat `perpanjang` →
+   ditolak.
+9. `id` di pesan keluar selalu dari token, walau pengirim menyisipkan `id`.
+10. Batas laju 15/detik, ukuran 512 byte, tutup `4008` saat banjir.
+11. `alam` `room-13` dari `pk14`/`pt..` → ditolak. `dapur` diterima.
+12. Socket kedua dengan id sama → socket pertama ditutup `4001`.
+13. Rebuild peta pemain dari attachment (simulasi hibernasi).
+14. Penerima (§7.4): label penghuni dari `OCCUPANTS`, tamu dengan nama
+    penghuni → `Tamu #xxxx`, sembunyi.
+15. Regresi: semua tes ronde port tetap lolos.
 
 ### 12.2 Review independen
 
@@ -551,11 +595,10 @@ Baca kode + ulang angka tes → status Approved sebelum deploy.
 1. Login penghuni + "Ingat saya" → reload → tetap masuk. Tidak ada password
    di `localStorage`/`sessionStorage`/`document.cookie`.
 2. Masuk kamar minta PIN. Keluar lalu masuk lagi → minta PIN lagi.
-3. Tamu masuk bebas. Tamu tidak bisa masuk kamar (server 403).
+3. Tamu masuk bebas. Tamu tidak bisa masuk kamar (server 401).
 4. Tamu dengan nama penghuni ditolak.
 5. Penghuni + tamu saling melihat di dua perangkat.
-6. 0 error CSP, 0 request unpkg, 0 request broker publik, mqtt tersambung ke
-   EMQX.
+6. 0 error CSP, 0 request unpkg, 0 request broker publik, relay tersambung.
 
 ---
 
@@ -563,15 +606,18 @@ Baca kode + ulang angka tes → status Approved sebelum deploy.
 
 | Bagian | Perkiraan |
 |---|---|
-| Setup EMQX + [CEK] §2.2 (butuh akun + kartu pemilik) | 0,5 hari |
-| Skema Supabase + RPC + RLS | 1 hari |
-| Vercel Functions (masuk, setup, sesi, keluar, mqtt, tamu, kamar, lapor, batas) | 2–3 hari |
-| Klien: layar login/setup, modal PIN, protokol v2, sembunyikan/lapor, filter | 3–4 hari |
+| Fase A: skema + RPC + RLS | 1 hari |
+| Fase A: Vercel Functions (masuk, setup, sesi, keluar, kamar) | 1,5–2 hari |
+| Fase A: klien (login/setup, Ingat saya, modal PIN) | 1,5 hari |
+| Fase B: Worker + DO relay + token + tamu | 2–2,5 hari |
+| Fase B: klien protokol v2 + reconnect + cut-over | 1,5 hari |
+| Fase C: filter, sembunyikan, lapor | 1,5 hari |
 | Tes, review, preview, live | 1,5–2 hari |
-| **Total** | **±8–11 hari kerja** |
+| **Total** | **±10–11,5 hari kerja** |
 
-Risiko estimasi: hasil [CEK] EMQX (opsi B menambah ±1 hari), dan apakah
-pipeline deploy bisa men-deploy Functions.
+Dibanding desain v1: relay menambah ±1–1,5 hari, provisioning + cron EMQX
+hilang (±1 hari). Selisih maks +0,5 hari. Risiko estimasi: deploy Worker
+bergantung akun + token Cloudflare pemilik.
 
 ---
 
@@ -582,37 +628,32 @@ pipeline deploy bisa men-deploy Functions.
 - **Nama tamu yang lolos filter tapi tetap menyakitkan:** ditangani lewat
   sembunyikan + lapor. Belum ada moderasi real-time.
 - **Laporan dibaca manual** oleh pemilik. Belum ada notifikasi.
-- **Tamu iseng yang jalan-jalan mengganggu:** dibatasi per IP, tapi tidak
-  dicegah.
+- **Tamu iseng yang mengganggu:** dibatasi per IP + 200 tamu, tidak dicegah.
 - **Sidik perangkat mudah di-reset.** Duplikat cuma kandidat.
-- **XSS:** CSP masih `'unsafe-inline'` (script modul inline). Kalau ada XSS,
-  kredensial MQTT berumur pendek bisa dicuri, tapi cookie sesi tidak.
-  Memindah script ke file terpisah supaya CSP bisa ketat = ronde
-  tersendiri.
-- **Kuota EMQX habis + batas belanja tercapai → multiplayer mati sampai
-  bulan berikut.** Game jatuh ke mode sendiri.
+- **XSS:** CSP masih `'unsafe-inline'`. Kalau ada XSS, token relay berumur
+  pendek bisa dicuri, tapi cookie sesi tidak.
+- **Kuota Cloudflare harian habis → multiplayer berhenti total sampai 07.00
+  WIB**, termasuk pemain yang sudah tersambung. Game jatuh ke mode sendiri.
+- **Kode relay jadi tanggungan kita** (±250 baris), dengan unit test §12.1.
 - **PIN 6 digit + hash FNV lemah kalau isi database bocor.** Membungkus ulang
-  `pin_hash` dengan scrypt di server bisa dilakukan tanpa mengubah PIN, tapi
-  itu mengubah data tersimpan, jadi perlu izin terpisah.
+  `pin_hash` dengan scrypt perlu izin terpisah (mengubah data tersimpan).
 - **Balapan setup pertama:** orang yang tahu PIN penghuni bisa membuat
   password lebih dulu. Mitigasi: batas percobaan, log perangkat, pemulihan
   lewat pemilik.
-- **Reset password lewat DM IG** rawan rekayasa sosial. Pemilik harus
-  memverifikasi.
-- **Broker publik v1 tetap terbuka** untuk siapa pun. Tidak berbahaya karena
-  sesudah cut-over tidak ada klien baru yang mendengarkan.
+- **Reset password lewat DM IG** rawan rekayasa sosial.
+- **Broker publik v1 tetap terbuka** untuk siapa pun, tapi sesudah cut-over
+  tidak ada klien baru yang mendengarkan.
 
 ---
 
 ## 15. Pertanyaan terbuka
 
-1. Setuju EMQX + batas belanja ±$5/bln? Akun EMQX + kartu atas nama pemilik.
-2. Setuju Vercel Functions? Bisakah pipeline deploy Vesper membawa `api/` +
-   env var?
-3. Setuju PIN tidak dipaksa unik (§6.3)?
-4. Berapa pemain online bersamaan di jam ramai?
-5. IP cukup disimpan sebagai HMAC? Retensi 90 hari?
-6. Sembunyikan: penghuni permanen, tamu per sesi, setuju?
+1. **[CEK Vesper]** 20:1 berlaku untuk batas keras Free atau tidak (§2.3).
+2. **[CEK]** Tag WebSocket bisa diubah sesudah `acceptWebSocket`? (§2.2.6)
+3. **[CEK]** `kosan_login` bisa dipanggil `service_role` dan mengembalikan
+   `gender` (§10).
+4. Pemilik membuat akun Cloudflare (email) + API token deploy untuk Vesper.
+5. Pipeline deploy membawa `api/` + env var ke Vercel?
+6. Berapa pemain online bersamaan di jam ramai?
 7. Penanda tamu di label: `· tamu`, ikon, atau warna?
 8. Perlu notifikasi laporan ke pemilik?
-9. Kirim skema SQL tabel penghuni + fungsi `kosan_*` (tanpa data).
