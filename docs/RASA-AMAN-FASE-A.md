@@ -23,6 +23,13 @@ memverifikasi PIN lewat RPC lama `kosan_login` dengan service role.
    `select pg_get_function_identity_arguments('public.kosan_login'::regproc);`
    Harus `p_name text, p_pin_hash text`, dan baris hasilnya punya kolom
    `gender`. Kalau beda, kabari dulu sebelum lanjut.
+   Catatan: komentar Ronde 61 di klien lama menyebut pesan "Terlalu banyak
+   percobaan" hanya muncul untuk PIN yang **benar**. Kalau itu benar,
+   kunci `kosan_login` bisa jadi penunjuk PIN. Server Fase A tidak
+   bergantung padanya: semua cek PIN (setup + kamar) lewat gerbang
+   `kosan_gerbang` per kamar (5 percobaan/15 menit, kunci 20 menit),
+   sehingga selama terkunci PIN benar dan salah dijawab sama, dan
+   `kosan_login` tidak dipanggil.
 2. **Migrasi.** Jalankan `supabase/migrations/20261113_rasa_aman_fase_a.sql`
    di SQL Editor. File ini idempoten. Lalu jalankan dua cek di bagian bawah
    file (anon ditolak, service_role boleh `kosan_login`).
@@ -34,7 +41,7 @@ memverifikasi PIN lewat RPC lama `kosan_login` dengan service role.
    - `KOSAN_SECRET` = 32 byte acak, mis. `openssl rand -base64 32`
    Tanpa salah satunya, endpoint membalas 503 (gagal aman).
 4. **Deploy preview.** Daftar file deploy wajib ikut membawa folder `api/`
-   (8 file `.js` di atas). `tests/`, `supabase/`, `docs/` tidak perlu
+   (10 file `.js` di atas: 6 endpoint + 4 di `api/_lib/`). `tests/`, `supabase/`, `docs/` tidak perlu
    di-deploy. Vercel tidak menjadikan `api/_lib/` sebagai endpoint.
 5. **Cek preview:**
    - `curl -s -o /dev/null -w '%{http_code}' https://<preview>/api/sesi` → `401`

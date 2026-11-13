@@ -120,6 +120,22 @@ function prefiksIp(ip) {
   }
   return '';
 }
+/* Kunci batas percobaan per jaringan: IPv4 per alamat, IPv6 per /64
+   (satu pelanggan biasanya punya satu /64 — memutar alamat di dalamnya
+   tidak boleh memberi jatah baru). */
+function kunciBatasIp(rahasia, ip) {
+  const s = String(ip || '').trim();
+  let k = s;
+  if (s.indexOf(':') !== -1) {
+    const [kiri, kanan] = s.split('::');
+    const a = kiri ? kiri.split(':') : [];
+    const b = kanan !== undefined && kanan ? kanan.split(':') : [];
+    const isi = kanan !== undefined ? Array(Math.max(0, 8 - a.length - b.length)).fill('0') : [];
+    k = a.concat(isi, b).slice(0, 4).map((x) => (x || '0').toLowerCase().replace(/^0+(?=.)/, '')).join(':') + '::/64';
+  }
+  if (!k) return 'tanpa-ip';
+  return crypto.createHmac('sha256', subKunci(rahasia, 'batas')).update(k).digest('hex');
+}
 function ipHmac(rahasia, ip) {
   if (!ip) return { ip_hmac: null, ip_prefiks_hmac: null };
   const k = subKunci(rahasia, 'ip');
@@ -184,6 +200,6 @@ function perangkatSah(p) { return typeof p === 'string' && /^[A-Za-z0-9-]{8,64}$
 module.exports = {
   PIN_SALT, pinHash, normalize, usernameValid, cariPenghuni, penghuniKamar,
   hashPassword, cekPassword, cekAturanPassword, PASSWORD_UMUM,
-  tokenAcak, sha256hex, subKunci, samaAman, prefiksIp, ipHmac,
+  tokenAcak, sha256hex, subKunci, samaAman, prefiksIp, ipHmac, kunciBatasIp,
   buatTiket, bacaTiket, namaCookie, bacaCookie, cookieSesi, cookieHapus, perangkatSah
 };

@@ -160,6 +160,27 @@ async function keModeMasuk(page) {
     cek('tamu memanggil /api/kamar/masuk langsung -> 401', tamuApi === 401, 'status ' + tamuApi);
     await t.ctx.close();
 
+    /* ---------- 6. daftar baru -> langsung buat password (review #7) ---------- */
+    if (!LAMA) {
+      const d = await halamanBaru(browser, catatan);
+      await d.ctx.route('**/rpc/kosan_register', (route) => {
+        const b = JSON.parse(route.request().postData() || '{}');
+        const n = String(b.p_name).trim().toLowerCase();
+        OCC.push({ room: 5, name: n });
+        srv.db._lama.push({ room: 5, name: n, gender: b.p_gender, pin_hash: b.p_pin_hash, gagal: 0, kunci: 0 });
+        return route.fulfill({ json: 5 });
+      });
+      await d.page.fill('#entryName', 'sari');
+      await d.page.fill('#entryKey', 'KOSAN');
+      await d.page.fill('#entryPin', '864200'); await d.page.fill('#entryPin2', '864200');
+      await klik(d.page, '#entryBtn'); await d.page.waitForTimeout(2000);
+      cek('sesudah daftar langsung ke "buat password" (tanpa ketik PIN lagi)', (await tampil(d.page, '#entryPass2')) && !(await tampil(d.page, '#entryPin')));
+      await d.page.fill('#entryPass', PW); await d.page.fill('#entryPass2', PW);
+      await klik(d.page, '#entryBtn'); await d.page.waitForTimeout(1500);
+      cek('penghuni baru masuk sesudah buat password', await sudahMasuk(d.page));
+      await d.ctx.close();
+    }
+
     cek('0 error CSP', catatan.csp.length === 0, catatan.csp.slice(0, 2).join(' | '));
     cek('0 request ke unpkg', catatan.unpkg.length === 0);
     cek('0 error JavaScript halaman', catatan.err.length === 0, catatan.err.slice(0, 2).join(' | '));

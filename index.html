@@ -3759,7 +3759,7 @@ function masukTamu() {
      impersonasi: previewFor mengembalikan kamar penghuni + homeBtn masuk
      tanpa PIN). Paksa login PIN lewat tampilan utama. */
   if (entryIsRegistered(nama)) {
-    entryShowError('Username @' + normalize(nama) + ' sudah terdaftar sebagai penghuni. Masuk pakai PIN penghunimu ya — atau pakai nama lain.');
+    entryShowError('Username @' + normalize(nama) + ' sudah terdaftar sebagai penghuni. Masuk pakai password-mu ya — atau pakai nama lain.');
     return;
   }
   masukSebagai(nama, false);
@@ -3798,8 +3798,8 @@ function entryLogin() {
     }
   });
 }
-function entrySetupPin(nama) {
-  var pin = entryPin ? entryPin.value : '';
+function entrySetupPin(nama, pinLangsung) {
+  var pin = pinLangsung || (entryPin ? entryPin.value : '');
   if (!/^\d{6}$/.test(pin)) {
     entryShowError('Masukkan PIN kamar 6 digit.');
     if (entryPin) { entryPin.value = ''; entryPin.focus(); }
@@ -3870,7 +3870,7 @@ function cekSesiTersimpan() {
   apiKosan('GET', '/api/sesi').then(function (r) {
     if (r.status === 200 && r.data && r.data.room) {
       sesiPenghuni = { room: r.data.room, name: r.data.name, gender: r.data.gender };
-      if (!entered && entryOverlay.classList.contains('open') && !entryBusy) entryTerapkanSesi();
+      if (!entered && entryOverlay.classList.contains('open') && !entryBusy && !entryNameTouched) entryTerapkanSesi();
     }
   });
 }
@@ -3921,7 +3921,11 @@ function entryDaftar() {
       else toastKosan('Selamat! Username @' + normalize(nama) + ' terdaftar di Kamar ' + roomNo + '.');
       entryName.value = normalize(nama); /* field MASUK tampilkan username tersimpan (tanpa '@') */
       entrySetMode(true, true); /* mode MASUK + manual (jangan auto-ubah lagi) */
-      if (entryPin) entryPin.focus();
+      /* Rasa aman Fase A — akun baru belum punya password: langsung ke
+         langkah buat password. PIN yang baru dibuat dipakai SEKALI untuk
+         tiket setup (hanya di variabel lokal ini, tidak disimpan). */
+      entrySetTahap('setup-pin');
+      entrySetupPin(normalize(nama), pin);
     });
   }).catch(function (e) {
     entryBusy = false;
@@ -4029,8 +4033,9 @@ if (entryPass2) entryPass2.addEventListener('keydown', function (e) { if (e.key 
 if (entryKeluarAkun) entryKeluarAkun.addEventListener('click', function () {
   if (entryBusy) return;
   entryBusy = true;
-  apiKosan('POST', '/api/keluar', {}).then(function () {
+  apiKosan('POST', '/api/keluar', {}).then(function (r) {
     entryBusy = false;
+    if (r.status !== 200) { entryShowError('Gagal keluar akun (server tidak terjangkau). Coba lagi ya.'); return; }
     sesiPenghuni = null;
     entrySetTahap('masuk');
     if (entryName) { entryName.value = ''; entryName.focus(); }

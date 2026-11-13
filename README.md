@@ -42,7 +42,7 @@ Proyek Vercel ini **tidak punya integrasi Git** — merge ke `main` TIDAK
 auto-deploy. Deploy dilakukan manual lewat API Vercel (`vercel_deploy.py`),
 dengan daftar file eksplisit (20 file, termasuk `vendor/mqtt/mqtt.min.js` dan
 `vercel.json`). Sesudah deploy, verifikasi sha live = sha lokal.
-Sejak rasa aman Fase A, daftar itu wajib ditambah 8 file `api/` + env var
+Sejak rasa aman Fase A, daftar itu wajib ditambah 10 file `api/` (termasuk `api/_lib/`) + env var
 Vercel (lihat `docs/RASA-AMAN-FASE-A.md`).
 
 ## Aturan kerja

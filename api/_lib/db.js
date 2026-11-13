@@ -64,7 +64,9 @@ function buatDb({ url, kunci, fetchFn = globalThis.fetch }) {
     },
     sesiPerbarui: (id, patch) => panggil('kosan_sesi?id=eq.' + uuid(id), { method: 'PATCH', body: patch, prefer: 'return=minimal' }),
     logPerangkat: (row) => panggil('kosan_perangkat_log', { method: 'POST', body: row, prefer: 'return=minimal' }),
-    batasTambah: async (kunci, detik) => Number(await rpc('kosan_batas_tambah', { p_kunci: kunci, p_detik: detik }))
+    batasTambah: async (kunci, detik) => Number(await rpc('kosan_batas_tambah', { p_kunci: kunci, p_detik: detik })),
+    gerbangAmbil: async (kunci, g) => (await rpc('kosan_gerbang_ambil', { p_kunci: kunci, p_maks: g.maks, p_jendela: g.jendelaDetik, p_kunci_detik: g.kunciDetik })) === true,
+    gerbangLepas: (kunci) => rpc('kosan_gerbang_lepas', { p_kunci: kunci })
   };
 }
 

@@ -52,17 +52,27 @@ create table if not exists public.kosan_batas (
   primary key (kunci, jendela)
 );
 
+-- Gerbang percobaan per kamar (password + PIN), dicadangkan SEBELUM
+-- verifikasi supaya permintaan paralel tidak lolos.
+create table if not exists public.kosan_gerbang (
+  kunci        text primary key,
+  jumlah       int not null default 0,
+  sejak        timestamptz not null default now(),
+  kunci_sampai timestamptz
+);
+
 -- ---------- akses: hanya service_role (server Vercel) ----------
 alter table public.kosan_akun          enable row level security;
 alter table public.kosan_sesi          enable row level security;
 alter table public.kosan_perangkat_log enable row level security;
 alter table public.kosan_batas         enable row level security;
+alter table public.kosan_gerbang       enable row level security;
 -- Tanpa policy = anon/authenticated tidak bisa baca/tulis walau punya grant.
 -- Grant bawaan Supabase dicabut juga (pertahanan berlapis).
-revoke all on table public.kosan_akun, public.kosan_sesi, public.kosan_perangkat_log, public.kosan_batas
+revoke all on table public.kosan_akun, public.kosan_sesi, public.kosan_perangkat_log, public.kosan_batas, public.kosan_gerbang
   from public, anon, authenticated;
 revoke all on sequence public.kosan_perangkat_log_id_seq from public, anon, authenticated;
-grant select, insert, update, delete on table public.kosan_akun, public.kosan_sesi, public.kosan_perangkat_log, public.kosan_batas
+grant select, insert, update, delete on table public.kosan_akun, public.kosan_sesi, public.kosan_perangkat_log, public.kosan_batas, public.kosan_gerbang
   to service_role;
 grant usage, select on sequence public.kosan_perangkat_log_id_seq to service_role;
 
@@ -71,11 +81,11 @@ grant usage, select on sequence public.kosan_perangkat_log_id_seq to service_rol
 -- kamar belum punya password, ATAU baris lama milik nama lain (kamar sudah
 -- berganti penghuni). Mengembalikan true kalau tersimpan.
 create or replace function public.kosan_akun_setup(p_room int, p_nama_norm text, p_gender text, p_hash text)
-returns boolean language plpgsql security definer set search_path = public as $$
+returns boolean language plpgsql security definer set search_path = '' as $$
 declare n int;
 begin
   if p_hash is null or p_hash not like 'scrypt$%' then raise exception 'hash tidak valid'; end if;
-  insert into kosan_akun as a (room, nama_norm, gender, password_hash, password_dibuat)
+  insert into public.kosan_akun as a (room, nama_norm, gender, password_hash, password_dibuat)
   values (p_room, p_nama_norm, p_gender, p_hash, now())
   on conflict (room) do update
     set nama_norm = excluded.nama_norm, gender = excluded.gender,
@@ -85,7 +95,7 @@ begin
   get diagnostics n = row_count;
   if n = 1 then
     -- sesi milik nama lain di kamar ini (penghuni lama) dicabut
-    update kosan_sesi set dicabut = now()
+    update public.kosan_sesi set dicabut = now()
       where room = p_room and nama_norm <> p_nama_norm and dicabut is null;
   end if;
   return n = 1;
@@ -93,53 +103,79 @@ end $$;
 
 -- Password salah: 5x dalam 15 menit -> akun dikunci 15 menit.
 create or replace function public.kosan_akun_gagal(p_room int)
-returns void language plpgsql security definer set search_path = public as $$
+returns void language plpgsql security definer set search_path = '' as $$
 begin
-  update kosan_akun set
+  update public.kosan_akun set
     gagal_count = case when gagal_sejak is null or gagal_sejak < now() - interval '15 minutes' then 1 else gagal_count + 1 end,
     gagal_sejak = case when gagal_sejak is null or gagal_sejak < now() - interval '15 minutes' then now() else gagal_sejak end
   where room = p_room;
-  update kosan_akun set kunci_sampai = now() + interval '15 minutes', gagal_count = 0, gagal_sejak = null
+  update public.kosan_akun set kunci_sampai = now() + interval '15 minutes', gagal_count = 0, gagal_sejak = null
   where room = p_room and gagal_count >= 5;
 end $$;
 
 create or replace function public.kosan_akun_berhasil(p_room int)
-returns void language sql security definer set search_path = public as $$
-  update kosan_akun set gagal_count = 0, gagal_sejak = null where room = p_room and gagal_count > 0;
+returns void language sql security definer set search_path = '' as $$
+  update public.kosan_akun set gagal_count = 0, gagal_sejak = null where room = p_room and gagal_count > 0;
 $$;
 
 -- Penghitung batas percobaan per jendela waktu tetap (mis. per jam).
 create or replace function public.kosan_batas_tambah(p_kunci text, p_detik int)
-returns int language plpgsql security definer set search_path = public as $$
+returns int language plpgsql security definer set search_path = '' as $$
 declare j timestamptz; n int;
 begin
   if p_detik < 1 or length(p_kunci) > 200 then raise exception 'batas tidak valid'; end if;
   j := to_timestamp(floor(extract(epoch from now()) / p_detik) * p_detik);
-  insert into kosan_batas (kunci, jendela, jumlah) values (p_kunci, j, 1)
-  on conflict (kunci, jendela) do update set jumlah = kosan_batas.jumlah + 1
+  insert into public.kosan_batas as b (kunci, jendela, jumlah) values (p_kunci, j, 1)
+  on conflict (kunci, jendela) do update set jumlah = b.jumlah + 1
   returning jumlah into n;
   return n;
 end $$;
+
+-- Cadangkan satu percobaan. Lebih dari p_maks dalam p_jendela detik ->
+-- terkunci p_kunci_detik detik. Baris dikunci (FOR UPDATE lewat upsert),
+-- jadi aman untuk permintaan paralel. true = boleh mencoba.
+create or replace function public.kosan_gerbang_ambil(p_kunci text, p_maks int, p_jendela int, p_kunci_detik int)
+returns boolean language plpgsql security definer set search_path = '' as $$
+declare g public.kosan_gerbang%rowtype;
+begin
+  insert into public.kosan_gerbang (kunci) values (p_kunci) on conflict (kunci) do nothing;
+  select * into g from public.kosan_gerbang where kunci = p_kunci for update;
+  if g.kunci_sampai is not null and g.kunci_sampai > now() then return false; end if;
+  if g.kunci_sampai is not null or g.sejak < now() - make_interval(secs => p_jendela) then
+    g.jumlah := 0; g.sejak := now(); g.kunci_sampai := null;
+  end if;
+  g.jumlah := g.jumlah + 1;
+  if g.jumlah > p_maks then g.kunci_sampai := now() + make_interval(secs => p_kunci_detik); end if;
+  update public.kosan_gerbang set jumlah = g.jumlah, sejak = g.sejak, kunci_sampai = g.kunci_sampai where kunci = p_kunci;
+  return g.kunci_sampai is null;
+end $$;
+
+-- Percobaan berhasil: kembalikan jatahnya.
+create or replace function public.kosan_gerbang_lepas(p_kunci text)
+returns void language sql security definer set search_path = '' as $$
+  update public.kosan_gerbang set jumlah = greatest(jumlah - 1, 0) where kunci = p_kunci;
+$$;
 
 -- RUNBOOK lupa password (pemilik, sesudah verifikasi lewat DM IG):
 --   select kosan_akun_reset(13);
 -- Penghuni lalu login pertama lagi pakai PIN kamarnya + buat password baru.
 -- PIN tidak berubah. Semua sesi kamar itu dicabut.
 create or replace function public.kosan_akun_reset(p_room int)
-returns void language plpgsql security definer set search_path = public as $$
+returns void language plpgsql security definer set search_path = '' as $$
 begin
-  update kosan_akun set password_hash = null, password_dibuat = null,
+  update public.kosan_akun set password_hash = null, password_dibuat = null,
     gagal_count = 0, gagal_sejak = null, kunci_sampai = null
   where room = p_room;
-  update kosan_sesi set dicabut = now() where room = p_room and dicabut is null;
+  update public.kosan_sesi set dicabut = now() where room = p_room and dicabut is null;
 end $$;
 
 -- Retensi (§8.1): log perangkat 90 hari, sesi mati 7 hari, penghitung 2 hari.
 create or replace function public.kosan_bersihkan()
-returns void language sql security definer set search_path = public as $$
-  delete from kosan_perangkat_log where dibuat < now() - interval '90 days';
-  delete from kosan_sesi where kedaluwarsa < now() - interval '7 days' or dicabut < now() - interval '7 days';
-  delete from kosan_batas where jendela < now() - interval '2 days';
+returns void language sql security definer set search_path = '' as $$
+  delete from public.kosan_perangkat_log where dibuat < now() - interval '90 days';
+  delete from public.kosan_sesi where kedaluwarsa < now() - interval '7 days' or dicabut < now() - interval '7 days';
+  delete from public.kosan_batas where jendela < now() - interval '2 days';
+  delete from public.kosan_gerbang where sejak < now() - interval '2 days' and (kunci_sampai is null or kunci_sampai < now());
 $$;
 
 revoke all on function public.kosan_akun_setup(int, text, text, text) from public, anon, authenticated;
@@ -148,6 +184,10 @@ revoke all on function public.kosan_akun_berhasil(int)                 from publ
 revoke all on function public.kosan_batas_tambah(text, int)            from public, anon, authenticated;
 revoke all on function public.kosan_akun_reset(int)                    from public, anon, authenticated;
 revoke all on function public.kosan_bersihkan()                        from public, anon, authenticated;
+revoke all on function public.kosan_gerbang_ambil(text, int, int, int)  from public, anon, authenticated;
+revoke all on function public.kosan_gerbang_lepas(text)                 from public, anon, authenticated;
+grant execute on function public.kosan_gerbang_ambil(text, int, int, int) to service_role;
+grant execute on function public.kosan_gerbang_lepas(text)                to service_role;
 grant execute on function public.kosan_akun_setup(int, text, text, text) to service_role;
 grant execute on function public.kosan_akun_gagal(int)                    to service_role;
 grant execute on function public.kosan_akun_berhasil(int)                 to service_role;

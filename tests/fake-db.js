@@ -9,7 +9,7 @@ const { pinHash } = require('../api/_lib/inti');
 function buatFakeDb({ penghuni, sekarang = () => Date.now() }) {
   /* penghuni: [{ room, name, gender: 'Cewek'|'Cowok', pin }] */
   const lama = penghuni.map((p) => ({ room: p.room, name: p.name, gender: p.gender, pin_hash: pinHash(p.pin), gagal: 0, kunci: 0 }));
-  const t = { akun: new Map(), sesi: [], log: [], batas: new Map() };
+  const t = { akun: new Map(), sesi: [], log: [], batas: new Map(), gerbang: new Map() };
   const iso = (ms) => new Date(ms).toISOString();
   const panggilan = [];
 
@@ -20,7 +20,9 @@ function buatFakeDb({ penghuni, sekarang = () => Date.now() }) {
       panggilan.push('loginPin');
       const p = lama.find((x) => x.name.toLowerCase() === String(name).trim().toLowerCase());
       if (!p) return { ok: false };
-      if (p.kunci > sekarang()) return { ok: false, terkunci: true };
+      /* Tiru perilaku yang dicurigai di kosan_login asli: saat terkunci,
+         "Terlalu banyak percobaan" HANYA untuk PIN benar (penunjuk PIN). */
+      if (p.kunci > sekarang()) return p.pin_hash === h ? { ok: false, terkunci: true } : { ok: false };
       if (p.pin_hash !== h) { if (++p.gagal >= 5) { p.kunci = sekarang() + 15 * 60000; p.gagal = 0; } return { ok: false }; }
       p.gagal = 0;
       return { ok: true, row: { gender: p.gender } };
@@ -60,7 +62,19 @@ function buatFakeDb({ penghuni, sekarang = () => Date.now() }) {
       const j = Math.floor(sekarang() / 1000 / detik) * detik;
       const k = kunci + '@' + j;
       const n = (t.batas.get(k) || 0) + 1; t.batas.set(k, n); return n;
-    }
+    },
+    /* meniru kosan_gerbang_ambil/lepas: atomik karena JS satu thread dan
+       tidak ada await di dalamnya */
+    async gerbangAmbil(kunci, g) {
+      const now = sekarang();
+      const x = t.gerbang.get(kunci) || { n: 0, sejak: now, kunci: 0 };
+      if (x.kunci > now) { t.gerbang.set(kunci, x); return false; }
+      if (x.sejak < now - g.jendelaDetik * 1000 || x.kunci) { x.n = 0; x.sejak = now; x.kunci = 0; }
+      x.n += 1;
+      if (x.n > g.maks) { x.kunci = now + g.kunciDetik * 1000; t.gerbang.set(kunci, x); return false; }
+      t.gerbang.set(kunci, x); return true;
+    },
+    async gerbangLepas(kunci) { const x = t.gerbang.get(kunci); if (x && x.n > 0) x.n -= 1; }
   };
 }
 

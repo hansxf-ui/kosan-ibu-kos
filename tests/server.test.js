@@ -279,6 +279,74 @@ test('dua penghuni dengan PIN sama tetap terpisah (PIN tidak dipaksa unik)', asy
   assert.equal(r.status, 403);
 });
 
+/* ---------- temuan review independen ---------- */
+test('review #1: saat terkunci, PIN benar dan salah dapat jawaban sama (bukan penunjuk PIN)', async () => {
+  const { app } = siapkan();
+  for (let i = 0; i < 5; i++) await app.setupPin(post({ username: 'dilla', pin: '00000' + i }, { 'x-uji': String(i) }));
+  const salah = await app.setupPin(post({ username: 'dilla', pin: '999999' }));
+  const benar = await app.setupPin(post({ username: 'dilla', pin: '135790' }));
+  assert.equal(salah.status, 429); assert.equal(benar.status, 429);
+  assert.deepEqual(salah.body, benar.body); assert.equal(benar.body.tiket, undefined);
+});
+
+test('review #1: gerbang PIN berlaku juga untuk PIN kamar, dan kosan_login tidak dipanggil saat terkunci', async () => {
+  const { app, db } = siapkan();
+  const tok = tokenDari(await setupLengkap(app, 'dilla', '135790', true));
+  for (let i = 0; i < 5; i++) await app.kamarMasuk(denganCookie(post({ room: 13, pin: '00000' + i }), tok));
+  const n = db._panggilan.filter((x) => x === 'loginPin').length;
+  const a = await app.kamarMasuk(denganCookie(post({ room: 13, pin: '999999' }), tok));
+  const b = await app.kamarMasuk(denganCookie(post({ room: 13, pin: '135790' }), tok));
+  assert.equal(a.status, 429); assert.equal(b.status, 429); assert.deepEqual(a.body, b.body);
+  assert.equal(db._panggilan.filter((x) => x === 'loginPin').length, n);
+});
+
+test('review #1: PIN benar tidak menghabiskan jatah (penghuni asli tidak terkunci karena dirinya sendiri)', async () => {
+  const { app } = siapkan();
+  const tok = tokenDari(await setupLengkap(app, 'dilla', '135790', true));
+  for (let i = 0; i < 12; i++) assert.equal((await app.kamarMasuk(denganCookie(post({ room: 13, pin: '135790' }), tok))).status, 200);
+});
+
+test('review #2: 40 password paralel tidak bisa melewati kunci akun', async () => {
+  const { app } = siapkan();
+  await setupLengkap(app, 'rina', '246810');
+  const tebak = Array.from({ length: 39 }, (_, i) => 'tebakan-salah-' + i).concat([PW]);
+  const out = await Promise.all(tebak.map((pw, i) => app.masuk(post({ username: 'rina', password: pw }, { 'x-forwarded-for': '10.0.' + i + '.1' }))));
+  const benar = out[39];
+  assert.ok(out.filter((o) => o.status === 401).length <= 5, 'lebih dari 5 tebakan sempat diverifikasi');
+  assert.equal(benar.status, 429, 'password benar lolos di tengah banjir paralel');
+});
+
+test('review #3: batas IP memakai /64 untuk IPv6', () => {
+  assert.equal(I.kunciBatasIp(RAHASIA, '2001:db8:1:2::a'), I.kunciBatasIp(RAHASIA, '2001:db8:1:2:ffff::b'));
+  assert.notEqual(I.kunciBatasIp(RAHASIA, '2001:db8:1:2::a'), I.kunciBatasIp(RAHASIA, '2001:db8:1:3::a'));
+  assert.notEqual(I.kunciBatasIp(RAHASIA, '36.80.1.23'), I.kunciBatasIp(RAHASIA, '36.80.1.24'));
+});
+
+test('review #3: memutar alamat IPv6 dalam satu /64 tidak memberi jatah baru', async () => {
+  const { app } = siapkan();
+  let terakhir;
+  for (let i = 0; i < 21; i++) {
+    const ctx = post({ username: 'orang-asing', password: 'x' }); ctx.ip = '2001:db8:1:2::' + (i + 1).toString(16);
+    terakhir = await app.masuk(ctx);
+  }
+  assert.equal(terakhir.status, 429);
+});
+
+test('review #5: tiket bekas ditolak sebelum scrypt + dibatasi per IP', async () => {
+  const { app } = siapkan();
+  const a = await app.setupPin(post({ username: 'dilla', pin: '135790' }));
+  await app.setupPassword(post({ tiket: a.body.tiket, password: PW }));
+  const asli = I.hashPassword; let dipanggil = 0;
+  I.hashPassword = async (pw) => { dipanggil++; return asli(pw); };
+  let ulang;
+  try { ulang = await app.setupPassword(post({ tiket: a.body.tiket, password: 'password-penyusup' })); } finally { I.hashPassword = asli; }
+  assert.equal(ulang.status, 409);
+  assert.equal(dipanggil, 0, 'scrypt masih dijalankan untuk tiket bekas');
+  let terakhir;
+  for (let i = 0; i < 25; i++) terakhir = await app.setupPassword(post({ tiket: a.body.tiket, password: 'password-penyusup' }));
+  assert.equal(terakhir.status, 429);
+});
+
 /* ---------- CSRF / format ---------- */
 test('POST dari origin lain / bukan JSON ditolak', async () => {
   const { app } = siapkan();
