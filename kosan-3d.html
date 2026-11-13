@@ -212,6 +212,7 @@
     </div>
     <button id="entryBtn" type="button">Masuk Kosan</button>
     <p class="entry-note">Nama &amp; gender dikunci selama di dalam — keluar dulu untuk ganti.</p>
+    <p class="entry-note">🔓 Namamu terlihat oleh semua pemain online (lewat server publik). Pakai nama panggilan, jangan nama lengkap atau data pribadi.</p>
   </div>
 </div>
 
@@ -381,7 +382,24 @@ var MP_PRESENCE_MS = 30000; /* presence retained ditulis ulang tiap 30 dtk */
 var MP_TIMEOUT_MS = 5000; /* tak ada kabar 5 dtk -> hapus pemain */
 var MP_MAX_RENDER = 20; /* maks avatar remote dirender */
 var MP_MAX_ROSTER = 50; /* maks entri pemain lain disimpan */
+/* Keamanan (audit 13 Nov): id pemain WAJIB berpola playerId kita sendiri
+   ('p' + base36, lihat ensurePlayerId). Menolak id seperti '__proto__' /
+   'constructor' yang dulu bisa mencemari Object.prototype dan membekukan
+   render semua pemain lewat satu pesan retained. */
+var MP_ID_RE = /^p[a-z0-9]{1,16}$/;
+/* Batas pembuatan pemain BARU (token bucket): banjir id palsu tidak bisa
+   membangun ratusan avatar per detik. Pemain asli yang tertolak tetap
+   muncul lewat pesan pos berikutnya (heartbeat tiap 3 dtk). */
+var MP_BARU_KAPASITAS = 20, MP_BARU_PER_DTK = 5;
 
+function mpIdSah(id) {
+  return typeof id === 'string' && MP_ID_RE.test(id);
+}
+function mpAmbilToken(ember, now) { /* ember: { token, t } -> { ok, ember } */
+  var token = Math.min(MP_BARU_KAPASITAS, ember.token + Math.max(0, now - ember.t) * MP_BARU_PER_DTK / 1000);
+  if (token < 1) return { ok: false, ember: { token: token, t: now } };
+  return { ok: true, ember: { token: token - 1, t: now } };
+}
 function mpRealmDikenal(realm) {
   if (realm === 'yard' || realm === 'living') return realm;
   if (typeof realm === 'string' && /^room-(?:[1-9]|10)$/.test(realm)) return realm;
@@ -402,7 +420,7 @@ function mpPesanPergi(id) { /* keluar bersih (§4.4): presence '' retained */
 }
 function mpValidasiPos(m, selfId) {
   if (!m || typeof m !== 'object') return null;
-  if (typeof m.id !== 'string' || !m.id || m.id === selfId) return null;
+  if (!mpIdSah(m.id) || m.id === selfId) return null;
   if (typeof m.x !== 'number' || !isFinite(m.x) || m.x < YARD.minX - 1 || m.x > YARD.maxX + 1) return null;
   if (typeof m.z !== 'number' || !isFinite(m.z) || m.z < YARD.minZ - 1 || m.z > YARD.maxZ + 1) return null;
   if (typeof m.rot !== 'number' || !isFinite(m.rot)) return null;
@@ -416,7 +434,7 @@ function mpValidasiPos(m, selfId) {
 }
 function mpValidasiPresence(m, selfId) {
   if (!m || typeof m !== 'object') return null;
-  if (typeof m.id !== 'string' || !m.id || m.id === selfId) return null;
+  if (!mpIdSah(m.id) || m.id === selfId) return null;
   if (m.gender !== 'cewek' && m.gender !== 'cowok') return null;
   var nama = (typeof m.nama === 'string' ? m.nama.trim().slice(0, 40) : '') || 'Pemain';
   return { id: m.id, nama: nama, gender: m.gender,
@@ -428,10 +446,11 @@ function mpProsesPesan(topik, teks, selfId) {
   var isPos = (topik === MP_TOPICS.pos);
   var isPresence = (topik.indexOf(MP_TOPICS.presence) === 0);
   if (!isPos && !isPresence) return null;
+  var idTopik = isPresence ? topik.slice(MP_TOPICS.presence.length) : '';
+  if (isPresence && !mpIdSah(idTopik)) return null;
   if (isPresence && teks === '') {
-    var idPergi = topik.slice(MP_TOPICS.presence.length);
-    if (!idPergi || idPergi === selfId) return null;
-    return { kind: 'hapus', id: idPergi };
+    if (idTopik === selfId) return null;
+    return { kind: 'hapus', id: idTopik };
   }
   var m;
   try { m = JSON.parse(teks); } catch (e) { return null; }
@@ -440,7 +459,8 @@ function mpProsesPesan(topik, teks, selfId) {
     return p ? { kind: 'pos', msg: p } : null;
   }
   var pr = mpValidasiPresence(m, selfId);
-  return pr ? { kind: 'presence', msg: pr } : null;
+  /* id di isi pesan harus sama dengan id di topik presence/<id> */
+  return (pr && pr.id === idTopik) ? { kind: 'presence', msg: pr } : null;
 }
 function mpHashFase(id) { /* offset fase ayunan 0..2π, turunan dari id (§3.4) */
   var h = 0;
@@ -477,13 +497,13 @@ function mpPilihBuang(entries, maxN) { /* roster > 50: buang lastSeen tertua (§
 function mpHitungDuplikat(entries) { /* label akhiran · #XXXX (§2.6) */
   /* Dihitung PER ALAM: dua nama sama di alam berbeda tidak pernah tampil
      bersama di satu layar, jadi tidak perlu akhiran. */
-  var hitung = {};
+  var hitung = Object.create(null);
   for (var id in entries) {
     var e = entries[id];
     var k = e.realm + '\n' + String(e.nama || '').trim().toLowerCase();
     hitung[k] = (hitung[k] || 0) + 1;
   }
-  var out = {};
+  var out = Object.create(null);
   for (var id2 in entries) {
     var e2 = entries[id2];
     var k2 = e2.realm + '\n' + String(e2.nama || '').trim().toLowerCase();
@@ -1433,7 +1453,7 @@ var changeCharBtn = document.getElementById('changeCharBtn');
 function ensurePlayerId() {
   try {
     playerId = localStorage.getItem('kosan3d-id');
-    if (!playerId) {
+    if (!mpIdSah(playerId)) { /* kosong / rusak -> buat baru (harus lolos validasi pemain lain) */
       playerId = 'p' + Math.random().toString(36).slice(2, 10);
       localStorage.setItem('kosan3d-id', playerId);
     }
@@ -1774,7 +1794,19 @@ window.addEventListener('resize', function () {
    (game tetap jalan normal). Realm = FIELD di pesan (§8). */
 var klien = null; /* klien mqtt.js (null = belum tersambung) */
 var mpStatus = 'off'; /* 'off' | 'connecting' | 'on' | 'solo' */
-var remotePlayers = {}; /* id -> entri pemain lain (§3.2) */
+var remotePlayers = Object.create(null); /* id -> entri pemain lain (§3.2); tanpa prototype (audit 13 Nov) */
+var mpEmberBaru = { token: MP_BARU_KAPASITAS, t: Date.now() }; /* batas pemain baru/dtk */
+function mpBolehBuatBaru() {
+  var r = mpAmbilToken(mpEmberBaru, Date.now());
+  mpEmberBaru = r.ember;
+  return r.ok;
+}
+/* Buang geometry milik avatar remote (tiap makeKosanAvatar membuat ~20
+   geometry baru). Material TIDAK dibuang: semuanya dari M.* bersama.
+   Sprite dilewati: geometry sprite milik three.js dipakai bersama. */
+function mpBuangGeometri(group) {
+  group.traverse(function (o) { if (o.isMesh && o.geometry) o.geometry.dispose(); });
+}
 var mpMag = 0; /* besar gerak lokal saat ini (publish pos, §2.4) */
 var lastPosSent = 0, lastPresenceSent = 0;
 var mpRenderTimer = 0; /* akumulasi dt untuk hitung ulang 20 terdekat */
@@ -1866,12 +1898,13 @@ function mpBangunUlangRemote(entri) { /* gender berubah: rebuild avatar, label t
   var lama = entri.group;
   var parts = makeKosanAvatar(entri.gender);
   var g = parts.g;
-  g.add(entri.label.sprite);
+  g.add(entri.label.sprite); /* add() melepas sprite dari grup lama */
   g.position.copy(lama.position);
   g.rotation.y = lama.rotation.y;
   g.visible = lama.visible;
   if (lama.parent) lama.parent.add(g);
   if (lama.parent) lama.parent.remove(lama);
+  mpBuangGeometri(lama);
   entri.group = g; entri.parts = parts;
 }
 function mpPindahRealmRemote(entri, realm, ts) { /* realm baru (ts lebih baru) -> snap */
@@ -1891,6 +1924,7 @@ function mpPindahRealmRemote(entri, realm, ts) { /* realm baru (ts lebih baru) -
 function mpTerimaPos(m) {
   var entri = remotePlayers[m.id];
   if (!entri) {
+    if (!mpBolehBuatBaru()) return;
     var buang = mpPilihBuang(remotePlayers, MP_MAX_ROSTER);
     if (buang.length) mpHapusRemote(buang[0]);
     entri = mpBuatRemote(m.id, m.nama, m.gender, m.realm, m.x, m.z, m.rot);
@@ -1906,6 +1940,7 @@ function mpTerimaPos(m) {
 function mpTerimaPresence(m) {
   var entri = remotePlayers[m.id];
   if (!entri) {
+    if (!mpBolehBuatBaru()) return;
     var buang = mpPilihBuang(remotePlayers, MP_MAX_ROSTER);
     if (buang.length) mpHapusRemote(buang[0]);
     entri = mpBuatRemote(m.id, m.nama, m.gender, m.realm, 0, 12, Math.PI);
@@ -1920,7 +1955,9 @@ function mpHapusRemote(id) {
   var entri = remotePlayers[id];
   if (!entri) return;
   if (entri.group.parent) entri.group.parent.remove(entri.group);
+  mpBuangGeometri(entri.group);
   entri.label.texture.dispose();
+  entri.label.sprite.material.dispose(); /* SpriteMaterial dibuat per label */
   delete remotePlayers[id];
   perbaruiLabelDuplikat();
   mpTerapkanRender();

@@ -308,6 +308,18 @@ diam-diam (tanpa pesan error, tanpa crash):
 6. Data remote TIDAK PERNAH mengubah state lokal: posisi remote tidak
    memindahkan pemain lokal, tidak membuka kartu kamar, tidak mengubah
    `visitorRoom`/`visitorId`.
+7. **(Audit keamanan 13 Nov 2026)** `id` wajib cocok `^p[a-z0-9]{1,16}$`
+   (`MP_ID_RE`), baik di isi pesan maupun di topik `presence/<id>`, dan
+   keduanya harus sama. Alasan: id `__proto__` dulu lolos, mencemari
+   `Object.prototype`, dan membekukan render semua pemain lewat satu pesan
+   retained. `remotePlayers` dibuat dengan `Object.create(null)`.
+8. **(Audit 13 Nov)** Pembuatan pemain BARU dibatasi token bucket
+   (`MP_BARU_KAPASITAS` 20, `MP_BARU_PER_DTK` 5). Banjir id palsu tidak bisa
+   membangun ratusan avatar. Pemain asli yang tertolak muncul lewat `pos`
+   berikutnya (heartbeat 3 dtk).
+9. **(Audit 13 Nov)** Avatar remote yang dihapus/dibangun ulang wajib
+   membuang geometry-nya (`mpBuangGeometri`) + `SpriteMaterial` label.
+   Material `M.*` dipakai bersama, JANGAN di-dispose.
 
 ---
 
@@ -535,6 +547,12 @@ layar orang lain berkedip dan `presence` jadi tidak bisa dipercaya.
 | Pesan hilang (QoS 0) | Posisi lompat sesaat | State dikirim ulang 10×/dtk — paket hilang terkoreksi 100 ms kemudian; presence retained tidak hilang |
 | Pemain iseng kirim posisi di luar peta | Avatar di luar gedung / di langit | Validasi batas `YARD` + toleransi di §2.7; `y` tidak pernah dikirim (selalu 0) |
 | Versi lama vs baru (realm tak dikenal) | Pemain baru tidak terlihat pemain lama | Realm tak dikenal → perlakukan sebagai `yard` (§2.7) — jangan buang pesannya |
+
+**Sisa risiko yang diketahui (audit 13 Nov 2026):** karena `playerId` ikut di
+setiap pesan, siapa pun yang subscribe bisa menyamar sebagai pemain lain
+atau menghapus presence-nya. Nama juga tanpa filter, dan nama dikirim ke
+broker publik (layar masuk sekarang memberi peringatan). `mqtt.js` masih
+dimuat dari unpkg tanpa SRI; sebaiknya simpan di `vendor/`.
 
 **Yang sengaja TIDAK dimitigasi di v1:** autentikasi (siapa pun bisa publish
 ke topik publik — sama seperti Kantor Misi). Kalau ada abuse nyata, v2 bisa

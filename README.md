@@ -25,6 +25,7 @@ Aturan mainnya:
 | `fonts/` | Font lokal (Baloo 2, Caveat, Nunito) — tanpa CDN |
 | `vendor/` | Pustaka lokal: Three.js, confetti, html2canvas |
 | `docs/` | Spek & catatan produksi (lihat bawah) |
+| `vercel.json` | Header keamanan (CSP, nosniff, anti-iframe). Kalau menambah sumber eksternal baru (script/broker), daftarkan di CSP `kosan-3d.html` di sini |
 
 Situs 100% statis — tanpa backend, tanpa Firebase, tanpa akun. Klaim kamar dihitung lokal di browser; hanya pemilik yang bisa menulis nama penghuni lewat deploy.
 
