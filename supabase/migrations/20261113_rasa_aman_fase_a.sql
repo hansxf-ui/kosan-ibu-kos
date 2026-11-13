@@ -136,9 +136,9 @@ end $$;
 -- Cadangkan satu percobaan. Percobaan ke-(p_maks+1) tanpa jeda sepi
 -- p_jendela detik -> terkunci p_kunci_detik detik. Baris dikunci FOR
 -- UPDATE, jadi aman untuk permintaan paralel. true = boleh mencoba.
--- Jendela dihitung dari percobaan TERAKHIR, jadi gerbang tidak pernah
--- terbuka lagi selagi kunci 15 menit kosan_login (dihitung dari kegagalan
--- ke-5) masih aktif.
+-- Jendela dihitung dari percobaan TERAKHIR. Kalau penghitung gagal
+-- kosan_login juga direset sesudah 15 menit sepi, gerbang tidak terbuka
+-- lagi selagi kunci 15 menit kosan_login masih aktif.
 create or replace function public.kosan_gerbang_ambil(p_kunci text, p_maks int, p_jendela int, p_kunci_detik int)
 returns boolean language plpgsql security definer set search_path = '' as $$
 declare g public.kosan_gerbang%rowtype;
@@ -201,6 +201,8 @@ revoke all on function public.kosan_akun_berhasil(int)                 from publ
 revoke all on function public.kosan_batas_tambah(text, int)            from public, anon, authenticated;
 revoke all on function public.kosan_akun_reset(int)                    from public, anon, authenticated;
 revoke all on function public.kosan_akun_buka(int)                     from public, anon, authenticated;
+-- khusus pemilik (SQL Editor sebagai postgres): server tidak perlu memanggil
+revoke all on function public.kosan_akun_reset(int), public.kosan_akun_buka(int) from service_role;
 revoke all on function public.kosan_bersihkan()                        from public, anon, authenticated;
 revoke all on function public.kosan_gerbang_ambil(text, int, int, int)  from public, anon, authenticated;
 revoke all on function public.kosan_gerbang_lepas(text)                 from public, anon, authenticated;

@@ -29,7 +29,10 @@ memverifikasi PIN lewat RPC lama `kosan_login` dengan service role.
    bergantung padanya: semua cek PIN (setup + kamar) lewat gerbang
    `kosan_gerbang` per kamar (5 percobaan/15 menit, kunci 20 menit),
    sehingga selama terkunci PIN benar dan salah dijawab sama, dan
-   `kosan_login` tidak dipanggil.
+   `kosan_login` tidak dipanggil. **[CEK]** apakah penghitung gagal
+   `kosan_login` direset sendiri sesudah 15 menit tanpa percobaan. Kalau
+   tidak, penunjuk PIN bisa muncul lagi di sela jendela (tetap dibatasi 5
+   tebakan/15 menit oleh gerbang); kabari supaya gerbang disesuaikan.
 2. **Migrasi.** Jalankan `supabase/migrations/20261113_rasa_aman_fase_a.sql`
    di SQL Editor. File ini idempoten. Lalu jalankan dua cek di bagian bawah
    file (anon ditolak, service_role boleh `kosan_login`).
