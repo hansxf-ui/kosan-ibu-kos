@@ -48,16 +48,3 @@ merusak game:
 Menutup celah ini butuh keputusan arsitektur (broker ber-login, server
 perantara, atau filter + tombol lapor). Bahas sebagai ronde tersendiri,
 jangan dicampur ke perbaikan lain.
-
-## Catatan sumber kode (per 13 Nov 2026)
-
-Kode terbaru TIDAK ada di repo GitHub ini. Kode itu hanya ada di kopian
-kerja Vesper (sandbox) dan di-deploy langsung ke Vercel lewat API. Isi repo
-ini versi lama: 10 kamar, penghuni kosong, game di `kosan-3d.html`, tanpa
-gazebo/dapur/tangga. Perkembangan yang belum ada di repo antara lain: game
-pindah ke `index.html` (Ronde 41), Gedung B jadi 20 kamar, Fase 0 (gazebo,
-parkiran, jemuran), dan Fase 1 (modernisasi + tangga beton).
-
-Akibatnya: perubahan yang diuji di repo ini harus di-port ke kode terbaru
-sebelum dipakai, dan PR ke repo ini tidak di-merge apa adanya. Hapus bagian
-ini setelah repo di-sync ke kode terbaru.

@@ -1,8 +1,8 @@
 # MULTIPLAYER-SPEC — Kosan 3D: pemain bisa ketemu pemain lain
 
-> **Status:** spek v1 (belum diimplementasi). Ditulis 8 Nov 2026 dari perintah pemilik:
+> **Status:** spek v1 (belum diimplementasi). Ditulis 8 Nov 2026 dari perintah Ryan:
 > "ini gamenya harus beneran multiplayer kayak si sekolahbebaz, bisa ketemu pemain lain".
-> **Tambahan pemilik 8 Nov 21:01:** masuk kosan nanti "beda alam" kayak Museum 3D
+> **Tambahan Ryan 8 Nov 21:01:** masuk kosan nanti "beda alam" kayak Museum 3D
 > Hearts2Hearts — interior (ruang tamu + kamar) adalah scene/ruang TERPISAH dari
 > halaman luar, dimasuki lewat pintu. Spek ini sudah menyiapkan itu dari awal
 > (lihat §8) supaya protokol tidak perlu dirombak saat interior dibangun.
@@ -28,9 +28,9 @@
 
 | Keputusan | Isi | Alasan |
 |---|---|---|
-| Transport | MQTT publik, **tanpa Firebase, tanpa akun baru, tanpa server sendiri** | Pola Kantor Misi sudah terbukti jalan di HP pemilik |
+| Transport | MQTT publik, **tanpa Firebase, tanpa akun baru, tanpa server sendiri** | Pola Kantor Misi sudah terbukti jalan di HP Ryan |
 | Broker | Utama `wss://broker.emqx.io:8084/mqtt`, cadangan `wss://broker.hivemq.com:8884/mqtt` | Sama persis dengan Kantor Misi |
-| Pustaka | `mqtt.js 5.10.1` dari `https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js`, dimuat dinamis | Sama dengan Kantor Misi (`pustakaJaringan()`) |
+| Pustaka | `mqtt.js 5.10.1` di-vendor ke `web/vendor/mqtt/mqtt.min.js` (port 13 Nov 2026 — dulu dari `https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js`), dimuat dinamis | Sama dengan Kantor Misi (`pustakaJaringan()`), tanpa dependensi CDN |
 | Namespace topik | `kosan-ibu-kos/v1/` | Tidak tabrakan dengan `kantor/v1/...` |
 | Topik | `kosan-ibu-kos/v1/pos` (gerak, tidak retained) + `kosan-ibu-kos/v1/presence/<id>` (identitas, retained per pemain) | Presence retained = pemain baru langsung lihat siapa yang online |
 | Dunia | SATU dunia bersama, tanpa kode ruang | Kosan itu satu tempat; beda dengan Kantor Misi yang per-ruang (`kantor/v1/${kode}/`) |
@@ -308,6 +308,20 @@ diam-diam (tanpa pesan error, tanpa crash):
 6. Data remote TIDAK PERNAH mengubah state lokal: posisi remote tidak
    memindahkan pemain lokal, tidak membuka kartu kamar, tidak mengubah
    `visitorRoom`/`visitorId`.
+7. **(Audit keamanan 13 Nov 2026, port ke `index.html` hari yang sama)**
+   `id` wajib cocok `^p[a-z0-9]{1,16}$` (`MP_ID_RE`), baik di isi pesan
+   maupun di topik `presence/<id>`, dan keduanya harus sama — PLUS guard
+   eksplisit `id !== 'prototype'` (regex saja masih menerima `"prototype"`).
+   Alasan: id `__proto__` dulu lolos, mencemari `Object.prototype`, dan
+   membekukan render semua pemain lewat satu pesan retained.
+   `remotePlayers` dibuat dengan `Object.create(null)`.
+8. **(Audit 13 Nov)** Pembuatan pemain BARU dibatasi token bucket
+   (`MP_BARU_KAPASITAS` 20, `MP_BARU_PER_DTK` 5). Banjir id palsu tidak bisa
+   membangun ratusan avatar. Pemain asli yang tertolak muncul lewat `pos`
+   berikutnya (heartbeat 3 dtk).
+9. **(Audit 13 Nov)** Avatar remote yang dihapus/dibangun ulang wajib
+   membuang geometry-nya (`mpBuangGeometri`) + `SpriteMaterial` label.
+   Material `M.*` dipakai bersama, JANGAN di-dispose.
 
 ---
 
@@ -536,6 +550,19 @@ layar orang lain berkedip dan `presence` jadi tidak bisa dipercaya.
 | Pemain iseng kirim posisi di luar peta | Avatar di luar gedung / di langit | Validasi batas `YARD` + toleransi di §2.7; `y` tidak pernah dikirim (selalu 0) |
 | Versi lama vs baru (realm tak dikenal) | Pemain baru tidak terlihat pemain lama | Realm tak dikenal → perlakukan sebagai `yard` (§2.7) — jangan buang pesannya |
 
+**Sisa risiko yang diketahui (audit 13 Nov 2026, diperbarui port hari yang sama):**
+karena `playerId` ikut di setiap pesan, siapa pun yang subscribe bisa
+menyamar sebagai pemain lain atau menghapus presence-nya. Nama juga tanpa
+filter, dan nama dikirim ke broker publik (layar masuk sekarang memberi
+peringatan visibilitas, bukan larangan nama asli). Risiko `mqtt.js` dari
+unpkg tanpa SRI **TERTUTUP** oleh port 13 Nov (di-vendor ke
+`web/vendor/mqtt/mqtt.min.js`, byte-identik tarball npm 5.10.1). Catatan
+jujur: bukti end-to-end "game tidak beku di bawah pesan retained beracun"
+**belum ada** — tes serangan diblokir safety policy 2× (produksi + lokal);
+yang berdiri baru bukti unit (RED/GREEN) + regresi 66/66. Ronde "rasa aman"
+(nyamar / ngilangin avatar / nama kasar) jadi prioritas berikutnya dan
+butuh keputusan arsitektur.
+
 **Yang sengaja TIDAK dimitigasi di v1:** autentikasi (siapa pun bisa publish
 ke topik publik — sama seperti Kantor Misi). Kalau ada abuse nyata, v2 bisa
 menambah kode ruang bersama di topik (mis. `kosan-ibu-kos/v1/<kode>/pos`)
@@ -568,7 +595,7 @@ file, jangan tulis ulang logikanya di harness). Kasus yang harus lolos:
 10. `node --check` modul yang diekstrak lolos; struktur file tetap
     1 DOCTYPE / 1 importmap / 1 modul.
 
-### 7.2 Playtest browser 2 jendela (wajib sebelum serah ke pemilik)
+### 7.2 Playtest browser 2 jendela (wajib sebelum serah ke Ryan)
 
 Dua jendela/tab browser (atau satu desktop + satu HP), masing-masing masuk
 dengan nama + gender berbeda:
@@ -588,7 +615,7 @@ dengan nama + gender berbeda:
 
 **Yang HANYA bisa dites di HP asli** (browser tes tidak bisa): dua jempol
 bersamaan antar pemain tidak relevan di sini — tapi pinch/zoom + layout
-390px layar masuk tetap harus dicek di HP sebelum vonis pemilik.
+390px layar masuk tetap harus dicek di HP sebelum vonis Ryan.
 
 ### 7.3 Alat bantu tes (disarankan, bukan wajib)
 
@@ -603,13 +630,13 @@ bersamaan antar pemain tidak relevan di sini — tapi pinch/zoom + layout
 
 ---
 
-## 8. Forward-compatibility: realm / "beda alam" (arahan pemilik 8 Nov 21:01)
+## 8. Forward-compatibility: realm / "beda alam" (arahan Ryan 8 Nov 21:01)
 
 > **Bukan bagian v1 yang dibangun sekarang — tapi v1 HARUS sudah
 > menyiapkannya.** Bagian ini mengunci keputusan supaya interior tidak
 > merombak protokol.
 
-### 8.1 Arah yang diminta pemilik
+### 8.1 Arah yang diminta Ryan
 
 Masuk kosan nanti dibuat **"beda alam"** seperti Museum 3D Hearts2Hearts
 dulu: interior (ruang tamu + kamar) adalah **scene/ruang yang TERPISAH**

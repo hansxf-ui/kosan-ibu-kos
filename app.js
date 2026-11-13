@@ -1,7 +1,7 @@
 /* Kosan Ibu Kos — ketik nama, lihat preview nomor kamarmu (SEPENUHNYA STATIS)
    Situs ini TIDAK punya backend, database, atau jalur tulis apa pun.
    Semua yang tampil dihitung lokal di HP pengunjung dari kode di bawah.
-   (Keputusan desain 7 Nov 19:16 — perintah pemilik: klaim publik dengan nama
+   (Keputusan desain 7 Nov 19:16 — perintah Ryan: klaim publik dengan nama
    ngasal DILARANG, "rusak nanti jadinya".) */
 (function () {
   'use strict';
@@ -10,11 +10,11 @@
      Denah bersama HANYA menampilkan nama yang ada di objek RESIDENTS ini.
      Aturan (akar masalah yang diperbaiki 7 Nov: shared state TIDAK BOLEH
      dipercayakan pada tulis publik tanpa autentikasi — model kepercayaan
-     format ini cuma punya SATU penulis terpercaya: cerita, yaitu pemilik/Vesper
+     format ini cuma punya SATU penulis terpercaya: cerita, yaitu Ryan/Vesper
      lewat episode. Pengunjung jadi penghuni LEWAT cerita (follow + komen di
      episode), BUKAN dengan menulis langsung ke database):
      - Penghuni HANYA ditambahkan Vesper lewat deploy, SETELAH orangnya
-       tampil di episode (komen/follow) atas perintah pemilik. Lihat
+       tampil di episode (komen/follow) atas perintah Ryan. Lihat
        ~/workspace/kosan-ibu-kos/PENGHUNI.md untuk runbook-nya.
      - JANGAN PERNAH isi nama dari form pengunjung, dari deep link, atau
        nama ngasal / tanpa episode. Form di situs ini TIDAK menulis apa pun
@@ -29,11 +29,11 @@
     /* KOSONG — belum ada penghuni beneran. */
   };
 
-  /* ---------- data 10 kamar: KOSONG SEMUA (aturan pemilik 6 Nov 21:24) ----------
+  /* ---------- data 10 kamar: KOSONG SEMUA (aturan Ryan 6 Nov 21:24) ----------
      Kosan beneran kosong dulu — tidak ada nama/perk/fasilitas yang sudah
      jadi. Isi kamar HANYA muncul setelah penonton komen + vote di episode
      dan Ibu membangunnya di episode berikut. Jangan tambahkan nama/perk di
-     sini tanpa perintah pemilik. ---------- */
+     sini tanpa perintah Ryan. ---------- */
   var EMPTY_ROOM = { name: 'Masih kosong', icon: '🚪', resident: false, perk: 'Belum ada apa-apa di sini. Komen di episode mau kamarmu diisi apa — like terbanyak langsung Ibu bangun!' };
 
   /* Isi kamar menurut data baked-in: kamar yang ada penghuninya menampilkan
@@ -60,6 +60,25 @@
   var currentRoom = 0;
   var currentName = '';
   var currentIsResident = false;
+
+  /* ---------- link ke Kosan 3D (ronde 19) ----------
+     Tombol "Jalan-jalan di Kosan 3D" (hero) + "Masuk Kosan 3D" (kartu)
+     mengarah ke kosan-3d.html. Kalau sudah ada nama, namanya dibawa lewat
+     ?nama= di URL DAN ditulis ke localStorage 'kosan3d-nama' — karena 3D
+     TIDAK membaca ?nama= (diverifikasi: kosan-3d.html tidak punya
+     URLSearchParams; nama dibaca dari localStorage di showEntry, lalu
+     masuk tetap butuh ketukan eksplisit di layar masuk, ronde 10b). */
+  var btn3dHero = document.getElementById('btn3dHero');
+  var btn3dCard = document.getElementById('btn3dCard');
+  var cardReg = document.getElementById('cardReg');
+  function link3d(nama) {
+    return nama ? 'kosan-3d.html?nama=' + encodeURIComponent(nama) : 'kosan-3d.html';
+  }
+  function update3dLinks(nama) {
+    var href = link3d(nama);
+    if (btn3dHero) btn3dHero.href = href;
+    if (btn3dCard) btn3dCard.href = href;
+  }
 
   /* ---------- hash deterministik (FNV-1a) ---------- */
   function normalize(nama) {
@@ -219,6 +238,9 @@
     currentName = nama;
     currentRoom = room;
     currentIsResident = !!isResident;
+    update3dLinks(nama);
+    try { localStorage.setItem('kosan3d-nama', nama); } catch (e) { /* abaikan */ }
+    if (cardReg) cardReg.hidden = !!isResident; /* ronde 19: jalur daftar HANYA di kartu preview */
     document.getElementById('cardRoomNum').textContent = room;
     document.getElementById('cardRoomName').textContent = 'Kamar ' + room + ' — ' + r.name;
     document.getElementById('cardRoomPerk').textContent = r.perk;
@@ -291,6 +313,7 @@
 
   document.getElementById('btnAgain').addEventListener('click', function () {
     cardWrap.hidden = true;
+    update3dLinks(''); /* ronde 19: nama direset -> link 3D kembali polos */
     input.value = '';
     input.focus();
     document.getElementById('cek-kamar').scrollIntoView({ behavior: 'smooth' });

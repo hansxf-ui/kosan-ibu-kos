@@ -142,6 +142,12 @@ h1,h2,h3,.brand-text,.card-kicker,.card-kosan,.card-room-num,.card-room-name,.ca
 .card-actions{margin-top:18px;display:flex;flex-direction:column;gap:12px}
 .card-note{font-size:13px;font-weight:700;color:#5A6B84;text-align:center;line-height:1.5;margin-top:14px}
 
+/* ---------- ronde 19: tombol 3D + jalur daftar ---------- */
+.hero .btn-big + .btn-big{margin-top:12px}
+#cardReg{margin-top:14px;text-align:center}
+.card-regpath{font-size:12px;font-weight:700;color:#64748b;line-height:1.5;margin-bottom:8px}
+#cardReg .btn{width:100%}
+
 /* ---------- denah ---------- */
 .denah-section{padding:40px 0 8px}
 h2{font-size:29px;font-weight:800;color:var(--navy);line-height:1.1}
