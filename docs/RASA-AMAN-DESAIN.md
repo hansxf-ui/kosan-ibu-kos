@@ -414,8 +414,12 @@ validasi pesan). Ditambah:
 | `perangkat` | UUID acak di `localStorage` `kosan3d-perangkat`, dibuat sekali | Utama |
 | IP | Header Vercel di server. **IP dari klien tidak pernah dipercaya** | Pendukung |
 
-- IP disimpan sebagai `HMAC-SHA256(IP_HMAC_SECRET, ip)` plus HMAC prefiks
-  (/24 untuk IPv4, /48 untuk IPv6), bukan IP mentah. Pemilik tetap bisa
+- IP disimpan sebagai `HMAC-SHA256(k_ip, ip)` plus HMAC prefiks
+  (/24 untuk IPv4, /48 untuk IPv6), bukan IP mentah. Tidak ada rahasia
+  terpisah untuk IP: semua kunci diturunkan dari satu `KOSAN_SECRET` (§3)
+  sebagai `subKunci(label) = HMAC-SHA256(KOSAN_SECRET, 'kosan-v1|' + label)`,
+  dengan label `ip` (log IP), `batas` (kunci batas percobaan per jaringan,
+  IPv6 per /64), dan `tiket` (tiket setup). Lihat `api/_lib/inti.js`. Pemilik tetap bisa
   melihat "dua akun dari IP yang sama", tapi daftar IP penghuni tidak
   tersimpan. **Pertanyaan:** perlu IP mentah untuk keperluan lain?
 - Dicatat saat: `setup`, `masuk`, `tamu`.
