@@ -119,7 +119,12 @@ async function keModeMasuk(page) {
     /* ---------- C. penghuni lama: catatan + tautan langsung ke langkah PIN ---------- */
     {
       const { ctx, page, galat } = await halamanBaru(browser);
+      const catatanHilang = () => page.evaluate(() => !document.getElementById('entryNotePerangkat')
+        && !document.body.innerText.includes('mencatat perangkat') && !document.body.innerText.includes('terlihat oleh semua pemain online'));
+      cek('C0a mode DAFTAR: dua catatan lama tidak tampil (14 Nov #3)', await catatanHilang());
       await keModeMasuk(page);
+      cek('C0b mode MASUK: dua catatan lama tidak tampil; password tanpa autocomplete', (await catatanHilang())
+        && (await page.evaluate(() => !document.getElementById('entryPass').hasAttribute('autocomplete'))));
       cek('C1 mode MASUK menampilkan catatan untuk penghuni lama', await tampil(page, '#entryNotePenghuniLama'));
       const punyaTautan = await ada(page, '#entryLoginPertama');
       cek('C2 ada tautan "Login pertama kali? Buat password"', punyaTautan && /Login pertama kali/.test(await page.textContent('#entryLoginPertama')));
@@ -136,6 +141,7 @@ async function keModeMasuk(page) {
         await page.waitForTimeout(JEDA + 1000);
         cek('C5 ketukan langkah PIN tidak memicu layar penuh (form boleh portrait)', (await page.evaluate(() => window.__fs.length)) === nFs);
         cek('C6 lanjut ke buat password', await tampil(page, '#entryPass2'));
+        cek('C6b tahap setup: dua catatan lama tidak tampil', await catatanHilang());
         await page.fill('#entryPass', PW); await page.fill('#entryPass2', PW);
         const t0 = await page.evaluate(() => performance.now());
         await page.click('#entryBtn');
@@ -147,17 +153,59 @@ async function keModeMasuk(page) {
         const awal = fsLog.find((x) => x.aktif);
         cek('C9 layar penuh diminta selagi gestur aktif saat simpan password', !!awal && awal.t - t0 < 1000,
           fsLog.map((x) => Math.round(x.t - t0) + 'ms/' + (x.aktif ? 'aktif' : 'basi')).join(', ') || 'tidak dipanggil');
-        /* ---------- D. PIN kamar: tombol sibuk ---------- */
+        cek('C11 kolom password tanpa atribut autocomplete di tahap buat password (14 Nov #4)', await page.evaluate(() =>
+          !document.getElementById('entryPass').hasAttribute('autocomplete') && !document.getElementById('entryPass2').hasAttribute('autocomplete')));
+        /* ---------- D. PIN kamar lewat keypad (14 Nov #2), klik sungguhan ---------- */
+        const titik = () => page.evaluate(() => document.querySelectorAll('#pinTitik span.isi').length);
+        const tap = (k) => page.click(k === 'hapus' || k === 'buka' ? '#pinPad [data-aksi="' + k + '"]' : '#pinPad [data-digit="' + k + '"]');
+        const padMati = () => page.evaluate(() => [...document.querySelectorAll('#pinPad button')].every((b) => b.disabled));
         await page.evaluate(() => document.getElementById('homeBtn').click());
         await page.waitForTimeout(500);
-        await page.fill('#pinInput', '135790');
-        await page.click('#pinBtn');
+        cek('D0 overlay PIN = keypad + 6 titik; kolom teks tidak tampil dan tidak fokus (keyboard HP tidak dipanggil)',
+          (await tampil(page, '#pinPad')) && (await page.evaluate(() => document.querySelectorAll('#pinTitik span').length)) === 6
+          && !(await tampil(page, '#pinInput')) && !(await tampil(page, '#pinBtn'))
+          && (await page.evaluate(() => !/^(INPUT|TEXTAREA)$/.test((document.activeElement || {}).tagName || ''))));
+        cek('D1 tombol keypad min. 56 px', await page.evaluate(() => [...document.querySelectorAll('#pinPad button')].every((b) => b.getBoundingClientRect().height >= 56)));
+        await tap('1'); await tap('2'); await tap('3');
+        const t3 = await titik();
+        await tap('hapus');
+        cek('D2 tiap digit mengisi satu titik; ⌫ menghapus digit terakhir', t3 === 3 && (await titik()) === 2, t3 + ' -> ' + (await titik()));
+        await tap('buka');
+        cek('D3 ✓ dengan <6 digit -> pesan validasi lama', /Masukkan PIN kamar 6 digit/.test(await page.textContent('#pinError')));
+        await tap('hapus'); await tap('hapus');
+        for (const d of '111111') await tap(d);
         await page.waitForTimeout(300);
-        const b3 = await tombol(page, '#pinBtn');
-        cek('D1 PIN kamar: tombol "Memproses…" + disabled', b3.mati && /Memproses/.test(b3.teks), JSON.stringify(b3));
+        cek('D4 digit ke-6 kirim otomatis: keypad terkunci + "Memproses…" terlihat', (await padMati()) && (await tampil(page, '#pinStatus'))
+          && /Memproses/.test(await page.textContent('#pinStatus')));
         await page.waitForTimeout(JEDA + 1500);
-        const b4 = await tombol(page, '#pinBtn');
-        cek('D2 PIN kamar: tombol kembali "Buka pintu" sesudah selesai', !b4.mati && /Buka pintu/.test(b4.teks), JSON.stringify(b4));
+        cek('D5 PIN salah: titik kosong + pesan error + keypad aktif lagi', (await titik()) === 0
+          && /PIN salah/.test(await page.textContent('#pinError')) && (await tampil(page, '#pinError'))
+          && !(await padMati()) && !(await tampil(page, '#pinStatus')));
+        for (const d of '135790') await tap(d);
+        await page.waitForTimeout(JEDA + 2000);
+        cek('D6 PIN benar lewat keypad -> masuk kamar', await page.evaluate(() => document.getElementById('exitBtn').style.display === 'inline-block')
+          && !(await tampil(page, '#pinOverlay')));
+        /* muat di layar: landscape pendek (tinggi 412) + portrait */
+        for (const [w, h, label] of [[915, 412, 'landscape 915x412'], [740, 360, 'landscape 740x360'], [412, 860, 'portrait 412x860']]) {
+          /* halaman sudah layar penuh (14 Nov sebelumnya: auto-landscape); ukuran jendela hanya bisa diubah di luar layar penuh */
+          await page.evaluate(() => (document.fullscreenElement ? document.exitFullscreen().catch(() => {}) : null));
+          await page.waitForTimeout(300);
+          await page.setViewportSize({ width: w, height: h });
+          await page.evaluate(() => document.getElementById('exitBtn').click());
+          await page.waitForTimeout(400);
+          await page.evaluate(() => document.getElementById('homeBtn').click());
+          await page.waitForTimeout(400);
+          const ukur = await page.evaluate(() => {
+            const c = document.getElementById('pinCard').getBoundingClientRect();
+            const btn = [...document.querySelectorAll('#pinPad button')].map((b) => b.getBoundingClientRect());
+            const card = document.getElementById('pinCard');
+            return { top: Math.round(c.top), bawah: Math.round(c.bottom), tinggi: innerHeight, gulir: card.scrollHeight - card.clientHeight,
+              tombolBawah: Math.round(Math.max(...btn.map((r) => r.bottom))), tombolAtas: Math.round(Math.min(...btn.map((r) => r.top))) };
+          });
+          cek('D7 keypad muat tanpa terpotong/gulir (' + label + ')', ukur.top >= 0 && ukur.bawah <= ukur.tinggi && ukur.tombolBawah <= ukur.tinggi && ukur.gulir <= 1, JSON.stringify(ukur));
+          if (label.startsWith('landscape 915')) await page.screenshot({ path: path.join(ROOT, 'tests', '__keypad-landscape.png') }).catch(() => {});
+          await page.click('#pinClose').catch(() => page.evaluate(() => document.getElementById('pinClose').click()));
+        }
       }
       cek('C10 tanpa error JavaScript', galat.length === 0, galat.join(' | '));
       await ctx.close();

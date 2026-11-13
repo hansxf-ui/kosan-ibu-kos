@@ -62,6 +62,11 @@ memverifikasi PIN lewat RPC lama `kosan_login` dengan service role.
      jadi kalau Supabase bukan di Singapura (`ap-southeast-1`), sin1 bisa
      malah lebih lambat. Bandingkan waktu `/api/sesi` sebelum dan sesudah.
    - Playtest dua tab sesuai `docs/RASA-AMAN-DESAIN.md` §12.3.
+   - Playtest HP (14 Nov): login penghuni → ketuk pintu kamar sendiri langsung
+     keypad PIN (tanpa kartu, keyboard HP tidak muncul, 6 digit kirim
+     otomatis); ketuk kamar orang / sebagai tamu → kartu info. Sebelum tes
+     "Periksa sandi Anda", hapus dulu entri sandi Kosan yang sudah tersimpan
+     di Password Manager Chrome HP (entri lama tetap memicu peringatan).
 6. **Promote ke produksi**, lalu tes live §12.4 nomor 1–3.
 7. **Sesudah klien baru live ≥24 jam:** cabut login PIN-saja dari browser,
    `REVOKE EXECUTE ON FUNCTION public.kosan_login(text, text) FROM anon;`
@@ -104,6 +109,7 @@ baru boleh dibiarkan: tidak ada yang membacanya selain `/api/*`.
 
 ```bash
 node --test tests/server.test.js         # 43 tes server, tanpa jaringan
+node --test tests/klien.test.js          # 7 tes klien (ketuk pintu, catatan dihapus, autocomplete password)
 PLAYWRIGHT_CORE=... CHROME_PATH=... node tests/e2e-fase-a.js          # playtest klien baru
 PLAYWRIGHT_CORE=... CHROME_PATH=... node tests/e2e-fase-a.js --lama   # klien dari main (RED)
 PLAYWRIGHT_CORE=... CHROME_PATH=... node tests/e2e-perbaikan2.js       # perbaikan ronde 2 (jaringan diperlambat 3 dtk/panggilan)

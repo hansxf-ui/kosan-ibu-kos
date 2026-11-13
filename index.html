@@ -111,10 +111,36 @@
     padding: 18px 16px 16px; box-shadow: 0 10px 40px rgba(0,0,0,.45); text-align: center; }
   #pinCard h2 { font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 20px; color: #1B5FA8; padding: 0 30px; }
   #pinCard .pin-sub { font-size: 13px; font-weight: 700; color: #5a6b7d; margin: 4px 0 12px; line-height: 1.45; }
-  #pinInput { width: 100%; font-family: 'Nunito', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: 6px;
-    text-align: center; padding: 12px 14px; border: 2px solid #cfe0f2; border-radius: 14px; outline: none; color: #1c2b3a; }
-  #pinInput:focus { border-color: #FFD11A; }
-  #pinCard .entry-error { font-size: 13px; font-weight: 700; color: #e11d48; margin: 10px 0 0; line-height: 1.45; }
+  /* 14 Nov #2 — PIN kamar lewat keypad angka (pola pintu
+     apartemen / layar kunci HP): 6 titik + 3x4 tombol, tanpa keyboard HP. */
+  #pinCard { max-height: calc(100vh - 16px); overflow-y: auto; }
+  #pinTitik { display: flex; justify-content: center; gap: 12px; margin: 10px 0 4px; }
+  #pinTitik span { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #1B5FA8; background: transparent; }
+  #pinTitik span.isi { background: #1B5FA8; }
+  #pinPesan { min-height: 20px; margin: 2px 0 8px; }
+  #pinStatus { font-size: 13px; font-weight: 800; color: #1B5FA8; line-height: 1.45; }
+  #pinCard .entry-error { font-size: 13px; font-weight: 700; color: #e11d48; margin: 0; line-height: 1.45; }
+  #pinPad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  #pinPad button { min-height: 56px; border: none; border-radius: 14px; background: #eef2f6; color: #1c2b3a;
+    font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 24px; font-weight: 800; cursor: pointer;
+    touch-action: manipulation; -webkit-user-select: none; user-select: none; }
+  #pinPad button:active { transform: scale(.96); background: #dde6ef; }
+  #pinPad button.pin-aksi { font-size: 15px; }
+  #pinPad button.pin-buka { background: #FFD11A; color: #4a3400; }
+  #pinPad button:disabled { opacity: .55; cursor: wait; transform: none; }
+  @media (max-height: 500px) {
+    #pinOverlay { padding: 8px; }
+    #pinCard { padding: 10px 14px 12px; }
+    #pinCard .pin-sub { display: none; }
+    #pinTitik { margin: 6px 0 2px; }
+    #pinPesan { margin: 0 0 6px; }
+  }
+  @media (max-height: 380px) { /* HP kecil landscape: rapatkan jarak, tombol tetap 56 px */
+    #pinCard { padding: 8px 12px 8px; }
+    #pinCard h2 { font-size: 18px; }
+    #pinPad { gap: 6px; }
+    #pinPesan { min-height: 18px; margin: 0 0 4px; }
+  }
   #pinBtn { font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 17px; font-weight: 800; margin-top: 12px;
     background: #FFD11A; color: #4a3400; border: none; border-radius: 14px; padding: 12px 20px; width: 100%;
     cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.3); }
@@ -702,8 +728,8 @@
     <!-- Rasa aman Fase A — login penghuni = username + password (dicek di
          server, /api/masuk). Password TIDAK PERNAH disimpan di perangkat;
          "Ingat saya" = cookie sesi HttpOnly dari server. -->
-    <input id="entryPass" type="password" placeholder="Password" maxlength="128" autocomplete="current-password" style="display:none">
-    <input id="entryPass2" type="password" placeholder="Ulangi password" maxlength="128" autocomplete="new-password" style="display:none">
+    <input id="entryPass" type="password" placeholder="Password" maxlength="128" style="display:none">
+    <input id="entryPass2" type="password" placeholder="Ulangi password" maxlength="128" style="display:none">
     <label id="entryIngatRow" class="entry-ingat" style="display:none"><input id="entryIngat" type="checkbox"> Ingat saya di perangkat ini</label>
     <p id="entryNotePenghuniLama" class="entry-note" style="display:none">Penghuni lama yang belum pernah login sejak pembaruan: isi username, kosongkan password, tap Masuk — nanti diminta PIN kamar untuk buat password.</p>
     <p id="entryError" class="entry-error" style="display:none"></p>
@@ -717,8 +743,6 @@
     <button id="entryKeluarAkun" type="button" class="entry-guest" style="display:none">Bukan kamu? Keluar akun</button>
     <button id="entryLoginPertama" type="button" class="entry-guest" style="display:none">Login pertama kali? Buat password</button>
     <p id="entryNote" class="entry-note">Username &amp; gender dikunci selama di dalam — keluar dulu untuk ganti.</p>
-    <p id="entryNotePerangkat" class="entry-note" style="display:none">Untuk mencegah akun ganda, kami mencatat perangkat dan alamat jaringanmu saat masuk.</p>
-    <p class="entry-note">🔓 Nama yang kamu ketik terlihat oleh semua pemain online (muncul di atas kepalamu). Ketik nama yang kamu mau dikenal di kos ini.</p>
   </div>
 </div>
 
@@ -730,9 +754,24 @@
     <button id="pinClose" type="button" aria-label="Tutup">✕</button>
     <h2 id="pinJudul">Masuk Kamar</h2>
     <p class="pin-sub">Masukkan PIN kamarmu. PIN tidak disimpan, jadi tiap masuk kamar ketik lagi ya.</p>
-    <input id="pinInput" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="PIN kamar (6 digit)">
-    <p id="pinError" class="entry-error" style="display:none"></p>
-    <button id="pinBtn" type="button">Buka pintu</button>
+    <!-- 14 Nov #2 — pinInput hanya penyimpan nilai (tersembunyi, readonly,
+         tidak pernah di-focus = keyboard HP tidak muncul); pinBtn cadangan
+         tersembunyi. Jalur utama = keypad di bawah. -->
+    <input id="pinInput" type="password" maxlength="6" autocomplete="off" readonly tabindex="-1" aria-hidden="true" style="display:none">
+    <div id="pinTitik" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <div id="pinPesan" aria-live="polite">
+      <p id="pinStatus" style="display:none">Memproses…</p>
+      <p id="pinError" class="entry-error" style="display:none"></p>
+    </div>
+    <div id="pinPad" role="group" aria-label="Keypad PIN kamar">
+      <button type="button" data-digit="1">1</button><button type="button" data-digit="2">2</button><button type="button" data-digit="3">3</button>
+      <button type="button" data-digit="4">4</button><button type="button" data-digit="5">5</button><button type="button" data-digit="6">6</button>
+      <button type="button" data-digit="7">7</button><button type="button" data-digit="8">8</button><button type="button" data-digit="9">9</button>
+      <button type="button" class="pin-aksi" data-aksi="hapus" aria-label="Hapus digit terakhir">⌫ Hapus</button>
+      <button type="button" data-digit="0">0</button>
+      <button type="button" class="pin-aksi pin-buka" data-aksi="buka" aria-label="Buka pintu">✓ Buka</button>
+    </div>
+    <button id="pinBtn" type="button" style="display:none">Buka pintu</button>
   </div>
 </div>
 
@@ -782,6 +821,16 @@ function pinHash(pin) {
 function usernameValid(nama) {
   var n = normalize(nama);
   return n.length > 0 && n.length <= 30 && /^[a-z0-9 _.\-]+$/.test(n) && /[a-z0-9]/.test(n);
+}
+/* 14 Nov #1 (vonis Ryan 05:11) — ketuk pintu: kamar SENDIRI
+   penghuni yang login -> langsung masuk (enterRoom minta PIN, dicek
+   server); kamar orang lain / tamu -> kartu info seperti dulu. Murni,
+   diuji di tests/klien.test.js. s = { resident: sesi penghuni sah,
+   sesiRoom, visitorRoom, visitorId, penghuniPintu: residentOf(room) }. */
+function aksiKetukPintu(room, s) {
+  if (s.resident && s.sesiRoom === room) return 'masuk';
+  if (!s.penghuniPintu && room === s.visitorRoom && s.visitorId) return 'masuk'; /* Ronde 11b (lama) */
+  return 'kartu';
 }
 function residentOf(room, occupants) {
   var occ = occupants || OCCUPANTS || [];
@@ -2554,6 +2603,31 @@ var pinOverlay = document.getElementById('pinOverlay');
 var pinInput = document.getElementById('pinInput');
 var pinError = document.getElementById('pinError');
 var pinBtn = document.getElementById('pinBtn');
+var pinPad = document.getElementById('pinPad');
+var pinStatus = document.getElementById('pinStatus');
+var pinDigit = ''; /* digit yang sudah ditekan (maks 6) — hanya di memori, dikosongkan tiap kirim/tutup */
+function pinRender() {
+  if (pinInput) pinInput.value = pinDigit;
+  var titik = document.querySelectorAll('#pinTitik span');
+  for (var i = 0; i < titik.length; i++) titik[i].classList.toggle('isi', i < pinDigit.length);
+  var tombol = pinPad ? pinPad.querySelectorAll('button') : [];
+  for (var k = 0; k < tombol.length; k++) tombol[k].disabled = pinBusy;
+  if (pinBtn) pinBtn.disabled = pinBusy;
+  if (pinStatus) pinStatus.style.display = pinBusy ? 'block' : 'none';
+  if (pinBusy && pinError) pinError.style.display = 'none';
+}
+function pinTekan(d) {
+  if (pinBusy || !pinKamarTujuan || pinDigit.length >= 6) return;
+  if (pinError) pinError.style.display = 'none';
+  pinDigit += d;
+  pinRender();
+  if (pinDigit.length === 6) pinKirim(); /* otomatis kirim di digit ke-6 */
+}
+function pinHapus() {
+  if (pinBusy || !pinDigit) return;
+  pinDigit = pinDigit.slice(0, -1);
+  pinRender();
+}
 function kamarIzinPakai(n) {
   var ok = !!(kamarIzin && kamarIzin.room === n && Date.now() < kamarIzin.sampai);
   kamarIzin = null;
@@ -2562,28 +2636,32 @@ function kamarIzinPakai(n) {
 function pinTampilError(msg) { if (pinError) { pinError.textContent = msg; pinError.style.display = 'block'; } }
 function pinBuka(n) {
   pinKamarTujuan = n;
-  if (pinInput) pinInput.value = '';
+  pinDigit = '';
   if (pinError) pinError.style.display = 'none';
   var j = document.getElementById('pinJudul');
   if (j) j.textContent = 'Masuk Kamar ' + n;
+  /* kalau ada kolom teks yang masih fokus, lepas supaya keyboard HP turun */
+  try { var ae = document.activeElement; if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) ae.blur(); } catch (e) { /* abaikan */ }
+  pinRender();
   pinOverlay.classList.add('open');
-  setTimeout(function () { if (pinInput) pinInput.focus(); }, 50);
 }
 function pinTutup() {
   pinOverlay.classList.remove('open');
-  if (pinInput) pinInput.value = '';
+  pinDigit = '';
+  pinRender();
   pinKamarTujuan = 0;
 }
 function pinKirim() {
   var n = pinKamarTujuan;
-  var pin = pinInput ? pinInput.value : '';
+  var pin = pinDigit;
   if (!n) return;
   if (!/^\d{6}$/.test(pin)) { pinTampilError('Masukkan PIN kamar 6 digit.'); return; }
   if (pinBusy) return;
-  pinBusy = true; if (pinBtn) { pinBtn.disabled = true; pinBtn.textContent = 'Memproses…'; } /* Perbaikan 2 */
+  pinBusy = true; pinRender(); /* keypad terkunci + "Memproses…" sampai server menjawab */
   apiKosan('POST', '/api/kamar/masuk', { room: n, pin: pin }).then(function (r) {
-    pinBusy = false; if (pinBtn) { pinBtn.disabled = false; pinBtn.textContent = 'Buka pintu'; }
-    if (pinInput) pinInput.value = '';
+    pinBusy = false;
+    pinDigit = ''; /* berhasil atau gagal: titik dikosongkan */
+    pinRender();
     if (r.status === 200 && r.data && r.data.ok) {
       pinTutup();
       kamarIzin = { room: n, sampai: Date.now() + 10000 };
@@ -2596,16 +2674,27 @@ function pinKirim() {
     }
     if (r.data && r.data.pesan && (r.status === 400 || r.status === 401 || r.status === 403 || r.status === 429)) {
       pinTampilError(r.data.pesan);
-      if (pinInput) pinInput.focus();
       return;
     }
     pinTampilError('Tidak bisa terhubung ke server, coba lagi ya.');
   });
 }
 if (pinBtn) pinBtn.addEventListener('click', pinKirim);
-if (pinInput) pinInput.addEventListener('keydown', function (e) {
-  if (e.key === 'Enter') pinKirim();
-  else if (e.key === 'Escape') pinTutup();
+if (pinPad) pinPad.addEventListener('click', function (e) {
+  var b = e.target && e.target.closest ? e.target.closest('button') : null;
+  if (!b || b.disabled) return;
+  if (b.getAttribute('data-digit') !== null) pinTekan(b.getAttribute('data-digit'));
+  else if (b.getAttribute('data-aksi') === 'hapus') pinHapus();
+  else if (b.getAttribute('data-aksi') === 'buka') pinKirim(); /* <6 digit -> pesan validasi lama */
+});
+/* keyboard fisik (laptop) tetap bisa: angka, Backspace, Enter, Escape —
+   tanpa kolom teks, jadi keyboard HP tidak pernah dipanggil */
+window.addEventListener('keydown', function (e) {
+  if (!pinOverlay.classList.contains('open')) return;
+  if (/^[0-9]$/.test(e.key)) { e.preventDefault(); pinTekan(e.key); }
+  else if (e.key === 'Backspace') { e.preventDefault(); pinHapus(); }
+  else if (e.key === 'Enter') { e.preventDefault(); pinKirim(); }
+  else if (e.key === 'Escape') { e.preventDefault(); pinTutup(); }
 });
 document.getElementById('pinClose').addEventListener('click', pinTutup);
 pinOverlay.addEventListener('click', function (e) { if (e.target === pinOverlay) pinTutup(); });
@@ -3412,7 +3501,6 @@ var entryPass2 = document.getElementById('entryPass2');
 var entryIngat = document.getElementById('entryIngat');
 var entryIngatRow = document.getElementById('entryIngatRow');
 var entryKeluarAkun = document.getElementById('entryKeluarAkun');
-var entryNotePerangkat = document.getElementById('entryNotePerangkat');
 var entryNotePenghuniLama = document.getElementById('entryNotePenghuniLama');
 var entryLoginPertama = document.getElementById('entryLoginPertama');
 var entryTahap = 'masuk';
@@ -3526,7 +3614,6 @@ function entryApplyMode() {
   show(entryPass, tahap === 'masuk' || tahap === 'setup-password');
   show(entryPass2, tahap === 'setup-password');
   show(entryIngatRow, tahap === 'masuk' || tahap === 'setup-password');
-  show(entryNotePerangkat, masuk && tahap !== 'sesi');
   show(genderRowEl, !masuk);
   show(entryNoteEl, !masuk); /* Task 11 — catatan kunci identitas hanya di mode DAFTAR (Ryan 12 Nov 11:21); di mode MASUK disembunyikan */
   show(entryGuestLink, !masuk); /* Ronde 53 — tautan tamu disembunyikan saat mode MASUK (petunjuk UX saja; gerbang keamanan tetap di masukTamu) */
@@ -3536,7 +3623,10 @@ function entryApplyMode() {
   if (entryPin) entryPin.placeholder = masuk ? 'PIN kamar (6 digit)' : 'PIN penghuni (6 digit)';
   if (entryPass) {
     entryPass.placeholder = tahap === 'setup-password' ? 'Buat password (min. 8 karakter)' : 'Password';
-    entryPass.setAttribute('autocomplete', tahap === 'setup-password' ? 'new-password' : 'current-password');
+    /* 14 Nov #4 — TANPA atribut autocomplete di kolom password:
+       current-password/new-password menyuruh Chrome menyimpan sandi lalu
+       mengeceknya ke database bocor ("Periksa sandi Anda"). "Ingat saya"
+       memakai cookie sesi game, bukan Password Manager. */
   }
   if (entryModeLink) {
     entryModeLink.style.display = tahap === 'sesi' ? 'none' : '';
@@ -5033,7 +5123,11 @@ function canvasTap(e, wasPinch) {
   if (ud.card === 'room') {
     /* Ronde 11b — ketuk pintu kamar SENDIRI langsung masuk; kamar lain
        tetap buka kartu preview seperti dulu. */
-    if (!residentOf(ud.room) && ud.room === visitorRoom && visitorId) { enterRoom(ud.room); }
+    var aksiPintu = aksiKetukPintu(ud.room, {
+      resident: !!(isResidentSession && sesiPenghuni), sesiRoom: sesiPenghuni ? sesiPenghuni.room : 0,
+      visitorRoom: visitorRoom, visitorId: visitorId, penghuniPintu: residentOf(ud.room)
+    });
+    if (aksiPintu === 'masuk') { enterRoom(ud.room); } /* kamar sendiri: enterRoom -> pinBuka (PIN dicek server) */
     else { pulseDoor(ud.room); showRoomCard(ud.room, false, null); }
   } else if (ud.card === 'living') {
     showLivingCard();

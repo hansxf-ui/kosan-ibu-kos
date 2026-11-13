@@ -61,6 +61,9 @@ const klik = (page, sel) => page.evaluate((s) => document.querySelector(s).click
 /* #exitBtn ada di menu dropdown (bisa tertutup); enterRoom men-set
    style.display = 'inline-block', exitRoom men-set 'none'. */
 const diKamar = (page) => page.evaluate(() => document.getElementById('exitBtn').style.display === 'inline-block');
+/* 14 Nov #2 — PIN kamar lewat keypad (bukan isi #pinInput); 6 digit = kirim otomatis */
+const ketikPinKeypad = async (page, pin) => { for (const d of pin) await klik(page, '#pinPad [data-digit="' + d + '"]'); };
+const jumlahTitik = (page) => page.evaluate(() => document.querySelectorAll('#pinTitik span.isi').length);
 const sudahMasuk = (page) => page.evaluate(() => !document.getElementById('entryOverlay').classList.contains('open'));
 async function keModeMasuk(page) {
   const teks = await page.textContent('#entryModeLink');
@@ -116,13 +119,13 @@ async function keModeMasuk(page) {
     } else {
       cek('masuk kamar meminta PIN (modal PIN muncul)', await tampil(page, '#pinOverlay'));
       cek('belum di dalam kamar sebelum PIN benar', !(await diKamar(page)));
-      await page.fill('#pinInput', '111111'); await klik(page, '#pinBtn'); await page.waitForTimeout(800);
+      await ketikPinKeypad(page, '111111'); await page.waitForTimeout(800);
       cek('PIN kamar salah ditolak server', /PIN salah/.test(await page.textContent('#pinError')) && !(await diKamar(page)));
-      await page.fill('#pinInput', PIN.dilla); await klik(page, '#pinBtn'); await page.waitForTimeout(1200);
+      await ketikPinKeypad(page, PIN.dilla); await page.waitForTimeout(1200);
       cek('PIN benar -> masuk kamar', (await diKamar(page)) && !(await tampil(page, '#pinOverlay')));
       await klik(page, '#exitBtn'); await page.waitForTimeout(800);
       await klik(page, '#homeBtn'); await page.waitForTimeout(800);
-      cek('masuk kamar lagi -> PIN diminta lagi (tidak diingat)', (await tampil(page, '#pinOverlay')) && !(await diKamar(page)) && (await page.inputValue('#pinInput')) === '');
+      cek('masuk kamar lagi -> PIN diminta lagi (tidak diingat)', (await tampil(page, '#pinOverlay')) && !(await diKamar(page)) && (await jumlahTitik(page)) === 0);
       await klik(page, '#pinClose');
 
       /* ---------- 3. "Ingat saya": muat ulang ---------- */
