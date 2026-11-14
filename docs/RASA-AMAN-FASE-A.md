@@ -85,9 +85,35 @@ memverifikasi PIN lewat RPC lama `kosan_login` dengan service role.
 - Yang dikirim ke `https://api.pwnedpasswords.com/range/` hanya 5 karakter
   pertama SHA-1 (k-anonymity + header `Add-Padding`). Password, hash utuh,
   dan sisa hash tidak pernah keluar dari server dan tidak ditulis ke log.
-- Timeout 3 detik. HIBP tidak terjangkau / error → **fail open**: setup
-  tetap jalan dengan aturan lama (min. 8 karakter + daftar password umum).
-  Log Vercel hanya mencatat `cek password bocor dilewati` (tanpa password).
+- Timeout 3 detik. HIBP tidak terjangkau / error / timeout → **fail
+  closed** (perbaikan 8, kritik Ryan 06:32): setup DITOLAK (400
+  `cek_bocor_gagal`) dengan pesan "Tidak bisa memeriksa keamanan password
+  saat ini. Coba lagi sebentar lagi ya." Tiket setup masih berlaku 5 menit,
+  jadi penghuni cukup ketuk simpan lagi. Log Vercel hanya mencatat
+  `setup ditolak: HIBP tidak terjangkau (fail closed)` (tanpa password).
+- **Jaminan sekarang:** setiap password yang diterima sudah terverifikasi
+  bersih di HIBP saat setup. Konsekuensinya, saat HIBP down hanya pembuatan
+  password (setup pertama / sesudah reset) yang diminta coba lagi. Login
+  penghuni yang sudah punya password tidak kena.
+- Percobaan yang ditolak tetap memakai batas setup per jaringan (20/jam).
+- **GERBANG SEBELUM PRODUKSI (wajib):** fail-closed hanya aman kalau fungsi
+  Vercel memang bisa menjangkau HIBP. Di preview, reset satu akun uji lalu
+  setup dengan `password123`:
+  - ditolak dengan pesan **bocor** → HIBP terjangkau, fail-closed aman,
+    boleh dipromosikan;
+  - ditolak dengan pesan **"Password ini terlalu umum"** → fungsi TIDAK
+    menjangkau HIBP (`password123` juga ada di daftar password umum lokal,
+    dan saat HIBP tak terjangkau pesan aturan lama yang tampil). **STOP**,
+    jangan promosikan: fail-closed akan memblokir semua setup. Cek log
+    fungsi (`setup ditolak: HIBP tidak terjangkau`) + akses keluar Vercel,
+    atau cari jalan lain (mis. daftar lokal).
+  - Pembanding tambahan: setup dengan `P@ssw0rd` (bocor, tapi TIDAK ada di
+    daftar umum lokal). Pesan bocor → terjangkau; pesan "Tidak bisa
+    memeriksa keamanan password" → tidak terjangkau, STOP.
+  - Diterima → yang ter-deploy masih versi fail-open (perbaikan 7) atau
+    HIBP tidak dicek sama sekali. STOP, cek versi deploy.
+  - Sesudah tes gerbang, reset lagi akun ujinya (`kosan_akun_reset`) kalau
+    sempat tersimpan.
 - Login TIDAK memanggil HIBP. Password yang sudah tersimpan tidak dicek
   ulang: penghuni dengan password bocor (mis. rina) perlu
   `select kosan_akun_reset(<kamar>);` lalu setup ulang. Itu tindakan pemilik.
@@ -126,7 +152,7 @@ baru boleh dibiarkan: tidak ada yang membacanya selain `/api/*`.
 ## Menjalankan tes
 
 ```bash
-node --test tests/server.test.js         # 51 tes server (43 lama + 8 password bocor), tanpa jaringan; HIBP di-mock (tests/fake-hibp.js)
+node --test tests/server.test.js         # 53 tes server (43 lama + 10 password bocor), tanpa jaringan; HIBP di-mock (tests/fake-hibp.js)
 node --test tests/klien.test.js          # 7 tes klien (ketuk pintu, catatan dihapus, autocomplete password)
 PLAYWRIGHT_CORE=... CHROME_PATH=... node tests/e2e-fase-a.js          # playtest klien baru
 PLAYWRIGHT_CORE=... CHROME_PATH=... node tests/e2e-fase-a.js --lama   # klien dari main (RED)

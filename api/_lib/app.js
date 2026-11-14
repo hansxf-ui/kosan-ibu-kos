@@ -55,6 +55,7 @@ function akunBerlaku(akun, penghuni) {
 }
 
 const PESAN_BOCOR = 'Password ini pernah bocor di internet. Pakai password lain yang belum pernah dipakai di mana pun.';
+const PESAN_CEK_GAGAL = 'Tidak bisa memeriksa keamanan password saat ini. Coba lagi sebentar lagi ya.';
 
 /* hibpFetch: fetch untuk cek password bocor (default fetch bawaan Node;
    tes menyuntikkan tiruan). Dipakai HANYA di setupPassword. */
@@ -175,16 +176,27 @@ function buatApp({ db, rahasia, sekarang = () => Date.now(), aman = true, hibpFe
     /* 14 Nov (perbaikan 7) — tolak password yang pernah bocor, SEBELUM di-hash.
        Dicek sesudah syarat panjang (8–128) tapi SEBELUM daftar password umum,
        supaya password bocor yang juga "umum" (mis. password123) dapat pesan
-       bocor. HIBP tidak terjangkau -> fail open: aturan lama (termasuk daftar
-       umum) tetap berlaku seperti sebelumnya. */
+       bocor.
+       Perbaikan 8 (kritik Ryan 06:32) — FAIL-CLOSED: HIBP tidak terjangkau /
+       error / timeout -> setup DITOLAK (bukan diterima diam-diam), supaya
+       setiap password yang tersimpan sudah terverifikasi bersih. Status 400
+       (pola error setup yang pesannya ditampilkan klien), kode terpisah dari
+       password_bocor karena passwordnya belum terbukti bocor. Kalau password
+       itu juga melanggar aturan lama (mis. daftar umum), pesan aturan lama
+       yang ditampilkan: coba lagi tidak akan menolong. */
     const panjang = typeof password === 'string' ? password.normalize('NFC').length : 0;
+    let cekGagal = false;
     if (panjang >= 8 && panjang <= 128) {
       const bocor = await I.passwordBocor(password, hibpFetch, hibpTimeoutMs);
       if (bocor === true) return galat(400, 'password_bocor', PESAN_BOCOR);
-      if (bocor === null) console.warn('[kosan] cek password bocor dilewati: HIBP tidak terjangkau (fail open)');
+      if (bocor !== false) cekGagal = true;
     }
     const aturan = I.cekAturanPassword(password, penghuni.name);
     if (aturan) return galat(400, 'password_lemah', aturan);
+    if (cekGagal) {
+      console.warn('[kosan] setup ditolak: HIBP tidak terjangkau (fail closed)'); /* tanpa password / hash */
+      return galat(400, 'cek_bocor_gagal', PESAN_CEK_GAGAL);
+    }
     const hash = await I.hashPassword(password);
     const ok = await db.akunSetup({ room: t.room, nama_norm: t.nama_norm, gender: t.gender, password_hash: hash });
     if (!ok) return galat(409, 'sudah_setup', 'Akun ini sudah punya password. Masuk pakai password ya.');
@@ -237,4 +249,4 @@ function buatApp({ db, rahasia, sekarang = () => Date.now(), aman = true, hibpFe
   return { masuk, setupPin, setupPassword, sesi, keluar, kamarMasuk };
 }
 
-module.exports = { buatApp, UMUR_INGAT, UMUR_BIASA, UMUR_TIKET, BATAS, GERBANG, PESAN_BOCOR };
+module.exports = { buatApp, UMUR_INGAT, UMUR_BIASA, UMUR_TIKET, BATAS, GERBANG, PESAN_BOCOR, PESAN_CEK_GAGAL };

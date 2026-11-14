@@ -104,7 +104,8 @@ function cekAturanPassword(pw, username) {
    Header Add-Padding meminta HIBP menambah baris palsu (count 0) supaya
    ukuran respons tidak membocorkan apa pun.
    Hasil: true = bocor, false = bersih, null = tidak bisa dicek (timeout,
-   jaringan, status bukan 200) -> pemanggil FAIL OPEN.
+   jaringan, status bukan 200) -> pemanggil FAIL CLOSED (setup ditolak,
+   minta coba lagi; perbaikan 8).
    JANGAN pernah menulis password / hash-nya ke log. */
 const HIBP_URL = 'https://api.pwnedpasswords.com/range/';
 async function passwordBocor(pw, fetchFn, timeoutMs = 3000) {

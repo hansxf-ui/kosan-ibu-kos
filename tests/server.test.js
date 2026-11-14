@@ -480,7 +480,7 @@ test('pembungkus Vercel: env kosong -> 503, metode salah -> 405, Set-Cookie dite
 });
 
 /* ---------- 14 Nov perbaikan 7: tolak password bocor saat setup (HIBP di-mock) ---------- */
-const { PESAN_BOCOR } = require('../api/_lib/app');
+const { PESAN_BOCOR, PESAN_CEK_GAGAL } = require('../api/_lib/app');
 async function cobaSetup(app, password) {
   const a = await app.setupPin(post({ username: 'dilla', pin: '135790' }));
   assert.equal(a.status, 200);
@@ -523,17 +523,43 @@ test('bocor #4: hanya 5 karakter prefix SHA-1 yang dikirim (k-anonymity), tanpa 
   assert.equal(opt.headers['Add-Padding'], 'true');
 });
 
-test('bocor #5: HIBP mati / lambat / error -> fail open, setup tetap jalan (aturan lama tetap berlaku)', async () => {
+test('bocor #5 (perbaikan 8): HIBP mati / lambat / 500 -> setup DITOLAK (fail closed), pesan coba lagi, tanpa simpan password', async () => {
   for (const mode of ['mati', 'lambat', '500']) {
-    const { app } = siapkan({ mode });
-    const t0 = Date.now();
-    const r = await cobaSetup(app, 'kosrumahkedua2024'); /* "bocor" di tiruan, tapi HIBP tak terjangkau */
-    assert.equal(r.status, 200, mode + ': ' + JSON.stringify(r.body));
-    assert.ok(Date.now() - t0 < 3000, mode + ' terlalu lama');
+    for (const pw of ['Jemuran-Lantai2-Gazebo!' + crypto.randomBytes(4).toString('hex'), 'kosrumahkedua2024']) {
+      const { app, db } = siapkan({ mode });
+      const t0 = Date.now();
+      const r = await cobaSetup(app, pw);
+      assert.equal(r.status, 400, mode + ': ' + JSON.stringify(r.body));
+      assert.equal(r.body.galat, 'cek_bocor_gagal'); assert.equal(r.body.pesan, PESAN_CEK_GAGAL);
+      assert.notEqual(r.body.pesan, PESAN_BOCOR);
+      assert.equal(r.cookies, undefined);
+      assert.equal(await db.akunAmbil(13), null, mode + ': password tersimpan padahal belum terverifikasi');
+      assert.ok(Date.now() - t0 < 3000, mode + ' terlalu lama');
+    }
+    /* password yang juga melanggar aturan lama: pesan aturan lama (coba lagi tidak menolong) */
     const { app: app2 } = siapkan({ mode });
-    const r2 = await cobaSetup(app2, 'password123'); /* daftar umum lama tetap menolak */
+    const r2 = await cobaSetup(app2, 'password123');
     assert.equal(r2.status, 400); assert.equal(r2.body.galat, 'password_lemah');
   }
+});
+
+test('bocor #9 (perbaikan 8): HIBP pulih -> tiket yang sama bisa dipakai lagi, password bersih diterima', async () => {
+  const { app, hibp, db } = siapkan({ mode: 'mati' });
+  const a = await app.setupPin(post({ username: 'dilla', pin: '135790' }));
+  const pw = 'Kunci-Kamar-13-' + crypto.randomBytes(3).toString('hex');
+  assert.equal((await app.setupPassword(post({ tiket: a.body.tiket, password: pw }))).body.galat, 'cek_bocor_gagal');
+  hibp.mode = 'normal';
+  const b = await app.setupPassword(post({ tiket: a.body.tiket, password: pw }));
+  assert.equal(b.status, 200); assert.match((await db.akunAmbil(13)).password_hash, /^scrypt\$/);
+});
+
+test('bocor #10 (perbaikan 8): HIBP mati tidak memengaruhi login penghuni yang sudah punya password', async () => {
+  const { app, hibp } = siapkan();
+  await setupLengkap(app, 'rina', '246810');
+  hibp.mode = 'mati';
+  const n = hibp.log.length;
+  assert.equal((await app.masuk(post({ username: 'rina', password: PW }))).status, 200);
+  assert.equal(hibp.log.length, n);
 });
 
 test('bocor #6: login TIDAK memanggil HIBP (bersih maupun salah password)', async () => {
