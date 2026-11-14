@@ -2797,8 +2797,8 @@ var roomClickables = []; /* target ketuk di alam 'room-N' */
    kamarnya kekecilan gak sih?"): dinding x -3,5..3,5, z -3..3. Batas jalan
    + tabrakan = dinding dikurangi radius avatar 0,4. */
 var ROOM = { minX: -3.1, maxX: 3.1, minZ: -2.6, maxZ: 2.6 };
-var ROOM_BED = { minX: -2.7, maxX: -1.2, minZ: -2.9, maxZ: -0.6 }; /* Ronde 17 — kasur ikut dinding utara baru (-3): z -0,5 */
-var ROOM_TABLE = { minX: -0.9, maxX: -0.1, minZ: -2.9, maxZ: -2.2 }; /* Ronde 16 — meja DIGESER 0,3 m ke timur (celah 0,3 m dari kasur: minX -0,9 vs kasur maxX -1,2 — dulu menempel, berbagi batas x=-1,2; vonis Ryan 10:10); Ronde 17 — nakas ikut dinding utara baru: z -0,5, celah 0,3 m TETAP */
+var ROOM_BED = { minX: -3.5, maxX: -2.0, minZ: -3.0, maxZ: -0.7 }; /* Fix Kasur 15 Nov — selaras dgn matras (pusat -2,75,-1,85, nempel dinding barat+utara); dulu -2,7..-1,2 (Ronde 17 ketinggalan) */
+var ROOM_TABLE = { minX: -1.7, maxX: -0.9, minZ: -3.0, maxZ: -2.3 }; /* Fix Kasur 15 Nov — nakas selaras dgn mesh (pusat -1,3,-2,65); celah 0,3 m dari kasur TETAP (minX -1,7 vs kasur maxX -2,0) */
 var roomLampLight = null; /* Ronde 13a — PointLight lampu tidur di atas meja (13b: ketuk lampu = nyala/mati) */
 var roomHemi = null, roomLampBulbMat = null, roomLampShadeMat = null; /* Ronde 13b — referensi lampu (diredukan saat mati) */
 var ROOM_SPAWN = { x: 0.9, z: -0.5, rot: Math.PI }; /* tengah kamar menghadap kasur + papan nama (utara); Ronde 17: spawn TETAP — kamera 2,8/0,35 tidak diubah (koreksi Ryan 10:28), kamar lega terasa dari ruang kosong di sekeliling */
@@ -2826,7 +2826,7 @@ function buildRoom() {
   /* Ronde 13a — PointLight hangat PINDAH dari langit-langit ke lampu
      tidur di atas meja (ini lampu kamar yang 13b bisa matikan). */
   roomLampLight = new THREE.PointLight(0xffd9a0, 4, 8, 2); /* Ronde 16 — intensitas 15 -> 4 + distance 12 -> 8: lampu 15 membanjiri dinding/kasur jadi blob putih menyilaukan (screenshot Ryan 10:10); 4 = glow hangat lembut */
-  roomLampLight.position.set(-1.8, 1.05, -3.05); /* Fix Lampu Kamar — ikut meja/lampu geser ke barat (dari -0.5) */
+  roomLampLight.position.set(-1.3, 1.05, -2.65); /* Fix Kasur 15 Nov — ikut nakas geser (+0,5 timur, +0,4 selatan); dulu -1,8,-3,05 */
   roomScene.add(roomLampLight);
   box(M.walnutA, 8, 0.1, 7, 0, -0.05, 0, roomScene); /* Fase 1 Task 3 — lantai 8x7; Fix Task 3 #2 — lantai walnut gelap (vonis Ryan: modern lebih kerasa) */
   function wallPlane(w, h, mat, x, y, z, ry, rx) {
@@ -2875,13 +2875,13 @@ function buildRoom() {
      Ronde 17 — kasur geser 0,5 m ke utara (ikut dinding baru z -3).
      Ronde 13b — userData.interact='bed': ketuk kasur = kartu Kasur (Tidur/Duduk),
      bukan lagi kartu dalam-kamar biasa. */
-  var bedFrame = box(M.walnutA, 1.5, 0.3, 2.3, -3.25, 0.15, -2.25, roomScene);
+  var bedFrame = box(M.walnutA, 1.5, 0.3, 2.3, -2.75, 0.15, -1.85, roomScene);
   bedFrame.userData = { card: 'room-in', interact: 'bed' }; roomClickables.push(bedFrame);
-  var mattress = box(M.bedCream, 1.4, 0.18, 2.2, -3.25, 0.39, -2.25, roomScene);
+  var mattress = box(M.bedCream, 1.4, 0.18, 2.2, -2.75, 0.39, -1.85, roomScene);
   mattress.userData = { card: 'room-in', interact: 'bed' }; roomClickables.push(mattress);
-  var blanket = box(M.blanketModern, 1.42, 0.1, 1.3, -3.25, 0.5, -1.8, roomScene);
+  var blanket = box(M.blanketModern, 1.42, 0.1, 1.3, -2.75, 0.5, -1.4, roomScene);
   blanket.userData = { card: 'room-in', interact: 'bed' }; roomClickables.push(blanket);
-  var pillow = box(M.bedCream, 0.9, 0.12, 0.4, -3.25, 0.53, -3.1, roomScene);
+  var pillow = box(M.bedCream, 0.9, 0.12, 0.4, -2.75, 0.53, -2.75, roomScene);
   pillow.userData = { card: 'room-in', interact: 'bed' }; roomClickables.push(pillow);
   /* Ronde 16 — meja DIGESER 0,3 m ke timur (pusat -0,5): celah 0,3 m
      dari kasur (dulu menempel, berbagi batas x=-1,2). Ronde 17 — meja
@@ -2889,25 +2889,25 @@ function buildRoom() {
      BUKAN clickable lagi: ketuk meja = tidak terjadi apa-apa (vonis
      Ryan 10:10 — ketuk meja membuka kartu Kamar itu aneh); alas 0,8x0,7
      di (-0,5, -2,55), sejajar ROOM_TABLE. */
-  box(M.walnutA, 0.8, 0.08, 0.7, -1.8, 0.7, -3.05, roomScene);
-  box(M.steelDark, 0.08, 0.7, 0.08, -2.15, 0.35, -3.35, roomScene);
-  box(M.steelDark, 0.08, 0.7, 0.08, -1.45, 0.35, -3.35, roomScene);
-  box(M.steelDark, 0.08, 0.7, 0.08, -2.15, 0.35, -2.75, roomScene);
-  box(M.steelDark, 0.08, 0.7, 0.08, -1.45, 0.35, -2.75, roomScene);
+  box(M.walnutA, 0.8, 0.08, 0.7, -1.3, 0.7, -2.65, roomScene);
+  box(M.steelDark, 0.08, 0.7, 0.08, -1.65, 0.35, -2.95, roomScene);
+  box(M.steelDark, 0.08, 0.7, 0.08, -0.95, 0.35, -2.95, roomScene);
+  box(M.steelDark, 0.08, 0.7, 0.08, -1.65, 0.35, -2.35, roomScene);
+  box(M.steelDark, 0.08, 0.7, 0.08, -0.95, 0.35, -2.35, roomScene);
   /* Ronde 13a — lampu tidur DI ATAS meja: alas + batang + bohlam
      menyala + kap (Basic = menyala, pola showcase). Mesh terpisah
      dengan userData.interact='lamp' — 13b: ketuk lampu = nyala/mati
      (handler ketuk cek 'interact' dulu sebelum cabang 'room-in'). */
-  var lampBase = cyl(M.steelDark, 0.09, 0.11, 0.03, -1.8, 0.755, -3.05, roomScene);
-  var lampStem = cyl(M.steelDark, 0.02, 0.02, 0.22, -1.8, 0.88, -3.05, roomScene);
+  var lampBase = cyl(M.steelDark, 0.09, 0.11, 0.03, -1.3, 0.755, -2.65, roomScene);
+  var lampStem = cyl(M.steelDark, 0.02, 0.02, 0.22, -1.3, 0.88, -2.65, roomScene);
   /* Ronde 13b — material bohlam/kap DISIMPAN (bukan inline) supaya bisa
      diredupkan saat lampu dimatikan. Ronde 16 — warna nyala dilembutkan
      (bohlam 0xffe9a8 -> 0xffc46b, kap 0xffe0b3 -> 0xeab27a): Basic
      near-white dulu ikut bikin blob menyilaukan; kini amber hangat. */
   roomLampBulbMat = new THREE.MeshBasicMaterial({ color: 0xffc46b });
   roomLampShadeMat = new THREE.MeshBasicMaterial({ color: 0xf0e6d2 }); /* Fase 1 Task 3 — kap krem hangat modern (dari 0xeab27a) */
-  var lampBulb = ball(roomLampBulbMat, 0.045, -1.8, 0.99, -3.05, roomScene);
-  var lampShade = cyl(roomLampShadeMat, 0.09, 0.13, 0.14, -1.8, 1.03, -3.05, roomScene);
+  var lampBulb = ball(roomLampBulbMat, 0.045, -1.3, 0.99, -2.65, roomScene);
+  var lampShade = cyl(roomLampShadeMat, 0.09, 0.13, 0.14, -1.3, 1.03, -2.65, roomScene);
   [lampBase, lampStem, lampBulb, lampShade].forEach(function (m) {
     m.userData = { card: 'room-in', interact: 'lamp' }; roomClickables.push(m);
   });
@@ -3139,18 +3139,18 @@ function showRoomCardInside() {
    (grup x1,1; pinggul lokal 0,72; kaki 0,72) — angka-angkanya diuji harness. */
 var roomPose = null; /* null | 'sleep' | 'sit' */
 var roomLampOn = true; /* lampu tidur nyala (13a) / mati */
-var POSE_SLEEP = { x: -1.95, z: -0.75, y: 0.8, rotX: -Math.PI / 2, rotY: 0, leg: 0 };
-/* tidur: kaki di z -0,75 -> kepala di -2,75 (di atas bantal -2,8..-2,4);
+var POSE_SLEEP = { x: -2.75, z: -0.75, y: 0.8, rotX: -Math.PI / 2, rotY: 0, leg: 0 };
+/* tidur: kaki di z -0,75 -> kepala di -2,75 (di atas bantal -2,95..-2,55);
    grup y 0,80 = matras 0,48 + badan rebah r 0,30 (rambut 0,33);
    rotX -PI/2 = kepala ke utara, wajah ke atas. Ronde 17 — jangkar ikut
    kasur geser 0,5 m ke utara (dulu kaki -0,25 / kepala -2,25). */
-var POSE_SIT = { x: -1.95, z: -0.65, y: -0.31, rotX: 0, rotY: 0, leg: -0.92 };
+var POSE_SIT = { x: -2.75, z: -0.65, y: -0.31, rotX: 0, rotY: 0, leg: -0.92 };
 /* duduk: tepi selatan kasur; pinggul di atas matras (grup y -0,31:
    pinggul 0,72x1,1 = 0,79 di atas origin); kaki -0,92 rad (52,6°)
    supaya telapak menyentuh lantai (kaki 0,79 m, matras 0,48 m:
    cos = 0,48/0,79); hadap selatan (rotY 0, ke arah ruangan).
    Ronde 17 — jangkar ikut kasur geser 0,5 m ke utara (dulu z -0,15). */
-var WAKE_SPOT = { x: -1.95, z: 0.2, rotY: 0 }; /* bangun: di luar footprint kasur (z max -0,6), lantai bebas; Ronde 17 — ikut kasur geser 0,5 m ke utara (dulu z 0,7) */
+var WAKE_SPOT = { x: -2.75, z: 0.2, rotY: 0 }; /* bangun: di luar footprint kasur (z max -0,7), lantai bebas; Fix Kasur 15 Nov — ikut kasur (dulu x -1,95) */
 /* Tahap 1 — jangkar pose aktif (kasur ATAU kursi gazebo): posisi + tinggi +
    rotasi + sudut kaki + titik bangun. roomPose tetap jadi status yang
    dipublish ('sit'/'sleep'); poseJangkar = DI MANA pose itu dipasang. */
@@ -3714,7 +3714,8 @@ function updateRoomCount() {
   if (!OCCUPANTS) return;
   roomCountEl.textContent = '20 kamar · ' + (20 - OCCUPANTS.length) + ' kosong';
 }
-function openCard() { ibuBicara = false; cardEl.classList.add('open'); document.body.classList.add('card-open'); } /* Tahap 1: kartu lain = Ibu berhenti menoleh */
+var kartuTahanKlik = 0; /* Fix Ketuk-Kartu 15 Nov — id timeout penahan klik kartu (tap-through) */
+function openCard() { ibuBicara = false; cardEl.classList.add('open'); document.body.classList.add('card-open'); /* Tahap 1: kartu lain = Ibu berhenti menoleh */ /* Fix Ketuk-Kartu 15 Nov — tahan klik 400ms: ketukan yg membuka kartu (pointerup -> canvasTap -> showBedCard) diikuti event click di titik yg sama; kalau kartu baru muncul menutupi titik itu, click mendarat di tombol kartu (Tidur/Keluar) dan tidur/keluar tanpa sengaja (laporan Ryan 00:08). pointer-events none 400ms memblokir click hantu itu; ketukan sengaja (sesudah kartu terlihat) tetap jalan. */ cardEl.style.pointerEvents = 'none'; if (kartuTahanKlik) clearTimeout(kartuTahanKlik); kartuTahanKlik = setTimeout(function () { cardEl.style.pointerEvents = ''; kartuTahanKlik = 0; }, 400); }
 function closeCard() {
   ibuBicara = false;
   cardEl.classList.remove('open'); document.body.classList.remove('card-open');
