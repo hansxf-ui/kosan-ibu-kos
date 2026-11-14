@@ -897,6 +897,31 @@ var YARD = { minX: -19, maxX: 46, minZ: -17, maxZ: 17 }; /* Ronde 61 — Gedung 
 var BUILDING = { minX: -14.4, maxX: 12.4, minZ: -14.4, maxZ: -5.4 }; /* Fase 1 Task 1: dinding barat baru x=-14 (dilebarin ke barat) */
 var BUILDING_B = { minX: 17.6, maxX: 44.4, minZ: -14.4, maxZ: -5.4 }; /* Fase 1 Task 2: dinding timur baru x=44 (dilebarin ke timur) */ /* Ronde 61 — Gedung B (kembaran Gedung A, offset x=+30) */
 var TABLE_BOX = { minX: 15.2, maxX: 16.8, minZ: -2.8, maxZ: -1.2 };
+/* Tangga lantai 2 (Ryan 18:30) — KOLONG TANGGA padat untuk avatar tanah.
+   Koridor tangga di atas strip masuk selatan (z -13,5..-9,0) adalah solid:
+   tanpa ini avatar tanah masuk koridor dari sisi barat/timur atau utara
+   di level 0 (lantaiY koridor dijaga level=1 sejak Fix Loop C1) dan
+   menembus anak tangga + handrail + stringer (screenshot Ryan 17:22:
+   handrail melintang di depan muka avatar di kaki tangga). Koridor A
+   diperlebar 0,4 m ke sisi luar (x -16,0) supaya badan avatar (radius
+   0,4) tidak menyentuh handrail/tiang di x=-15,6. Koridor B TIDAK
+   diperlebar ke timur (maxX=45,6 = tepi koridor): halaman berakhir di
+   x=46 — pelebaran ke 46,0 akan menaruh muka solid di 46,4 (di luar
+   batas jalan) sehingga kandidat dorong timur resolveAABB dijepit ke
+   x=46 (masih di dalam kotak) dan ditolak, avatar malah didorong
+   MENEMBUS solid ke muka gedung. Dengan maxX=45,6, muka timur yang
+   diperluas (46,0) tepat di batas jalan dan kandidatnya valid.
+   Batas utara z=-9,0: di situ stringer bawah sudah di atas kepala
+   (h=2,64, bawah stringer 2,21 > tinggi karakter ~2,06) — avatar tanah
+   BOLEH jalan di bawah penerbangan atas/pendaratan (headroom cukup).
+   Strip masuk selatan (z -14..-13,5) SENGAJA tidak padat — satu-satunya
+   pintu naik (lantaiY di strip tanpa jaga level, avatar terangkat
+   bertahap jadi level 1). Dipakai HANYA di cabang level=0 (avatar
+   level=1 di ramp/balkon lewat clampBalcony, tidak kena solid ini). */
+var STAIR_SOLIDS = [
+  { minX: -16.0, maxX: -14.4, minZ: -13.5, maxZ: -9.0 }, /* koridor A */
+  { minX: 44.4, maxX: 45.6, minZ: -13.5, maxZ: -9.0 } /* koridor B (tanpa pelebaran timur — halaman berakhir di x=46) */
+];
 /* Fase 0 (Masterplan Kosan Modern) — kotak padat bedeng lapangan
    (4 segmen; dipakai loop resolveAABB di cabang halaman). */
 var PLAZA_SOLIDS = [
@@ -1603,17 +1628,22 @@ function buildWorld() {
   });
 
   /* balkon lantai 2 (selebar gedung baru 26 m) + pagar kaca + kolom */
-  /* Fix Bug Tangga/Balkon (Masalah C): lantai diperlebar 26 -> 27,6 m ke ujung
-     LUAR (x -15,6..12) supaya menutup celah lantai di sambungan tangga<->balkon
-     (x -15,6..-14, z -6,0..-5,6 — dulu avatar jalan di y=4,225 tanpa mesh di
-     bawahnya); 0 mesh baru, hanya lebar + geser pusat. */
+  /* Pagar kaca balkon (depan + samping, A dan B): bawah kaca HARUS di
+     permukaan deck (y=4,225) — tinggi 0,925, pusat y=4,6875, atas tetap
+     5,15 (rel atas). Perbaikan 19:01 atas lingkaran Ryan 18:01 ("kelebihan
+     tuh kacanya, gak pas kayak yang lain"): tadinya kaca 1,0 m (y 4,15..5,15)
+     menumpang 7,5 cm DI BAWAH permukaan deck, menutupi tepi atas fascia kayu
+     — fascia jadi 2 warna (pucat di balik kaca + kayu polos di bawahnya).
+     Kini kaca duduk DI ATAS deck, fascia kayu satu warna bersih. */
   box(M.floorWood, 27.6, 0.25, 1.8, -1.8, 4.1, -5.1);
   [-10.75, -4.25, 2.25, 8.75].forEach(function (x) {
-    box(M.glassRail, 6.3, 1.0, 0.03, x, 4.65, -4.22);
+    box(M.glassRail, 6.3, 0.925, 0.03, x, 4.6875, -4.22);
   });
-  box(M.steelDark, 26, 0.12, 0.12, -1, 5.15, -4.2);
-  box(M.steelDark, 0.12, 1.05, 0.12, -13.5, 4.62, -4.2);
-  box(M.steelDark, 0.12, 1.05, 0.12, 10.5, 4.62, -4.2);
+  /* Penghalang ujung LUAR (Ryan 18:25): perpanjang kaca depan sampai ujung
+     deck (x=-15,6) — segmen 1,5 m, celah 0,2 m ke segmen lama (sama seperti
+     antar segmen) + rel atas diperpanjang ke x=-15,6. */
+  box(M.glassRail, 1.5, 0.925, 0.03, -14.85, 4.6875, -4.22);
+  box(M.steelDark, 27.6, 0.12, 0.12, -1.8, 5.15, -4.2);
 
   /* Tangga lantai 2 (Ryan 16:28) — Gedung A barat (x=-14): 16 tread tipis
      (tangga terbuka, Ryan 17:29 — permukaan atas TETAP (i+1)*0,264, sama
@@ -1640,11 +1670,22 @@ function buildWorld() {
   });
 
   /* Pagar samping balkon (Ryan 16:22) — tutup ujung DALAM (A timur, x=12)
-     supaya orang tidak jatuh; ujung LUAR (barat, x=-14) TERBUKA (akses tangga). */
-  box(M.glassRail, 0.03, 1.0, 1.8, 12, 4.65, -5.1);
+     supaya orang tidak jatuh. TANPA TIANG SAMA SEKALI (Ryan 18:52 + 18:54:
+     "harus sama semua" — sambungan kaca yang samar; tiang kaca depan DIBUANG,
+     tiang hitam belakang (z=-6,0) DIBUANG juga biar panel dalam = panel
+     luar = sambungan kaca, tidak ada yang beda). */
+  box(M.glassRail, 0.03, 0.925, 1.8, 12, 4.6875, -5.1);
   box(M.steelDark, 0.12, 0.12, 1.8, 12, 5.15, -5.1);
-  box(M.steelDark, 0.12, 1.05, 0.12, 12, 4.62, -6.0);
-  box(M.steelDark, 0.12, 1.05, 0.12, 12, 4.62, -4.2);
+  /* Penghalang ujung LUAR (Ryan 18:25) — panel samping kaca di sisi luar
+     pendaratan (x=-15,6, z -6..-4,2, sedalam panel dalam); tepi utara panel
+     (z=-6,0) MENYAMBUNG ujung handrail miring (berakhir z≈-6,0, y≈5,10) —
+     perbaikan 18:52 atas lingkaran Ryan 17:47: tadinya panel cuma
+     z -5,4..-4,2, ada celah 0,6 m tanpa pagar antara ujung handrail dan
+     panel. SUDUT DEPAN TANPA TIANG (Ryan 18:52: "suka yang kayak gue
+     tandain" = sambungan kaca yang samar — tiang kaca di sudut DIBUANG,
+     kaca depan + panel samping ketemu langsung seperti sambungan). */
+  box(M.glassRail, 0.03, 0.925, 1.8, -15.6, 4.6875, -5.1);
+  box(M.steelDark, 0.12, 0.12, 1.8, -15.6, 5.15, -5.1);
 
   /* kanopi masuk (pelat + strip glow + 2 kolom; AABB di PLAZA_SOLIDS)
      — Fix Preview Check (Ryan 15:29): naik ke atas jendela lantai 1
@@ -1729,11 +1770,13 @@ function buildWorld() {
      (x 44..45,6, z -6,0..-5,6); 0 mesh baru, hanya lebar + geser pusat. */
   box(M.floorWood, 27.6, 0.25, 1.8, 31.8, 4.1, -5.1);
   [21.25, 27.75, 34.25, 40.75].forEach(function (x) {
-    box(M.glassRail, 6.3, 1.0, 0.03, x, 4.65, -4.22);
+    box(M.glassRail, 6.3, 0.925, 0.03, x, 4.6875, -4.22);
   });
-  box(M.steelDark, 26, 0.12, 0.12, 31, 5.15, -4.2);
-  box(M.steelDark, 0.12, 1.05, 0.12, 18.5, 4.62, -4.2);
-  box(M.steelDark, 0.12, 1.05, 0.12, 42.5, 4.62, -4.2);
+  /* Penghalang ujung LUAR (Ryan 18:25): perpanjang kaca depan sampai ujung
+     deck (x=45,6) — segmen 1,5 m, celah 0,2 m ke segmen lama + rel atas
+     diperpanjang ke x=45,6. */
+  box(M.glassRail, 1.5, 0.925, 0.03, 44.85, 4.6875, -4.22);
+  box(M.steelDark, 27.6, 0.12, 0.12, 31.8, 5.15, -4.2);
 
   /* Tangga lantai 2 (Ryan 16:28) — Gedung B timur (x=44): cerminan A.
      16 tread tipis BETON M.slateSoft (koreksi Ryan 17:37) + 2 stringer
@@ -1753,12 +1796,21 @@ function buildWorld() {
     box(M.steelDark, 0.08, 1.0, 0.08, 45.6, ry - 0.5, z);
   });
 
-  /* Pagar samping balkon (Ryan 16:22) — tutup ujung DALAM (B barat, x=18);
-     ujung LUAR (timur, x=44) TERBUKA (akses tangga). */
-  box(M.glassRail, 0.03, 1.0, 1.8, 18, 4.65, -5.1);
+  /* Pagar samping balkon (Ryan 16:22) — tutup ujung DALAM (B barat, x=18).
+     TANPA TIANG SAMA SEKALI (Ryan 18:52 + 18:54: "harus sama semua" —
+     tiang kaca depan DIBUANG, tiang hitam belakang (z=-6,0) DIBUANG juga). */
+  box(M.glassRail, 0.03, 0.925, 1.8, 18, 4.6875, -5.1);
   box(M.steelDark, 0.12, 0.12, 1.8, 18, 5.15, -5.1);
-  box(M.steelDark, 0.12, 1.05, 0.12, 18, 4.62, -6.0);
-  box(M.steelDark, 0.12, 1.05, 0.12, 18, 4.62, -4.2);
+  /* Penghalang ujung LUAR (Ryan 18:25) — panel samping kaca di sisi luar
+     pendaratan (x=45,6, z -6..-4,2, sedalam panel dalam); tepi utara panel
+     (z=-6,0) MENYAMBUNG ujung handrail miring (berakhir z≈-6,0, y≈5,10) —
+     perbaikan 18:52 atas lingkaran Ryan 17:47: tadinya panel cuma
+     z -5,4..-4,2, ada celah 0,6 m tanpa pagar antara ujung handrail dan
+     panel. SUDUT DEPAN TANPA TIANG (Ryan 18:52: "suka yang kayak gue
+     tandain" = sambungan kaca yang samar — tiang kaca di sudut DIBUANG,
+     kaca depan + panel samping ketemu langsung seperti sambungan). */
+  box(M.glassRail, 0.03, 0.925, 1.8, 45.6, 4.6875, -5.1);
+  box(M.steelDark, 0.12, 0.12, 1.8, 45.6, 5.15, -5.1);
 
   /* kanopi masuk (pelat + strip glow + 2 kolom; AABB di PLAZA_SOLIDS)
      — Fix Preview Check (Ryan 15:29): naik ke atas jendela lantai 1
@@ -5606,8 +5658,13 @@ function lantaiY(x, z) {
   if (avatarLevel === 1) {
     if (x >= -15.6 && x <= -14.4 && z > -13.5 && z <= -5.4) return BALCONY_Y * Math.min(1, (z + 14) / 8);
     if (x >= 44.4 && x <= 45.6 && z > -13.5 && z <= -5.4) return BALCONY_Y * Math.min(1, (z + 14) / 8);
-    if (x >= -14.4 && x <= 11.6 && z >= -5.4 && z <= -4.6) return BALCONY_Y;
-    if (x >= 18.4 && x <= 44.4 && z >= -5.4 && z <= -4.6) return BALCONY_Y;
+    /* Pendaratan tangga (Ryan 18:25): rect balkon diperlebar ke ujung luar
+       (A sampai x=-15,6, B sampai x=45,6) supaya pendaratan ikut terjepit
+       level=1 — avatar di puncak tangga bisa berdiri di petak pendaratan
+       (x -15,6..-14,4 / 44,4..45,6, z -5,4..-4,6) yang kini tertutup
+       panel kaca samping + tiang kaca. */
+    if (x >= -15.6 && x <= 11.6 && z >= -5.4 && z <= -4.6) return BALCONY_Y;
+    if (x >= 18.4 && x <= 45.6 && z >= -5.4 && z <= -4.6) return BALCONY_Y;
   }
   return 0;
 }
@@ -5620,13 +5677,21 @@ function lantaiY(x, z) {
    tersambung di sudut (-14,4, -5,4) / (44,4, -5,4) — balkon z -5,4..-4,6
    (hanya overhang DI LUAR dinding z=-5,4) + koridor z -14..-5,4; avatar
    menyeberang di z=-5,4 (jepit-terdekat membantu snap diagonal); avatar
-   tetap tidak bisa keluar dari gabungan itu. */
+   tetap tidak bisa keluar dari gabungan itu.
+   JEPIT SADAR RADIUS (Ryan 19:16: "buat agar gak nembus gitu dong" —
+   handrail koridor menembus badan avatar saat jalan di tepi barat):
+   pusat avatar dijepit 0,3 m ke DALAM (R badan ~0,3, torso/rok ~0,6 m)
+   supaya BADAN tidak menembus handrail (x=-15,6/45,6, tebal 0,08) /
+   panel kaca samping / kaca depan (z=-4,22) / dinding kamar (z=-5,4).
+   Tepi selatan koridor (z=-14) TIDAK dijepit — di sanalah lantaiY jadi 0
+   dan avatar pindah ke level=0 (keluar ke tanah); tepi utara koridor =
+   tepi utara balkon (z=-5,1) supaya keduanya TETAP tersambung. */
 function clampBalcony(nx, nz) {
   var rects = [
-    { minX: -15.6, maxX: -14.4, minZ: -14, maxZ: -5.4 }, /* koridor A */
-    { minX: -14.4, maxX: 11.6, minZ: -5.4, maxZ: -4.6 }, /* balkon A */
-    { minX: 44.4, maxX: 45.6, minZ: -14, maxZ: -5.4 }, /* koridor B */
-    { minX: 18.4, maxX: 44.4, minZ: -5.4, maxZ: -4.6 } /* balkon B */
+    { minX: -15.25, maxX: -14.7, minZ: -14, maxZ: -5.1 }, /* koridor A (barat -15,25: badan 0,3 m dari handrail x=-15,6) */
+    { minX: -15.25, maxX: 11.3, minZ: -5.1, maxZ: -4.6 }, /* balkon A */
+    { minX: 44.7, maxX: 45.25, minZ: -14, maxZ: -5.1 }, /* koridor B */
+    { minX: 18.7, maxX: 45.25, minZ: -5.1, maxZ: -4.6 } /* balkon B */
   ];
   for (var i = 0; i < rects.length; i++) {
     var r = rects[i];
@@ -5718,6 +5783,10 @@ function animate() {
         nx = cy.x; nz = cy.z;
         /* Fase 0 — bedeng lapangan: AABB padat (pola meja teras). */
         for (var i = 0; i < PLAZA_SOLIDS.length; i++) { var cs = resolveAABB(nx, nz, PLAZA_SOLIDS[i], 0.4, YARD); nx = cs.x; nz = cs.z; }
+        /* Tangga lantai 2 (Ryan 18:30) — kolong tangga padat untuk avatar
+           tanah (STAIR_SOLIDS di atas); avatar level=1 (di ramp/balkon)
+           lewat cabang clamp di atas, tidak kena solid ini. */
+        for (var i = 0; i < STAIR_SOLIDS.length; i++) { var ck = resolveAABB(nx, nz, STAIR_SOLIDS[i], 0.4, YARD); nx = ck.x; nz = ck.z; }
       }
     }
     /* Ronde 12a — jepit ULANG ke batas alam SESUDAH dorongan perabot:
