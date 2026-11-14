@@ -4064,7 +4064,7 @@ function krGeoKaki(sampai) {
   var pr = [[0.05, sampai], [0.054, sampai + 0.03], [0.056, -0.56], [0.064, -0.5], [0.08, -0.43], [0.088, -0.38],
     [0.084, -0.33], [0.075, -0.28], [0.079, -0.22], [0.09, -0.12], [0.096, -0.04], [0.096, 0.02]];
   var kurva = new THREE.SplineCurve(pr.map(function (q) { return new THREE.Vector2(q[0], q[1]); }));
-  var geo = new THREE.LatheGeometry(kurva.getPoints(18), 12);
+  var geo = new THREE.LatheGeometry(kurva.getPoints(14), 10);
   var P = geo.attributes.position;
   for (var i = 0; i < P.count; i++) {
     var y = P.getY(i), z = P.getZ(i);
@@ -4257,19 +4257,19 @@ function makeKosanAvatar(gender, rupa, opt) {
      sama (sendi + jarak ke rok tidak berubah). */
   [-1, 1].forEach(function (sx, k) {
     var arm = pivot(sx * 0.34, 1.16, 0, sx * 0.2);
-    var lenganGeo = new THREE.CapsuleGeometry(0.088, 0.16, 4, 12); lenganGeo.translate(0, -0.08, 0);
-    pasang([{ geo: lenganGeo, m: new THREE.Matrix4() }, krBagian(new THREE.TorusGeometry(0.086, 0.019, 6, 16), 0, -0.2, 0, Math.PI / 2)], bajuMat, arm);
+    var lenganGeo = new THREE.CapsuleGeometry(0.088, 0.16, 3, 10); lenganGeo.translate(0, -0.08, 0);
+    pasang([{ geo: lenganGeo, m: new THREE.Matrix4() }, krBagian(new THREE.TorusGeometry(0.086, 0.019, 4, 12), 0, -0.2, 0, Math.PI / 2)], bajuMat, arm);
     var dalam = -sx; /* arah ke badan (x lokal lengan) */
     var tangan = [
-      krBagian(new THREE.CylinderGeometry(0.063, 0.05, 0.25, 12), 0, -0.31, 0), /* lengan bawah meruncing */
-      krBagian(new THREE.SphereGeometry(1, 12, 8), 0, -0.185, 0, 0, 0, 0, 0.064, 0.05, 0.064), /* siku (tutup atas, di dalam manset) */
-      krBagian(new THREE.SphereGeometry(1, 16, 12), dalam * 0.006, -0.475, 0.004, 0, 0, dalam * 0.08, 0.046, 0.068, 0.062) /* telapak pipih */
+      krBagian(new THREE.CylinderGeometry(0.063, 0.05, 0.25, 8, 1, true), 0, -0.31, 0), /* lengan bawah meruncing */
+      krBagian(new THREE.SphereGeometry(1, 8, 5), 0, -0.185, 0, 0, 0, 0, 0.064, 0.05, 0.064), /* siku (tutup atas, di dalam manset) */
+      krBagian(new THREE.SphereGeometry(1, 10, 8), dalam * 0.006, -0.475, 0.004, 0, 0, dalam * 0.08, 0.046, 0.068, 0.062) /* telapak pipih */
     ];
     /* jari = satu kepalan sarung tangan bulat (gaya chibi: jari terpisah di ukuran
        ini terbaca seperti cakar), menyatu mulus dengan telapak, sedikit menekuk
        ke badan; ibu jari kecil menempel di sisi depan telapak. */
-    tangan.push(krBagian(new THREE.SphereGeometry(1, 16, 12), dalam * 0.012, -0.522, 0.002, 0, 0, dalam * 0.28, 0.043, 0.046, 0.058));
-    tangan.push(krBagian(new THREE.CapsuleGeometry(0.0175, 0.022, 4, 10), dalam * 0.014, -0.478, 0.056, 0.38, 0, dalam * 0.12)); /* ibu jari */
+    tangan.push(krBagian(new THREE.SphereGeometry(1, 10, 8), dalam * 0.012, -0.522, 0.002, 0, 0, dalam * 0.28, 0.043, 0.046, 0.058));
+    tangan.push(krBagian(new THREE.CapsuleGeometry(0.0175, 0.022, 2, 6), dalam * 0.014, -0.478, 0.056, 0.38, 0, dalam * 0.12)); /* ibu jari */
     pasang(tangan, kulit, arm);
     if (k === 0) parts.armL = arm; else parts.armR = arm;
   });
