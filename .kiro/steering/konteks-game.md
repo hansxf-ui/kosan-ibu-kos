@@ -19,8 +19,22 @@ virtual yang dibangun bareng penonton Instagram.
   (sekarang 20 kamar, sudah penuh), lalu bisa jalan-jalan di halaman, duduk
   di gazebo, masuk ruang tamu, masak di dapur, ketemu penghuni lain yang
   sedang online, dan naik tangga ke balkon lantai dua.
-- Tidak ada misi dan tidak ada musuh. Intinya: punya kamar, punya tetangga,
-  dan melihat kosnya makin lama makin jadi.
+- Ada **Misi Harian** ringan dan **Bintang Kosan**: aktivitas sehari-hari
+  (masuk kamar, tidur, jalan-jalan, main Lempar Sendal, dan sejenisnya)
+  memberi +1 Bintang, sekali per misi per hari. Semuanya lokal di HP pemain
+  dan reset tiap hari (WIB). Ryan menyetujui (14 Nov) aktivitas baru boleh
+  masuk Misi Harian dan memberi Bintang.
+- Misi dan Bintang adalah ajakan untuk mencoba isi kos, bukan kompetisi:
+  tidak ada papan peringkat, tidak ada hadiah server, dan tidak ada musuh.
+  Intinya tetap: punya kamar, punya tetangga, dan melihat kosnya makin lama
+  makin jadi.
+
+## Aturan menambah isi dunia
+
+- **Fasilitas besar** (misalnya kolam, AC, TV, warung) hanya muncul setelah
+  menang di komentar penonton dan dibangun di episode, satu per episode.
+- **Benda kecil pendukung aktivitas** yang sudah disetujui (misalnya
+  keranjang cucian, menu masak, kucing kos) boleh ditambah langsung.
 
 ## Yang dijaga saat mengetes atau mengubah game
 
