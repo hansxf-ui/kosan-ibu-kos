@@ -168,6 +168,7 @@ Sapaan:
 9. "Kalau capek, rebahan dulu di kasur. Kamar itu rumahmu."
 10. "Kode kunci kamar selalu Ibu taruh di caption video terbaru."
 11. "Lempar sendal boleh, asal jangan ke jendela tetangga."
+
 Kalimat ke-12 di draf ("Nanti kalau kos makin rame, Ibu bikin acara kumpul-kumpul") dicoret Ryan karena kedengaran janji.
 
 ## 6. Misi Harian
