@@ -788,6 +788,24 @@
   /* Tahap 1 — gelembung kalimat Ibu Kos di kartu */
   .ibu-gelembung { margin-top: 8px; padding: 10px 12px; background: var(--kb-biru-muda); color: var(--kb-teks);
     border-radius: 14px 14px 14px 4px; font-weight: 700; line-height: 1.45; }
+  /* Tahap 2 — tombol + menu emote (daftar tetap 8, grid 4x2). Menu fixed
+     (JS menaruh top di bawah tombol) supaya tidak terpotong tepi kanan HP. */
+  #emoteDropdown { position: relative; }
+  #emoteBtn { background: #fff; color: var(--kb-biru); }
+  #emoteMenu { display: none; position: fixed; left: 12px; top: 120px; z-index: 30;
+    width: min(320px, calc(100vw - 24px)); grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding: 8px;
+    background: #fff; border-radius: 16px; box-shadow: 0 16px 40px rgba(13,38,76,.28), inset 0 0 0 1px rgba(19,37,58,.06); }
+  #emoteMenu.open { display: grid; animation: kbTurun .14s ease-out; }
+  #emoteMenu button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px 5px;
+    background: #fff; color: var(--kb-teks); border: none; border-radius: 12px; box-shadow: none; cursor: pointer;
+    font-family: 'Nunito', sans-serif; font-size: 11px; font-weight: 800; white-space: nowrap; }
+  #emoteMenu button:hover, #emoteMenu button:active { background: var(--kb-biru-muda); }
+  #emoteMenu button:active { transform: scale(.95); }
+  #emoteMenu img { width: 40px; height: 40px; display: block; pointer-events: none; }
+  @media (max-height: 500px) and (orientation: landscape) {
+    #emoteMenu { width: min(420px, calc(100vw - 24px)); grid-template-columns: repeat(8, minmax(0, 1fr)); }
+    #emoteMenu img { width: 34px; height: 34px; }
+  }
   /* =================== AKHIR UI REFRESH =================== */
 </style>
 <script type="importmap">
@@ -881,6 +899,11 @@
         <button id="livingBtn" type="button" title="Masuk ke ruang tamu"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 21h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> RUANG TAMU</button>
         <button id="dapurBtn" type="button" title="Masuk ke dapur (mesin cuci + pengering)"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="13" r="5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="7" y="6" width="10" height="2" fill="currentColor"/></svg> DAPUR</button>
       </div>
+    </div>
+    <!-- Tahap 2 — emote: daftar TETAP 8 (tanpa teks bebas). Isi menu dibangun JS (ikon kanvas). -->
+    <div class="dropdown" id="emoteDropdown">
+      <button id="emoteBtn" type="button" title="Kirim emote" aria-expanded="false" aria-haspopup="true"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="10" r="1.2" fill="currentColor"/><circle cx="15" cy="10" r="1.2" fill="currentColor"/><path d="M8 14.5a4.5 4.5 0 0 0 8 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Emote</button>
+      <div id="emoteMenu" role="menu" aria-label="Pilih emote"></div>
     </div>
   </div>
 </div>
@@ -1457,15 +1480,32 @@ function mpRealmDikenal(realm) {
   if (typeof realm === 'string' && /^room-(?:[1-9]|1[0-9]|20)$/.test(realm)) return realm;
   return 'yard'; /* realm tak dikenal -> perlakukan sebagai yard (§2.7) */
 }
-function mpPoseDikenal(pose) { /* Ronde 15a — pose sinkron: 'stand' | 'sit' | 'sleep'; hilang/tak dikenal -> 'stand' (kompatibel mundur) */
-  if (pose === 'sleep' || pose === 'sit') return pose;
+function mpPoseDikenal(pose) { /* Ronde 15a — pose sinkron: 'stand' | 'sit' | 'sleep'; hilang/tak dikenal -> 'stand' (kompatibel mundur).
+   Tahap 2: + 'lesehan' (duduk di bantal lantai, pinggul 0,24 m — 'sit' dipasang untuk dudukan 0,48 m).
+   Klien lama memetakan 'lesehan' ke 'stand' (berdiri di bantal) sampai dimuat ulang. */
+  if (pose === 'sleep' || pose === 'sit' || pose === 'lesehan') return pose;
   return 'stand';
 }
-function mpBangunPos(id, nama, gender, realm, x, z, rot, gerak, ts, pose) {
-  return { id: id, nama: (nama || '').trim().slice(0, 40) || 'Pemain', gender: gender,
+/* Tahap 2 — emote: daftar TETAP (urutan = urutan menu). Hanya id dari
+   daftar ini yang dikirim/diterima; TIDAK ada teks bebas (chat menunggu
+   relay Fase B). Pesan pos membawa emote + emoteTs (jam mulai di pengirim)
+   HANYA selama emote aktif; klien lama mengabaikan field ini. */
+var EMOTE_IDS = ['lambai', 'tawa', 'sedih', 'sayang', 'marah', 'ngantuk', 'hore', 'mantap'];
+var EMOTE_DUR_MS = 3000; /* emote tampil ±3 dtk */
+var EMOTE_JEDA_MS = 800; /* jeda minimum antar emote (kirim + terima: banjir emote tidak bikin kedip) */
+function mpEmoteDikenal(e) {
+  return (typeof e === 'string' && EMOTE_IDS.indexOf(e) !== -1) ? e : null;
+}
+function mpEmoteTsSah(t) {
+  return typeof t === 'number' && isFinite(t) && t > 0 && t <= 1e15;
+}
+function mpBangunPos(id, nama, gender, realm, x, z, rot, gerak, ts, pose, emote, emoteTs) {
+  var o = { id: id, nama: (nama || '').trim().slice(0, 40) || 'Pemain', gender: gender,
     realm: mpRealmDikenal(realm), x: x, z: z,
     rot: Math.atan2(Math.sin(rot), Math.cos(rot)),
     gerak: Math.max(0, Math.min(1, gerak)), ts: ts, pose: mpPoseDikenal(pose) };
+  if (mpEmoteDikenal(emote) && mpEmoteTsSah(emoteTs)) { o.emote = emote; o.emoteTs = emoteTs; } /* Tahap 2 */
+  return o;
 }
 function mpBangunPresence(id, nama, gender, realm, ts) {
   return { id: id, nama: (nama || '').trim().slice(0, 40) || 'Pemain', gender: gender,
@@ -1486,7 +1526,10 @@ function mpValidasiPos(m, selfId) {
   return { id: m.id, nama: nama, gender: m.gender,
     realm: mpRealmDikenal(typeof m.realm === 'string' ? m.realm : 'yard'),
     x: m.x, z: m.z, rot: Math.atan2(Math.sin(m.rot), Math.cos(m.rot)), gerak: m.gerak,
-    ts: (typeof m.ts === 'number' ? m.ts : 0), pose: mpPoseDikenal(m.pose) };
+    ts: (typeof m.ts === 'number' ? m.ts : 0), pose: mpPoseDikenal(m.pose),
+    /* Tahap 2 — emote: id dari daftar tetap + ts sah, selain itu null (pesan TETAP diterima) */
+    emote: (mpEmoteDikenal(m.emote) && mpEmoteTsSah(m.emoteTs)) ? m.emote : null,
+    emoteTs: (mpEmoteDikenal(m.emote) && mpEmoteTsSah(m.emoteTs)) ? m.emoteTs : 0 };
 }
 function mpValidasiPresence(m, selfId) {
   if (!m || typeof m !== 'object') return null;
@@ -2377,6 +2420,184 @@ var LIVING_SPAWN = { x: 1.2, z: -0.5, rot: Math.PI }; /* tengah ruangan menghada
 var myRealm = 'yard'; /* alam aktif: 'yard' | 'living' (MULTIPLAYER-SPEC §8) */
 var savedYard = { x: 0, z: 12, rot: Math.PI, camDist: KOSAN_CAM.dist, camYaw: 0, camPitch: 0.25, camTarget: { x: 0, y: 0, z: 12 } }; /* posisi + framing halaman sebelum masuk ruangan (Ronde 10c: yaw/pitch ikut disimpan; Ronde 10d: pitch ikut 0,25 spawn; Ronde 10e: camTarget ikut disimpan — dulu hanya posisi avatar yang dipakai sebagai target bidik, padahal camTarget tertinggal sampai 0,38 m di belakang avatar kalau masuk tepat setelah berhenti jalan -> framing pulih bergeser) */
 
+/* ================= Tahap 2 — aset hero: helper bentuk empuk + tekstur lukis =================
+   Perintah Ryan 15 Nov 00:25 (TV + meja TV, sofa, AC + TV dinding tiap
+   kamar). Standar hero + modern luxury: bentuk multi-part bertepi bulat
+   (ExtrudeGeometry ber-bevel, bukan kotak polos) + tekstur kanvas yang
+   dilukis (kain, serat kayu, layar TV, muka AC). Elemen menyala (layar,
+   LED) = MeshBasicMaterial; satu bidang per bukaan (tanpa tumpukan kaca). */
+var T2GEO = {}; /* cache geometri empuk per ukuran */
+function geoEmpuk(w, h, d, r) {
+  var kunci = [w, h, d, r].join('|');
+  if (T2GEO[kunci]) return T2GEO[kunci];
+  var b = Math.min(r, d * 0.45, w * 0.45, h * 0.45); /* bevel = jari-jari tepi */
+  var rw = w - 2 * b, rh = h - 2 * b, rr = Math.max(0.002, Math.min(r * 0.6, rw / 2, rh / 2));
+  var sh = new THREE.Shape(), x0 = -rw / 2, y0 = -rh / 2;
+  sh.moveTo(x0 + rr, y0);
+  sh.lineTo(x0 + rw - rr, y0); sh.quadraticCurveTo(x0 + rw, y0, x0 + rw, y0 + rr);
+  sh.lineTo(x0 + rw, y0 + rh - rr); sh.quadraticCurveTo(x0 + rw, y0 + rh, x0 + rw - rr, y0 + rh);
+  sh.lineTo(x0 + rr, y0 + rh); sh.quadraticCurveTo(x0, y0 + rh, x0, y0 + rh - rr);
+  sh.lineTo(x0, y0 + rr); sh.quadraticCurveTo(x0, y0, x0 + rr, y0);
+  var dd = Math.max(0.002, d - 2 * b);
+  var geo = new THREE.ExtrudeGeometry(sh, { depth: dd, bevelEnabled: true, bevelThickness: b, bevelSize: b,
+    bevelSegments: 2, curveSegments: 3 });
+  geo.translate(0, 0, -dd / 2);
+  geo.computeVertexNormals();
+  /* UV planar x/y (0..1) supaya tekstur kain/kayu tidak melar di sisi */
+  var pos = geo.attributes.position, uv = geo.attributes.uv;
+  for (var i = 0; i < pos.count; i++) uv.setXY(i, pos.getX(i) / w + 0.5 + pos.getZ(i) / (w + d), pos.getY(i) / h + 0.5);
+  uv.needsUpdate = true;
+  T2GEO[kunci] = geo;
+  return geo;
+}
+function empuk(mat, w, h, d, r, x, y, z, parent) {
+  var m = new THREE.Mesh(geoEmpuk(w, h, d, r), mat);
+  m.position.set(x, y, z);
+  m.castShadow = true; m.receiveShadow = true;
+  parent.add(m);
+  return m;
+}
+function teksturLukis(w, h, lukis, ulang) {
+  var cv = document.createElement('canvas');
+  cv.width = w; cv.height = h;
+  var ctx = cv.getContext('2d');
+  lukis(ctx, w, h);
+  var tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  if (ulang) { tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(ulang[0], ulang[1]); }
+  tex.userData = { lukis: lukis, ctx: ctx, w: w, h: h };
+  return tex;
+}
+function lukisUlangSetelahFont(tex) { /* teks di kanvas: lukis ulang begitu font lokal siap */
+  if (!document.fonts || !document.fonts.ready) return;
+  document.fonts.ready.then(function () { var u = tex.userData; u.ctx.clearRect(0, 0, u.w, u.h); u.lukis(u.ctx, u.w, u.h); tex.needsUpdate = true; });
+}
+function acak(seed) { /* pembangkit acak deterministik (tekstur sama tiap muat) */
+  var h = seed >>> 0;
+  return function () { h = (Math.imul(h, 1664525) + 1013904223) >>> 0; return h / 4294967296; };
+}
+function lukisKain(ctx, w, h) { /* anyaman kain terang (diberi warna lewat material.color) */
+  ctx.fillStyle = '#f4f1ec'; ctx.fillRect(0, 0, w, h);
+  var r = acak(7);
+  for (var y = 0; y < h; y += 2) { ctx.fillStyle = 'rgba(120,100,80,' + (0.05 + r() * 0.05) + ')'; ctx.fillRect(0, y, w, 1); }
+  for (var x = 0; x < w; x += 2) { ctx.fillStyle = 'rgba(255,255,255,' + (0.05 + r() * 0.06) + ')'; ctx.fillRect(x, 0, 1, h); }
+  for (var k = 0; k < 900; k++) { ctx.fillStyle = 'rgba(90,70,50,' + (r() * 0.08) + ')'; ctx.fillRect(r() * w, r() * h, 1, 1); }
+}
+function lukisKayu(ctx, w, h) { /* serat walnut */
+  var gr = ctx.createLinearGradient(0, 0, 0, h);
+  gr.addColorStop(0, '#5a3d27'); gr.addColorStop(0.5, '#4b3220'); gr.addColorStop(1, '#5d4029');
+  ctx.fillStyle = gr; ctx.fillRect(0, 0, w, h);
+  var r = acak(11);
+  for (var i = 0; i < 46; i++) {
+    var y = r() * h, a = 0.05 + r() * 0.12;
+    ctx.strokeStyle = (r() < 0.5 ? 'rgba(30,18,10,' : 'rgba(140,98,62,') + a + ')';
+    ctx.lineWidth = 0.6 + r() * 1.6;
+    ctx.beginPath(); ctx.moveTo(0, y);
+    for (var x = 0; x <= w; x += 16) ctx.lineTo(x, y + Math.sin(x * 0.02 + i) * (1.5 + r() * 2.5));
+    ctx.stroke();
+  }
+}
+function lukisRusukKayu(ctx, w, h) { /* panel pintu meja TV bergalur vertikal (fluted) */
+  lukisKayu(ctx, w, h);
+  var n = 14;
+  for (var i = 0; i < n; i++) {
+    var x = i * w / n;
+    var gr = ctx.createLinearGradient(x, 0, x + w / n, 0);
+    gr.addColorStop(0, 'rgba(0,0,0,0.30)'); gr.addColorStop(0.25, 'rgba(255,220,180,0.10)');
+    gr.addColorStop(0.6, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,0.22)');
+    ctx.fillStyle = gr; ctx.fillRect(x, 0, w / n, h);
+  }
+}
+function lukisLayarTv(ctx, w, h) { /* gambar diam "KOS TV": malam di kosan (BUKAN video) */
+  var sky = ctx.createLinearGradient(0, 0, 0, h);
+  sky.addColorStop(0, '#0b1734'); sky.addColorStop(0.55, '#1b3a6e'); sky.addColorStop(1, '#2a5486');
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, w, h);
+  var r = acak(5);
+  for (var i = 0; i < 70; i++) { ctx.fillStyle = 'rgba(255,255,255,' + (0.25 + r() * 0.5) + ')'; ctx.fillRect(r() * w, r() * h * 0.55, 1.5, 1.5); }
+  var mx = w * 0.78, my = h * 0.24, glow = ctx.createRadialGradient(mx, my, 4, mx, my, h * 0.22);
+  glow.addColorStop(0, 'rgba(255,240,200,0.55)'); glow.addColorStop(1, 'rgba(255,240,200,0)');
+  ctx.fillStyle = glow; ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = '#f6ebc0'; ctx.beginPath(); ctx.arc(mx, my, h * 0.075, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#143061'; ctx.beginPath(); ctx.moveTo(0, h * 0.72);
+  ctx.quadraticCurveTo(w * 0.25, h * 0.58, w * 0.5, h * 0.7); ctx.quadraticCurveTo(w * 0.8, h * 0.6, w, h * 0.68);
+  ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.fill();
+  /* gedung kos: 2 lantai, jendela menyala hangat */
+  var gx = w * 0.3, gy = h * 0.46, gw = w * 0.4, gh = h * 0.36;
+  ctx.fillStyle = '#0e2347'; ctx.fillRect(gx - 6, gy - 8, gw + 12, 8);
+  ctx.fillStyle = '#18366a'; ctx.fillRect(gx, gy, gw, gh);
+  ctx.fillStyle = '#0f2850'; ctx.fillRect(gx, gy + gh * 0.48, gw, 4);
+  for (var lt = 0; lt < 2; lt++) for (var k = 0; k < 6; k++) {
+    var nyala = r() < 0.7;
+    ctx.fillStyle = nyala ? '#ffd27a' : '#2b4a7c';
+    ctx.fillRect(gx + 12 + k * (gw - 24) / 6, gy + 10 + lt * gh * 0.5, (gw - 24) / 6 - 10, gh * 0.24);
+  }
+  ctx.fillStyle = '#0d1f40'; ctx.fillRect(0, h * 0.86, w, h * 0.14);
+  /* logo kanal + bilah bawah */
+  ctx.fillStyle = 'rgba(255,255,255,0.16)';
+  ctx.beginPath(); ctx.roundRect ? ctx.roundRect(18, 16, 104, 34, 8) : ctx.rect(18, 16, 104, 34); ctx.fill();
+  ctx.fillStyle = '#ffffff'; ctx.font = '800 22px "Baloo 2", "Nunito", sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('KOS TV', 70, 34);
+  ctx.fillStyle = 'rgba(8,18,40,0.72)'; ctx.fillRect(0, h * 0.86, w, h * 0.14);
+  ctx.fillStyle = '#ffd11a'; ctx.fillRect(0, h * 0.86, 8, h * 0.14);
+  ctx.fillStyle = '#e8f0ff'; ctx.font = '700 17px "Nunito", sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText('Kabar Kosan · malam ini cerah', 22, h * 0.93);
+}
+function lukisMukaAc(ctx, w, h) { /* muka AC split: putih susu bergradasi + garis sambungan + logo halus */
+  var gr = ctx.createLinearGradient(0, 0, 0, h);
+  gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.7, '#f1f3f4'); gr.addColorStop(1, '#e2e6e8');
+  ctx.fillStyle = gr; ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = 'rgba(0,0,0,0.07)'; ctx.fillRect(0, h * 0.64, w, 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.fillRect(0, h * 0.64 + 2, w, 1);
+  ctx.fillStyle = '#9aa3aa'; ctx.font = '700 15px "Nunito", sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillText('kosan air', 18, h * 0.32);
+}
+function lukisKisiAc(ctx, w, h) { /* kisi udara atas AC */
+  ctx.fillStyle = '#e9ecee'; ctx.fillRect(0, 0, w, h);
+  for (var x = 6; x < w - 4; x += 7) { ctx.fillStyle = '#9aa3aa'; ctx.fillRect(x, 3, 3, h - 6); }
+}
+var T2 = null; /* bahan Tahap 2 (dibuat sekali, dipakai ruang tamu + semua kamar) */
+function bahanTahap2() {
+  if (T2) return T2;
+  var kain = teksturLukis(128, 128, lukisKain, [2, 2]);
+  var kayu = teksturLukis(256, 64, lukisKayu);
+  var rusuk = teksturLukis(256, 128, lukisRusukKayu);
+  var layar = teksturLukis(512, 288, lukisLayarTv); lukisUlangSetelahFont(layar);
+  var mukaAc = teksturLukis(256, 96, lukisMukaAc); lukisUlangSetelahFont(mukaAc);
+  var kisi = teksturLukis(256, 32, lukisKisiAc);
+  T2 = {
+    kainMocha: new THREE.MeshLambertMaterial({ color: 0x8a735d, map: kain }), /* rangka sofa */
+    kainGreige: new THREE.MeshLambertMaterial({ color: 0xd8ccb8, map: kain }), /* bantal dudukan + sandaran (serasi bantal lantai e8dcc8 + karpet d8cfc0) */
+    kainTerakota: new THREE.MeshLambertMaterial({ color: 0xc27c5c, map: kain }), /* bantal aksen */
+    kainSage: new THREE.MeshLambertMaterial({ color: 0x8f9c80, map: kain }),
+    kayu: new THREE.MeshLambertMaterial({ map: kayu }),
+    rusuk: new THREE.MeshLambertMaterial({ map: rusuk }),
+    hitamTv: new THREE.MeshLambertMaterial({ color: 0x15171a }),
+    ceruk: new THREE.MeshLambertMaterial({ color: 0x1d1612 }),
+    layar: new THREE.MeshBasicMaterial({ map: layar }), /* MENYALA = Basic */
+    ledMerah: new THREE.MeshBasicMaterial({ color: 0xff5a4a }),
+    ledBiru: new THREE.MeshBasicMaterial({ color: 0x5fd0ff }),
+    acPutih: new THREE.MeshLambertMaterial({ color: 0xf4f6f7 }),
+    acMuka: new THREE.MeshLambertMaterial({ map: mukaAc }),
+    acKisi: new THREE.MeshLambertMaterial({ map: kisi }),
+    acGelap: new THREE.MeshLambertMaterial({ color: 0x3a4046 })
+  };
+  return T2;
+}
+/* TV layar datar: bezel tipis + punggung + layar menyala (satu bidang) + LED.
+   Grup menghadap +z lokal (layar di depan). */
+function buatTv(lebar, tinggi, parent) {
+  var B = bahanTahap2();
+  var g = new THREE.Group();
+  empuk(B.hitamTv, lebar + 0.06, tinggi + 0.06, 0.045, 0.018, 0, 0, 0, g); /* bezel */
+  empuk(B.hitamTv, lebar * 0.62, tinggi * 0.6, 0.05, 0.02, 0, -tinggi * 0.04, -0.04, g); /* punggung (elektronik) */
+  var layar = new THREE.Mesh(new THREE.PlaneGeometry(lebar, tinggi), B.layar);
+  layar.position.z = 0.0235; g.add(layar);
+  var led = new THREE.Mesh(new THREE.PlaneGeometry(0.014, 0.008), B.ledMerah);
+  led.position.set(lebar / 2 - 0.05, -tinggi / 2 - 0.016, 0.024); g.add(led);
+  parent.add(g);
+  return { grup: g, layar: layar };
+}
 function buildLivingRoom() {
   /* cahaya hangat dalam ruangan (tanpa bayangan — hemat, cukup) */
   livingScene.add(new THREE.HemisphereLight(0xfff2d9, 0x8a6a4a, 0.9));
@@ -2462,13 +2683,63 @@ function buildLivingRoom() {
   livingClickables.push(ledIn);
   /* bantal duduk */
   var cIn1 = cyl(M.cushionModern, 0.42, 0.42, 0.18, -1.7, 0.09, -3.1, livingScene);
-  cIn1.userData = { card: 'living' }; livingClickables.push(cIn1);
+  cIn1.userData = { card: 'living', interact: 'duduk', kursi: 'bantal1' }; livingClickables.push(cIn1); /* Tahap 2 — ketuk = Duduk di bantal */
   var cIn2 = cyl(M.cushionModern2, 0.42, 0.42, 0.18, 1.7, 0.09, -3.1, livingScene);
-  cIn2.userData = { card: 'living' }; livingClickables.push(cIn2);
+  cIn2.userData = { card: 'living', interact: 'duduk', kursi: 'bantal2' }; livingClickables.push(cIn2);
+  bangunTvRuangTamu();
+  bangunSofaRuangTamu();
   /* ---- Ronde 10d: ruangan SEDERHANA (perintah Ryan) — tanpa perabot
      10c (sofa/kursi/meja kopi/TV/tanaman/bingkai/poster dicabut; isi
      kosan dibangun lewat komen). Yang tersisa: alas + meja router +
-     2 bantal + papan RUANG TAMU. ---- */
+     2 bantal + papan RUANG TAMU. Tahap 2 (perintah Ryan 15 Nov 00:25):
+     + TV di atas meja TV (dinding utara) + sofa 3 dudukan menghadap TV. ---- */
+}
+/* Tahap 2 — meja TV walnut (pintu bergalur + ceruk tengah + gagang kuningan
+   + kaki baja) nempel dinding utara di x 0, TV 65" di atasnya menghadap
+   selatan (ke bantal + sofa). Kotak tabrakan: LIVING_MEJA_TV. */
+function bangunTvRuangTamu() {
+  var B = bahanTahap2(), L = livingScene, zc = -4.27;
+  [[-0.92, -4.44], [0.92, -4.44], [-0.92, -4.1], [0.92, -4.1]].forEach(function (k) {
+    box(M.steelDark, 0.045, 0.12, 0.045, k[0], 0.06, k[1], L); /* kaki baja ramping */
+  });
+  empuk(B.kayu, 2.0, 0.42, 0.42, 0.02, 0, 0.33, zc, L); /* badan */
+  empuk(M.walnutA, 2.04, 0.045, 0.45, 0.012, 0, 0.565, zc, L); /* daun meja */
+  [-0.66, 0.66].forEach(function (x, i) { /* 2 pintu bergalur + gagang */
+    box(B.rusuk, 0.6, 0.33, 0.02, x, 0.33, zc + 0.215, L);
+    box(M.brass, 0.018, 0.16, 0.018, x + (i === 0 ? 0.26 : -0.26), 0.33, zc + 0.232, L);
+  });
+  box(B.ceruk, 0.64, 0.3, 0.02, 0, 0.33, zc + 0.2, L); /* ceruk tengah */
+  box(M.walnutA, 0.62, 0.025, 0.36, 0, 0.33, zc + 0.02, L); /* rak ceruk */
+  empuk(B.hitamTv, 0.9, 0.075, 0.1, 0.03, 0, 0.625, zc + 0.12, L); /* soundbar */
+  box(M.steelDark, 0.06, 0.02, 0.012, 0.36, 0.625, zc + 0.172, L);
+  box(M.steelDark, 0.42, 0.02, 0.22, 0, 0.6, zc - 0.03, L); /* kaki TV: pelat */
+  box(M.steelDark, 0.08, 0.16, 0.05, 0, 0.68, zc - 0.07, L); /* leher */
+  var tv = buatTv(1.5, 0.84, L);
+  tv.grup.name = 'tvRuangTamu';
+  tv.grup.position.set(0, 1.2, zc - 0.07); /* bawah layar 0,78 (di atas soundbar), atas 1,62 */
+  tv.grup.traverse(function (o) { if (o.isMesh) { o.userData = { card: 'living' }; livingClickables.push(o); } });
+}
+/* Tahap 2 — sofa 3 dudukan modern (3 m) (rangka kain mocha + bantal greige
+   bertepi bulat + 2 bantal aksen + kaki baja), selatan karpet menghadap
+   utara ke TV. Jok 0,47 m = tinggi kasur, jadi pose 'sit' standar pas.
+   Kotak tabrakan: LIVING_SOFA. Ketuk = kartu Sofa (duduk). */
+function bangunSofaRuangTamu() {
+  var B = bahanTahap2(), L = livingScene, cx = 0, cz = 1.0, bisaKetuk = [];
+  [[-1.42, 0.6], [1.42, 0.6], [-1.42, 1.4], [1.42, 1.4], [0, 0.6], [0, 1.4]].forEach(function (k) {
+    box(M.steelDark, 0.05, 0.1, 0.05, cx + k[0], 0.05, k[1], L);
+  });
+  bisaKetuk.push(empuk(B.kainMocha, 3.0, 0.2, 0.9, 0.05, cx, 0.2, cz, L)); /* alas */
+  bisaKetuk.push(empuk(B.kainMocha, 3.0, 0.72, 0.22, 0.08, cx, 0.46, cz + 0.34, L)); /* sandaran */
+  [-1.4, 1.4].forEach(function (x) { bisaKetuk.push(empuk(B.kainMocha, 0.2, 0.5, 0.9, 0.08, cx + x, 0.35, cz, L)); }); /* lengan */
+  [-0.87, 0, 0.87].forEach(function (x) {
+    bisaKetuk.push(empuk(B.kainGreige, 0.85, 0.17, 0.66, 0.07, cx + x, 0.385, cz - 0.12, L)); /* bantal dudukan (atas 0,47) */
+    var sb = empuk(B.kainGreige, 0.83, 0.42, 0.16, 0.07, cx + x, 0.7, cz + 0.17, L); /* bantal sandaran, sedikit rebah */
+    sb.rotation.x = -0.14; bisaKetuk.push(sb);
+  });
+  var a1 = empuk(B.kainTerakota, 0.36, 0.34, 0.12, 0.06, cx - 1.1, 0.66, cz + 0.04, L); a1.rotation.set(-0.2, 0.25, 0.08);
+  var a2 = empuk(B.kainSage, 0.36, 0.34, 0.12, 0.06, cx + 1.1, 0.66, cz + 0.04, L); a2.rotation.set(-0.2, -0.25, -0.08);
+  bisaKetuk.push(a1, a2);
+  bisaKetuk.forEach(function (m) { m.userData = { card: 'living', interact: 'duduk', kursi: 'sofa' }; livingClickables.push(m); });
 }
 buildLivingRoom();
 
@@ -2501,6 +2772,7 @@ function enterLiving() {
 }
 function exitLiving() {
   if (myRealm === 'yard') return;
+  if (roomPose) bangunDariKasur(true); /* Tahap 2 — duduk di bantal/sofa lalu keluar: bangun dulu */
   myRealm = 'yard';
   if (avatar && avatar.parent) avatar.parent.remove(avatar);
   scene.add(avatar);
@@ -2928,6 +3200,43 @@ function buildRoom() {
      bingkai, tanpa outline — backing kayu gelap tetap sebagai bingkai. */
   /* Fix Task 3 (13 Nov 2026, vonis Ryan: plakat kamar DIHAPUS) — blok plakat
      KAMAR + nama dicabut (backing + pelat + material), updateRoomSign jadi no-op. */
+  bangunTvDindingKamar();
+  bangunAcKamar();
+}
+/* Tahap 2 — TV dinding + AC split di roomScene. roomScene DIPAKAI BERSAMA
+   room-1..room-20 (template generik), jadi dibangun SEKALI = ada di semua
+   kamar. Keduanya nempel dinding, tanpa kotak tabrakan lantai (avatar
+   dibatasi ROOM: z <= 2,6 / x <= 3,1, jauh dari dinding). */
+function bangunTvDindingKamar() {
+  /* dinding SELATAN (bidang z 3,5 menghadap utara), x -2,6 = segaris kasur
+     (pusat x -2,75): duduk/tidur di kasur menghadap selatan -> TV di depan.
+     Lebar 1,16 -> x -3,18..-2,02: jauh dari bukaan pintu (x -0,71..0,71).
+     Pusat y 1,35 (setinggi mata saat duduk). Bagian paling belakang TV di
+     z 3,495 (di depan dinding 3,5, tidak menembus). */
+  var B = bahanTahap2();
+  box(B.hitamTv, 0.34, 0.2, 0.012, -2.6, 1.35, 3.493, roomScene); /* braket dinding (tersembunyi di balik TV) */
+  var tv = buatTv(1.1, 0.62, roomScene);
+  tv.grup.name = 'tvDindingKamar';
+  tv.grup.rotation.y = Math.PI; /* layar menghadap utara (ke kasur) */
+  tv.grup.position.set(-2.6, 1.35, 3.43); /* punggung TV (0,065 m di belakang bezel) berakhir di z 3,495 — di depan bidang dinding 3,5 */
+}
+function bangunAcKamar() {
+  /* AC split di dinding UTARA (bidang z -3,5) di atas kepala kasur (x -2,75),
+     pusat y 2,45 (2,3..2,6) — di bawah plafon 3,6, jauh di atas lampu nakas
+     (x -1,3, y ~1,1). Badan bertepi bulat + muka berlukis + kisi atas +
+     celah keluar + sirip (flap) + LED + pipa tertutup ke sudut barat. */
+  var B = bahanTahap2(), x = -2.75, y = 2.45, zd = -3.5;
+  var R = new THREE.Group(); R.name = 'acKamar'; roomScene.add(R); /* satu grup (bisa diukur / dicek) */
+  empuk(B.acPutih, 0.94, 0.3, 0.2, 0.05, x, y, zd + 0.105, R); /* badan */
+  box(B.acMuka, 0.88, 0.19, 0.012, x, y + 0.035, zd + 0.209, R); /* muka berlukis */
+  box(B.acKisi, 0.84, 0.012, 0.13, x, y + 0.149, zd + 0.1, R); /* kisi udara atas */
+  box(B.acGelap, 0.8, 0.045, 0.06, x, y - 0.12, zd + 0.17, R); /* celah keluar */
+  var flap = box(B.acPutih, 0.8, 0.012, 0.075, x, y - 0.142, zd + 0.205, R); /* sirip */
+  flap.rotation.x = 0.35;
+  var led = new THREE.Mesh(new THREE.PlaneGeometry(0.03, 0.012), B.ledBiru);
+  led.position.set(x + 0.33, y - 0.04, zd + 0.2165); R.add(led);
+  box(B.acPutih, 0.74, 0.06, 0.06, -3.58, y + 0.05, zd + 0.04, R); /* pipa tertutup ke sudut */
+  box(B.acPutih, 0.06, 1.1, 0.06, -3.97, y + 0.6, zd + 0.04, R); /* naik ke plafon */
 }
 buildRoom();
 
@@ -3310,6 +3619,85 @@ function ibuObrolanBerikut(simpan, tanggal) {
   return { teks: IBU_OBROLAN[u[i % u.length]], simpan: { tanggal: tanggal, i: i + 1 } };
 }
 /* ==== IBU-END ==== */
+/* ==== TAHAP2-START ==== */
+/* Tahap 2 — tempat duduk ruang tamu + kotak tabrakan perabot baru +
+   waktu animasi emote. Helper MURNI (tanpa THREE/DOM) — dites node.
+   Ruang tamu 12x9 (dinding x +-6, z +-4,5; pintu KELUAR selatan x 0).
+   Meja TV di dinding utara (tengah x 0) menghadap selatan; sofa di
+   selatan karpet menghadap utara ke TV; 2 bantal lama TIDAK dipindah. */
+var LIVING_MEJA_TV = { minX: -1.0, maxX: 1.0, minZ: -4.5, maxZ: -4.05 }; /* meja TV nempel dinding utara */
+var LIVING_SOFA = { minX: -1.5, maxX: 1.5, minZ: 0.55, maxZ: 1.45 }; /* sofa 3 dudukan, lebar 3 m (rok avatar ~1 m: dudukan 0,87 m supaya tidak bertumpuk) */
+var LIVING_TV_POS = { x: 0, z: -4.27 }; /* titik layar TV (buat arah hadap bantal) */
+var DUDUK_JARAK = 3; /* m dari kotak tempat duduk (sama dengan gazebo/jemuran) */
+var DUDUK_TERISI = 0.35; /* m: pemain lain sedekat ini = kursi terisi (pola gazebo) */
+var DUDUK_POSE = {
+  sit: { y: -0.31, leg: -0.92 }, /* = POSE_SIT: dudukan 0,46-0,48 m (sofa dibuat setinggi kasur) */
+  lesehan: { y: -0.55, leg: -1.45 } /* pinggul 0,24 m (bantal 0,18 m), kaki selonjor ke depan */
+};
+var RUANG_TAMU_DUDUK = {
+  bantal1: { kotak: { minX: -2.12, maxX: -1.28, minZ: -3.52, maxZ: -2.68 }, pose: 'lesehan', hadapTv: true,
+    kursi: [{ x: -1.7, z: -3.1, bx: -2.1, bz: -2.15 }] },
+  bantal2: { kotak: { minX: 1.28, maxX: 2.12, minZ: -3.52, maxZ: -2.68 }, pose: 'lesehan', hadapTv: true,
+    kursi: [{ x: 1.7, z: -3.1, bx: 2.1, bz: -2.15 }] },
+  /* pinggul 0,06 m di dalam tepi depan dudukan (z 0,55), pola POSE_SIT di tepi kasur */
+  sofa: { kotak: LIVING_SOFA, pose: 'sit', hadapTv: false, rotY: Math.PI,
+    kursi: [{ x: -0.87, z: 0.61, bx: -0.87, bz: -0.1 }, { x: 0, z: 0.61, bx: 0, bz: -0.1 }, { x: 0.87, z: 0.61, bx: 0.87, bz: -0.1 }] } /* x = tengah 3 bantal dudukan */
+};
+function dudukTerisi(k, pemain) {
+  for (var i = 0; i < pemain.length; i++) {
+    if (Math.hypot(pemain[i].x - k.x, pemain[i].z - k.z) <= DUDUK_TERISI) return true;
+  }
+  return false;
+}
+function dudukPilih(nama, ax, az, pemain) {
+  /* kursi kosong terdekat di tempat duduk itu -> jangkar (pola
+     gazeboPilihKursi) + .pose; null = tempat tak dikenal / penuh. */
+  var t = Object.prototype.hasOwnProperty.call(RUANG_TAMU_DUDUK, nama) ? RUANG_TAMU_DUDUK[nama] : null;
+  if (!t) return null;
+  var pilih = null, terdekat = Infinity;
+  for (var i = 0; i < t.kursi.length; i++) {
+    var k = t.kursi[i];
+    if (dudukTerisi(k, pemain || [])) continue;
+    var d = Math.hypot(k.x - ax, k.z - az);
+    if (d < terdekat) { terdekat = d; pilih = k; }
+  }
+  if (!pilih) return null;
+  var rotY = t.hadapTv ? Math.atan2(LIVING_TV_POS.x - pilih.x, LIVING_TV_POS.z - pilih.z) : t.rotY;
+  var pp = DUDUK_POSE[t.pose];
+  return { x: pilih.x, z: pilih.z, y: pp.y, rotX: 0, rotY: rotY, leg: pp.leg, pose: t.pose,
+    bangun: { x: pilih.bx, z: pilih.bz, rotY: rotY } };
+}
+function emoteSisaMs(msgTs, emoteTs) {
+  /* sisa tampil emote dari pesan (dua jam sama-sama jam PENGIRIM, jadi
+     beda jam HP tidak berpengaruh); <= 0 = basi, abaikan. */
+  var umur = msgTs - emoteTs;
+  if (!(umur >= 0)) umur = 0; /* ts pesan lebih tua / tak sah -> anggap baru */
+  return EMOTE_DUR_MS - umur;
+}
+function emoteMulaiBaru(lama, emote, emoteTs, sisaMs, now) {
+  /* lama = { emoteTs, mulai } emote terakhir yang ditampilkan untuk pemain
+     itu. Mulai baru kalau: emote sah, belum basi, beda dengan yang sama
+     (emoteTs lain), dan lewat jeda dari emote sebelumnya. */
+  if (!emote || !(sisaMs > 0)) return false;
+  if (lama && lama.emoteTs === emoteTs) return false;
+  if (lama && now - lama.mulai < EMOTE_JEDA_MS) return false;
+  return true;
+}
+function emoteAnimasi(t) {
+  /* t detik sejak mulai -> { skala, naik, putar, alpha } (null = selesai).
+     Muncul: membal 0,25 dtk; lalu lompat-lompat kecil + goyang; pudar
+     0,35 dtk terakhir. Hanya IKON yang bergerak, badan avatar tidak. */
+  var dur = EMOTE_DUR_MS / 1000;
+  if (!(t >= 0) || t >= dur) return null;
+  var skala;
+  if (t < 0.25) { var u = t / 0.25 - 1; skala = 1 + 2.2 * u * u * u + 1.2 * u * u; } /* easeOutBack 0 -> 1 */
+  else skala = 1;
+  var naik = Math.abs(Math.sin(t * Math.PI * 1.6)) * 0.14 * (1 - t / dur);
+  var putar = Math.sin(t * 8) * 0.14 * (1 - t / dur);
+  var alpha = t > dur - 0.35 ? (dur - t) / 0.35 : 1;
+  return { skala: Math.max(0, skala), naik: naik, putar: putar, alpha: alpha };
+}
+/* ==== TAHAP2-END ==== */
 var toastTimer = null;
 function toastKosan(msg) {
   var t = document.getElementById('toast');
@@ -3362,6 +3750,7 @@ function bangunDariKasur(diam) {
   roomPose = null;
   poseJangkar = null;
   poseDiGazebo = false;
+  poseTempat = null;
   avatar.rotation.x = 0;
   avatarPos.x = w.x; avatarPos.z = w.z;
   avatar.rotation.y = w.rotY;
@@ -3990,6 +4379,62 @@ function gazeboDuduk(nama) {
   toastKosan('🪑 Nongkrong di gazebo — ketuk Bangun buat berdiri');
   misiSelesai('gazebo');
 }
+/* Tahap 2 — duduk di ruang tamu: 2 bantal (lesehan) + sofa 3 dudukan.
+   Pola gazebo Tahap 1: jarak 3 m, kursi yang diduduki pemain lain
+   dilewati, pose tersinkron lewat pos, bangun otomatis sebelum pindah alam. */
+var poseTempat = null; /* 'bantal1' | 'bantal2' | 'sofa' saat duduk di ruang tamu */
+function ruangTamuPemainDuduk() {
+  var out = [];
+  for (var id in remotePlayers) {
+    var e = remotePlayers[id];
+    if (e && e.realm === 'living' && (e.pose === 'sit' || e.pose === 'lesehan')) out.push({ x: e.tx, z: e.tz });
+  }
+  return out;
+}
+function showDudukCard(nama) {
+  var t = Object.prototype.hasOwnProperty.call(RUANG_TAMU_DUDUK, nama) ? RUANG_TAMU_DUDUK[nama] : null;
+  if (!t || myRealm !== 'living') return;
+  var sofa = nama === 'sofa';
+  cardTitle.innerHTML = iconSvg('chair') + (sofa ? ' Sofa' : ' Bantal duduk');
+  cardActions.innerHTML = '';
+  var html = sofa ? '<p>Sofa empuk 3 dudukan, pas buat nonton TV bareng tetangga. 📺</p>'
+    : '<p>Bantal duduk di dekat meja — enak buat lesehan sambil nonton TV. 📺</p>';
+  if (roomPose && poseTempat === nama) {
+    html += '<p style="margin-top:4px">Kamu lagi <b>duduk</b> di sini. 🪑</p>';
+    var bw = document.createElement('button');
+    bw.id = 'dudukBangunBtn';
+    bw.innerHTML = iconSvg('stand') + ' Bangun';
+    bw.addEventListener('click', function () { bangunDariKasur(); closeCard(); });
+    cardActions.appendChild(bw);
+  } else if (jarakKeKotak(avatarPos.x, avatarPos.z, t.kotak) > DUDUK_JARAK) {
+    html += '<p style="margin-top:4px">Jalan ke sini dulu ya, baru duduk. 🚶</p>';
+  } else {
+    var bd = document.createElement('button');
+    bd.id = 'dudukBtn';
+    bd.innerHTML = iconSvg('chair') + (sofa ? ' Duduk di sofa' : ' Duduk di bantal');
+    bd.addEventListener('click', function () { dudukRuangTamu(nama); });
+    cardActions.appendChild(bd);
+  }
+  cardBody.innerHTML = html;
+  openCard();
+}
+function dudukRuangTamu(nama) {
+  if (myRealm !== 'living') return;
+  var t = Object.prototype.hasOwnProperty.call(RUANG_TAMU_DUDUK, nama) ? RUANG_TAMU_DUDUK[nama] : null;
+  if (!t) return;
+  if (roomPose) bangunDariKasur(true); /* pindah tempat duduk: bangun dulu dari tempat lama */
+  if (jarakKeKotak(avatarPos.x, avatarPos.z, t.kotak) > DUDUK_JARAK) { toastKosan('Jalan ke sini dulu ya 🚶'); return; }
+  var j = dudukPilih(nama, avatarPos.x, avatarPos.z, ruangTamuPemainDuduk());
+  if (!j) { toastKosan(nama === 'sofa' ? 'Sofanya penuh, coba bantal duduk 🙂' : 'Bantalnya sudah diduduki, coba yang lain 🙂'); return; }
+  roomPose = j.pose;
+  poseJangkar = j;
+  poseTempat = nama;
+  terapkanPoseKamar();
+  mpKirimPos(); /* pose berubah: publish segera */
+  closeCard();
+  document.getElementById('wakeBtn').style.display = 'inline-block';
+  toastKosan(nama === 'sofa' ? '🛋️ Duduk di sofa — ketuk Bangun buat berdiri' : '🪑 Duduk di bantal — ketuk Bangun buat berdiri');
+}
 /* Tahap 1 — jemuran: simpan/baca + visual (cucian di tali, keranjang di
    tangan) + kartu. Semua LOKAL (localStorage 'kosan3d-jemuran'). */
 var jemuranCucian; /* diisi buildWorld (tanpa inisialisasi di sini: jangan menimpa) */
@@ -4118,12 +4563,243 @@ function tutupMasukMenu() {
 }
 document.getElementById('masukBtn').addEventListener('click', function (e) {
   e.stopPropagation();
+  if (typeof tutupEmoteMenu === 'function') tutupEmoteMenu(); /* Tahap 2: satu menu terbuka sekaligus */
   var buka = masukMenu.classList.toggle('open');
   this.setAttribute('aria-expanded', buka ? 'true' : 'false');
 });
 masukMenu.addEventListener('click', function () { tutupMasukMenu(); });
 document.addEventListener('click', function (e) {
   if (!masukMenu.contains(e.target)) tutupMasukMenu();
+});
+/* ================= Tahap 2 — EMOTE (daftar tetap 8, tanpa teks bebas) =================
+   Ikon DILUKIS di kanvas (bukan glyph emoji: emoji beda-beda per HP dan
+   tidak ada di sebagian peramban) — dipakai di menu + gelembung 3D di
+   atas avatar. Sinkron lewat pesan pos (emote + emoteTs, divalidasi
+   mpValidasiPos), pola pose duduk Tahap 1. Badan avatar TIDAK diubah:
+   yang bergerak cuma ikonnya, avatar tetap bisa jalan. */
+var EMOTE_NAMA = { lambai: 'Lambaian', tawa: 'Tertawa', sedih: 'Sedih', sayang: 'Sayang', marah: 'Marah', ngantuk: 'Ngantuk', hore: 'Hore', mantap: 'Mantap' };
+function emoteGaris(ctx, pts, lebar, warna, garis) { /* garis bulat ber-outline (jari, ibu jari) */
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  [[lebar + 5, garis], [lebar, warna]].forEach(function (l) {
+    ctx.lineWidth = l[0]; ctx.strokeStyle = l[1];
+    ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+    for (var i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.stroke();
+  });
+}
+function emoteWajah(ctx, a, b) { /* wajah bulat bergradasi (a = terang, b = gelap) */
+  var gr = ctx.createRadialGradient(42, 36, 6, 50, 52, 42);
+  gr.addColorStop(0, a); gr.addColorStop(1, b);
+  ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(50, 52, 38, 0, Math.PI * 2); ctx.fill();
+  ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(150,80,10,0.55)'; ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.beginPath(); ctx.ellipse(38, 30, 12, 7, -0.5, 0, Math.PI * 2); ctx.fill();
+}
+function emoteTetes(ctx, x, y, r) {
+  ctx.fillStyle = '#4fb6ff'; ctx.beginPath(); ctx.moveTo(x, y - r * 1.8);
+  ctx.quadraticCurveTo(x + r * 1.1, y - r * 0.2, x, y + r); ctx.quadraticCurveTo(x - r * 1.1, y - r * 0.2, x, y - r * 1.8); ctx.fill();
+}
+function emoteLukisIkon(ctx, id) { /* ikon di kotak 100x100 */
+  var KULIT = '#ffd25e', TEPI = '#c98a1c', GELAP = '#5a2e22';
+  ctx.save();
+  if (id === 'lambai') {
+    ctx.translate(50, 56); ctx.rotate(-0.32); ctx.translate(-50, -56);
+    [[34, 50, 34, 22], [44, 48, 44, 14], [54, 48, 55, 16], [64, 52, 66, 26]].forEach(function (f) { emoteGaris(ctx, [[f[0], f[1]], [f[2], f[3]]], 10, KULIT, TEPI); });
+    emoteGaris(ctx, [[30, 66], [20, 52]], 11, KULIT, TEPI);
+    ctx.fillStyle = KULIT; ctx.strokeStyle = TEPI; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.ellipse(49, 66, 22, 20, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = KULIT; ctx.fillRect(30, 44, 38, 16);
+    ctx.restore(); ctx.save();
+    ctx.strokeStyle = '#4a8be0'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(70, 40, 18, -1.2, -0.2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(70, 40, 27, -1.15, -0.15); ctx.stroke();
+  } else if (id === 'tawa') {
+    emoteWajah(ctx, '#ffe58a', '#f6b52e');
+    ctx.strokeStyle = GELAP; ctx.lineWidth = 4.5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(36, 46, 7, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke();
+    ctx.beginPath(); ctx.arc(64, 46, 7, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke();
+    ctx.fillStyle = GELAP; ctx.beginPath(); ctx.moveTo(28, 58); ctx.lineTo(72, 58); ctx.quadraticCurveTo(70, 84, 50, 84); ctx.quadraticCurveTo(30, 84, 28, 58); ctx.fill();
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(31, 58, 38, 6);
+    ctx.fillStyle = '#ef5a68'; ctx.beginPath(); ctx.ellipse(50, 78, 11, 5, 0, 0, Math.PI * 2); ctx.fill();
+    emoteTetes(ctx, 16, 50, 6); emoteTetes(ctx, 84, 50, 6);
+  } else if (id === 'sedih') {
+    emoteWajah(ctx, '#ffe58a', '#f6b52e');
+    ctx.strokeStyle = GELAP; ctx.lineWidth = 4; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(27, 36); ctx.lineTo(41, 31); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(73, 36); ctx.lineTo(59, 31); ctx.stroke();
+    ctx.fillStyle = GELAP; ctx.beginPath(); ctx.ellipse(37, 47, 4.5, 6, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(63, 47, 4.5, 6, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(50, 80, 13, Math.PI * 1.15, Math.PI * 1.85); ctx.stroke();
+    emoteTetes(ctx, 36, 64, 6);
+  } else if (id === 'sayang') {
+    var gr = ctx.createLinearGradient(20, 20, 80, 85);
+    gr.addColorStop(0, '#ff7a8f'); gr.addColorStop(1, '#de2a45');
+    ctx.fillStyle = gr; ctx.strokeStyle = '#b01d35'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(50, 86);
+    ctx.bezierCurveTo(10, 60, 12, 20, 36, 20); ctx.bezierCurveTo(45, 20, 50, 28, 50, 34);
+    ctx.bezierCurveTo(50, 28, 55, 20, 64, 20); ctx.bezierCurveTo(88, 20, 90, 60, 50, 86);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.beginPath(); ctx.ellipse(34, 34, 8, 5, -0.6, 0, Math.PI * 2); ctx.fill();
+  } else if (id === 'marah') {
+    emoteWajah(ctx, '#ffad7a', '#e5483a');
+    ctx.strokeStyle = GELAP; ctx.lineWidth = 5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(27, 34); ctx.lineTo(43, 42); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(73, 34); ctx.lineTo(57, 42); ctx.stroke();
+    ctx.fillStyle = GELAP; ctx.beginPath(); ctx.arc(37, 50, 4.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(63, 50, 4.5, 0, Math.PI * 2); ctx.fill();
+    ctx.lineWidth = 4.5; ctx.beginPath(); ctx.arc(50, 82, 12, Math.PI * 1.2, Math.PI * 1.8); ctx.stroke();
+    ctx.strokeStyle = '#c0182a'; ctx.lineWidth = 3.5; /* tanda urat */
+    [[78, 16, 1], [90, 16, -1]].forEach(function (u) { ctx.beginPath(); ctx.arc(u[0], u[1], 5, u[2] > 0 ? 0 : Math.PI, u[2] > 0 ? Math.PI / 2 : Math.PI * 1.5); ctx.stroke(); });
+    [[78, 28, 1], [90, 28, -1]].forEach(function (u) { ctx.beginPath(); ctx.arc(u[0], u[1], 5, u[2] > 0 ? Math.PI * 1.5 : Math.PI / 2, u[2] > 0 ? Math.PI * 2 : Math.PI); ctx.stroke(); });
+  } else if (id === 'ngantuk') {
+    emoteWajah(ctx, '#ffe58a', '#f6b52e');
+    ctx.strokeStyle = GELAP; ctx.lineWidth = 4; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(37, 46, 7, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke();
+    ctx.beginPath(); ctx.arc(63, 46, 7, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke();
+    ctx.fillStyle = GELAP; ctx.beginPath(); ctx.ellipse(50, 70, 6, 7, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#4a8be0'; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3;
+    ctx.font = '900 22px "Nunito", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.strokeText('Z', 80, 24); ctx.fillText('Z', 80, 24);
+    ctx.font = '900 15px "Nunito", sans-serif'; ctx.strokeText('z', 92, 10); ctx.fillText('z', 92, 10);
+  } else if (id === 'hore') {
+    ctx.translate(30, 78); ctx.rotate(-0.75);
+    var cone = ctx.createLinearGradient(-12, 0, 12, 0);
+    cone.addColorStop(0, '#ff9f43'); cone.addColorStop(1, '#f06c2e');
+    ctx.fillStyle = cone; ctx.strokeStyle = '#b8521d'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(0, 8); ctx.lineTo(-15, -40); ctx.lineTo(15, -40); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = '#ffd23f'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(-9, -22); ctx.lineTo(9, -22); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-12, -33); ctx.lineTo(12, -33); ctx.stroke();
+    ctx.restore(); ctx.save();
+    var warna = ['#ff5d73', '#ffd23f', '#3bc6a3', '#4a8be0', '#b36bff'], r = acak(3);
+    for (var i = 0; i < 16; i++) {
+      ctx.fillStyle = warna[i % 5]; ctx.save();
+      ctx.translate(46 + r() * 46, 10 + r() * 46); ctx.rotate(r() * 3);
+      if (i % 3 === 0) { ctx.beginPath(); ctx.arc(0, 0, 3.4, 0, Math.PI * 2); ctx.fill(); } else ctx.fillRect(-4, -2, 8, 4);
+      ctx.restore();
+    }
+    ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.strokeStyle = '#3bc6a3'; ctx.beginPath(); ctx.moveTo(44, 48); ctx.bezierCurveTo(54, 30, 64, 46, 74, 26); ctx.stroke();
+    ctx.strokeStyle = '#ff5d73'; ctx.beginPath(); ctx.moveTo(46, 58); ctx.bezierCurveTo(62, 54, 66, 70, 86, 58); ctx.stroke();
+  } else if (id === 'mantap') {
+    ctx.fillStyle = '#4a8be0'; ctx.strokeStyle = '#2d63ad'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.roundRect ? ctx.roundRect(14, 50, 16, 36, 4) : ctx.rect(14, 50, 16, 36); ctx.fill(); ctx.stroke();
+    emoteGaris(ctx, [[46, 52], [50, 18]], 15, KULIT, TEPI);
+    ctx.fillStyle = KULIT; ctx.strokeStyle = TEPI; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.roundRect ? ctx.roundRect(30, 46, 46, 42, 12) : ctx.rect(30, 46, 46, 42); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = TEPI; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+    [58, 68, 78].forEach(function (y) { ctx.beginPath(); ctx.moveTo(56, y); ctx.lineTo(74, y); ctx.stroke(); });
+  }
+  ctx.restore();
+}
+var emoteTekstur = {}; /* id -> CanvasTexture gelembung (dibuat malas, dipakai bersama semua avatar) */
+function emoteTeksturGelembung(id) {
+  if (emoteTekstur[id]) return emoteTekstur[id];
+  var tex = teksturLukis(256, 256, function (ctx, w) {
+    ctx.save(); ctx.scale(w / 100, w / 100);
+    ctx.fillStyle = 'rgba(13,38,76,0.22)'; ctx.beginPath(); ctx.arc(50, 49, 41, 0, Math.PI * 2); ctx.fill(); /* bayang lembut */
+    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(50, 46, 40, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(42, 82); ctx.lineTo(50, 96); ctx.lineTo(58, 82); ctx.fill(); /* ekor gelembung */
+    ctx.translate(50, 46); ctx.scale(0.62, 0.62); ctx.translate(-50, -52);
+    emoteLukisIkon(ctx, id);
+    ctx.restore();
+  });
+  if (id === 'ngantuk') lukisUlangSetelahFont(tex);
+  emoteTekstur[id] = tex;
+  return tex;
+}
+function emoteGambarMenu(id) { /* data URL ikon untuk tombol menu (CSP img-src mengizinkan data:) */
+  var cv = document.createElement('canvas');
+  cv.width = 96; cv.height = 96;
+  var ctx = cv.getContext('2d');
+  ctx.scale(0.96, 0.96);
+  emoteLukisIkon(ctx, id);
+  return cv.toDataURL('image/png');
+}
+/* status emote per avatar: { id, emoteTs, mulai, spr } — mulai = jam LOKAL */
+var emoteSaya = null;
+function emoteMulai(st, id, emoteTs, mulai) {
+  if (!st.spr) {
+    st.spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: emoteTeksturGelembung(id), transparent: true, depthWrite: false }));
+    st.spr.renderOrder = 10;
+  }
+  st.spr.material.map = emoteTeksturGelembung(id);
+  st.spr.material.needsUpdate = true;
+  st.id = id; st.emoteTs = emoteTs; st.mulai = mulai;
+  return st;
+}
+function emoteBuang(st) {
+  if (!st || !st.spr) return;
+  if (st.spr.parent) st.spr.parent.remove(st.spr);
+  st.spr.material.dispose(); /* tekstur dipakai bersama — tidak di-dispose */
+  st.spr = null;
+}
+var emotePos = new THREE.Vector3();
+function emoteTick(st, grup, tidur, now, ls) {
+  /* posisi + animasi gelembung di atas kepala (di scene, bukan anak grup:
+     saat tidur grup diputar rebah, anak grup ikut miring). */
+  if (!st || !st.spr) return;
+  var a = emoteAnimasi((now - st.mulai) / 1000);
+  if (!a || !grup || !grup.parent) { if (st.spr.parent) st.spr.parent.remove(st.spr); st.id = null; return; }
+  if (st.spr.parent !== grup.parent) grup.parent.add(st.spr);
+  var ukuran = 0.95 * Math.max(0.5, ls);
+  grup.updateWorldMatrix(true, false);
+  emotePos.set(0, tidur ? 1.6 : 2.05, 0); /* 2,05 = tinggi label nama (lokal grup) */
+  grup.localToWorld(emotePos);
+  emotePos.y += (tidur ? 0.45 : 0.3 * ls + 0.08) + ukuran / 2 + a.naik;
+  st.spr.position.copy(emotePos);
+  st.spr.scale.set(ukuran * a.skala, ukuran * a.skala, 1);
+  st.spr.material.rotation = a.putar;
+  st.spr.material.opacity = a.alpha;
+  st.spr.visible = grup.visible;
+}
+function emoteAktifSaya(now) {
+  return emoteSaya && emoteSaya.id && now - emoteSaya.mulai < EMOTE_DUR_MS ? emoteSaya : null;
+}
+function kirimEmote(id) {
+  if (!entered || !mpEmoteDikenal(id)) return;
+  var now = Date.now();
+  if (emoteSaya && emoteSaya.id && now - emoteSaya.mulai < EMOTE_JEDA_MS) return; /* jeda anti-banjir */
+  emoteSaya = emoteMulai(emoteSaya || {}, id, now, now);
+  mpKirimPos(); /* emote baru: publish segera (bukan tunggu heartbeat 3 dtk) */
+}
+function emoteTerimaRemote(entri, m, now) {
+  if (!m.emote) return;
+  var sisa = Math.min(EMOTE_DUR_MS, emoteSisaMs(m.ts, m.emoteTs));
+  if (!emoteMulaiBaru(entri.emote, m.emote, m.emoteTs, sisa, now)) return;
+  entri.emote = emoteMulai(entri.emote || {}, m.emote, m.emoteTs, now - (EMOTE_DUR_MS - sisa));
+}
+/* menu emote */
+var emoteMenu = document.getElementById('emoteMenu');
+var emoteBtnEl = document.getElementById('emoteBtn');
+EMOTE_IDS.forEach(function (id) {
+  var b = document.createElement('button');
+  b.type = 'button'; b.setAttribute('role', 'menuitem'); b.dataset.emote = id;
+  b.setAttribute('aria-label', EMOTE_NAMA[id]);
+  var img = document.createElement('img');
+  img.alt = ''; img.src = emoteGambarMenu(id);
+  b.appendChild(img);
+  b.appendChild(document.createTextNode(EMOTE_NAMA[id]));
+  b.addEventListener('click', function () { kirimEmote(id); });
+  emoteMenu.appendChild(b);
+});
+function tutupEmoteMenu() {
+  emoteMenu.classList.remove('open');
+  emoteBtnEl.setAttribute('aria-expanded', 'false');
+}
+emoteBtnEl.addEventListener('click', function (e) {
+  e.stopPropagation();
+  tutupMasukMenu();
+  var buka = emoteMenu.classList.toggle('open');
+  this.setAttribute('aria-expanded', buka ? 'true' : 'false');
+  if (buka) { /* menu fixed: taruh di bawah tombol, jepit ke layar */
+    var r = this.getBoundingClientRect(), lebar = emoteMenu.offsetWidth;
+    emoteMenu.style.top = Math.round(r.bottom + 6) + 'px';
+    emoteMenu.style.left = Math.round(Math.max(12, Math.min(r.left, window.innerWidth - lebar - 12))) + 'px';
+  }
+});
+emoteMenu.addEventListener('click', function () { tutupEmoteMenu(); });
+document.addEventListener('click', function (e) {
+  if (!emoteMenu.contains(e.target) && e.target !== emoteBtnEl) tutupEmoteMenu();
 });
 /* Ronde 12c — identitas TERKUNCI di layar masuk (aturan 10b): namebar HUD
    hanya preview kamar, BUKAN ganti identitas. Dua jalur dipisah:
@@ -5753,6 +6429,7 @@ function canvasTap(e, wasPinch) {
   if (ud.interact === 'bed') { showBedCard(); return; }
   if (ud.interact === 'lamp') { toggleRoomLamp(); return; }
   if (ud.interact === 'bangku') { showGazeboCard(ud.bangku); return; } /* Tahap 1 — gazebo */
+  if (ud.interact === 'duduk') { showDudukCard(ud.kursi); return; } /* Tahap 2 — bantal + sofa ruang tamu */
   if (ud.interact === 'jemuran') { showJemuranCard(); return; } /* Tahap 1 — jemuran */
   /* Ronde 48 — interaksi dapur (dicek sebelum 'card', pola bed/lamp). */
   if (ud.interact === 'stove') { toggleDapurStove(); return; }
@@ -6108,6 +6785,12 @@ function mpTerapkanPoseRemote(entri) { /* Ronde 15a — pose pemain lain di posi
     p.armL.rotation.x = 0; p.armR.rotation.x = 0;
     p.tubuh.rotation.y = 0;
     entri.label.sprite.visible = false;
+  } else if (entri.pose === 'lesehan') { /* Tahap 2 — duduk di bantal lantai (DUDUK_POSE.lesehan) */
+    g.position.y = DUDUK_POSE.lesehan.y; g.rotation.x = 0;
+    p.legL.rotation.x = DUDUK_POSE.lesehan.leg; p.legR.rotation.x = DUDUK_POSE.lesehan.leg;
+    p.armL.rotation.x = 0; p.armR.rotation.x = 0;
+    p.tubuh.rotation.y = 0;
+    entri.label.sprite.visible = true;
   } else if (entri.pose === 'sit') {
     g.position.y = -0.31; g.rotation.x = 0;
     p.legL.rotation.x = -0.92; p.legR.rotation.x = -0.92;
@@ -6137,6 +6820,7 @@ function mpTerimaPos(m) {
   mpPindahRealmRemote(entri, m.realm, m.ts);
   entri.tx = m.x; entri.tz = m.z; entri.trot = m.rot; entri.gerak = m.gerak;
   entri.pose = m.pose || 'stand'; /* Ronde 15a — pose sinkron (sudah divalidasi mpValidasiPos; hilang = 'stand') */
+  emoteTerimaRemote(entri, m, Date.now()); /* Tahap 2 — emote (sudah divalidasi: id dari daftar tetap) */
   if (!entri.punyaPos) { entri.snapped = false; entri.punyaPos = true; }
   if (m.nama !== entri.nama) { entri.nama = m.nama; perbaruiLabelDuplikat(); }
   if (m.gender !== entri.gender) { entri.gender = m.gender; mpBangunUlangRemote(entri); }
@@ -6163,6 +6847,7 @@ function mpHapusRemote(id) {
   mpBuangGeometri(entri.group);
   entri.label.texture.dispose();
   entri.label.sprite.material.dispose(); /* SpriteMaterial dibuat per label */
+  emoteBuang(entri.emote); /* Tahap 2 */
   delete remotePlayers[id];
   perbaruiLabelDuplikat();
   mpTerapkanRender();
@@ -6191,7 +6876,8 @@ function mpKirimPos() {
   if (!entered || !klien || mpStatus !== 'on') return;
   var msg = mpBangunPos(playerId, visitorName, visitorGender, myRealm,
     avatarPos.x, avatarPos.z, avatar.rotation.y, mpMag, Date.now(),
-    roomPose || 'stand'); /* Ronde 15a — pose ikut dipublish (update reguler + saat berubah) */
+    roomPose || 'stand', /* Ronde 15a — pose ikut dipublish (update reguler + saat berubah) */
+    emoteAktifSaya(Date.now()) ? emoteSaya.id : null, emoteAktifSaya(Date.now()) ? emoteSaya.emoteTs : 0); /* Tahap 2 — emote aktif ikut */
   try { klien.publish(MP_TOPICS.pos, JSON.stringify(msg)); } catch (e) {}
   lastPosSent = Date.now();
 }
@@ -6387,6 +7073,11 @@ function animate() {
          utara living, -3,3 vs batas -3,0). */
       var cl = resolveAABB(nx, nz, LIVING_TABLE, 0.4, LIVING);
       nx = cl.x; nz = cl.z;
+      /* Tahap 2 — meja TV + sofa: AABB padat (pola meja). */
+      var clt = resolveAABB(nx, nz, LIVING_MEJA_TV, 0.4, LIVING);
+      nx = clt.x; nz = clt.z;
+      var cls = resolveAABB(nx, nz, LIVING_SOFA, 0.4, LIVING);
+      nx = cls.x; nz = cls.z;
     } else if (myRealm.indexOf('room-') === 0) {
       /* Ronde 13a — kasur + meja (nakas): AABB PADAT, ganti dorongan
          sumbu-z 11b — avatar memutari kasur/meja, tidak pernah masuk
@@ -6516,7 +7207,11 @@ function animate() {
     mpTerapkanPoseRemote(re); /* Ronde 15a — pose pemain lain (sleep/sit/stand) */
     var rls = Math.max(0.35, Math.min(1.3, camDist / 9.5));
     re.label.sprite.scale.set(2.4 * rls, 0.6 * rls, 1);
+    if (re.emote) emoteTick(re.emote, re.group, re.pose === 'sleep', Date.now(), rls); /* Tahap 2 */
   }
+  /* Tahap 2 — emote pemain lain yang tidak dirender (realm lain): sembunyikan gelembungnya */
+  for (var mpEm in remotePlayers) { var reE = remotePlayers[mpEm]; if (reE.emote && reE.emote.spr && !reE.group.visible) reE.emote.spr.visible = false; }
+  if (emoteSaya) emoteTick(emoteSaya, avatar, roomPose === 'sleep', Date.now(), Math.max(0.35, Math.min(1.3, camDist / 9.5))); /* Tahap 2 — emote sendiri */
   /* hitung ulang 20 terdekat tiap 1 dtk (§3.5) */
   mpRenderTimer += dt;
   if (mpRenderTimer >= 1) { mpRenderTimer = 0; mpTerapkanRender(); }
