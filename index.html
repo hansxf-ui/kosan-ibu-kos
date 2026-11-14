@@ -4056,6 +4056,38 @@ function krTeksturWajah(jenis) {
   });
 }
 function krKulit() { return krMat('kulit', function () { return new THREE.MeshLambertMaterial({ color: KR_SKIN }); }); }
+/* Revisi kaki (Ryan: betis "kayak batang pohon"): kaki dibentuk lewat profil
+   putar (LatheGeometry) — paha, lutut ramping, betis menggembung ke BELAKANG,
+   pergelangan ramping — bukan silinder lurus. Kaus kaki pendek bergaris
+   dilukis di tekstur kaki (tanpa mesh tambahan). Pinggul tetap y 0 lokal. */
+function krGeoKaki(sampai) {
+  var pr = [[0.05, sampai], [0.054, sampai + 0.03], [0.056, -0.56], [0.064, -0.5], [0.08, -0.43], [0.088, -0.38],
+    [0.084, -0.33], [0.075, -0.28], [0.079, -0.22], [0.09, -0.12], [0.096, -0.04], [0.096, 0.02]];
+  var kurva = new THREE.SplineCurve(pr.map(function (q) { return new THREE.Vector2(q[0], q[1]); }));
+  var geo = new THREE.LatheGeometry(kurva.getPoints(18), 12);
+  var P = geo.attributes.position;
+  for (var i = 0; i < P.count; i++) {
+    var y = P.getY(i), z = P.getZ(i);
+    var betis = Math.exp(-Math.pow((y + 0.39) / 0.08, 2)); /* gembung betis di belakang */
+    var tulangKering = Math.exp(-Math.pow((y + 0.42) / 0.1, 2));
+    P.setZ(i, z < 0 ? z * (1 + 0.22 * betis) : z * (1 - 0.12 * tulangKering));
+  }
+  geo.computeVertexNormals();
+  return geo;
+}
+function krKakiMat() {
+  return krMat('kakiKauskaki', function () {
+    return new THREE.MeshLambertMaterial({ map: teksturLukis(64, 256, function (ctx, w, h) {
+      ctx.fillStyle = '#e0a97e'; ctx.fillRect(0, 0, w, h);
+      var atas = h * 0.79; /* v 0 = bawah (pergelangan), kaus kaki ~21% bawah */
+      ctx.fillStyle = '#f7f9fc'; ctx.fillRect(0, atas, w, h - atas);
+      ctx.fillStyle = 'rgba(120,135,155,0.18)';
+      for (var x = 0; x < w; x += 6) ctx.fillRect(x, atas + 10, 2, h - atas - 10); /* rusuk rajutan */
+      ctx.fillStyle = '#4a8be0'; ctx.fillRect(0, atas + 4, w, 4); /* garis biru */
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, atas, w, 3);
+    }) });
+  });
+}
 function krBaju(i) {
   return krMat('baju:' + i, function () { return new THREE.MeshLambertMaterial({ color: RUPA_BAJU[i].warna }); });
 }
@@ -4193,8 +4225,7 @@ function makeKosanAvatar(gender, rupa, opt) {
   /* kaki: pivot pinggul (+-0,12, 0,72, 0) — kaki + sepatu (ibu: sandal) */
   [-1, 1].forEach(function (sx, k) {
     var leg = pivot(sx * 0.12, 0.72, 0);
-    var kakiGeo = new THREE.CylinderGeometry(0.09, 0.1, 0.62, 8); kakiGeo.translate(0, -0.31, 0);
-    pasang([{ geo: kakiGeo, m: new THREE.Matrix4() }], kulit, leg);
+    pasang([{ geo: krGeoKaki(ibu ? -0.69 : -0.63), m: new THREE.Matrix4() }], ibu ? kulit : krKakiMat(), leg); /* kaki berlekuk (revisi Ryan) */
     if (ibu) {
       pasang([krBagian(new THREE.BoxGeometry(0.17, 0.035, 0.3), 0, -0.705, 0.04), krBagian(new THREE.BoxGeometry(0.15, 0.02, 0.04), 0, -0.68, 0.1)], krPolos('sandal', 0x7c5227), leg);
     } else {
