@@ -129,12 +129,21 @@ function jalankanMasukKosan({ nama, preview, loginView }) {
   return jejak;
 }
 
-test('9b: preview null (20/20 penuh, nama bukan penghuni) -> pesan gabungan, entryLogin tidak jalan', () => {
-  for (const loginView of [true, false]) {
-    const j = jalankanMasukKosan({ nama: 'rinna', preview: null, loginView });
-    assert.deepEqual(j.error, [PESAN_GABUNG]);
-    assert.equal(j.login + j.daftar, 0);
-  }
+const PESAN_PENUH = 'Kosan sudah penuh (20 kamar terisi semua). Tunggu episode berikutnya ya!';
+test('9c: preview null di mode MASUK -> pesan gabungan, entryLogin tidak jalan', () => {
+  const j = jalankanMasukKosan({ nama: 'rinna', preview: null, loginView: true });
+  assert.deepEqual(j.error, [PESAN_GABUNG]);
+  assert.equal(j.login + j.daftar, 0);
+});
+
+test('9c: preview null di mode DAFTAR -> pesan penuh polos (tanpa "belum terdaftar"), entryDaftar tidak jalan', () => {
+  const j = jalankanMasukKosan({ nama: 'sari', preview: null, loginView: false });
+  assert.deepEqual(j.error, [PESAN_PENUH]);
+  assert.ok(!j.error[0].includes('belum terdaftar'));
+  assert.equal(j.login + j.daftar, 0);
+  /* konsisten dengan pesan galat daftar dari server */
+  const i = HTML.indexOf('function daftarPesan(');
+  assert.ok(HTML.slice(i, HTML.indexOf('\n}\n', i)).includes(PESAN_PENUH));
 });
 
 test('9b: preview ada -> lanjut ke entryLogin/entryDaftar seperti biasa (tanpa pesan gabungan)', () => {
@@ -147,7 +156,7 @@ test('9b: preview ada -> lanjut ke entryLogin/entryDaftar seperti biasa (tanpa p
 test('9b: string lama hilang dari masukKosan; pesan belum-terdaftar entryLogin + kartu showKosanPenuh tidak berubah', () => {
   const awal = HTML.indexOf('function masukKosan() {');
   const src = HTML.slice(awal, HTML.indexOf('\n}\n', awal) + 3);
-  assert.ok(src.includes(PESAN_GABUNG));
+  assert.ok(src.includes(PESAN_GABUNG) && src.includes(PESAN_PENUH));
   assert.ok(!src.includes("entryShowError('Kosan sudah penuh (20 kamar terisi semua).')"));
   assert.ok(HTML.includes("entryShowError('Nama ini belum terdaftar sebagai penghuni — daftar dulu, atau masuk sebagai tamu.')"));
   assert.match(HTML, /function showKosanPenuh\(/);

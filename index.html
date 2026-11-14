@@ -4059,8 +4059,12 @@ function masukKosan() {
     var preview = previewFor(nama);
     if (!preview) {
       /* perbaikan 9b (Ryan 14 Nov 15:37): saat 20/20 penuh, previewFor null
-         untuk nama non-penghuni -> pesan gabungan (bisa jadi salah eja). */
-      entryShowError('Nama ini belum terdaftar — dan kosan juga sudah penuh (20 kamar terisi semua). Coba cek ejaan namamu, atau masuk sebagai tamu.');
+         untuk nama non-penghuni. 9c (15:45): pesan per mode — MASUK = pesan
+         gabungan (bisa jadi salah eja); DAFTAR = penuh polos (orang memang
+         sedang mendaftarkan nama baru; kalimat sama dengan daftarPesan). */
+      entryShowError(entryLoginView
+        ? 'Nama ini belum terdaftar — dan kosan juga sudah penuh (20 kamar terisi semua). Coba cek ejaan namamu, atau masuk sebagai tamu.'
+        : 'Kosan sudah penuh (20 kamar terisi semua). Tunggu episode berikutnya ya!');
       return;
     }
     if (entryLoginView) { entryLogin(); } else { entryDaftar(); }
