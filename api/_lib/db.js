@@ -51,9 +51,13 @@ function buatDb({ url, kunci, fetchFn = globalThis.fetch }) {
       const r = await panggil('kosan_akun?room=eq.' + angka(room) + '&select=*');
       return (Array.isArray(r) && r[0]) || null;
     },
-    akunSetup: async (a) => (await rpc('kosan_akun_setup', { p_room: angka(a.room), p_nama_norm: a.nama_norm, p_gender: a.gender, p_hash: a.password_hash })) === true,
-    akunGagal: (room) => rpc('kosan_akun_gagal', { p_room: angka(room) }),
-    akunBerhasil: (room) => rpc('kosan_akun_berhasil', { p_room: angka(room) }),
+    /* Simpan gender terdaftar per kamar (upsert ke tabel Fase A kosan_akun;
+       kolom password di sana tidak dipakai lagi sejak perbaikan 9). */
+    akunSimpan: (a) => panggil('kosan_akun', { method: 'POST', prefer: 'resolution=merge-duplicates,return=minimal',
+      body: { room: angka(a.room), nama_norm: a.nama_norm, gender: a.gender === 'cowok' ? 'cowok' : 'cewek' } }),
+    /* RPC lama kosan_register (definisi tidak diubah), dipanggil server
+       sesudah cek PIN != username. Galat RPC dilempar dengan .status. */
+    register: (args) => rpc('kosan_register', args),
     sesiBuat: async (row) => {
       const r = await panggil('kosan_sesi', { method: 'POST', body: row, prefer: 'return=representation' });
       return r && r[0];

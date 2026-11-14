@@ -1,7 +1,8 @@
 'use strict';
 /* Ronde rasa aman, Fase A — fungsi murni server (tanpa jaringan).
    Folder api/_lib diawali "_" supaya Vercel TIDAK menjadikannya endpoint.
-   JANGAN pernah menulis password, PIN, token sesi, atau rahasia ke log. */
+   JANGAN pernah menulis PIN, token sesi, atau rahasia ke log.
+   (Perbaikan 9: kode password/scrypt, tiket setup, dan HIBP DIHAPUS.) */
 const crypto = require('node:crypto');
 
 /* ---------- PIN lama: port 1:1 dari pinHash() di index.html ----------
@@ -36,98 +37,18 @@ function cariPenghuni(occupants, username) {
   }
   return null;
 }
+/* port 1:1 roomFor() di index.html: kamar hash yang diminta saat daftar
+   (server kosan_register memprobe kamar kosong kalau terisi). */
+function roomFor(nama) {
+  const s = normalize(nama);
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return (h % 10) + 1;
+}
 function penghuniKamar(occupants, room) {
   if (!Array.isArray(occupants)) return null;
   for (const o of occupants) if (o && o.room === room && typeof o.name === 'string') return { room: o.room, name: o.name };
   return null;
-}
-
-/* ---------- password (scrypt bawaan Node, tanpa dependensi) ---------- */
-const SCRYPT = { N: 32768, r: 8, p: 1, keylen: 32 };
-const SCRYPT_MAXMEM = 64 * 1024 * 1024;
-function scryptAsync(pw, salt, o) {
-  return new Promise((res, rej) => {
-    crypto.scrypt(pw, salt, o.keylen, { N: o.N, r: o.r, p: o.p, maxmem: SCRYPT_MAXMEM }, (e, k) => (e ? rej(e) : res(k)));
-  });
-}
-async function hashPassword(pw) {
-  const salt = crypto.randomBytes(16);
-  const k = await scryptAsync(String(pw).normalize('NFC'), salt, SCRYPT);
-  return ['scrypt', SCRYPT.N, SCRYPT.r, SCRYPT.p, salt.toString('base64url'), k.toString('base64url')].join('$');
-}
-async function cekPassword(pw, tersimpan) {
-  if (typeof pw !== 'string' || typeof tersimpan !== 'string') return false;
-  const b = tersimpan.split('$');
-  if (b.length !== 6 || b[0] !== 'scrypt') return false;
-  const o = { N: +b[1], r: +b[2], p: +b[3], keylen: 32 };
-  if (!(o.N >= 16384 && o.N <= 1048576 && o.r >= 1 && o.r <= 16 && o.p >= 1 && o.p <= 4)) return false;
-  const harap = Buffer.from(b[5], 'base64url');
-  if (harap.length !== 32) return false;
-  const k = await scryptAsync(pw.normalize('NFC'), Buffer.from(b[4], 'base64url'), o);
-  return crypto.timingSafeEqual(k, harap);
-}
-
-/* Daftar password umum (ringkas, termasuk pola lokal). Bukan daftar
-   lengkap — tujuannya menolak tebakan paling gampang. */
-const PASSWORD_UMUM = new Set((
-  '12345678 123456789 1234567890 0123456789 87654321 11111111 00000000 12341234 ' +
-  '12121212 11223344 password password1 password123 passw0rd qwerty123 qwertyuiop ' +
-  'asdfghjkl zxcvbnm1 iloveyou iloveyou1 abcd1234 abc12345 1q2w3e4r 1qaz2wsx ' +
-  'admin123 welcome1 sunshine princess football baseball superman starwars ' +
-  'whatever trustno1 letmein1 monkey12 dragon12 master12 shadow12 michael1 ' +
-  'bismillah bismillah1 alhamdulillah assalamualaikum sayang123 sayangku ' +
-  'sayangkamu cintaku cintaku1 indonesia indonesia1 jakarta1 bandung1 surabaya ' +
-  'merdeka45 garuda123 anjing123 kucing123 rahasia rahasia1 rahasia123 ' +
-  'kosanibukos kosan123 kosan1234 ibukos123 ibukos1234 ibu__kos penghuni ' +
-  'penghuni1 masukaja masuk123 gantengbanget cantikbanget doraemon pokemon123 ' +
-  'blackpink btsarmy1 bangtan1 sarangheyo saranghae 147258369 789456123 ' +
-  '159753456 987654321 121212121 qweasdzxc 1234qwer qwer1234 asdf1234'
-).split(/\s+/));
-function cekAturanPassword(pw, username) {
-  if (typeof pw !== 'string') return 'Password tidak valid.';
-  const n = pw.normalize('NFC');
-  if (n.length < 8) return 'Password minimal 8 karakter.';
-  if (n.length > 128) return 'Password maksimal 128 karakter.';
-  if (/^(.)\1+$/.test(n)) return 'Password terlalu gampang ditebak. Coba yang lain ya.';
-  const kecil = n.toLowerCase();
-  if (PASSWORD_UMUM.has(kecil)) return 'Password ini terlalu umum. Coba yang lain ya.';
-  const u = normalize(username).replace(/[ _.\-]/g, '');
-  if (u && kecil.replace(/[ _.\-@]/g, '') === u) return 'Password jangan sama dengan username ya.';
-  return null;
-}
-
-/* ---------- password bocor (Have I Been Pwned, k-anonymity) ----------
-   Vonis Ryan 14 Nov 06:00: game tidak boleh menerima password yang pernah
-   bocor (kalau diterima, Chrome memperingatkan "sandi dibobol" dan game
-   terlihat seperti yang membobol). Yang dikirim ke HIBP HANYA 5 karakter
-   pertama SHA-1 (huruf besar); pencocokan sisa hash dilakukan di sini.
-   Header Add-Padding meminta HIBP menambah baris palsu (count 0) supaya
-   ukuran respons tidak membocorkan apa pun.
-   Hasil: true = bocor, false = bersih, null = tidak bisa dicek (timeout,
-   jaringan, status bukan 200) -> pemanggil FAIL CLOSED (setup ditolak,
-   minta coba lagi; perbaikan 8).
-   JANGAN pernah menulis password / hash-nya ke log. */
-const HIBP_URL = 'https://api.pwnedpasswords.com/range/';
-async function passwordBocor(pw, fetchFn, timeoutMs = 3000) {
-  if (typeof pw !== 'string' || typeof fetchFn !== 'function') return null;
-  const sha = crypto.createHash('sha1').update(pw.normalize('NFC'), 'utf8').digest('hex').toUpperCase();
-  const prefix = sha.slice(0, 5), suffix = sha.slice(5);
-  const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-  let t;
-  const habis = new Promise((res) => { t = setTimeout(() => { if (ctl) ctl.abort(); res(null); }, timeoutMs); });
-  const cek = (async () => {
-    const r = await fetchFn(HIBP_URL + prefix, { method: 'GET', headers: { 'Add-Padding': 'true' }, signal: ctl ? ctl.signal : undefined });
-    if (!r || !r.ok) return null;
-    const teks = await r.text();
-    if (typeof teks !== 'string') return null;
-    for (const baris of teks.split('\n')) {
-      const i = baris.indexOf(':');
-      if (i !== 35) continue; /* format "SUFFIX(35 hex):COUNT" */
-      if (baris.slice(0, 35).toUpperCase() === suffix && parseInt(baris.slice(36), 10) > 0) return true;
-    }
-    return false;
-  })().catch(() => null);
-  try { return await Promise.race([cek, habis]); } finally { clearTimeout(t); }
 }
 
 /* ---------- token, hash, sub-kunci ---------- */
@@ -178,29 +99,6 @@ function ipHmac(rahasia, ip) {
   return { ip_hmac: h(String(ip).trim()), ip_prefiks_hmac: p ? h(p) : null };
 }
 
-/* ---------- tiket setup bertanda tangan (5 menit) ----------
-   Sekali pakai dijamin di database: kosan_akun_setup hanya menulis kalau
-   password_hash masih kosong (atomik). */
-function buatTiket(rahasia, isi) {
-  const json = Buffer.from(JSON.stringify(isi)).toString('base64url');
-  const sig = crypto.createHmac('sha256', subKunci(rahasia, 'tiket')).update(json).digest('base64url');
-  return json + '.' + sig;
-}
-function bacaTiket(rahasia, tiket, sekarang) {
-  if (typeof tiket !== 'string' || tiket.length > 1024) return null;
-  const i = tiket.indexOf('.');
-  if (i <= 0) return null;
-  const json = tiket.slice(0, i), sig = tiket.slice(i + 1);
-  const harap = crypto.createHmac('sha256', subKunci(rahasia, 'tiket')).update(json).digest('base64url');
-  if (!samaAman(sig, harap)) return null;
-  let isi;
-  try { isi = JSON.parse(Buffer.from(json, 'base64url').toString()); } catch (e) { return null; }
-  if (!isi || typeof isi.exp !== 'number' || isi.exp <= sekarang) return null;
-  if (!Number.isInteger(isi.room) || typeof isi.nama_norm !== 'string') return null;
-  if (isi.gender !== 'cewek' && isi.gender !== 'cowok') return null;
-  return isi;
-}
-
 /* ---------- cookie sesi ----------
    __Host- = wajib Secure + Path=/ + tanpa Domain (browser menolak kalau
    dilanggar). Mode `aman: false` HANYA untuk server uji lokal (http). */
@@ -232,8 +130,7 @@ function cookieHapus(aman) {
 function perangkatSah(p) { return typeof p === 'string' && /^[A-Za-z0-9-]{8,64}$/.test(p) ? p : null; }
 
 module.exports = {
-  PIN_SALT, pinHash, normalize, usernameValid, cariPenghuni, penghuniKamar,
-  hashPassword, cekPassword, cekAturanPassword, PASSWORD_UMUM, passwordBocor, HIBP_URL,
+  PIN_SALT, pinHash, normalize, usernameValid, roomFor, cariPenghuni, penghuniKamar,
   tokenAcak, sha256hex, subKunci, samaAman, prefiksIp, ipHmac, kunciBatasIp,
-  buatTiket, bacaTiket, namaCookie, bacaCookie, cookieSesi, cookieHapus, perangkatSah
+  namaCookie, bacaCookie, cookieSesi, cookieHapus, perangkatSah
 };

@@ -9,7 +9,6 @@ const path = require('node:path');
 const { buatApp } = require('../api/_lib/app');
 const { jalankan } = require('../api/_lib/jalankan');
 const { buatFakeDb } = require('./fake-db');
-const { buatFakeHibp } = require('./fake-hibp');
 
 const ROOT = path.join(__dirname, '..');
 function buatServer(port) {
@@ -18,13 +17,13 @@ const db = buatFakeDb({ penghuni: [
   { room: 13, name: 'dilla', gender: 'Cewek', pin: '135790' },
   { room: 14, name: 'dil', gender: 'Cowok', pin: '135790' }
 ] });
-const app = buatApp({ db, rahasia: 'lokal-uji-'.repeat(4), aman: false, hibpFetch: buatFakeHibp().fetchFn }); /* HIBP tiruan: tanpa jaringan */
+const app = buatApp({ db, rahasia: 'lokal-uji-'.repeat(4), aman: false });
 const rute = {
   '/api/masuk': jalankan('masuk', 'POST', () => app),
   '/api/sesi': jalankan('sesi', 'GET', () => app),
   '/api/keluar': jalankan('keluar', 'POST', () => app),
   '/api/setup/pin': jalankan('setupPin', 'POST', () => app),
-  '/api/setup/password': jalankan('setupPassword', 'POST', () => app),
+  '/api/daftar': jalankan('daftar', 'POST', () => app),
   '/api/kamar/masuk': jalankan('kamarMasuk', 'POST', () => app)
 };
 const cfg = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
@@ -36,6 +35,7 @@ const srv = http.createServer((req, res) => {
   const p = decodeURIComponent(req.url.split('?')[0]);
   for (const r of cfg.headers) if (new RegExp('^' + r.source + '$').test(p)) for (const h of r.headers) res.setHeader(h.key, h.value);
   if (rute[p]) return rute[p](req, res);
+  if (p === '/__uji/occupants') { res.setHeader('Content-Type', 'application/json'); return res.end(JSON.stringify(db._lama.map((x) => ({ room: x.room, name: x.name })))); }
   if (p === '/__uji/db') { res.setHeader('Content-Type', 'application/json'); return res.end(JSON.stringify({ akun: [...db._t.akun.values()], sesi: db._t.sesi, log: db._t.log })); }
   if (DILARANG.test(p)) { res.statusCode = 404; return res.end('404'); }
   const f = path.join(ROOT, p === '/' ? 'index.html' : p);

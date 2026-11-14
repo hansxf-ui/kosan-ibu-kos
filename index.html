@@ -87,19 +87,12 @@
   #entryName { width: 100%; font-family: 'Nunito', sans-serif; font-size: 16px; font-weight: 700;
     padding: 12px 14px; border: 2px solid #cfe0f2; border-radius: 14px; outline: none; color: #1c2b3a; }
   #entryName:focus { border-color: #FFD11A; }
-  /* Ronde 50 — kolom PIN penghuni (anti-impersonasi): password + keyboard
-     angka; huruf dirapatkan biar gampang dibaca. Pesan error merah. */
-  #entryPin { width: 100%; font-family: 'Nunito', sans-serif; font-size: 16px; font-weight: 700;
-    padding: 12px 14px; border: 2px solid #cfe0f2; border-radius: 14px; outline: none; color: #1c2b3a; margin-top: 10px; letter-spacing: 4px; }
-  #entryPin:focus { border-color: #FFD11A; }
-  /* Ronde 51 — kolom kunci + ulangi PIN (daftar mandiri): gaya sama
-     seperti #entryPin. Ronde 52 — #entryChoice/#entryRegBtn DIHAPUS
-     (entry jadi satu halaman); gantinya tautan tamu kecil di bawah
-     tombol utama. */
-  #entryKey, #entryPin2, #entryPass, #entryPass2 { width: 100%; font-family: 'Nunito', sans-serif; font-size: 16px; font-weight: 700;
+  /* Ronde 51 — kolom kode kunci (daftar mandiri). Perbaikan 9: PIN
+     daftar/login lewat keypad #pinOverlay, tidak ada lagi kolom PIN /
+     password di kartu masuk. */
+  #entryKey { width: 100%; font-family: 'Nunito', sans-serif; font-size: 16px; font-weight: 700;
     padding: 12px 14px; border: 2px solid #cfe0f2; border-radius: 14px; outline: none; color: #1c2b3a; margin-top: 10px; }
-  #entryKey:focus, #entryPin2:focus, #entryPass:focus, #entryPass2:focus { border-color: #FFD11A; }
-  #entryName[readonly] { background: #f3f6fa; color: #5a6b7d; }
+  #entryKey:focus { border-color: #FFD11A; }
   /* Rasa aman Fase A — "Ingat saya" + modal PIN kamar (pola #ktaOverlay). */
   .entry-ingat { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px;
     font-size: 14px; font-weight: 700; color: #33475c; cursor: pointer; }
@@ -147,7 +140,6 @@
   #pinBtn:disabled { opacity: .6; cursor: wait; }
   #pinClose { position: absolute; top: 10px; right: 12px; width: 30px; height: 30px; border: none;
     border-radius: 50%; background: #eef2f6; color: #33475c; font-size: 16px; font-weight: 900; cursor: pointer; }
-  #entryPin2 { letter-spacing: 4px; }
   .entry-guest { display: block; margin: 10px auto 0; padding: 4px 8px; border: none; background: none;
     font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 700; color: #1B5FA8;
     text-decoration: underline; cursor: pointer; }
@@ -717,21 +709,12 @@
     <h1><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 10v10h14V10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 20v-6h4v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Kosan Ibu Kos</h1>
     <p class="entry-sub">Ketik namamu, pilih karakter, lalu masuk.</p>
     <input id="entryName" type="text" placeholder="@username" maxlength="40" autocomplete="off">
-    <!-- Ronde 54 — sistem username, dua mode EKSPLISIT (ganti form adaptif
-         Ronde 52): mode DAFTAR (username + gender + kunci + PIN 2x, tombol
-         "Daftar") / mode MASUK (username + PIN, tombol "Masuk sebagai
-         penghuni"). Mode TIDAK berubah dari nama yang diketik — hanya dari
-         pilihan eksplisit (awal, tautan pindah mode, sesudah daftar). -->
+    <!-- Ronde 54 — dua mode EKSPLISIT: DAFTAR (username + gender + kode
+         kunci, lalu buat PIN di keypad) / MASUK (username, lalu PIN di
+         keypad). Perbaikan 9 (Ryan 14 Nov): TANPA password; PIN selalu lewat
+         keypad #pinOverlay. -->
     <input id="entryKey" type="text" placeholder="Kode kunci dari caption terbaru" maxlength="20" autocomplete="off" autocapitalize="characters" style="display:none">
-    <input id="entryPin" type="password" placeholder="PIN penghuni (6 digit)" maxlength="6" inputmode="numeric" autocomplete="off" style="display:none">
-    <input id="entryPin2" type="password" placeholder="Ulangi PIN (6 digit)" maxlength="6" inputmode="numeric" autocomplete="off" style="display:none">
-    <!-- Rasa aman Fase A — login penghuni = username + password (dicek di
-         server, /api/masuk). Password TIDAK PERNAH disimpan di perangkat;
-         "Ingat saya" = cookie sesi HttpOnly dari server. -->
-    <input id="entryPass" type="password" placeholder="Password" maxlength="128" style="display:none">
-    <input id="entryPass2" type="password" placeholder="Ulangi password" maxlength="128" style="display:none">
     <label id="entryIngatRow" class="entry-ingat" style="display:none"><input id="entryIngat" type="checkbox"> Ingat saya di perangkat ini</label>
-    <p id="entryNotePenghuniLama" class="entry-note" style="display:none">Penghuni lama yang belum pernah login sejak pembaruan: isi username, kosongkan password, tap Masuk — nanti diminta PIN kamar untuk buat password.</p>
     <p id="entryError" class="entry-error" style="display:none"></p>
     <div id="genderRow">
       <button id="genderF" class="gbtn" type="button"><svg class="gsym" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="5.5" fill="none" stroke="#ec4899" stroke-width="2.6"/><path d="M12 14v7M8.5 17.5h7" fill="none" stroke="#ec4899" stroke-width="2.6" stroke-linecap="round"/></svg> Cewek</button>
@@ -741,7 +724,6 @@
     <button id="entryGuestLink" type="button" class="entry-guest">Masuk sebagai tamu</button>
     <button id="entryModeLink" type="button" class="entry-guest">Sudah punya akun? Masuk di sini</button>
     <button id="entryKeluarAkun" type="button" class="entry-guest" style="display:none">Bukan kamu? Keluar akun</button>
-    <button id="entryLoginPertama" type="button" class="entry-guest" style="display:none">Login pertama kali? Buat password</button>
     <p id="entryNote" class="entry-note">Username &amp; gender dikunci selama di dalam — keluar dulu untuk ganti.</p>
   </div>
 </div>
@@ -753,23 +735,23 @@
   <div id="pinCard">
     <button id="pinClose" type="button" aria-label="Tutup">✕</button>
     <h2 id="pinJudul">Masuk Kamar</h2>
-    <p class="pin-sub">Masukkan PIN kamarmu. PIN tidak disimpan, jadi tiap masuk kamar ketik lagi ya.</p>
-    <!-- 14 Nov #2 — pinInput hanya penyimpan nilai (tersembunyi, readonly,
-         tidak pernah di-focus = keyboard HP tidak muncul); pinBtn cadangan
+    <p id="pinSub" class="pin-sub">Masukkan PIN kamarmu. PIN tidak disimpan, jadi tiap masuk kamar ketik lagi ya.</p>
+    <!-- 14 Nov #2 — pinInput hanya penyimpan nilai (type=hidden: bukan kolom
+         password, keyboard HP tidak pernah muncul); pinBtn cadangan
          tersembunyi. Jalur utama = keypad di bawah. -->
-    <input id="pinInput" type="password" maxlength="6" autocomplete="off" readonly tabindex="-1" aria-hidden="true" style="display:none">
+    <input id="pinInput" type="hidden" autocomplete="off">
     <div id="pinTitik" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
     <div id="pinPesan" aria-live="polite">
       <p id="pinStatus" style="display:none">Memproses…</p>
       <p id="pinError" class="entry-error" style="display:none"></p>
     </div>
-    <div id="pinPad" role="group" aria-label="Keypad PIN kamar">
+    <div id="pinPad" role="group" aria-label="Keypad PIN">
       <button type="button" data-digit="1">1</button><button type="button" data-digit="2">2</button><button type="button" data-digit="3">3</button>
       <button type="button" data-digit="4">4</button><button type="button" data-digit="5">5</button><button type="button" data-digit="6">6</button>
       <button type="button" data-digit="7">7</button><button type="button" data-digit="8">8</button><button type="button" data-digit="9">9</button>
       <button type="button" class="pin-aksi" data-aksi="hapus" aria-label="Hapus digit terakhir">⌫ Hapus</button>
       <button type="button" data-digit="0">0</button>
-      <button type="button" class="pin-aksi pin-buka" data-aksi="buka" aria-label="Buka pintu">✓ Buka</button>
+      <button id="pinOk" type="button" class="pin-aksi pin-buka" data-aksi="buka" aria-label="Buka pintu">✓ Buka</button>
     </div>
     <button id="pinBtn" type="button" style="display:none">Buka pintu</button>
   </div>
@@ -831,6 +813,32 @@ function aksiKetukPintu(room, s) {
   if (s.resident && s.sesiRoom === room) return 'masuk';
   if (!s.penghuniPintu && room === s.visitorRoom && s.visitorId) return 'masuk'; /* Ronde 11b (lama) */
   return 'kartu';
+}
+/* Perbaikan 9 (Ryan 14 Nov 15:00) — tamu sekali ketuk: nama otomatis
+   "Tamu-N", N terkecil >= 1 yang belum dipakai (nama penghuni terdaftar +
+   pemain online). Murni, diuji di tests/klien.test.js. */
+function tamuNama(n) { return 'Tamu-' + n; }
+function tamuPilihNomor(terpakai) {
+  var pakai = Object.create(null);
+  for (var i = 0; i < (terpakai || []).length; i++) pakai[String(terpakai[i] || '').trim().replace(/^@+/, '').toLowerCase()] = true;
+  for (var n = 1; n < 100000; n++) if (!pakai['tamu-' + n]) return n;
+  return 100000;
+}
+/* Dua tamu memilih nama sama bersamaan: yang id-nya LEBIH BESAR mengalah
+   (pilih ulang), supaya tidak saling ganti terus. */
+function tamuHarusGanti(namaSaya, idSaya, lain) {
+  var k = String(namaSaya || '').trim().toLowerCase();
+  for (var i = 0; i < (lain || []).length; i++) {
+    var o = lain[i];
+    if (o && o.id !== idSaya && String(o.nama || '').trim().toLowerCase() === k && String(o.id) < String(idSaya)) return true;
+  }
+  return false;
+}
+function namaPolaTamu(nama) { return /^tamu-[0-9]+$/i.test(String(nama || '').trim()); }
+/* Perbaikan 9 — saat DAFTAR, PIN tidak boleh sama dengan username (hanya
+   mungkin kalau username angka semua). Server mengecek hal yang sama. */
+function pinSamaUsername(pin, username) {
+  return String(username || '').trim().replace(/^@+/, '').trim().toLowerCase().replace(/\s+/g, ' ') === String(pin || '');
 }
 function residentOf(room, occupants) {
   var occ = occupants || OCCUPANTS || [];
@@ -2598,13 +2606,15 @@ buildRoom();
    cuma berlaku 10 detik untuk satu kali enterRoom(n), lalu hangus. PIN
    tidak pernah disimpan. */
 var kamarIzin = null;
-var pinKamarTujuan = 0, pinBusy = false;
+var pinMode = null, pinBusy = false; /* Perbaikan 9: keypad dipakai untuk kamar / login / buat PIN */
 var pinOverlay = document.getElementById('pinOverlay');
 var pinInput = document.getElementById('pinInput');
 var pinError = document.getElementById('pinError');
 var pinBtn = document.getElementById('pinBtn');
 var pinPad = document.getElementById('pinPad');
 var pinStatus = document.getElementById('pinStatus');
+var pinSub = document.getElementById('pinSub');
+var pinOk = document.getElementById('pinOk');
 var pinDigit = ''; /* digit yang sudah ditekan (maks 6) — hanya di memori, dikosongkan tiap kirim/tutup */
 function pinRender() {
   if (pinInput) pinInput.value = pinDigit;
@@ -2617,7 +2627,7 @@ function pinRender() {
   if (pinBusy && pinError) pinError.style.display = 'none';
 }
 function pinTekan(d) {
-  if (pinBusy || !pinKamarTujuan || pinDigit.length >= 6) return;
+  if (pinBusy || !pinMode || pinDigit.length >= 6) return;
   if (pinError) pinError.style.display = 'none';
   pinDigit += d;
   pinRender();
@@ -2634,34 +2644,45 @@ function kamarIzinPakai(n) {
   return ok;
 }
 function pinTampilError(msg) { if (pinError) { pinError.textContent = msg; pinError.style.display = 'block'; } }
-function pinBuka(n) {
-  pinKamarTujuan = n;
+/* m = { jenis, judul, sub, ok, kirim(pin) } — kirim() mengurus status
+   sibuk + hasil. PIN hanya di memori (pinDigit), dikosongkan tiap kirim. */
+function pinBukaMode(m) {
+  pinMode = m;
   pinDigit = '';
   if (pinError) pinError.style.display = 'none';
   var j = document.getElementById('pinJudul');
-  if (j) j.textContent = 'Masuk Kamar ' + n;
+  if (j) j.textContent = m.judul;
+  if (pinSub) pinSub.textContent = m.sub;
+  if (pinOk) { pinOk.textContent = '✓ ' + m.ok; pinOk.setAttribute('aria-label', m.ok); }
   /* kalau ada kolom teks yang masih fokus, lepas supaya keyboard HP turun */
   try { var ae = document.activeElement; if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) ae.blur(); } catch (e) { /* abaikan */ }
   pinRender();
   pinOverlay.classList.add('open');
 }
+function pinBuka(n) {
+  pinBukaMode({ jenis: 'kamar', room: n, judul: 'Masuk Kamar ' + n, ok: 'Buka',
+    sub: 'Masukkan PIN kamarmu. PIN tidak disimpan, jadi tiap masuk kamar ketik lagi ya.', kirim: pinKirimKamar });
+}
 function pinTutup() {
   pinOverlay.classList.remove('open');
   pinDigit = '';
   pinRender();
-  pinKamarTujuan = 0;
+  pinMode = null;
 }
+function pinMulaiSibuk() { pinBusy = true; pinRender(); /* keypad terkunci + "Memproses…" sampai server menjawab */ }
+function pinSelesaiSibuk() { pinBusy = false; pinDigit = ''; pinRender(); /* berhasil atau gagal: titik dikosongkan */ }
 function pinKirim() {
-  var n = pinKamarTujuan;
+  if (!pinMode) return;
   var pin = pinDigit;
-  if (!n) return;
-  if (!/^\d{6}$/.test(pin)) { pinTampilError('Masukkan PIN kamar 6 digit.'); return; }
+  if (!/^\d{6}$/.test(pin)) { pinTampilError(pinMode.jenis === 'kamar' ? 'Masukkan PIN kamar 6 digit.' : 'Masukkan PIN 6 digit.'); return; }
   if (pinBusy) return;
-  pinBusy = true; pinRender(); /* keypad terkunci + "Memproses…" sampai server menjawab */
+  pinMode.kirim(pin);
+}
+function pinKirimKamar(pin) {
+  var n = pinMode.room;
+  pinMulaiSibuk();
   apiKosan('POST', '/api/kamar/masuk', { room: n, pin: pin }).then(function (r) {
-    pinBusy = false;
-    pinDigit = ''; /* berhasil atau gagal: titik dikosongkan */
-    pinRender();
+    pinSelesaiSibuk();
     if (r.status === 200 && r.data && r.data.ok) {
       pinTutup();
       kamarIzin = { room: n, sampai: Date.now() + 10000 };
@@ -2685,7 +2706,7 @@ if (pinPad) pinPad.addEventListener('click', function (e) {
   if (!b || b.disabled) return;
   if (b.getAttribute('data-digit') !== null) pinTekan(b.getAttribute('data-digit'));
   else if (b.getAttribute('data-aksi') === 'hapus') pinHapus();
-  else if (b.getAttribute('data-aksi') === 'buka') pinKirim(); /* <6 digit -> pesan validasi lama */
+  else if (b.getAttribute('data-aksi') === 'buka') pinKirim(); /* <6 digit -> pesan validasi */
 });
 /* keyboard fisik (laptop) tetap bisa: angka, Backspace, Enter, Escape —
    tanpa kolom teks, jadi keyboard HP tidak pernah dipanggil */
@@ -3444,7 +3465,7 @@ function setIdentity(nama) {
   visitorRoom = preview.room;
   visitorId = makeId(nama, preview.room);
   spawnAvatar(nama.trim());
-  try { localStorage.setItem('kosan3d-nama', nama.trim()); } catch (e) { /* abaikan */ }
+  if (isResidentSession) { try { localStorage.setItem('kosan3d-nama', nama.trim()); } catch (e) { /* abaikan */ } } /* perbaikan 9: nama Tamu-N tidak disimpan */
   showRoomCard(preview.room, true, preview, nama.trim());
   return preview;
 }
@@ -3467,7 +3488,6 @@ var playerId = null; /* id permanen 'kosan3d-id' (pola kantormisi-id, §4.4) */
 var entryOverlay = document.getElementById('entryOverlay');
 var entryName = document.getElementById('entryName');
 var entryBtn = document.getElementById('entryBtn');
-var entryPin = document.getElementById('entryPin'); /* Ronde 50 — PIN penghuni */
 var entryError = document.getElementById('entryError'); /* Ronde 50 — pesan error masuk */
 /* Ronde 51 — pendaftaran + login penghuni MANDIRI via Supabase (PostgREST
    RPC, raw fetch — tanpa SDK). Anon key = kunci PUBLIK client (by design,
@@ -3480,7 +3500,6 @@ var OCCUPANTS_OK = false; /* true sesudah kosan_occupants berhasil dimuat */
 var isResidentSession = false; /* Ronde 51 — true hanya sesudah login/daftar sah via Supabase */
 var entryBusy = false; /* cegah klik ganda saat RPC berjalan */
 var entryKey = document.getElementById('entryKey'); /* Ronde 51 — kode kunci saat daftar */
-var entryPin2 = document.getElementById('entryPin2'); /* Ronde 51 — ulangi PIN saat daftar */
 var entryGuestLink = document.getElementById('entryGuestLink'); /* Ronde 52 — tautan masuk tamu di halaman yang sama */
 var entryModeLink = document.getElementById('entryModeLink'); /* Ronde 54 — tautan pindah mode DAFTAR/MASUK */
 var genderRowEl = document.getElementById('genderRow'); /* Ronde 52 — disembunyikan saat mode MASUK */
@@ -3489,22 +3508,16 @@ var entryNoteEl = document.getElementById('entryNote'); /* Task 11 — catatan k
 var entryLoginView = false; /* Ronde 54 — true = mode MASUK (penghuni kembali, hanya username+PIN); false = mode DAFTAR */
 var entryModeManual = false; /* Ronde 54 — true sesudah pengguna memilih mode manual / sesudah daftar (jangan auto-ubah lagi) */
 var entryNameTouched = false; /* Ronde 54 — true sesudah pengguna mengetik username (jangan auto-ubah mode dari hasil load occupants) */
-/* Rasa aman Fase A (docs/RASA-AMAN-DESAIN.md §5) — login penghuni lewat
-   server sendiri (/api/*, domain sama): username + password, "Ingat saya"
-   = cookie sesi HttpOnly yang dipasang server. Password TIDAK PERNAH
-   disimpan di perangkat (localStorage/sessionStorage/cookie JS).
-   Tahap mode MASUK: 'masuk' (username + password) -> penghuni lama tanpa
-   password: 'setup-pin' (PIN lama sekali) -> 'setup-password' (buat
-   password). 'sesi' = cookie masih berlaku, cukup satu ketukan. */
-var entryPass = document.getElementById('entryPass');
-var entryPass2 = document.getElementById('entryPass2');
+/* Rasa aman Fase A, perbaikan 9 (Ryan 14 Nov) — PIN SAJA, tanpa password.
+   Login penghuni lewat server sendiri (/api/*, domain sama): username ->
+   keypad PIN -> /api/masuk -> sesi. "Ingat saya" = cookie sesi HttpOnly
+   yang dipasang server. PIN TIDAK PERNAH disimpan di perangkat.
+   Tahap mode MASUK: 'masuk' (username) / 'sesi' (cookie masih berlaku,
+   cukup satu ketukan). */
 var entryIngat = document.getElementById('entryIngat');
 var entryIngatRow = document.getElementById('entryIngatRow');
 var entryKeluarAkun = document.getElementById('entryKeluarAkun');
-var entryNotePenghuniLama = document.getElementById('entryNotePenghuniLama');
-var entryLoginPertama = document.getElementById('entryLoginPertama');
 var entryTahap = 'masuk';
-var setupTiket = null; /* tiket setup dari server (5 menit, sekali pakai) — hanya di memori */
 var sesiPenghuni = null; /* {room, name, gender} dari /api/sesi atau login */
 function apiKosan(metode, path, body) {
   /* Selalu resolve {status, data}; status 0 = jaringan gagal/timeout. */
@@ -3532,11 +3545,7 @@ function perangkatId() {
   } catch (e) { return null; }
 }
 function entryKosongkanRahasia() {
-  if (entryPin) entryPin.value = '';
   if (entryKey) entryKey.value = '';
-  if (entryPin2) entryPin2.value = '';
-  if (entryPass) entryPass.value = '';
-  if (entryPass2) entryPass2.value = '';
 }
 function sbRpc(fn, body) {
   var p = fetch(SB_URL + '/rest/v1/rpc/' + fn, {
@@ -3585,13 +3594,11 @@ function entryIsRegistered(nama) {
   return !!(p && p.resident);
 }
 function entryLabelTombol() {
-  var masuk = entryLoginView, tahap = masuk ? entryTahap : '';
-  return !masuk ? 'Daftar'
-    : (tahap === 'setup-pin' ? 'Lanjut' : (tahap === 'setup-password' ? 'Simpan password & masuk' : (tahap === 'sesi' ? 'Masuk Kosan' : 'Masuk sebagai penghuni')));
+  if (!entryLoginView) return 'Daftar';
+  return entryTahap === 'sesi' ? 'Masuk Kosan' : 'Masuk';
 }
 /* Perbaikan 2 — selama permintaan ke server berjalan, tombol utama tampil
-   "Memproses…" + disabled, dan tautan pindah tahap ikut dikunci (pindah
-   tahap di tengah permintaan bikin form dan hasil server tidak cocok). */
+   "Memproses…" + disabled, dan tautan ikut dikunci. */
 function entrySetBusy(on) {
   entryBusy = !!on;
   if (entryBtn) {
@@ -3599,61 +3606,39 @@ function entrySetBusy(on) {
     entryBtn.setAttribute('aria-busy', entryBusy ? 'true' : 'false');
     entryBtn.textContent = entryBusy ? 'Memproses…' : entryLabelTombol();
   }
-  [entryModeLink, entryLoginPertama, entryKeluarAkun, entryGuestLink].forEach(function (b) { if (b) b.disabled = entryBusy; });
+  [entryModeLink, entryKeluarAkun, entryGuestLink].forEach(function (b) { if (b) b.disabled = entryBusy; });
 }
 function entryApplyMode() {
   var masuk = entryLoginView;
   var tahap = masuk ? entryTahap : '';
-  var setup = (tahap === 'setup-pin' || tahap === 'setup-password');
   var show = function (el, on) { if (el) el.style.display = on ? '' : 'none'; };
   show(entryName, tahap !== 'sesi');
-  if (entryName) entryName.readOnly = setup;
-  show(entryPin, !masuk || tahap === 'setup-pin'); /* DAFTAR bikin PIN baru; MASUK hanya minta PIN saat setup pertama */
   show(entryKey, !masuk);
-  show(entryPin2, !masuk);
-  show(entryPass, tahap === 'masuk' || tahap === 'setup-password');
-  show(entryPass2, tahap === 'setup-password');
-  show(entryIngatRow, tahap === 'masuk' || tahap === 'setup-password');
+  show(entryIngatRow, tahap !== 'sesi');
   show(genderRowEl, !masuk);
-  show(entryNoteEl, !masuk); /* Task 11 — catatan kunci identitas hanya di mode DAFTAR (Ryan 12 Nov 11:21); di mode MASUK disembunyikan */
-  show(entryGuestLink, !masuk); /* Ronde 53 — tautan tamu disembunyikan saat mode MASUK (petunjuk UX saja; gerbang keamanan tetap di masukTamu) */
+  show(entryNoteEl, !masuk); /* Task 11 — catatan kunci identitas hanya di mode DAFTAR */
   show(entryKeluarAkun, tahap === 'sesi');
-  show(entryNotePenghuniLama, tahap === 'masuk'); /* Perbaikan 2 — penjelasan buat penghuni lama tanpa password */
-  show(entryLoginPertama, tahap === 'masuk');
-  if (entryPin) entryPin.placeholder = masuk ? 'PIN kamar (6 digit)' : 'PIN penghuni (6 digit)';
-  if (entryPass) {
-    entryPass.placeholder = tahap === 'setup-password' ? 'Buat password (min. 8 karakter)' : 'Password';
-    /* 14 Nov #4 — TANPA atribut autocomplete di kolom password:
-       current-password/new-password menyuruh Chrome menyimpan sandi lalu
-       mengeceknya ke database bocor ("Periksa sandi Anda"). "Ingat saya"
-       memakai cookie sesi game, bukan Password Manager. */
-  }
   if (entryModeLink) {
     entryModeLink.style.display = tahap === 'sesi' ? 'none' : '';
-    entryModeLink.textContent = setup ? 'Batal' : (masuk ? 'Belum punya username? Daftar di sini' : 'Sudah punya akun? Masuk di sini');
+    entryModeLink.textContent = masuk ? 'Belum punya username? Daftar di sini' : 'Sudah punya akun? Masuk di sini';
   }
   entryBtn.textContent = entryBusy ? 'Memproses…' : entryLabelTombol();
-  if (entrySubEl) entrySubEl.textContent = !masuk ? 'Ketik namamu, pilih gender, lalu daftar.'
-    : (tahap === 'setup-pin' ? 'Login pertama sejak pembaruan. Masukkan PIN kamarmu dulu ya.'
-    : (tahap === 'setup-password' ? 'PIN benar! Sekarang buat password untuk login berikutnya. PIN tetap dipakai untuk buka kamar.'
+  if (entrySubEl) entrySubEl.textContent = !masuk ? 'Ketik namamu, pilih gender, masukkan kode kunci, lalu buat PIN.'
     : (tahap === 'sesi' ? ('Selamat datang kembali, @' + (sesiPenghuni ? sesiPenghuni.name : '') + '!')
-    : 'Selamat datang kembali! Masukkan username + password-mu.')));
+    : 'Selamat datang kembali! Ketik username-mu, lalu masukkan PIN.');
   if (entryError) entryError.style.display = 'none';
   return masuk;
 }
 function entrySetMode(masuk, manual) {
-  /* pindah mode / mulai ulang -> kosongkan semua kolom rahasia (PIN/kunci/
-     password tidak boleh terbawa antar mode) + kembali ke tahap awal. */
+  /* pindah mode / mulai ulang -> kosongkan kolom kunci + kembali ke tahap awal. */
   if (masuk !== entryLoginView) entryKosongkanRahasia();
   entryLoginView = !!masuk;
   entryTahap = 'masuk';
-  setupTiket = null;
   if (manual) entryModeManual = true;
   return entryApplyMode();
 }
 function entrySetTahap(t) {
   entryTahap = t;
-  if (t !== 'setup-password') setupTiket = null;
   entryKosongkanRahasia();
   return entryApplyMode();
 }
@@ -3724,7 +3709,8 @@ updateClockWib();
 setInterval(updateClockWib, 1000);
 function updateWhoami() {
   whoamiEl.innerHTML = entered
-    ? (iconSvg('person') + ' @' + escapeHtml(visitorName) + ' · ' + genderSymbolSvg(visitorGender) + ' ' + (visitorGender === 'cewek' ? 'Cewek' : 'Cowok'))
+    ? (iconSvg('person') + ' ' + (isResidentSession ? '@' + escapeHtml(visitorName) : escapeHtml(visitorName) + ' · tamu')
+      + ' · ' + genderSymbolSvg(visitorGender) + ' ' + (visitorGender === 'cewek' ? 'Cewek' : 'Cowok'))
     : '';
 }
 function showEntry() {
@@ -3734,14 +3720,10 @@ function showEntry() {
   } catch (e) { /* abaikan */ }
   /* Ronde 50/51 — PIN/kunci tidak pernah disimpan: kosongkan tiap overlay
      dibuka (nama boleh terisi dari localStorage, PIN harus ketik). */
-  if (entryPin) entryPin.value = '';
   if (entryKey) entryKey.value = '';
-  if (entryPin2) entryPin2.value = '';
   entryModeManual = false; /* Ronde 54 — tiap buka overlay, mode diputuskan ulang dari username tersimpan */
   entryNameTouched = false;
   entryDecideInitialMode(); /* Ronde 54 — username tersimpan + terdaftar -> mode MASUK, sisanya DAFTAR (occupants belum dimuat = DAFTAR dulu, diperbaiki sesudah load di baris boot muatOccupants) */
-  if (entryPass) entryPass.value = '';
-  if (entryPass2) entryPass2.value = '';
   if (sesiPenghuni) entryTerapkanSesi(); /* Fase A — cookie "Ingat saya" masih berlaku: satu ketukan */
   updateGenderButtons();
   entryOverlay.classList.add('open');
@@ -3775,6 +3757,7 @@ function masukLayarPenuh() {
     var de = document.documentElement;
     if (de.requestFullscreen) {
       var p = de.requestFullscreen();
+      layarPenuhJanji = (p && typeof p.then === 'function') ? p : null;
       if (p && typeof p.then === 'function') {
         /* kunci SETELAH fullscreen granted (Chrome menolak lock sebelum fullscreen) */
         p.then(function () { cobaKunciLandscape(); }).catch(function () { cobaKunciLandscape(); });
@@ -3787,13 +3770,14 @@ function masukLayarPenuh() {
    masukSebagai() sesudah rantai async (login -> muatOccupants), 2–4 detik
    sesudah ketukan, di luar jendela gestur, sehingga browser menolak diam-
    diam. Sekarang dipicu SINKRON di jalur ketukan, tepat sebelum panggilan
-   API yang akan memasukkan pemain ke dunia (login dengan password, sesi
-   "Ingat saya", simpan password). Ketukan yang hanya lanjut ke form lain
+   API yang akan memasukkan pemain ke dunia (digit ke-6 PIN login / daftar,
+   sesi "Ingat saya"). Ketukan yang hanya lanjut ke form lain
    (daftar, langkah PIN) TIDAK memicunya: di form, portrait boleh (Ronde 56).
-   Kalau ternyata gagal masuk (password salah, server mati), layar penuh
+   Kalau ternyata gagal masuk (PIN salah, server mati), layar penuh
    dibatalkan lagi supaya form kembali normal. masukSebagai() tetap
    memanggil masukLayarPenuh() sebagai percobaan kedua. */
 var layarPenuhDariKetuk = false;
+var layarPenuhJanji = null; /* requestFullscreen yang mungkin belum selesai */
 function layarPenuhSaatKetuk() {
   if (entered) return;
   layarPenuhDariKetuk = true;
@@ -3803,6 +3787,11 @@ function batalLayarPenuhKetuk() {
   if (!layarPenuhDariKetuk || entered) return;
   layarPenuhDariKetuk = false;
   keluarLayarPenuh();
+  /* perbaikan 9: permintaan layar penuh bisa baru dikabulkan SESUDAH server
+     menjawab gagal (balapan) — keluar lagi begitu dikabulkan, kecuali
+     pengguna sudah mengetuk masuk lagi atau sudah di dalam dunia. */
+  var janji = layarPenuhJanji;
+  if (janji) janji.then(function () { if (!entered && !layarPenuhDariKetuk) keluarLayarPenuh(); }).catch(function () {});
 }
 function keluarLayarPenuh() {
   try {
@@ -3884,6 +3873,7 @@ function masukSebagai(nama, resident) {
     /* Ronde 57 — framing awal halaman ikut orientasi (portrait = lebih jauh, biar gedung tidak kepotong). */
     if (myRealm === 'yard') { camYaw = 0; camPitch = 0.25; camDist = camDistAwalHalaman(); }
   }
+  if (!isResidentSession) setLabel(avatarLabel, visitorName + ' · tamu'); /* perbaikan 9: penanda tamu */
   entered = true;
   pasangBackGuard(); /* Ronde 56 — back HP jadi tutup-UI dulu (bukan keluar game) */
   entryOverlay.classList.remove('open');
@@ -3892,113 +3882,68 @@ function masukSebagai(nama, resident) {
   mpKirimPresence(); /* masuk ulang: nama/gender bisa berubah — tulis ulang segera */
   mpKirimPos();
 }
+/* Perbaikan 9 — tamu SEKALI KETUK: tanpa ketik nama; nama otomatis Tamu-N. */
+function tamuNamaTerpakai() {
+  var pakai = [];
+  var occ = OCCUPANTS || [];
+  for (var i = 0; i < occ.length; i++) if (occ[i] && occ[i].name) pakai.push(occ[i].name);
+  for (var id in remotePlayers) if (remotePlayers[id] && remotePlayers[id].nama) pakai.push(remotePlayers[id].nama);
+  return pakai;
+}
 function masukTamu() {
-  var nama = entryName.value;
-  if (!normalize(nama)) { entryName.focus(); return; }
-  /* Ronde 53 — nama TERDAFTAR tidak boleh masuk sebagai tamu (lubang
-     impersonasi: previewFor mengembalikan kamar penghuni + homeBtn masuk
-     tanpa PIN). Paksa login PIN lewat tampilan utama. */
-  if (entryIsRegistered(nama)) {
-    entryShowError('Username @' + normalize(nama) + ' sudah terdaftar sebagai penghuni. Masuk pakai password-mu ya — atau pakai nama lain.');
-    return;
-  }
-  masukSebagai(nama, false);
+  if (entryBusy) return;
+  masukSebagai(tamuNama(tamuPilihNomor(tamuNamaTerpakai())), false);
+}
+/* Dipanggil tiap roster pemain lain berubah: kalau tamu lain (id lebih
+   kecil) memakai nama Tamu-N yang sama, pilih ulang N terkecil yang bebas. */
+function tamuCekBentrok() {
+  if (!entered || isResidentSession || !namaPolaTamu(visitorName)) return;
+  var lain = [];
+  for (var id in remotePlayers) lain.push({ id: id, nama: remotePlayers[id].nama });
+  if (!tamuHarusGanti(visitorName, playerId, lain)) return;
+  var baru = tamuNama(tamuPilihNomor(tamuNamaTerpakai()));
+  var lama = visitorName;
+  spawnAvatar(baru);
+  setLabel(avatarLabel, baru + ' · tamu');
+  updateWhoami();
+  mpKirimPresence();
+  mpKirimPos();
+  toastKosan('Nama ' + lama + ' sudah dipakai tamu lain — kamu sekarang ' + baru + '.');
 }
 function entryLogin() {
-  /* Rasa aman Fase A — login penghuni lewat server (bukan lagi RPC
-     kosan_login PIN-saja dari browser). */
+  /* Perbaikan 9 — login penghuni: username -> keypad PIN -> /api/masuk. */
   if (entryTahap === 'sesi' && sesiPenghuni) { if (!entryBusy) { layarPenuhSaatKetuk(); selesaiMasukPenghuni(sesiPenghuni); } return; }
   var nama = entryName.value;
   if (!normalize(nama)) { entryName.focus(); return; }
   if (entryBusy) return;
-  if (entryTahap === 'setup-pin') { entrySetupPin(nama); return; }
-  if (entryTahap === 'setup-password') { entrySetupPassword(); return; }
-  var pw = entryPass ? entryPass.value : '';
-  if (pw) layarPenuhSaatKetuk(); /* Perbaikan 3 — sinkron, sebelum API (password kosong = lanjut ke langkah PIN, bukan masuk dunia) */
-  entrySetBusy(true);
+  if (!entryIsRegistered(nama)) {
+    entryShowError('Nama ini belum terdaftar sebagai penghuni — daftar dulu, atau masuk sebagai tamu.');
+    return;
+  }
+  var username = nama.trim();
+  pinBukaMode({ jenis: 'masuk', judul: 'Masuk sebagai @' + normalize(nama), ok: 'Masuk',
+    sub: 'Masukkan PIN-mu (6 digit).', kirim: function (pin) { pinKirimMasuk(username, pin); } });
+}
+function pinKirimMasuk(username, pin) {
+  layarPenuhSaatKetuk(); /* sinkron di ketukan digit ke-6 / ✓ (perbaikan 3) */
+  pinMulaiSibuk();
   apiKosan('POST', '/api/masuk', {
-    username: nama.trim(), password: pw,
-    ingat: !!(entryIngat && entryIngat.checked), perangkat: perangkatId()
+    username: username, pin: pin, ingat: !!(entryIngat && entryIngat.checked), perangkat: perangkatId()
   }).then(function (r) {
-    entrySetBusy(false);
-    if (r.status === 200 && r.data && r.data.perlu_setup) {
-      batalLayarPenuhKetuk(); /* belum masuk dunia: lanjut ke form PIN */
-      entryModeManual = true;
-      entrySetTahap('setup-pin');
-      if (entryPin) entryPin.focus();
-      return;
-    }
-    if (r.status === 200 && r.data && r.data.room) { selesaiMasukPenghuni(r.data); return; }
-    if (entryPass) { entryPass.value = ''; entryPass.focus(); }
-    if (r.status === 401) {
-      if (OCCUPANTS_OK && !entryIsRegistered(nama)) entryShowError('Username @' + normalize(nama) + ' belum terdaftar, daftar dulu ya.');
-      else entryShowError('Password salah. Coba lagi ya. Lupa password? DM @ibu__kos.');
-    } else if ((r.status === 400 || r.status === 429) && r.data && r.data.pesan) {
-      entryShowError(r.data.pesan);
-    } else {
-      entryShowError('Tidak bisa terhubung ke server, coba lagi ya.');
-    }
-  });
-}
-function entrySetupPin(nama, pinLangsung) {
-  var pin = pinLangsung || (entryPin ? entryPin.value : '');
-  if (!/^\d{6}$/.test(pin)) {
-    entryShowError('Masukkan PIN kamar 6 digit.');
-    if (entryPin) { entryPin.value = ''; entryPin.focus(); }
-    return;
-  }
-  entrySetBusy(true);
-  apiKosan('POST', '/api/setup/pin', { username: nama.trim(), pin: pin, perangkat: perangkatId() }).then(function (r) {
-    entrySetBusy(false);
-    if (entryPin) entryPin.value = '';
-    if (r.status === 200 && r.data && r.data.tiket) {
-      entrySetTahap('setup-password');
-      setupTiket = r.data.tiket;
-      if (entryPass) entryPass.focus();
-      return;
-    }
-    if (r.status === 409) { entrySetTahap('masuk'); entryShowError((r.data && r.data.pesan) || 'Akun ini sudah punya password.'); return; }
-    if ((r.status === 400 || r.status === 401 || r.status === 429) && r.data && r.data.pesan) {
-      entryShowError(r.data.pesan);
-      if (entryPin) entryPin.focus();
-      return;
-    }
-    entryShowError('Tidak bisa terhubung ke server, coba lagi ya.');
-  });
-}
-function entrySetupPassword() {
-  var pw = entryPass ? entryPass.value : '';
-  var pw2 = entryPass2 ? entryPass2.value : '';
-  if (pw.length < 8) { entryShowError('Password minimal 8 karakter.'); if (entryPass) entryPass.focus(); return; }
-  if (pw !== pw2) {
-    entryShowError('Password kedua tidak sama dengan yang pertama. Coba lagi ya.');
-    if (entryPass2) { entryPass2.value = ''; entryPass2.focus(); }
-    return;
-  }
-  if (!setupTiket) { entrySetTahap('setup-pin'); return; }
-  layarPenuhSaatKetuk(); /* Perbaikan 3 — sinkron, sebelum API */
-  entrySetBusy(true);
-  apiKosan('POST', '/api/setup/password', {
-    tiket: setupTiket, password: pw,
-    ingat: !!(entryIngat && entryIngat.checked), perangkat: perangkatId()
-  }).then(function (r) {
-    entrySetBusy(false);
-    if (r.status === 200 && r.data && r.data.room) { selesaiMasukPenghuni(r.data); return; }
-    if (r.status === 401) { entrySetTahap('setup-pin'); entryShowError((r.data && r.data.pesan) || 'Masukkan PIN kamarmu lagi ya.'); return; }
-    if (r.status === 409) { entrySetTahap('masuk'); entryShowError((r.data && r.data.pesan) || 'Akun ini sudah punya password.'); return; }
-    if (entryPass) entryPass.value = '';
-    if (entryPass2) entryPass2.value = '';
-    if (r.status === 400 && r.data && r.data.pesan) { entryShowError(r.data.pesan); if (entryPass) entryPass.focus(); return; }
-    entryShowError('Tidak bisa terhubung ke server, coba lagi ya.');
+    pinSelesaiSibuk();
+    if (r.status === 200 && r.data && r.data.room) { pinTutup(); selesaiMasukPenghuni(r.data); return; }
+    batalLayarPenuhKetuk();
+    if (r.status === 401 && r.data && r.data.galat === 'tidak_terdaftar') { pinTutup(); entryShowError(r.data.pesan); return; }
+    if (r.data && r.data.pesan && (r.status === 400 || r.status === 401 || r.status === 429)) { pinTampilError(r.data.pesan); return; }
+    pinTampilError('Tidak bisa terhubung ke server, coba lagi ya.');
   });
 }
 function selesaiMasukPenghuni(data) {
   entryKosongkanRahasia();
-  setupTiket = null;
   sesiPenghuni = { room: data.room, name: data.name, gender: data.gender };
   setGender(data.gender === 'cowok' ? 'cowok' : 'cewek'); /* gender terdaftar = sumber kebenaran */
   entryName.value = data.name;
-  entrySetBusy(true); /* Perbaikan 2 — jangan bisa diketuk ulang selama daftar penghuni dimuat */
+  entrySetBusy(true); /* jangan bisa diketuk ulang selama daftar penghuni dimuat */
   muatOccupants().then(function () {
     entrySetBusy(false);
     /* Tanpa daftar penghuni, kamar dihitung dari hash (bisa salah kamar):
@@ -4019,101 +3964,74 @@ function cekSesiTersimpan() {
     }
   });
 }
+/* Pesan galat daftar dari server (kosan_register lewat /api/daftar). */
+function daftarPesan(nama, msg) {
+  msg = String(msg || '');
+  if (msg.indexOf('nama sudah terdaftar') !== -1) return 'Username @' + normalize(nama) + ' sudah dipakai, pilih username lain ya.';
+  if (msg.indexOf('username tidak valid') !== -1 || msg.indexOf('Username hanya boleh') !== -1) return 'Username hanya boleh huruf, angka, spasi, _ . - (maks 30 karakter).';
+  if (msg.indexOf('kamar sudah terisi') !== -1) return 'Kamar yang kamu tuju baru saja terisi. Coba daftar lagi ya.';
+  if (msg.indexOf('Gedung B belum dibuka') !== -1) return 'Gedung B belum dibuka — tunggu video terbaru';
+  if (msg.indexOf('Gedung B penuh') !== -1) return 'Gedung B sudah penuh (Kamar 11–20 terisi semua). Coba kode Gedung A — kodenya ada di caption video terbaru @ibu__kos.';
+  if (msg.indexOf('kosan penuh') !== -1) return 'Kosan sudah penuh (20 kamar terisi semua). Tunggu episode berikutnya ya!';
+  if (msg.indexOf('Gedung A penuh') !== -1) return 'Gedung A penuh — kode Gedung B ada di caption video terbaru';
+  if (msg.indexOf('nama tidak valid') !== -1) return 'Nama terlalu panjang (maks 30 karakter).';
+  if (msg.indexOf('kunci salah') !== -1 || msg.indexOf('Kode kunci salah') !== -1) return 'Kode kunci salah, cek lagi kode di caption terbaru @ibu__kos.';
+  if (msg.indexOf('Terlalu banyak percobaan') !== -1) return msg;
+  return 'Tidak bisa terhubung ke server, coba lagi ya.';
+}
 function entryDaftar() {
+  /* Perbaikan 9 — DAFTAR: username + gender + kode kunci -> keypad buat PIN
+     (2x) -> /api/daftar (server cek PIN != username + kosan_register) ->
+     sesi langsung. */
   var nama = entryName.value;
   if (!normalize(nama)) { entryName.focus(); return; }
-  /* Ronde 54 — audit keamanan (anti-homoglyph): username baru harus
-     ber-charset aman; server (kosan_register) mengecek hal yang sama. */
   if (!usernameValid(nama)) {
     entryShowError('Username hanya boleh huruf, angka, spasi, _ . - (maks 30 karakter).');
     return;
   }
   var kunci = entryKey ? entryKey.value : '';
-  var pin = entryPin ? entryPin.value : '';
-  var pin2 = entryPin2 ? entryPin2.value : '';
   if (!kunciKodeCek(kunci)) {
     entryShowError('Kode kunci salah, cek lagi kode di caption terbaru @ibu__kos.');
     if (entryKey) { entryKey.value = ''; entryKey.focus(); }
     return;
   }
-  if (!/^\d{6}$/.test(pin)) {
-    entryShowError('PIN harus 6 digit angka.');
-    if (entryPin) { entryPin.value = ''; entryPin.focus(); }
-    return;
-  }
-  if (pin !== pin2) {
-    entryShowError('PIN kedua tidak sama dengan PIN pertama. Coba lagi ya.');
-    if (entryPin2) { entryPin2.value = ''; entryPin2.focus(); }
-    return;
-  }
   if (entryBusy) return;
-  entrySetBusy(true);
-  sbRpc('kosan_register', {
-    p_name: nama.trim(),
-    p_gender: visitorGender === 'cowok' ? 'Cowok' : 'Cewek',
-    p_key: kunci.trim().toUpperCase(),
-    p_pin_hash: pinHash(pin),
-    p_room: roomFor(nama)
-  }).then(function (room) {
-    entrySetBusy(false);
-    muatOccupants().then(function () {
-      /* Ronde 54 — sesudah daftar, langsung diarahkan ke mode MASUK
-         (username sudah terisi, tinggal masukkan PIN) — bukan langsung
-         masuk dunia. Kunci tetap ter-klaim saat daftar (Ronde 51). */
-      var preview = previewFor(nama);
-      var roomNo = (typeof room === 'number') ? room : (preview ? preview.room : '?');
-      if (kunciKlaim()) toastKosan('Selamat! Username @' + normalize(nama) + ' terdaftar di Kamar ' + roomNo + '. Kunci Kamar didapat! +1 Bintang');
-      else toastKosan('Selamat! Username @' + normalize(nama) + ' terdaftar di Kamar ' + roomNo + '.');
-      entryName.value = normalize(nama); /* field MASUK tampilkan username tersimpan (tanpa '@') */
-      entrySetMode(true, true); /* mode MASUK + manual (jangan auto-ubah lagi) */
-      /* Rasa aman Fase A — akun baru belum punya password: langsung ke
-         langkah buat password. PIN yang baru dibuat dipakai SEKALI untuk
-         tiket setup (hanya di variabel lokal ini, tidak disimpan). */
-      entrySetTahap('setup-pin');
-      entrySetupPin(normalize(nama), pin);
-    });
-  }).catch(function (e) {
-    entrySetBusy(false);
-    var msg = String((e && e.message) || '');
-    if (msg.indexOf('nama sudah terdaftar') !== -1) {
-      /* Ronde 54 — username sudah dipakai: TETAP di mode DAFTAR, jangan
-         pindah ke form masuk (itu yang tidak logis buat orang kedua yang
-         namanya sama). */
-      entryShowError('Username @' + normalize(nama) + ' sudah dipakai, pilih username lain ya.');
-    } else if (msg.indexOf('username tidak valid') !== -1) {
-      entryShowError('Username hanya boleh huruf, angka, spasi, _ . - (maks 30 karakter).');
-    } else if (msg.indexOf('kamar sudah terisi') !== -1) {
-      /* Ronde 54 — audit keamanan (race): kamar yang dituju baru saja
-         terisi bersamaan; daftar lagi (server akan memprobe kamar kosong). */
-      entryShowError('Kamar yang kamu tuju baru saja terisi. Coba daftar lagi ya.');
-    } else if (msg.indexOf('Gedung B belum dibuka') !== -1) {
-      /* Ronde 61 fix (Task 9, I1) — flag server OFF: pendaftaran Gedung B
-         belum dibuka; tampilkan pesan RPC verbatim (tanpa cabang ini
-         jatuhnya ke 'Tidak bisa terhubung'). */
-      entryShowError('Gedung B belum dibuka — tunggu video terbaru');
-    } else if (msg.indexOf('Gedung B penuh') !== -1) {
-      /* Ronde 61 fix (Task 9, I3) — hanya Gedung B yang penuh, Gedung A
-         masih ada yang kosong: arahkan ke kode Gedung A (ada di caption
-         video terbaru) — nama kunci TIDAK PERNAH ditulis di teks
-         user-facing (keputusan Ryan 02:25). */
-      entryShowError('Gedung B sudah penuh (Kamar 11–20 terisi semua). Coba kode Gedung A — kodenya ada di caption video terbaru @ibu__kos.');
-    } else if (msg.indexOf('kosan penuh') !== -1) {
-      /* Ronde 61 fix (Task 9, I3) — benar-benar penuh (20/20): suruh
-         tunggu episode berikutnya (keputusan Ryan 02:25). */
-      entryShowError('Kosan sudah penuh (20 kamar terisi semua). Tunggu episode berikutnya ya!');
-    } else if (msg.indexOf('Gedung A penuh') !== -1) {
-      /* Ronde 61 — Gedung B: kunci KOSAN + Gedung A penuh -> RPC
-         'Gedung A penuh — kode Gedung B ada di caption video terbaru';
-         tanpa cabang ini pesannya jatuh ke 'Tidak bisa terhubung'. */
-      entryShowError('Gedung A penuh — kode Gedung B ada di caption video terbaru');
-    } else if (msg.indexOf('nama tidak valid') !== -1) {
-      entryShowError('Nama terlalu panjang (maks 30 karakter).');
-    } else if (msg.indexOf('kunci salah') !== -1) {
-      entryShowError('Kode kunci salah, cek lagi kode di caption terbaru @ibu__kos.');
-    } else {
-      entryShowError('Tidak bisa terhubung ke server, coba lagi ya.');
+  var data = { username: nama.trim(), kunci: kunci.trim().toUpperCase(), pin1: '' };
+  var putaran1 = function () {
+    data.pin1 = '';
+    pinBukaMode({ jenis: 'buat', judul: 'Buat PIN', ok: 'Lanjut',
+      sub: 'PIN 6 digit untuk masuk dan buka kamarmu. Jangan sama dengan username.', kirim: kirimBuat });
+  };
+  var kirimBuat = function (pin) {
+    if (!data.pin1) {
+      if (pinSamaUsername(pin, data.username)) { pinDigit = ''; pinRender(); pinTampilError('PIN tidak boleh sama dengan username.'); return; }
+      data.pin1 = pin;
+      pinBukaMode({ jenis: 'buat', judul: 'Ulangi PIN', ok: 'Daftar', sub: 'Ketik PIN yang sama sekali lagi.', kirim: kirimBuat });
+      return;
     }
-  });
+    if (pin !== data.pin1) { putaran1(); pinTampilError('PIN kedua tidak sama dengan PIN pertama. Coba lagi ya.'); return; }
+    data.pin1 = '';
+    layarPenuhSaatKetuk(); /* sinkron di ketukan (perbaikan 3) */
+    pinMulaiSibuk();
+    apiKosan('POST', '/api/daftar', {
+      username: data.username, gender: visitorGender === 'cowok' ? 'cowok' : 'cewek', kunci: data.kunci, pin: pin,
+      ingat: !!(entryIngat && entryIngat.checked), perangkat: perangkatId()
+    }).then(function (r) {
+      pinSelesaiSibuk();
+      if (r.status === 200 && r.data && r.data.room) {
+        pinTutup();
+        if (kunciKlaim()) toastKosan('Selamat! Username @' + normalize(data.username) + ' terdaftar di Kamar ' + r.data.room + '. Kunci Kamar didapat! +1 Bintang');
+        else toastKosan('Selamat! Username @' + normalize(data.username) + ' terdaftar di Kamar ' + r.data.room + '.');
+        selesaiMasukPenghuni(r.data);
+        return;
+      }
+      batalLayarPenuhKetuk();
+      if (r.status === 400 && r.data && r.data.galat === 'pin_sama_username') { putaran1(); pinTampilError(r.data.pesan); return; }
+      pinTutup();
+      entryShowError(daftarPesan(data.username, r.data && r.data.pesan));
+    });
+  };
+  putaran1();
 }
 function masukKosan() {
   var nama = entryName.value;
@@ -4135,7 +4053,7 @@ function masukKosan() {
       /* Supabase tidak terjangkau: masuk sebagai tamu preview, daftar/
          masuk penghuni ditunda — game TIDAK crash. */
       toastKosan('Daftar/masuk penghuni lagi tidak tersedia (server tidak terjangkau). Kamu masuk sebagai tamu dulu ya.');
-      masukSebagai(nama, false);
+      masukTamu(); /* perbaikan 9: tamu selalu bernama otomatis Tamu-N */
       return;
     }
     var preview = previewFor(nama);
@@ -4148,7 +4066,7 @@ function masukKosan() {
   if (OCCUPANTS_OK) { lanjut(); return; }
   /* daftar penghuni belum dimuat: jalur jadi async, jadi picu layar penuh
      sekarang kalau ketukan ini memang akan memasukkan pemain ke dunia */
-  if (entryLoginView && ((entryTahap === 'masuk' && entryPass && entryPass.value) || entryTahap === 'setup-password' || (entryTahap === 'sesi' && sesiPenghuni))) layarPenuhSaatKetuk();
+  if (entryLoginView && entryTahap === 'sesi' && sesiPenghuni) layarPenuhSaatKetuk();
   entrySetBusy(true);
   muatOccupants().then(function () {
     entrySetBusy(false);
@@ -4168,28 +4086,11 @@ entryName.addEventListener('input', function () {
   entryNameTouched = true;
   if (entryError) entryError.style.display = 'none';
 });
-if (entryPin) entryPin.addEventListener('keydown', function (e) { if (e.key === 'Enter') masukKosan(); });
 if (entryKey) entryKey.addEventListener('keydown', function (e) { if (e.key === 'Enter') masukKosan(); });
-if (entryPin2) entryPin2.addEventListener('keydown', function (e) { if (e.key === 'Enter') masukKosan(); });
 if (entryGuestLink) entryGuestLink.addEventListener('click', masukTamu);
 if (entryModeLink) entryModeLink.addEventListener('click', function () {
-  if (entryLoginView && (entryTahap === 'setup-pin' || entryTahap === 'setup-password')) { entrySetTahap('masuk'); if (entryPass) entryPass.focus(); return; }
   entrySetMode(!entryLoginView, true); if (entryName) entryName.focus();
 });
-if (entryPass) entryPass.addEventListener('keydown', function (e) { if (e.key === 'Enter') masukKosan(); });
-/* Perbaikan 2 — penghuni lama tanpa password: lompat langsung ke langkah
-   PIN kamar (server tetap menolak dengan 409 kalau akun sudah punya
-   password, dan pesan itu ditampilkan). */
-if (entryLoginPertama) entryLoginPertama.addEventListener('click', function () {
-  if (entryBusy) return;
-  var nama = entryName ? entryName.value : '';
-  if (!normalize(nama)) { entryShowError('Isi username dulu ya, lalu tap "Login pertama kali?" lagi.'); if (entryName) entryName.focus(); return; }
-  if (OCCUPANTS_OK && !entryIsRegistered(nama)) { entryShowError('Username @' + normalize(nama) + ' belum terdaftar, daftar dulu ya.'); return; }
-  entryModeManual = true;
-  entrySetTahap('setup-pin');
-  if (entryPin) entryPin.focus();
-});
-if (entryPass2) entryPass2.addEventListener('keydown', function (e) { if (e.key === 'Enter') masukKosan(); });
 if (entryKeluarAkun) entryKeluarAkun.addEventListener('click', function () {
   if (entryBusy) return;
   entrySetBusy(true);
@@ -5530,8 +5431,10 @@ function perbaruiLabelDuplikat() { /* akhiran · #XXXX bila nama sama (§2.6) */
   for (var id in remotePlayers) {
     var entri = remotePlayers[id];
     var teks = peta[id];
+    if (teks && namaPolaTamu(entri.nama) && !entryIsRegistered(entri.nama)) teks += ' · tamu'; /* perbaikan 9: penanda tamu */
     if (teks && teks !== entri.labelTeks) { entri.labelTeks = teks; setLabel(entri.label, teks); }
   }
+  tamuCekBentrok(); /* perbaikan 9: dua tamu dengan Tamu-N sama -> pilih ulang */
 }
 function mpTerapkanRender() { /* 20 terdekat di realm sama (§3.5) */
   var tampil = mpPilihRender(remotePlayers, avatarPos.x, avatarPos.z, myRealm, MP_MAX_RENDER);

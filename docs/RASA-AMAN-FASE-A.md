@@ -1,162 +1,144 @@
-# RASA-AMAN-FASE-A — runbook deploy login penghuni + PIN kamar
+# RASA-AMAN-FASE-A — runbook deploy login penghuni (PIN) + PIN kamar
 
-Desain: `docs/RASA-AMAN-DESAIN.md` §5, §6, §8, §10. Fase A menambah login
-username + password, setup password sekali untuk penghuni lama, "Ingat
-saya", dan PIN kamar yang dicek di server. Multiplayer tetap v1 (broker
-publik) sampai Fase B.
+Desain: `docs/RASA-AMAN-DESAIN.md` §5, §6, §8, §10. Fase A memindah login
+penghuni ke server sendiri (Vercel Functions), menambah "Ingat saya",
+dan memeriksa PIN kamar di server tiap kali masuk. Multiplayer tetap v1
+(broker publik) sampai Fase B.
+
+> **Perbaikan 9 (keputusan Ryan 14 Nov 14:53 / 14:58 / 15:00): lapisan
+> password DICABUT TOTAL — balik ke PIN saja.** Alasan Ryan: setup password
+> "terlalu rumit, orang bisa kesel dan pada akhirnya jadi males main".
+> Yang dicabut: kolom password, tahap "buat password", endpoint
+> `/api/setup/password`, scrypt, tiket setup, cek password bocor (HIBP,
+> perbaikan 7) beserta fail-closed-nya (perbaikan 8), tautan "Login pertama
+> kali", dan kolom nama tamu. Tanpa kolom password, Chrome tidak punya apa
+> pun untuk disimpan/dicek, jadi peringatan "Periksa sandi Anda" tidak
+> mungkin muncul. Tidak ada migrasi database.
+
+## Alur sekarang
+
+**Login penghuni (dua langkah)**
+1. Layar masuk: username + tombol **Masuk** (+ centang "Ingat saya").
+   Klien mencocokkan dengan daftar penghuni publik (`kosan_occupants`).
+   Bukan penghuni → "Nama ini belum terdaftar sebagai penghuni — daftar
+   dulu, atau masuk sebagai tamu." (keypad tidak muncul).
+2. Penghuni → keypad PIN (6 titik, kirim otomatis di digit ke-6) →
+   `POST /api/masuk {username, pin, ingat}` → PIN dicek lewat RPC lama
+   `kosan_login` (service role) di belakang gerbang percobaan → benar =
+   sesi + cookie langsung. Salah = pesan + gerbang menghitung (5 salah
+   dalam 15 menit → percobaan berikutnya terkunci ±20 menit, PIN benar
+   maupun salah dijawab sama). Aturan "PIN ≠ username" TIDAK berlaku di
+   login.
+   `/api/setup/pin` tetap ada sebagai alias `/api/masuk` (perilaku sama).
+
+**Daftar (penghuni baru)** — username + gender + kode kunci (KOSAN /
+KOSANBARU) → keypad "Buat PIN" → "Ulangi PIN" → `POST /api/daftar`.
+PIN tidak boleh sama dengan username (hanya mungkin kalau username angka
+semua): dicek di klien sebelum kirim, dan di server
+(`pinHash(pin) === pinHash(normalize(username))` → 400
+`pin_sama_username`). Server lalu memanggil RPC lama `kosan_register`
+dengan service role (definisinya TIDAK diubah) dan langsung membuat sesi.
+
+**Tamu (sekali ketuk)** — "Masuk sebagai tamu" langsung masuk dengan nama
+otomatis `Tamu-N`: N terkecil ≥ 1 yang belum dipakai nama penghuni
+terdaftar maupun pemain online. Kalau belakangan muncul tamu lain dengan
+nama sama (masuk bersamaan), tamu dengan id lebih besar memilih ulang N
+terkecil yang bebas. Label tampil `Tamu-N · tamu`. Nama tamu tidak
+disimpan di perangkat. Tamu tetap tidak bisa masuk kamar.
+
+**Tetap seperti sebelumnya:** sesi + cookie `__Host-kosan_sesi`
+(HttpOnly, 12 jam / "Ingat saya" 30 hari geser), PIN kamar wajib tiap
+masuk ruangan (keypad, tidak pernah diingat), gerbang percobaan per kamar,
+batas per jaringan (IPv6 per /64), log perangkat/IP (HMAC), ketuk pintu
+kamar sendiri → keypad, auto-landscape sinkron di ketukan, region `sin1`.
 
 ## Yang berubah
 
 | Bagian | File |
 |---|---|
-| Endpoint server (Vercel Functions, Node, tanpa dependensi) | `api/masuk.js`, `api/sesi.js`, `api/keluar.js`, `api/setup/pin.js`, `api/setup/password.js`, `api/kamar/masuk.js`, `api/_lib/*.js` |
-| Tabel + fungsi baru (tidak menyentuh tabel penghuni) | `supabase/migrations/20261113_rasa_aman_fase_a.sql` |
-| Klien | `index.html`: layar masuk (password, setup, Ingat saya, Keluar akun), modal PIN kamar, gerbang `enterRoom` |
-| Tes | `tests/server.test.js`, `tests/fake-db.js`, `tests/lokal.js`, `tests/e2e-fase-a.js` |
+| Endpoint (Vercel Functions, Node, tanpa dependensi) | `api/masuk.js`, `api/setup/pin.js` (alias), `api/daftar.js`, `api/sesi.js`, `api/keluar.js`, `api/kamar/masuk.js`, `api/_lib/*.js` (4 file) |
+| Dihapus (perbaikan 9) | `api/setup/password.js`, `tests/fake-hibp.js`, `tests/e2e-fase-a.js`, `tests/e2e-perbaikan2.js` |
+| Tabel + fungsi Fase A (tidak menyentuh tabel penghuni) | `supabase/migrations/20261113_rasa_aman_fase_a.sql` (tidak diubah) |
+| Klien | `index.html` |
+| Tes | `tests/server.test.js`, `tests/klien.test.js`, `tests/fake-db.js`, `tests/lokal.js`, `tests/e2e-pin.js` |
 
-Data penghuni (nama, kamar, gender, PIN, `pin_hash`) tidak diubah. Server
-memverifikasi PIN lewat RPC lama `kosan_login` dengan service role.
+Data penghuni (nama, kamar, gender, PIN, `pin_hash`) tidak diubah oleh
+login. Server menulis gender terdaftar ke tabel Fase A `kosan_akun`
+(upsert `room, nama_norm, gender`) supaya `/api/sesi` bisa
+mengembalikannya. Kolom `password_hash`/`gagal_count`/`kunci_sampai` di
+tabel itu, serta fungsi `kosan_akun_setup`/`kosan_akun_gagal`/
+`kosan_akun_berhasil` dan gerbang `pw:`, tidak dipakai lagi (dibiarkan
+supaya tidak perlu migrasi).
 
 ## Urutan deploy
 
-1. **Cek `kosan_login` [CEK].** Di SQL Editor:
-   `select pg_get_function_identity_arguments('public.kosan_login'::regproc);`
-   Harus `p_name text, p_pin_hash text`, dan baris hasilnya punya kolom
-   `gender`. Kalau beda, kabari dulu sebelum lanjut.
-   Catatan: komentar Ronde 61 di klien lama menyebut pesan "Terlalu banyak
-   percobaan" hanya muncul untuk PIN yang **benar**. Kalau itu benar,
-   kunci `kosan_login` bisa jadi penunjuk PIN. Server Fase A tidak
-   bergantung padanya: semua cek PIN (setup + kamar) lewat gerbang
-   `kosan_gerbang` per kamar (5 percobaan/15 menit, kunci 20 menit),
-   sehingga selama terkunci PIN benar dan salah dijawab sama, dan
-   `kosan_login` tidak dipanggil. Hitungan gagal `kosan_login`
-   (`kosan_login_attempts`) terverifikasi kumulatif, tidak meluruh. Supaya
-   tidak dobel-hitung, setiap kali gerbang `pin:<kamar>` mulai dari nol
-   karena sepi 15 menit, baris `kosan_login_attempts` penghuni kamar itu
-   ikut dihapus (definisi `kosan_login` tidak diubah).
-2. **Migrasi.** Jalankan `supabase/migrations/20261113_rasa_aman_fase_a.sql`
-   di SQL Editor. File ini idempoten. Lalu jalankan dua cek di bagian bawah
-   file (anon ditolak, service_role boleh `kosan_login`).
-   Sebelum produksi, jalankan dulu di proyek Supabase uji, lalu uji
-   balapan `kosan_gerbang_ambil` dari dua sesi SQL sekaligus (harus total
-   tepat 5 `true`, sisanya `false`). Migrasi versi sebelumnya sudah lolos
-   uji Postgres 16 + race test. Versi ini menambah DELETE ke
-   `kosan_login_attempts` (lewat `kosan_residents`) di `kosan_gerbang_ambil`,
-   `kosan_akun_buka`, `kosan_akun_reset`, dan belum diuji ulang di Postgres:
-   ulangi skenario dobel-hitung (3 salah, sepi 20 menit, 2 salah → PIN
-   benar harus berhasil) dan skenario buka-kunci lama.
+1. **Cek `kosan_login` [CEK].** `select pg_get_function_identity_arguments('public.kosan_login'::regproc);`
+   harus `p_name text, p_pin_hash text`, dan barisnya punya kolom `gender`.
+   Hitungan gagal `kosan_login` (`kosan_login_attempts`) kumulatif; saat
+   gerbang `pin:<kamar>` mulai dari nol karena sepi 15 menit, baris itu ikut
+   dihapus (tanpa dobel-hitung).
+2. **Migrasi Fase A** sudah dijalankan (perbaikan 9 tidak menambah SQL).
 3. **Env var Vercel** (Production + Preview), jangan pernah di repo:
-   - `SUPABASE_URL` = `https://lpuvkrbdctankydvmzpy.supabase.co`
-   - `SUPABASE_SERVICE_ROLE_KEY` = service role / secret key proyek
-   - `KOSAN_SECRET` = 32 byte acak, mis. `openssl rand -base64 32`
-   Tanpa salah satunya, endpoint membalas 503 (gagal aman).
-4. **Deploy preview.** Daftar file deploy wajib ikut membawa folder `api/`
-   (10 file `.js` di atas: 6 endpoint + 4 di `api/_lib/`). `tests/`, `supabase/`, `docs/` tidak perlu
-   di-deploy. Vercel tidak menjadikan `api/_lib/` sebagai endpoint.
+   `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `KOSAN_SECRET` (32 byte
+   acak). Tanpa salah satunya, endpoint membalas 503 (gagal aman).
+4. **Deploy preview.** Daftar file deploy membawa 10 file `api/`: 6
+   endpoint (`masuk`, `sesi`, `keluar`, `daftar`, `setup/pin`,
+   `kamar/masuk`) + 4 di `api/_lib/`. **`api/setup/password.js` DIHAPUS
+   dari daftar deploy.** `tests/`, `supabase/`, `docs/` tidak di-deploy.
 5. **Cek preview:**
-   - `curl -s -o /dev/null -w '%{http_code}' https://<preview>/api/sesi` → `401`
-     (bukan 404/503).
-   - Region fungsi: `curl -sI https://<preview>/api/sesi | grep -i x-vercel-id`
-     harus memuat `sin1` (`vercel.json` → `"regions": ["sin1"]`). **[CEK]**
-     region proyek Supabase: `/api/sesi` memanggil database 3 kali berurutan,
-     jadi kalau Supabase bukan di Singapura (`ap-southeast-1`), sin1 bisa
-     malah lebih lambat. Bandingkan waktu `/api/sesi` sebelum dan sesudah.
-   - Playtest dua tab sesuai `docs/RASA-AMAN-DESAIN.md` §12.3.
-   - Playtest HP (14 Nov): login penghuni → ketuk pintu kamar sendiri langsung
-     keypad PIN (tanpa kartu, keyboard HP tidak muncul, 6 digit kirim
-     otomatis); ketuk kamar orang / sebagai tamu → kartu info. Sebelum tes
-     "Periksa sandi Anda", hapus dulu entri sandi Kosan yang sudah tersimpan
-     di Password Manager Chrome HP (entri lama tetap memicu peringatan).
-6. **Promote ke produksi**, lalu tes live §12.4 nomor 1–3.
-7. **Sesudah klien baru live ≥24 jam:** cabut login PIN-saja dari browser,
+   - `curl -s -o /dev/null -w '%{http_code}' https://<preview>/api/sesi` → `401`.
+   - `curl -s -o /dev/null -w '%{http_code}' -X POST https://<preview>/api/setup/password` → `404` (endpoint sudah tidak ada).
+   - `curl -s https://<preview>/ | grep -c 'type="password"'` → `0`.
+   - Header `x-vercel-id` memuat `sin1`.
+   - Playtest HP: rina → username → Masuk → keypad PIN → masuk; PIN salah
+     → error; username bukan penghuni → pesan belum-terdaftar; tamu
+     sekali ketuk → "Tamu-1 · tamu"; masuk kamar tetap minta PIN.
+6. **Promote ke produksi**, lalu tes live.
+7. **Sesudah klien baru live ≥24 jam:** cabut akses langsung browser ke
+   RPC lama yang sekarang dilayani server:
    `REVOKE EXECUTE ON FUNCTION public.kosan_login(text, text) FROM anon;`
-   (§7.5). Klien Fase A sudah tidak memanggilnya. Jangan ditunda lama:
-   selama anon masih bisa memanggil `kosan_login` langsung, penebak bisa
-   menyelipkan satu percobaan lewat server sesudah 15 menit sepi (yang
-   menghapus hitungan lama) di antara tebakan lewat jalur anon, sehingga
-   jatahnya kira-kira dua kali lipat per 15 menit.
-
-## Password bocor (14 Nov, perbaikan 7)
-
-- Saat **membuat password** (setup pertama / sesudah reset), server
-  menolak password yang pernah bocor menurut Have I Been Pwned, SEBELUM
-  di-hash: "Password ini pernah bocor di internet. Pakai password lain
-  yang belum pernah dipakai di mana pun."
-- Yang dikirim ke `https://api.pwnedpasswords.com/range/` hanya 5 karakter
-  pertama SHA-1 (k-anonymity + header `Add-Padding`). Password, hash utuh,
-  dan sisa hash tidak pernah keluar dari server dan tidak ditulis ke log.
-- Timeout 3 detik. HIBP tidak terjangkau / error / timeout → **fail
-  closed** (perbaikan 8, kritik Ryan 06:32): setup DITOLAK (400
-  `cek_bocor_gagal`) dengan pesan "Tidak bisa memeriksa keamanan password
-  saat ini. Coba lagi sebentar lagi ya." Tiket setup masih berlaku 5 menit,
-  jadi penghuni cukup ketuk simpan lagi. Log Vercel hanya mencatat
-  `setup ditolak: HIBP tidak terjangkau (fail closed)` (tanpa password).
-- **Jaminan sekarang:** setiap password yang diterima sudah terverifikasi
-  bersih di HIBP saat setup. Konsekuensinya, saat HIBP down hanya pembuatan
-  password (setup pertama / sesudah reset) yang diminta coba lagi. Login
-  penghuni yang sudah punya password tidak kena.
-- Percobaan yang ditolak tetap memakai batas setup per jaringan (20/jam).
-- **GERBANG SEBELUM PRODUKSI (wajib):** fail-closed hanya aman kalau fungsi
-  Vercel memang bisa menjangkau HIBP. Di preview, reset satu akun uji lalu
-  setup dengan `password123`:
-  - ditolak dengan pesan **bocor** → HIBP terjangkau, fail-closed aman,
-    boleh dipromosikan;
-  - ditolak dengan pesan **"Password ini terlalu umum"** → fungsi TIDAK
-    menjangkau HIBP (`password123` juga ada di daftar password umum lokal,
-    dan saat HIBP tak terjangkau pesan aturan lama yang tampil). **STOP**,
-    jangan promosikan: fail-closed akan memblokir semua setup. Cek log
-    fungsi (`setup ditolak: HIBP tidak terjangkau`) + akses keluar Vercel,
-    atau cari jalan lain (mis. daftar lokal).
-  - Pembanding tambahan: setup dengan `P@ssw0rd` (bocor, tapi TIDAK ada di
-    daftar umum lokal). Pesan bocor → terjangkau; pesan "Tidak bisa
-    memeriksa keamanan password" → tidak terjangkau, STOP.
-  - Diterima → yang ter-deploy masih versi fail-open (perbaikan 7) atau
-    HIBP tidak dicek sama sekali. STOP, cek versi deploy.
-  - Sesudah tes gerbang, reset lagi akun ujinya (`kosan_akun_reset`) kalau
-    sempat tersimpan.
-- Login TIDAK memanggil HIBP. Password yang sudah tersimpan tidak dicek
-  ulang: penghuni dengan password bocor (mis. rina) perlu
-  `select kosan_akun_reset(<kamar>);` lalu setup ulang. Itu tindakan pemilik.
-- Fungsi Vercel butuh akses keluar ke `api.pwnedpasswords.com` (HTTPS,
-  sisi server; CSP browser tidak terpengaruh).
+   dan `REVOKE EXECUTE ON FUNCTION public.kosan_register(...) FROM anon;`
+   (sesuaikan signature). Klien baru tidak memanggil keduanya (hanya
+   `kosan_occupants`). Sampai `kosan_register` dicabut dari anon, aturan
+   "PIN ≠ username" bisa dilewati oleh orang yang memanggil RPC langsung;
+   sampai `kosan_login` dicabut, penebak bisa memakai jalur anon untuk
+   menambah jatah tebakan. Jangan ditunda lama.
 
 ## Operasional
 
-- **Lupa password** (sesudah verifikasi lewat DM IG):
-  `select kosan_akun_reset(<kamar>);` Semua sesi kamar itu dicabut dan
-  semua kuncinya dibuka (gerbang Fase A + kunci PIN lama
-  `kosan_login_attempts`). Penghuni login pertama lagi pakai PIN kamarnya.
+- **Lupa PIN** (sesudah verifikasi lewat DM IG): reset PIN lewat SQL seperti
+  runbook lama (`docs/PENGHUNI.md`). Lalu `select kosan_akun_reset(<kamar>);`
+  untuk mencabut semua sesi kamar itu + membuka kuncinya.
 - **Akun terkunci karena orang iseng (trade-off yang diterima).** Username
-  penghuni publik, jadi siapa pun bisa sengaja salah 6x tiap 20 menit
-  (password atau PIN) dan menjaga akun itu terkunci terus. Penghuni yang
-  sudah punya sesi "Ingat saya" tetap bisa masuk dunia, tapi tidak bisa
-  masuk kamar selama gerbang PIN terkunci. Kalau ada penghuni lapor
-  "terkunci terus": `select kosan_akun_buka(<kamar>);` (membuka kunci saja,
-  password dan sesi tidak berubah). Password dan PIN langsung terbuka:
-  fungsi ini menghapus gerbang Fase A sekaligus baris `kosan_login_attempts`
-  kamar itu (kunci 5x PIN salah dari sistem lama). Lihat pola serangan di
-  `select * from kosan_gerbang where kunci like '%:<kamar>';` dan, kalau
-  berulang, kabari untuk ronde berikutnya (mis. kunci per IP + kamar).
-- **Pembersihan data** (retensi 90 hari): `select kosan_bersihkan();`
-  manual, atau jadwalkan dengan pg_cron (lihat akhir file migrasi).
-- **Kandidat akun ganda** (Fase D): sementara bisa dilihat manual,
-  `select room, perangkat, ip_hmac, peristiwa, dibuat from kosan_perangkat_log order by dibuat;`
+  penghuni publik, jadi siapa pun bisa sengaja salah 6x tiap 20 menit dan
+  menjaga akun itu terkunci. Penghuni dengan sesi "Ingat saya" tetap bisa
+  masuk dunia, tapi tidak bisa masuk kamar selama terkunci. Buka dengan
+  `select kosan_akun_buka(<kamar>);` (menghapus gerbang + baris
+  `kosan_login_attempts` kamar itu; sesi tidak berubah).
+- **Pembersihan data** (retensi 90 hari): `select kosan_bersihkan();`.
+- **Kandidat akun ganda** (Fase D): `select room, perangkat, ip_hmac, peristiwa, dibuat from kosan_perangkat_log order by dibuat;`
   Jangan tendang siapa pun berdasarkan ini saja.
+
+## DICABUT (riwayat, jangan dipakai lagi)
+
+- Perbaikan 1–6: login username + **password**, setup password sekali untuk
+  penghuni lama (PIN lama → buat password), aturan password (8–128,
+  daftar umum), scrypt, kunci password 5x/15 menit.
+- Perbaikan 7: tolak password bocor (HIBP k-anonymity, fail-open).
+- Perbaikan 8: HIBP fail-closed + gerbang tes `password123` / `P@ssw0rd`.
+- Semuanya diganti alur PIN saja di atas (perbaikan 9).
 
 ## Rollback
 
-Deploy ulang `index.html` versi sebelumnya. Klien lama memakai
-`kosan_login` lagi, jadi langkah 7 jangan dijalankan sebelum yakin. Tabel
-baru boleh dibiarkan: tidak ada yang membacanya selain `/api/*`.
+Deploy ulang `index.html` + `api/` versi sebelumnya. Klien lama (sebelum
+Fase A) memakai `kosan_login`/`kosan_register` anon langsung, jadi langkah
+7 jangan dijalankan sebelum yakin.
 
 ## Menjalankan tes
 
 ```bash
-node --test tests/server.test.js         # 53 tes server (43 lama + 10 password bocor), tanpa jaringan; HIBP di-mock (tests/fake-hibp.js)
-node --test tests/klien.test.js          # 7 tes klien (ketuk pintu, catatan dihapus, autocomplete password)
-PLAYWRIGHT_CORE=... CHROME_PATH=... node tests/e2e-fase-a.js          # playtest klien baru
-PLAYWRIGHT_CORE=... CHROME_PATH=... node tests/e2e-fase-a.js --lama   # klien dari main (RED)
-PLAYWRIGHT_CORE=... CHROME_PATH=... node tests/e2e-perbaikan2.js       # perbaikan ronde 2 (jaringan diperlambat 3 dtk/panggilan)
-PLAYWRIGHT_CORE=... CHROME_PATH=... node tests/e2e-perbaikan2.js --ref=<commit>   # klien dari commit lain (RED)
-node tests/lokal.js 8790                 # server uji lokal (database palsu)
+node --test tests/server.test.js         # tes server, tanpa jaringan
+node --test tests/klien.test.js          # tes klien (fungsi murni dari index.html)
+PLAYWRIGHT_CORE=... CHROME_PATH=... node tests/e2e-pin.js   # playtest Chromium (server uji lokal + database palsu)
+node tests/lokal.js 8790                 # server uji lokal
 ```

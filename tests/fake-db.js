@@ -4,7 +4,7 @@
    kosan_login / kosan_occupants (yang tidak ada di repo). PIN di sini
    PIN UJI, bukan PIN penghuni asli. */
 const crypto = require('node:crypto');
-const { pinHash } = require('../api/_lib/inti');
+const { pinHash, normalize } = require('../api/_lib/inti');
 
 function buatFakeDb({ penghuni, sekarang = () => Date.now() }) {
   /* penghuni: [{ room, name, gender: 'Cewek'|'Cowok', pin }] */
@@ -31,31 +31,34 @@ function buatFakeDb({ penghuni, sekarang = () => Date.now() }) {
       return { ok: true, row: { gender: p.gender } };
     },
     async akunAmbil(room) { const a = t.akun.get(room); return a ? Object.assign({}, a) : null; },
-    async akunSetup(a) {
-      if (!/^scrypt\$/.test(a.password_hash)) throw new Error('hash tidak valid');
-      const ada = t.akun.get(a.room);
-      if (ada && ada.password_hash && ada.nama_norm === a.nama_norm) return false;
-      t.akun.set(a.room, { room: a.room, nama_norm: a.nama_norm, gender: a.gender, password_hash: a.password_hash,
-        password_dibuat: iso(sekarang()), gagal_count: 0, gagal_sejak: null, kunci_sampai: null });
-      for (const s of t.sesi) if (s.room === a.room && s.nama_norm !== a.nama_norm && !s.dicabut) s.dicabut = iso(sekarang());
-      return true;
+    async akunSimpan(a) {
+      if (!['cewek', 'cowok'].includes(a.gender)) throw new Error('gender tidak valid');
+      const ada = t.akun.get(a.room) || {};
+      t.akun.set(a.room, Object.assign({}, ada, { room: a.room, nama_norm: a.nama_norm, gender: a.gender }));
     },
-    async akunGagal(room) {
-      const a = t.akun.get(room); if (!a) return;
-      const basi = !a.gagal_sejak || Date.parse(a.gagal_sejak) < sekarang() - 15 * 60000;
-      a.gagal_count = basi ? 1 : a.gagal_count + 1;
-      if (basi) a.gagal_sejak = iso(sekarang());
-      if (a.gagal_count >= 5) { a.kunci_sampai = iso(sekarang() + 15 * 60000); a.gagal_count = 0; a.gagal_sejak = null; }
+    /* tiru kosan_register lama: nama unik (normalisasi), kunci KOSAN /
+       KOSANBARU, kamar diminta atau kamar kosong pertama, maks 20. Galat
+       dilempar dengan .status 400 seperti PostgREST (raise exception). */
+    async register(a) {
+      panggilan.push('register');
+      const tolak = (m) => { const e = new Error(m); e.status = 400; throw e; };
+      const n = normalize(a.p_name);
+      if (!n || n.length > 30) tolak('nama tidak valid');
+      if (lama.some((x) => normalize(x.name) === n)) tolak('nama sudah terdaftar');
+      if (!['KOSAN', 'KOSANBARU'].includes(a.p_key)) tolak('kunci salah');
+      if (!/^[0-9a-f]{8}$/.test(a.p_pin_hash)) tolak('pin tidak valid');
+      const terisi = new Set(lama.map((x) => x.room));
+      let room = terisi.has(a.p_room) ? 0 : a.p_room;
+      for (let r = 1; !room && r <= 20; r++) if (!terisi.has(r)) room = r;
+      if (!room) tolak('kosan penuh');
+      lama.push({ room, name: n, gender: a.p_gender, pin_hash: a.p_pin_hash, gagal: 0, kunci: 0 });
+      return room;
     },
-    async akunBerhasil(room) { const a = t.akun.get(room); if (a) { a.gagal_count = 0; a.gagal_sejak = null; } },
     async akunBuka(room) {
       t.gerbang.delete('pin:' + room); t.gerbang.delete('pw:' + room); hapusAttempts(room);
-      const a = t.akun.get(room); if (a) Object.assign(a, { kunci_sampai: null, gagal_count: 0, gagal_sejak: null });
     },
     async akunReset(room) {
       t.gerbang.delete('pin:' + room); t.gerbang.delete('pw:' + room); hapusAttempts(room);
-      const a = t.akun.get(room);
-      if (a) Object.assign(a, { password_hash: null, password_dibuat: null, gagal_count: 0, gagal_sejak: null, kunci_sampai: null });
       for (const s of t.sesi) if (s.room === room && !s.dicabut) s.dicabut = iso(sekarang());
     },
     async sesiBuat(row) {
