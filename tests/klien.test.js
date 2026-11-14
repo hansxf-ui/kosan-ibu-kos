@@ -511,3 +511,50 @@ test('Tahap 1 jemuran: kabel ke mesin cuci, ketuk, dan cucian baru tanpa AABB', 
   assert.equal((HTML.match(/jemuranCucian = \[/g) || []).length, 1);
   assert.ok(!/var jemuranCucian\s*=/.test(HTML), 'deklarasi tanpa inisialisasi (jangan menimpa isi buildWorld)');
 });
+
+const IB = () => blokMurni('IBU-START', 'IBU-END', ['IBU_SAPAAN', 'IBU_OBROLAN', 'ibuWaktu', 'ibuPilihKalimat', 'ibuUrutan', 'ibuObrolanBerikut']);
+
+test('Tahap 1 Ibu Kos: isi kalimat = yang disetujui Ryan (4 sapaan, 11 kalimat, nomor 12 dicoret)', () => {
+  const { IBU_SAPAAN, IBU_OBROLAN } = IB();
+  assert.deepEqual(Object.keys(IBU_SAPAAN), ['pagi', 'siang', 'sore', 'malam']);
+  assert.equal(IBU_OBROLAN.length, 11);
+  assert.ok(!HTML.includes('acara kumpul-kumpul'), 'kalimat ke-12 tidak boleh ada');
+});
+
+test('Tahap 1 Ibu Kos: sapaan per jam WIB (batas 04/10/15/18)', () => {
+  const { ibuWaktu } = IB();
+  const wib = (jam, menit) => new Date(Date.UTC(2026, 10, 14, jam - 7, menit || 0)); /* jam WIB -> Date */
+  assert.equal(ibuWaktu(wib(3, 59)), 'malam');
+  assert.equal(ibuWaktu(wib(4)), 'pagi');
+  assert.equal(ibuWaktu(wib(9, 59)), 'pagi');
+  assert.equal(ibuWaktu(wib(10)), 'siang');
+  assert.equal(ibuWaktu(wib(15)), 'sore');
+  assert.equal(ibuWaktu(wib(18)), 'malam');
+  assert.equal(ibuWaktu(wib(23, 30)), 'malam');
+});
+
+test('Tahap 1 Ibu Kos: prioritas kalimat pembuka (kering > tamu > misi > sapaan)', () => {
+  const { ibuPilihKalimat, IBU_SAPAAN } = IB();
+  const dasar = { cucianKering: false, tamu: false, misiSisa: 0, waktu: 'sore' };
+  assert.match(ibuPilihKalimat({ ...dasar, cucianKering: true, tamu: true, misiSisa: 3 }), /Cucianmu udah kering/);
+  assert.match(ibuPilihKalimat({ ...dasar, tamu: true, misiSisa: 3 }), /Mau jadi penghuni/);
+  assert.equal(ibuPilihKalimat({ ...dasar, misiSisa: 3 }), 'Misi hari ini masih ada 3 lagi, semangat!');
+  assert.equal(ibuPilihKalimat(dasar), IBU_SAPAAN.sore);
+  assert.equal(ibuPilihKalimat({ ...dasar, waktu: '__proto__' }), IBU_SAPAAN.siang);
+});
+
+test('Tahap 1 Ibu Kos: urutan acak per hari, tetap sepanjang hari, tidak berulang dalam satu putaran', () => {
+  const { ibuUrutan, ibuObrolanBerikut, IBU_OBROLAN } = IB();
+  const a = ibuUrutan('2026-11-14', 11), b = ibuUrutan('2026-11-14', 11), c = ibuUrutan('2026-11-15', 11);
+  assert.deepEqual(a, b);
+  assert.notDeepEqual(a, c);
+  assert.deepEqual([...a].sort((x, y) => x - y), [...Array(11).keys()]);
+  let simpan = null; const dilihat = new Set();
+  for (let k = 0; k < 11; k++) { const r = ibuObrolanBerikut(simpan, '2026-11-14'); dilihat.add(r.teks); simpan = r.simpan; }
+  assert.equal(dilihat.size, 11, '11 kali Ngobrol lagi = 11 kalimat berbeda');
+  assert.equal(ibuObrolanBerikut(simpan, '2026-11-14').teks, IBU_OBROLAN[a[0]], 'putaran berikutnya mulai lagi');
+  assert.deepEqual(ibuObrolanBerikut({ tanggal: '2026-11-13', i: 5 }, '2026-11-14').simpan, { tanggal: '2026-11-14', i: 1 }, 'hari baru -> mulai dari awal');
+  for (const rusak of [null, 7, { tanggal: '2026-11-14', i: -3 }, { tanggal: '2026-11-14', i: 'x' }, { tanggal: '2026-11-14', i: Infinity }]) {
+    assert.equal(ibuObrolanBerikut(rusak, '2026-11-14').teks, IBU_OBROLAN[a[0]], JSON.stringify(rusak));
+  }
+});

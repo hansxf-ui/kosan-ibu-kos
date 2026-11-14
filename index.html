@@ -785,6 +785,9 @@
   @media (max-width: 374px) and (orientation: portrait) {
     #roomCard .actions button { padding: 9px 5px; gap: 4px; font-size: 12.5px; }
   }
+  /* Tahap 1 — gelembung kalimat Ibu Kos di kartu */
+  .ibu-gelembung { margin-top: 8px; padding: 10px 12px; background: var(--kb-biru-muda); color: var(--kb-teks);
+    border-radius: 14px 14px 14px 4px; font-weight: 700; line-height: 1.45; }
   /* =================== AKHIR UI REFRESH =================== */
 </style>
 <script type="importmap">
@@ -3246,6 +3249,67 @@ function jemuranTeksSisa(detik) {
   return 'kira-kira ' + Math.ceil(detik / 60) + ' menit lagi';
 }
 /* ==== JEMURAN-END ==== */
+/* ==== IBU-START ==== */
+/* Tahap 1 — ngobrol dengan Ibu Kos (spek §5). Helper MURNI — dites node.
+   Isi kalimat DISETUJUI Ryan 14 Nov (4 sapaan + 11 kalimat; kalimat ke-12
+   draf dicoret karena kedengaran janji). Aturan isi: tidak menjanjikan
+   fasilitas yang belum dibangun, tidak menyebut nama penghuni lain, tidak
+   menyebut tanggal episode. */
+var IBU_SAPAAN = {
+  pagi: 'Pagi! Udah sarapan belum? Mumpung cerah, enak buat jemur cucian.',
+  siang: 'Siang-siang gini enaknya ngadem di gazebo.',
+  sore: 'Sore, Nak. Cucian di jemuran jangan lupa diangkat ya.',
+  malam: 'Udah malam, jangan begadang. Lampu kamar dimatiin kalau tidur.'
+};
+var IBU_OBROLAN = [
+  'Gazebo itu dibangun karena kalian yang minta. Dipakai ya, jangan cuma difoto.',
+  'Mesin cuci di dapur gratis buat penghuni. Habis nyuci, jemur di halaman barat.',
+  'Kalau ketemu tetangga, sapa dong. Kos ini rame karena kalian.',
+  'Mau fasilitas baru? Komen di video Ibu. Like terbanyak, Ibu bangun.',
+  'Tangga ke balkon lantai dua itu enak buat lihat pemandangan sore.',
+  'Ibu nggak galak kok. Asal kamar rapi dan saling jaga, Ibu senang.',
+  'WiFi ruang tamu itu dulu request pertama kalian. Kenceng kan?',
+  'Parkiran di selatan itu buat motor, bukan buat jemur sendal ya.',
+  'Kalau capek, rebahan dulu di kasur. Kamar itu rumahmu.',
+  'Kode kunci kamar selalu Ibu taruh di caption video terbaru.',
+  'Lempar sendal boleh, asal jangan ke jendela tetangga.'
+];
+var IBU_JARAK_MENOLEH = 6; /* m: Ibu memutar badan ke pemain saat kartu terbuka */
+function ibuWaktu(d) {
+  /* jam WIB (UTC+7, pola misiTanggal): pagi 04-10, siang 10-15, sore 15-18, malam 18-04 */
+  var j = new Date(d.getTime() + 7 * 3600 * 1000).getUTCHours();
+  if (j >= 4 && j < 10) return 'pagi';
+  if (j >= 10 && j < 15) return 'siang';
+  if (j >= 15 && j < 18) return 'sore';
+  return 'malam';
+}
+function ibuPilihKalimat(ctx) {
+  /* kalimat pembuka tiap kartu dibuka, urut prioritas spek §5.2 */
+  if (ctx.cucianKering) return 'Cucianmu udah kering tuh di jemuran, angkat gih sebelum diambil angin 😄';
+  if (ctx.tamu) return 'Mau jadi penghuni? Kode kuncinya ada di caption video terbaru Ibu ya.';
+  if (ctx.misiSisa > 0) return 'Misi hari ini masih ada ' + ctx.misiSisa + ' lagi, semangat!';
+  return Object.prototype.hasOwnProperty.call(IBU_SAPAAN, ctx.waktu) ? IBU_SAPAAN[ctx.waktu] : IBU_SAPAAN.siang; /* bukan IBU_SAPAAN[x] || ...: '__proto__' truthy */
+}
+function ibuUrutan(tanggal, n) {
+  /* acak Fisher-Yates dengan seed dari string tanggal: beda tiap hari,
+     sama sepanjang hari (deterministik -> bisa dites). */
+  var h = 2166136261;
+  for (var i = 0; i < tanggal.length; i++) { h ^= tanggal.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  var a = [];
+  for (var k = 0; k < n; k++) a.push(k);
+  for (var m = n - 1; m > 0; m--) {
+    h = (Math.imul(h, 1664525) + 1013904223) >>> 0;
+    var r = h % (m + 1), t = a[m]; a[m] = a[r]; a[r] = t;
+  }
+  return a;
+}
+function ibuObrolanBerikut(simpan, tanggal) {
+  /* simpan = {tanggal, i} dari localStorage (boleh rusak) -> kalimat + simpan baru */
+  var i = simpan && simpan.tanggal === tanggal && typeof simpan.i === 'number' && isFinite(simpan.i) && simpan.i >= 0 ? Math.floor(simpan.i) : 0;
+  var u = ibuUrutan(tanggal, IBU_OBROLAN.length);
+  return { teks: IBU_OBROLAN[u[i % u.length]], simpan: { tanggal: tanggal, i: i + 1 } };
+}
+/* ==== IBU-END ==== */
 var toastTimer = null;
 function toastKosan(msg) {
   var t = document.getElementById('toast');
@@ -3650,8 +3714,9 @@ function updateRoomCount() {
   if (!OCCUPANTS) return;
   roomCountEl.textContent = '20 kamar · ' + (20 - OCCUPANTS.length) + ' kosong';
 }
-function openCard() { cardEl.classList.add('open'); document.body.classList.add('card-open'); }
+function openCard() { ibuBicara = false; cardEl.classList.add('open'); document.body.classList.add('card-open'); } /* Tahap 1: kartu lain = Ibu berhenti menoleh */
 function closeCard() {
+  ibuBicara = false;
   cardEl.classList.remove('open'); document.body.classList.remove('card-open');
 }
 document.getElementById('cardClose').addEventListener('click', closeCard);
@@ -3838,11 +3903,38 @@ function showLivingCard() {
   cardActions.appendChild(b);
   openCard();
 }
+var ibuBicara = false; /* Tahap 1 — kartu Ibu Kos sedang terbuka -> Ibu menoleh ke pemain */
+function ibuObrolanLanjut() {
+  var simpan = null;
+  try { simpan = JSON.parse(localStorage.getItem('kosan3d-ibu-obrolan') || 'null'); } catch (e) { simpan = null; }
+  var r = ibuObrolanBerikut(simpan, misiTanggal(new Date()));
+  try { localStorage.setItem('kosan3d-ibu-obrolan', JSON.stringify(r.simpan)); } catch (e) { /* abaikan */ }
+  return r.teks;
+}
+function ibuTampilKalimat(teks) {
+  var el = document.getElementById('ibuGelembung');
+  if (el) el.textContent = teks;
+}
 function showIbuCard() {
+  misiSelesai('ibu'); /* Tahap 1 — ngobrol pertama hari ini; dipanggil SEBELUM hitung sisa misi supaya angkanya pas */
   cardTitle.textContent = 'Ibu Kos';
-  cardBody.innerHTML = '<p>Pemilik kosan ini. Kosan dibangun lewat komen kalian: follow = Penghuni Baru, komen = request bebas, like terbanyak = langsung Ibu bangun. 🏠</p>';
+  cardBody.innerHTML = '<p>Pemilik kosan ini. Kosan dibangun lewat komen kalian: follow = Penghuni Baru, komen = request bebas, like terbanyak = langsung Ibu bangun. 🏠</p>'
+    + '<p id="ibuGelembung" class="ibu-gelembung"></p>';
+  var st = misiState || (misiState = misiMuat());
+  ibuTampilKalimat(ibuPilihKalimat({
+    cucianKering: jemuranStatusSekarang() === 'kering',
+    tamu: !ktaIsResident(),
+    misiSisa: MISI_LIST.length - misiHitungSelesai(st),
+    waktu: ibuWaktu(new Date())
+  }));
   cardActions.innerHTML = '';
+  var b = document.createElement('button');
+  b.id = 'ibuNgobrolBtn';
+  b.innerHTML = iconSvg('obrol') + ' Ngobrol lagi';
+  b.addEventListener('click', function () { ibuTampilKalimat(ibuObrolanLanjut()); });
+  cardActions.appendChild(b);
   openCard();
+  ibuBicara = true; /* SETELAH openCard (openCard mereset penanda) */
 }
 /* Tahap 1 — kartu Gazebo + duduk di bangku (spek §4). Pose 'sit' yang
    sudah ada di protokol -> pemain lain melihat kita duduk (tanpa pesan baru). */
@@ -6446,6 +6538,13 @@ function animate() {
       if (drLed) drLed.visible = (Math.floor(washDR.t * 3) % 2 === 0);
       if (washDR.t <= 0) finishWash('dr');
     }
+  }
+  /* Tahap 1 — Ibu Kos menoleh ke pemain selama kartunya terbuka (≤ 6 m),
+     lalu kembali menghadap halaman (rotY 0). Hanya di layar pemain ini. */
+  if (ibuAvatar && myRealm === 'yard') {
+    var ibuDx = avatarPos.x - ibuAvatar.position.x, ibuDz = avatarPos.z - ibuAvatar.position.z;
+    var ibuArah = (ibuBicara && Math.hypot(ibuDx, ibuDz) <= IBU_JARAK_MENOLEH) ? Math.atan2(ibuDx, ibuDz) : 0;
+    ibuAvatar.rotation.y = turnToward(ibuAvatar.rotation.y, ibuArah, 1 - Math.exp(-6 * dt));
   }
   /* Tahap 1 — cucian pemain di jemuran bergoyang pelan (hanya di halaman, hanya saat tampil) */
   if (myRealm === 'yard' && jemuranCucian && jemuranCucian[0].visible) {
