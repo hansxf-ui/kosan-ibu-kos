@@ -1,6 +1,6 @@
 # Spesifikasi Tahap 1 Aktivitas: Jemuran, Nongkrong di Gazebo, Ngobrol dengan Ibu Kos
 
-Status: **DRAF, menunggu cek Ryan.** Belum ada kode yang dibangun.
+Status: **DISETUJUI Ryan (14 Nov), keputusan §8 sudah masuk.** Acuan pembangunan; penyimpangan dikabarkan dulu.
 Tanggal: 14 November 2026. Basis kode: `main` @ `ac2cfb5`.
 
 ## 1. Tujuan dan batasan
@@ -49,7 +49,7 @@ Tugas ini dikerjakan pertama karena gazebo (bagian 4) adalah aktivitas pertama y
 2. Saat selesai (`finishWash('wm')`), toast berubah jadi: "Cucian selesai! Bawa ke jemuran di halaman barat 🧺". Status cucian jadi **basah**, dan **keranjang cucian** muncul di tangan avatar.
 3. Pemain keluar ke halaman dan berjalan ke jemuran (x -18..-13, z 0..8).
 4. Ketuk jemuran: kartu "Jemuran" muncul dengan tombol **Jemur cucian**. Ketuk tombol: 3 helai cucian muncul di tali, keranjang hilang dari tangan, status jadi **dijemur**.
-5. Cucian kering setelah **`JEMUR_DUR`** (usul 3 menit waktu nyata). Pemain boleh pergi, masuk kamar, atau memuat ulang halaman, karena waktunya dihitung dari jam, bukan dari frame.
+5. Cucian kering setelah **`JEMUR_DUR` = 3 menit** waktu nyata (keputusan Ryan). Pemain boleh pergi, masuk kamar, atau memuat ulang halaman, karena waktunya dihitung dari jam, bukan dari frame.
 6. Ketuk jemuran lagi:
    - Kalau belum kering, kartu menampilkan sisa waktu, misalnya "Kering kira-kira 1 menit lagi".
    - Kalau sudah kering, tombol **Angkat cucian** muncul. Ketuk tombol: cucian hilang dari tali, toast "Cucian kering diangkat 👕", misi `jemur` tercentang (+1 Bintang, sekali sehari), dan status kembali **kosong**.
@@ -58,7 +58,7 @@ Tugas ini dikerjakan pertama karena gazebo (bagian 4) adalah aktivitas pertama y
 
 - **Tamu** tidak bisa masuk dapur, jadi tidak pernah punya cucian. Kalau tamu mengetuk jemuran, kartunya menjelaskan: "Jemuran kos. Cuci dulu di dapur, khusus penghuni."
 - Kalau statusnya masih basah atau dijemur, mesin cuci tidak bisa dipakai lagi. Toast: "Cucianmu masih di keranjang / di jemuran 🧺". Satu cucian per pemain.
-- **Jarak**: tombol Jemur dan Angkat hanya muncul kalau avatar berada ≤ **3 m** dari kotak jemuran. Kalau lebih jauh, kartu tetap terbuka dengan pesan "Jalan ke jemuran dulu ya". Ketukan sekarang bisa dari jarak berapa pun, dan pembatasan jarak ini membuat pemain benar-benar berjalan ke sana.
+- **Jarak** (keputusan Ryan: 3 m): tombol Jemur dan Angkat hanya muncul kalau avatar berada ≤ **3 m** dari kotak jemuran. Kalau lebih jauh, kartu tetap terbuka dengan pesan "Jalan ke jemuran dulu ya". Ketukan sekarang bisa dari jarak berapa pun, dan pembatasan jarak ini membuat pemain benar-benar berjalan ke sana.
 - **Pengering** di dapur tidak diubah di ronde ini. Pengering tetap mesin terpisah dan tidak memengaruhi status cucian.
 - 4 pakaian dekorasi yang sudah ada di jemuran tetap ada.
 - Cucian pemain hanya terlihat oleh dirinya sendiri, karena statusnya lokal. Ini ditulis jujur di kartu: "Cucian ini cuma kelihatan di HP-mu."
@@ -109,10 +109,10 @@ Angka akhir (geser badan sedikit ke belakang supaya kaki tidak menembus meja) di
 
 ### 4.3 Aturan
 
-- **Jarak**: Duduk hanya bisa kalau avatar ≤ **3 m** dari bangku. Kalau lebih jauh: "Jalan ke gazebo dulu ya".
+- **Jarak** (keputusan Ryan: 3 m): Duduk hanya bisa kalau avatar ≤ **3 m** dari bangku. Kalau lebih jauh: "Jalan ke gazebo dulu ya".
 - **Kursi terisi**: kalau ada pemain lain (`remotePlayers`, realm `yard`, pose `sit`) dalam 0,35 m dari kursi itu, pilih kursi lain di bangku yang sama. Kalau dua-duanya terisi: "Bangkunya penuh, coba bangku lain". Data ini berasal dari pesan publik yang bisa dipalsukan. Akibat terburuknya pemain tidak bisa duduk di satu bangku, jadi tidak ada risiko keamanan.
 - **Tamu boleh duduk di gazebo.** Gazebo ada di halaman, bukan ruangan, jadi larangan masuk ruangan untuk tamu tidak berlaku.
-- **Label nama saat duduk** (perlu keputusan Ryan, lihat bagian 8): usulnya label nama **tetap tampil** saat duduk, baik avatar sendiri maupun pemain lain, supaya terlihat siapa yang sedang nongkrong. Label tetap disembunyikan saat tidur. Sekarang label disembunyikan untuk duduk maupun tidur (`terapkanPoseKamar`, `mpTerapkanPoseRemote`).
+- **Label nama saat duduk** (keputusan Ryan): label nama **tetap tampil** saat duduk, baik avatar sendiri maupun pemain lain, di kasur maupun gazebo. Label tetap disembunyikan saat tidur. Sekarang label disembunyikan untuk duduk maupun tidur (`terapkanPoseKamar`, `mpTerapkanPoseRemote`).
 
 ### 4.4 Perubahan kode
 
@@ -146,7 +146,7 @@ Angka akhir (geser badan sedikit ke belakang supaya kaki tidak menembus meja) di
 
 **Ngobrol lagi** mengambil kalimat dari daftar `IBU_OBROLAN` secara bergilir. Urutannya diacak sekali per hari dengan seed tanggal WIB, jadi tiap hari terasa beda tapi tidak berulang dalam satu sesi. Indeks terakhir disimpan di `kosan3d-ibu-obrolan` `{tanggal, i}`.
 
-### 5.3 Isi kalimat (DRAF, Ryan/Vesper silakan ganti)
+### 5.3 Isi kalimat (DISETUJUI Ryan: 4 sapaan + 11 kalimat)
 
 Aturan isi: Ibu Kos tidak menjanjikan fasilitas yang belum dibangun, tidak menyebut nama penghuni lain, dan tidak menyebut tanggal episode.
 
@@ -168,9 +168,7 @@ Sapaan:
 9. "Kalau capek, rebahan dulu di kasur. Kamar itu rumahmu."
 10. "Kode kunci kamar selalu Ibu taruh di caption video terbaru."
 11. "Lempar sendal boleh, asal jangan ke jendela tetangga."
-12. "Nanti kalau kos makin rame, Ibu bikin acara kumpul-kumpul."
-
-Catatan untuk nomor 12: kalimat ini bisa dibaca sebagai janji. Coret kalau Ryan tidak mau.
+Kalimat ke-12 di draf ("Nanti kalau kos makin rame, Ibu bikin acara kumpul-kumpul") dicoret Ryan karena kedengaran janji.
 
 ## 6. Misi Harian
 
@@ -209,12 +207,12 @@ Cek manual dan screenshot (Playwright lokal, 390×844, 844×390, 740×360):
 - Performa: hitung jumlah mesh halaman sebelum dan sesudah (target +12 atau kurang), dan cek fps dengan `?bot=20` dibanding `main`.
 - Yang tidak bisa saya cek: rasa di HP Ryan. Itu tetap dicoba di preview yang di-deploy Vesper.
 
-## 8. Yang perlu diputuskan Ryan
+## 8. Keputusan Ryan (14 Nov)
 
-1. **Lama jemur `JEMUR_DUR`**: usul 3 menit. Lebih lama terasa nyata, lebih pendek lebih cepat dapat Bintang.
-2. **Label nama saat duduk**: usul tetap tampil (lihat 4.3).
-3. **Kalimat Ibu Kos** di 5.3: disetujui, diedit, atau ditulis ulang oleh Ryan.
-4. **Jarak maksimal** 3 m untuk jemuran dan gazebo: usul 3 m.
+1. **Lama jemur**: `JEMUR_DUR` = 3 menit.
+2. **Label nama saat duduk**: tetap tampil (sendiri maupun pemain lain). Saat tidur tetap disembunyikan.
+3. **Kalimat Ibu Kos**: 4 sapaan + 11 kalimat disetujui; kalimat ke-12 dicoret.
+4. **Jarak maksimal**: 3 m untuk jemuran dan gazebo.
 
 ## 9. Bukan bagian ronde ini
 
