@@ -63,6 +63,10 @@ const pinSah = (pin) => typeof pin === 'string' && /^\d{6}$/.test(pin);
 const namaPolaTamu = (nama) => /^tamu-[0-9]+$/.test(I.normalize(nama));
 const genderDari = (g) => (g === 'Cowok' || g === 'cowok' ? 'cowok' : 'cewek');
 
+/* Gedung C & D (15 Nov): 40 kamar; kunci KOSANC/KOSAND lewat RPC kosan_register_cd. */
+const JUMLAH_KAMAR = 40;
+const KUNCI_CD = ['KOSANC', 'KOSAND'];
+
 function buatApp({ db, rahasia, sekarang = () => Date.now(), aman = true }) {
   if (!db) throw new Error('db wajib');
   if (typeof rahasia !== 'string' || rahasia.length < 32) throw new Error('KOSAN_SECRET minimal 32 karakter');
@@ -170,8 +174,13 @@ function buatApp({ db, rahasia, sekarang = () => Date.now(), aman = true }) {
     if (pinHash === I.pinHash(I.normalize(username))) return galat(400, 'pin_sama_username', PESAN.pinSamaUsername);
     if (await lewatBatas('daftar', ctx)) return galat(429, 'terkunci', PESAN.batas);
     try {
-      await db.register({ p_name: username.trim(), p_gender: gender === 'cowok' ? 'Cowok' : 'Cewek',
-        p_key: kunci.trim().toUpperCase(), p_pin_hash: pinHash, p_room: I.roomFor(username) });
+      const kunciUp = kunci.trim().toUpperCase();
+      const args = { p_name: username.trim(), p_gender: gender === 'cowok' ? 'Cowok' : 'Cewek',
+        p_key: kunciUp, p_pin_hash: pinHash, p_room: I.roomFor(username) };
+      /* Gedung C & D: kunci KOSANC/KOSAND -> RPC baru (kamar kosong terendah
+         di K21-30 / K31-40; p_room null). Kunci lain tetap ke kosan_register lama. */
+      if (KUNCI_CD.indexOf(kunciUp) !== -1) await db.registerCd(Object.assign(args, { p_room: null }));
+      else await db.register(args);
     } catch (e) {
       /* pesan RPC (mis. "nama sudah terdaftar", "kunci salah", "Gedung B
          penuh") diteruskan; klien memetakan ke teks yang ramah. */
@@ -217,7 +226,7 @@ function buatApp({ db, rahasia, sekarang = () => Date.now(), aman = true }) {
     const s = await sesiDari(ctx);
     if (!s.sah) return galat(401, 'perlu_login', 'Masuk sebagai penghuni dulu ya.');
     const { room, pin } = ctx.body;
-    if (!Number.isInteger(room) || room < 1 || room > 20) return galat(400, 'format', 'Kamar tidak valid.');
+    if (!Number.isInteger(room) || room < 1 || room > JUMLAH_KAMAR) return galat(400, 'format', 'Kamar tidak valid.'); /* Gedung C & D: 20 -> 40 */
     if (room !== s.sah.penghuni.room) return galat(403, 'bukan_kamarmu', 'Ini bukan kamarmu.');
     if (!pinSah(pin)) return galat(400, 'format', 'Masukkan PIN kamar 6 digit.');
     if (await lewatBatas('kamar', ctx)) return galat(429, 'terkunci', PESAN.batas);
@@ -231,4 +240,4 @@ function buatApp({ db, rahasia, sekarang = () => Date.now(), aman = true }) {
   return { masuk, setupPin: masuk, daftar, sesi, keluar, kamarMasuk };
 }
 
-module.exports = { buatApp, UMUR_INGAT, UMUR_BIASA, BATAS, GERBANG, PESAN };
+module.exports = { buatApp, UMUR_INGAT, UMUR_BIASA, BATAS, GERBANG, PESAN, JUMLAH_KAMAR, KUNCI_CD };

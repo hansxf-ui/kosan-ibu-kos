@@ -515,3 +515,64 @@ test('M4: daftar tamu-3 (pola nama tamu) -> 400 nama_tamu, tidak memanggil kosan
   assert.ok(!db._panggilan.includes('register'));
   assert.equal((await app.daftar(post(daftarBody({ username: 'tamuku' })))).status, 200);
 });
+
+/* ---------- Gedung C & D (15 Nov): K21-K40, kunci KOSANC / KOSAND ---------- */
+test('C&D: KOSANC -> K21 (kamar kosong terendah Gedung C) lewat kosan_register_cd + sesi + bisa login', async () => {
+  const { app, db } = siapkan();
+  const r = await app.daftar(post(daftarBody({ username: 'cici', kunci: 'kosanc ' })));
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(r.body.room, 21); assert.ok(tokenDari(r));
+  assert.ok(db._panggilan.includes('registerCd')); assert.ok(!db._panggilan.includes('register'));
+  assert.ok(await login(app, 'cici', '975310'));
+  const r2 = await app.daftar(post(daftarBody({ username: 'cece', kunci: 'KOSANC', pin: '864213' })));
+  assert.equal(r2.body.room, 22);
+});
+
+test('C&D: KOSAND -> K31; KOSAN / KOSANBARU tetap lewat kosan_register lama (K1-20)', async () => {
+  const { app, db } = siapkan();
+  const d = await app.daftar(post(daftarBody({ username: 'dodi', kunci: 'KOSAND', gender: 'cowok' })));
+  assert.equal(d.status, 200, JSON.stringify(d.body)); assert.equal(d.body.room, 31);
+  const panggilAwal = db._panggilan.filter((x) => x === 'register').length;
+  const a = await app.daftar(post(daftarBody({ username: 'ani', kunci: 'KOSAN', pin: '864213' })));
+  assert.equal(a.status, 200); assert.ok(a.body.room >= 1 && a.body.room <= 20, String(a.body.room));
+  assert.equal(db._panggilan.filter((x) => x === 'register').length, panggilAwal + 1);
+});
+
+test('C&D: Gedung C penuh -> pesan menunjuk Gedung D; C + D penuh -> kosan penuh; nama unik lintas gedung', async () => {
+  const { app, db } = siapkan();
+  for (let r = 21; r <= 30; r++) db._lama.push({ room: r, name: 'c' + r, gender: 'Cewek', pin_hash: I.pinHash('111111'), gagal: 0, kunci: 0 });
+  const a = await app.daftar(post(daftarBody({ username: 'telat', kunci: 'KOSANC' })));
+  assert.equal(a.status, 400); assert.match(a.body.pesan, /Gedung C penuh/);
+  for (let r = 31; r <= 40; r++) db._lama.push({ room: r, name: 'd' + r, gender: 'Cowok', pin_hash: I.pinHash('111111'), gagal: 0, kunci: 0 });
+  const b = await app.daftar(post(daftarBody({ username: 'telat', kunci: 'KOSAND' })));
+  assert.equal(b.status, 400); assert.match(b.body.pesan, /kosan penuh/);
+  const { app: app2 } = siapkan();
+  const c = await app2.daftar(post(daftarBody({ username: 'Rina', kunci: 'KOSANC' })));
+  assert.equal(c.status, 400); assert.match(c.body.pesan, /nama sudah terdaftar/);
+});
+
+test('C&D: masuk kamar K21-K40 untuk penghuninya sendiri; kamar 41 / 0 ditolak 400', async () => {
+  const { app } = siapkan();
+  const r = await app.daftar(post(daftarBody({ username: 'cici', kunci: 'KOSANC' })));
+  const tok = tokenDari(r);
+  assert.equal((await app.kamarMasuk(denganCookie(post({ room: 21, pin: '975310' }), tok))).status, 200);
+  assert.equal((await app.kamarMasuk(denganCookie(post({ room: 22, pin: '975310' }), tok))).status, 403);
+  assert.equal((await app.kamarMasuk(denganCookie(post({ room: 41, pin: '975310' }), tok))).status, 400);
+  assert.equal((await app.kamarMasuk(denganCookie(post({ room: 0, pin: '975310' }), tok))).status, 400);
+});
+
+test('C&D: db.js memanggil rpc/kosan_register_cd; migrasi tidak menyentuh kosan_register / kosan_login / tabel penghuni', async () => {
+  const log = [];
+  const fetchFn = async (url, o) => { log.push({ url, o }); return { ok: true, status: 200, text: async () => '21' }; };
+  const db = buatDb({ url: 'https://x.supabase.co', kunci: 'eyJ.service', fetchFn });
+  await db.registerCd({ p_name: 'cici', p_gender: 'Cewek', p_key: 'KOSANC', p_pin_hash: 'abcd1234', p_room: null });
+  assert.equal(log[0].url, 'https://x.supabase.co/rest/v1/rpc/kosan_register_cd');
+  assert.equal(JSON.parse(log[0].o.body).p_room, null);
+  const sql = fs.readFileSync(path.join(__dirname, '..', 'supabase', 'migrations', '20261115_gedung_c_d.sql'), 'utf8');
+  const kode = sql.replace(/--.*$/gm, '');
+  assert.match(kode, /create or replace function public\.kosan_register_cd\(/);
+  assert.ok(!/function public\.kosan_register\(|function public\.kosan_login|function public\.kosan_occupants/.test(kode));
+  assert.ok(!/\b(update|delete|truncate|drop table)\b[^;]*kosan_residents/i.test(kode), 'tidak mengubah data penghuni');
+  assert.match(kode, /revoke all on function public\.kosan_register_cd\(text, text, text, text, smallint\) from public, anon, authenticated/);
+  assert.match(kode, /check \(room between 1 and 40\)/);
+});

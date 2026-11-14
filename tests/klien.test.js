@@ -109,7 +109,7 @@ test('perbaikan 9: tombol tamu tidak membaca kolom nama', () => {
 });
 
 /* ---------- perbaikan 9b (Ryan 14 Nov 15:37): pesan gabungan kosan penuh ---------- */
-const PESAN_GABUNG = 'Nama ini belum terdaftar — dan kosan juga sudah penuh (20 kamar terisi semua). Coba cek ejaan namamu, atau masuk sebagai tamu.';
+const PESAN_GABUNG = 'Nama ini belum terdaftar — dan kosan juga sudah penuh (40 kamar terisi semua). Coba cek ejaan namamu, atau masuk sebagai tamu.';
 /* jalankan masukKosan() ASLI dari index.html dengan dunia tiruan */
 function jalankanMasukKosan({ nama, preview, loginView }) {
   const awal = HTML.indexOf('function masukKosan() {');
@@ -129,7 +129,7 @@ function jalankanMasukKosan({ nama, preview, loginView }) {
   return jejak;
 }
 
-const PESAN_PENUH = 'Kosan sudah penuh (20 kamar terisi semua). Tunggu episode berikutnya ya!';
+const PESAN_PENUH = 'Kosan sudah penuh (40 kamar terisi semua). Tunggu episode berikutnya ya!'; /* Gedung C & D: 20 -> 40 kamar */
 test('9c: preview null di mode MASUK -> pesan gabungan, entryLogin tidak jalan', () => {
   const j = jalankanMasukKosan({ nama: 'rinna', preview: null, loginView: true });
   assert.deepEqual(j.error, [PESAN_GABUNG]);
@@ -158,6 +158,7 @@ test('9b: string lama hilang dari masukKosan; pesan belum-terdaftar entryLogin +
   const src = HTML.slice(awal, HTML.indexOf('\n}\n', awal) + 3);
   assert.ok(src.includes(PESAN_GABUNG) && src.includes(PESAN_PENUH));
   assert.ok(!src.includes("entryShowError('Kosan sudah penuh (20 kamar terisi semua).')"));
+  assert.ok(!src.includes('(20 kamar terisi semua)'), 'Gedung C & D: tidak ada lagi angka 20 kamar');
   assert.ok(HTML.includes("entryShowError('Nama ini belum terdaftar sebagai penghuni — daftar dulu, atau masuk sebagai tamu.')"));
   assert.match(HTML, /function showKosanPenuh\(/);
 });
@@ -326,7 +327,8 @@ test('Tahap 1 Tugas 0: realm dapur dikenal; realm asing tetap jadi yard', () => 
   assert.equal(kenal('dapur'), 'dapur');
   assert.equal(kenal('living'), 'living');
   assert.equal(kenal('room-20'), 'room-20');
-  for (const r of ['room-21', 'Dapur', '__proto__', '', null, 7]) assert.equal(kenal(r), 'yard', String(r));
+  assert.equal(kenal('room-40'), 'room-40'); /* Gedung C & D: K21-K40 */
+  for (const r of ['room-41', 'room-0', 'Dapur', '__proto__', '', null, 7]) assert.equal(kenal(r), 'yard', String(r));
 });
 
 test('Tahap 1 Tugas 0: sceneUntukRealm menaruh pemain dapur di dapurScene', () => {

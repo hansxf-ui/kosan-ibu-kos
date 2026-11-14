@@ -163,7 +163,7 @@ const cek = (nama, ok, info) => { hasil.push({ nama, ok: !!ok }); console.log((o
 
     /* ---------- H. tamu saat kosan PENUH (perbaikan 10) ---------- */
     {
-      const penuh = Array.from({ length: 20 }, (_, i) => ({ room: i + 1, name: 'penghuni' + (i + 1) }));
+      const penuh = Array.from({ length: 40 }, (_, i) => ({ room: i + 1, name: 'penghuni' + (i + 1) })); /* Gedung C & D: penuh = 40 kamar */
       const ctxH = await browser.newContext({ viewport: { width: 900, height: 700 } });
       await ctxH.route('**/*', (route) => {
         const u = route.request().url();

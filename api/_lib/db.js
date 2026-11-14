@@ -58,6 +58,10 @@ function buatDb({ url, kunci, fetchFn = globalThis.fetch }) {
     /* RPC lama kosan_register (definisi tidak diubah), dipanggil server
        sesudah cek PIN != username. Galat RPC dilempar dengan .status. */
     register: (args) => rpc('kosan_register', args),
+    /* Gedung C & D (15 Nov): RPC BARU kosan_register_cd untuk kunci KOSANC
+       (K21-30) / KOSAND (K31-40) — supabase/migrations/20261115_gedung_c_d.sql.
+       kosan_register lama tidak disentuh. */
+    registerCd: (args) => rpc('kosan_register_cd', args),
     sesiBuat: async (row) => {
       const r = await panggil('kosan_sesi', { method: 'POST', body: row, prefer: 'return=representation' });
       return r && r[0];
