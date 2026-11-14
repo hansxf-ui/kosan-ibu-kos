@@ -754,6 +754,47 @@
       transition-duration: .001ms !important; }
   }
   .kb-x { width: 14px; height: 14px; display: block; }
+
+  /* ---- UI refresh 2: label, placeholder, checkbox, ikon ---- */
+  .entry-label { display: block; text-align: left; font-size: 12px; font-weight: 800; color: var(--kb-teks-2);
+    letter-spacing: .3px; margin: 0 0 5px 4px; }
+  #entryKeyLabel { margin-top: 10px; }
+  #entryKey { margin-top: 0; text-transform: uppercase; letter-spacing: 1px; }
+  #ktaKunciInput::placeholder, #entryKey::placeholder { text-transform: none; letter-spacing: 0; }
+  #entryName::placeholder, #entryKey::placeholder, #ktaKunciInput::placeholder { color: #9aa9bb; font-weight: 600; opacity: 1; }
+  .entry-ingat input { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; margin: 0; flex: 0 0 auto;
+    border-radius: 6px; border: 1.5px solid #b9c8da; background: #fff; cursor: pointer;
+    transition: background .12s, border-color .12s; }
+  .entry-ingat input:checked { border-color: var(--kb-biru-2); background: var(--kb-biru-2) center / 14px 14px no-repeat
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+  .kb-ikon { width: 18px; height: 18px; vertical-align: -4px; }
+  #pinPad button.pin-aksi { display: flex; align-items: center; justify-content: center; gap: 6px; }
+  #masukArrow { display: inline-flex; margin-left: 2px; }
+  .kb-chev { width: 13px; height: 13px; transition: transform .15s; }
+  #masukBtn[aria-expanded="true"] .kb-chev { transform: rotate(180deg); }
+  .mp-titik { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px;
+    background: #9aa9bb; box-shadow: 0 0 0 2px rgba(154,169,187,.25); }
+  .mp-titik.mp-on { background: #22a06b; box-shadow: 0 0 0 2px rgba(34,160,107,.25); }
+  .mp-titik.mp-sambung { background: #f2b705; box-shadow: 0 0 0 2px rgba(242,183,5,.25); animation: kbKedip 1s ease-in-out infinite; }
+  @keyframes kbKedip { 50% { opacity: .35; } }
+  #hud-title p { text-shadow: 0 1px 3px rgba(8,28,58,.75), 0 0 8px rgba(8,28,58,.35); }
+  /* keypad PIN terbuka: kartu masuk di belakangnya disembunyikan supaya tidak
+     tampak seperti "bayangan kotak" di balik keypad (browser tanpa :has() =
+     tampilan lama, tidak rusak) */
+  body:has(#pinOverlay.open) #entryCard { visibility: hidden; }
+  /* tombol kartu kamar (grid 2 kolom): padding samping lebih hemat supaya
+     "Simpan Kartu (PNG)" / "Masuk Ruang Tamu" muat 1 baris di HP ~390 px */
+  @media (min-height: 431px), (orientation: portrait) {
+    #roomCard .actions button { padding: 9px 8px; gap: 5px; font-size: 13.5px; text-wrap: balance; }
+    #roomCard .actions button .uicon { flex: 0 0 auto; }
+  }
+  @media (max-width: 374px) and (orientation: portrait) {
+    #roomCard .actions button { padding: 9px 5px; gap: 4px; font-size: 12.5px; }
+  }
+  @media (max-height: 500px) and (orientation: landscape) {
+    .entry-label { display: none !important; } /* landscape pendek: placeholder cukup, hemat tinggi */
+    #entryKey { margin-top: 6px; }
+  }
   /* =================== AKHIR UI REFRESH =================== */
 </style>
 <script type="importmap">
@@ -818,7 +859,7 @@
   </div>
   <div id="topbtns">
     <button id="wakeBtn" class="pillbtn" type="button" style="display:none"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 8v6M12 14l-3 7M12 14l3 7M8 10.5L12 9l4 1.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Bangun</button>
-    <button id="mpPill" class="pillbtn" type="button" title="Status multiplayer — ketuk untuk coba lagi">⚪ Sendiri</button>
+    <button id="mpPill" class="pillbtn" type="button" title="Status multiplayer — ketuk untuk coba lagi"><span class="mp-titik mp-off"></span>Sendiri</button>
     <!-- Ronde 15b — jam WIB (UTC+7, BUKAN WITA): pil kecil di baris 1 sebelah pil MP; teks diisi JS tiap detik. -->
     <span id="clockWib" class="pillbtn" title="Jam WIB (UTC+7)"><span id="clockWibTime">--:--</span> WIB</span>
     <!-- Ronde 41 — "Web Utama" (backLink) DIHAPUS: game sekarang ADALAH halaman
@@ -841,7 +882,7 @@
        dulu); di desktop fixed di bawah topbar. -->
   <div class="hud" id="actionbar">
     <div class="dropdown" id="masukDropdown">
-      <button id="masukBtn" type="button" title="Masuk ke...">Masuk ke <span id="masukArrow">▾</span></button>
+      <button id="masukBtn" type="button" title="Masuk ke..." aria-expanded="false">Masuk ke <span id="masukArrow"><svg class="kb-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
       <div id="masukMenu">
         <button id="homeBtn" type="button" title="Masuk ke kamarmu sendiri"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 10v10h14V10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> KAMAR KAMU</button>
         <button id="livingBtn" type="button" title="Masuk ke ruang tamu"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 21h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> RUANG TAMU</button>
@@ -925,12 +966,14 @@
       <p class="entry-sub">Ketik namamu, pilih karakter, lalu masuk.</p>
     </div>
     <div class="entry-form">
-    <input id="entryName" type="text" placeholder="@username" maxlength="40" autocomplete="off">
+    <label id="entryNameLabel" class="entry-label" for="entryName">Username</label>
+    <input id="entryName" type="text" placeholder="Nama Instagram-mu, mis. rina" maxlength="40" autocomplete="off" autocapitalize="none" spellcheck="false">
     <!-- Ronde 54 — dua mode EKSPLISIT: DAFTAR (username + gender + kode
          kunci, lalu buat PIN di keypad) / MASUK (username, lalu PIN di
          keypad). Perbaikan 9 (Ryan 14 Nov): TANPA password; PIN selalu lewat
          keypad #pinOverlay. -->
-    <input id="entryKey" type="text" placeholder="Kode kunci dari caption terbaru" maxlength="20" autocomplete="off" autocapitalize="characters" style="display:none">
+    <label id="entryKeyLabel" class="entry-label" for="entryKey" style="display:none">Kode kunci</label>
+    <input id="entryKey" type="text" placeholder="Ada di caption video terbaru" maxlength="20" autocomplete="off" autocapitalize="characters" spellcheck="false" style="display:none">
     <label id="entryIngatRow" class="entry-ingat" style="display:none"><input id="entryIngat" type="checkbox"> Ingat saya di perangkat ini</label>
     <p id="entryError" class="entry-error" style="display:none"></p>
     <div id="genderRow">
@@ -969,9 +1012,9 @@
       <button type="button" data-digit="1">1</button><button type="button" data-digit="2">2</button><button type="button" data-digit="3">3</button>
       <button type="button" data-digit="4">4</button><button type="button" data-digit="5">5</button><button type="button" data-digit="6">6</button>
       <button type="button" data-digit="7">7</button><button type="button" data-digit="8">8</button><button type="button" data-digit="9">9</button>
-      <button type="button" class="pin-aksi" data-aksi="hapus" aria-label="Hapus digit terakhir">⌫ Hapus</button>
+      <button type="button" class="pin-aksi" data-aksi="hapus" aria-label="Hapus digit terakhir"><svg class="kb-ikon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H9l-6-7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 9.5l5 5M17 9.5l-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Hapus</button>
       <button type="button" data-digit="0">0</button>
-      <button id="pinOk" type="button" class="pin-aksi pin-buka" data-aksi="buka" aria-label="Buka pintu">✓ Buka</button>
+      <button id="pinOk" type="button" class="pin-aksi pin-buka" data-aksi="buka" aria-label="Buka pintu"><svg class="kb-ikon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg> Buka</button>
     </div>
     <button id="pinBtn" type="button" style="display:none">Buka pintu</button>
   </div>
@@ -2876,7 +2919,7 @@ function pinBukaMode(m) {
   var j = document.getElementById('pinJudul');
   if (j) j.textContent = m.judul;
   if (pinSub) pinSub.textContent = m.sub;
-  if (pinOk) { pinOk.textContent = '✓ ' + m.ok; pinOk.setAttribute('aria-label', m.ok); }
+  if (pinOk) { pinOk.innerHTML = '<svg class="kb-ikon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>' + ' ' + escapeHtml(m.ok); pinOk.setAttribute('aria-label', m.ok); }
   /* kalau ada kolom teks yang masih fokus, lepas supaya keyboard HP turun */
   try { var ae = document.activeElement; if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) ae.blur(); } catch (e) { /* abaikan */ }
   pinRender();
@@ -3544,12 +3587,12 @@ function showRoomCard(n, isPreview, preview, nama) {
   if (kta) {
     var b5 = document.createElement('button');
     b5.id = 'saveCardBtn';
-    b5.textContent = '💾 Simpan Kartu (PNG)';
+    b5.innerHTML = iconSvg('simpan') + ' Simpan Kartu (PNG)';
     b5.addEventListener('click', function () { simpanKartuKosan(); });
     cardActions.appendChild(b5);
     var b6 = document.createElement('button');
     b6.id = 'shareCardBtn';
-    b6.textContent = '🔗 Bagikan Kamarku';
+    b6.innerHTML = iconSvg('bagikan') + ' Bagikan Kamarku';
     b6.addEventListener('click', function () { bagikanKamarKosan(n, !!resident); });
     cardActions.appendChild(b6);
   }
@@ -3664,12 +3707,12 @@ var masukMenu = document.getElementById('masukMenu');
 var masukArrow = document.getElementById('masukArrow');
 function tutupMasukMenu() {
   masukMenu.classList.remove('open');
-  if (masukArrow) masukArrow.textContent = '▾';
+  document.getElementById('masukBtn').setAttribute('aria-expanded', 'false'); /* UI refresh: panah SVG diputar CSS */
 }
 document.getElementById('masukBtn').addEventListener('click', function (e) {
   e.stopPropagation();
   var buka = masukMenu.classList.toggle('open');
-  if (masukArrow) masukArrow.textContent = buka ? '▴' : '▾';
+  this.setAttribute('aria-expanded', buka ? 'true' : 'false');
 });
 masukMenu.addEventListener('click', function () { tutupMasukMenu(); });
 document.addEventListener('click', function (e) {
@@ -3852,7 +3895,9 @@ function entryApplyMode() {
   var tahap = masuk ? entryTahap : '';
   var show = function (el, on) { if (el) el.style.display = on ? '' : 'none'; };
   show(entryName, tahap !== 'sesi');
+  show(document.getElementById('entryNameLabel'), tahap !== 'sesi'); /* UI refresh: label ikut kolomnya */
   show(entryKey, !masuk);
+  show(document.getElementById('entryKeyLabel'), !masuk);
   show(entryIngatRow, tahap !== 'sesi');
   show(genderRowEl, !masuk);
   show(entryNoteEl, !masuk); /* Task 11 — catatan kunci identitas hanya di mode DAFTAR */
@@ -3933,6 +3978,8 @@ var UICONS = {
   /* Ronde 24 — ikon kunci untuk lencana "Kunci Kamar" (Fase 2d); gaya sama (stroke currentColor). */
   key: '<circle cx="8" cy="8" r="4.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M11.5 11.5L20 20M16 16l2-2M13.5 13.5l2.5-2.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
   /* Ronde 28 — ikon kaca pembesar untuk tombol cari namebar (ikon saja, tanpa teks); gaya sama. */
+  simpan: '<path d="M12 4v11M7.5 10.5L12 15l4.5-4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 19h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  bagikan: '<circle cx="6" cy="12" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="6" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="18" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8.2 10.8l7.6-3.6M8.2 13.2l7.6 3.6" fill="none" stroke="currentColor" stroke-width="2"/>',
   search: '<circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16.5 16.5L21 21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'
 };
 function iconSvg(n) {
@@ -4959,7 +5006,7 @@ function ktaRenderKunci() {
     return;
   }
   el.innerHTML = '<div class="kta-kunci"><label class="kta-kunci-label" for="ktaKunciInput">Punya kode dari @ibu__kos? Masukkan di sini:</label>'
-    + '<div class="kta-kunci-row"><input id="ktaKunciInput" type="text" placeholder="Kode kunci…" maxlength="20" autocomplete="off" autocapitalize="characters">'
+    + '<div class="kta-kunci-row"><input id="ktaKunciInput" type="text" placeholder="Kode dari caption" maxlength="20" autocomplete="off" autocapitalize="characters">'
     + '<button id="ktaKunciBtn" type="button">' + iconSvg('key') + 'Klaim Kunci</button></div>'
     + '<p class="kta-kunci-note">Kode ada di postingan/bio @ibu__kos — follow tidak bisa dicek otomatis di sini. Belum follow? <a href="https://www.instagram.com/ibu__kos/" target="_blank" rel="noopener">Buka profil @ibu__kos</a></p></div>';
   var b = document.getElementById('ktaKunciBtn');
@@ -5551,7 +5598,10 @@ function mpHitungSekitar() {
 }
 function mpPerbaruiPil() {
   if (!mpPill) return;
-  mpPill.textContent = mpTeksStatus(mpStatus, mpHitungSekitar());
+  /* UI refresh: emoji bulat di awal teks diganti titik warna CSS
+     (tampil sama di semua HP); teks dari mpTeksStatus tetap. */
+  var teksPil = mpTeksStatus(mpStatus, mpHitungSekitar()).replace(/^\S+\s+/, '');
+  mpPill.innerHTML = '<span class="mp-titik mp-' + (mpStatus === 'on' ? 'on' : (mpStatus === 'connecting' ? 'sambung' : 'off')) + '"></span>' + escapeHtml(teksPil);
 }
 function mpSetStatus(s) { mpStatus = s; mpPerbaruiPil(); }
 function mpModeSendiri() { mpSetStatus('solo'); }
