@@ -2203,14 +2203,15 @@ function buildWorld() {
   box(M.woodDark, 0.08, 0.61, 0.08, 12.7, 0.365, 6.8);
   /* 4 bangku keliling meja (pola bangku pedestal modern: jok + panel
      tengah; menghadap meja) */
-  box(M.wood, 1.4, 0.08, 0.4, 12.0, 0.45, 5.3);
-  box(M.woodDark, 0.08, 0.35, 0.4, 12.0, 0.235, 5.3);
-  box(M.wood, 1.4, 0.08, 0.4, 12.0, 0.45, 7.7);
-  box(M.woodDark, 0.08, 0.35, 0.4, 12.0, 0.235, 7.7);
-  box(M.wood, 0.4, 0.08, 1.2, 13.3, 0.45, 6.5);
-  box(M.woodDark, 0.4, 0.35, 0.08, 13.3, 0.235, 6.5);
-  box(M.wood, 0.4, 0.08, 1.2, 10.7, 0.45, 6.5);
-  box(M.woodDark, 0.4, 0.35, 0.08, 10.7, 0.235, 6.5);
+  /* Tahap 1 — jok + panel bangku bisa diketuk (interact 'bangku') -> kartu Gazebo / duduk */
+  [
+    [box(M.wood, 1.4, 0.08, 0.4, 12.0, 0.45, 5.3), box(M.woodDark, 0.08, 0.35, 0.4, 12.0, 0.235, 5.3), 'utara'],
+    [box(M.wood, 1.4, 0.08, 0.4, 12.0, 0.45, 7.7), box(M.woodDark, 0.08, 0.35, 0.4, 12.0, 0.235, 7.7), 'selatan'],
+    [box(M.wood, 0.4, 0.08, 1.2, 13.3, 0.45, 6.5), box(M.woodDark, 0.4, 0.35, 0.08, 13.3, 0.235, 6.5), 'timur'],
+    [box(M.wood, 0.4, 0.08, 1.2, 10.7, 0.45, 6.5), box(M.woodDark, 0.4, 0.35, 0.08, 10.7, 0.235, 6.5), 'barat']
+  ].forEach(function (b) {
+    for (var i = 0; i < 2; i++) { b[i].userData = { interact: 'bangku', bangku: b[2] }; clickables.push(b[i]); }
+  });
   /* 2 planter batu di luar dek sisi utara (box soil + bola leaf) */
   box(M.soil, 0.5, 0.35, 0.5, 9.0, 0.175, 3.0);
   ball(M.leaf, 0.35, 9.0, 0.55, 3.0);
@@ -2464,6 +2465,7 @@ function enterLiving() {
      Gerbang di sini (bukan di tombol) supaya SEMUA jalur tertutup:
      dropdown "Masuk ke", kartu kamar, kartu ruang tamu, ketuk pintu. */
   if (!ktaIsResident()) { toastKosan('Tamu belum bisa masuk ruang tamu — daftar dulu jadi penghuni ya!'); return; }
+  if (roomPose) bangunDariKasur(true); /* Tahap 1 — duduk di gazebo lalu pindah alam: bangun dulu (sebelum savedYard) */
   if (myRealm === 'dapur') exitDapur(); /* Ronde 43 — tidak bisa langsung dapur -> ruang tamu; keluar dulu */
   savedYard = { x: avatarPos.x, z: avatarPos.z, rot: avatar.rotation.y, camDist: camDist, camYaw: camYaw, camPitch: camPitch, camTarget: { x: camTarget.x, y: camTarget.y, z: camTarget.z } }; /* Ronde 10c: framing ikut disimpan; Ronde 10e: camTarget ASLI ikut disimpan (bukan posisi avatar) — camTarget tertinggal di belakang avatar saat jalan */
   myRealm = 'living';
@@ -2710,6 +2712,7 @@ function enterDapur() {
   /* Ronde 55 — tamu DILARANG masuk ruangan apa pun (vonis Ryan 11 Nov):
      gerbang di fungsi masuk (choke point) — semua jalur tertutup. */
   if (!ktaIsResident()) { toastKosan('Tamu belum bisa masuk dapur — daftar dulu jadi penghuni ya!'); return; }
+  if (roomPose) bangunDariKasur(true); /* Tahap 1 — duduk di gazebo lalu pindah alam: bangun dulu (sebelum savedYard) */
   if (myRealm === 'living') exitLiving(); /* tidak bisa langsung living -> dapur; keluar dulu */
   if (myRealm.indexOf('room-') === 0) exitRoom(); /* tidak bisa langsung kamar -> dapur; keluar dulu */
   savedYard = { x: avatarPos.x, z: avatarPos.z, rot: avatar.rotation.y, camDist: camDist, camYaw: camYaw, camPitch: camPitch, camTarget: { x: camTarget.x, y: camTarget.y, z: camTarget.z } };
@@ -3130,6 +3133,54 @@ var poseJangkar = null;
 function jangkarPose(p, bangun) {
   return { x: p.x, z: p.z, y: p.y, rotX: p.rotX, rotY: p.rotY, leg: p.leg, bangun: { x: bangun.x, z: bangun.z, rotY: bangun.rotY } };
 }
+/* ==== GAZEBO-START ==== */
+/* Tahap 1 — nongkrong di gazebo (docs/TAHAP-1-AKTIVITAS-SPEC.md §4).
+   Helper MURNI (tanpa DOM/THREE) — dites node. Kotak = AABB bangku di
+   PLAZA_SOLIDS. Kursi: pinggul 0,05 m di dalam tepi depan jok (pola
+   POSE_SIT di tepi kasur), menghadap meja; jok 0,49 m ~ kasur 0,48 m,
+   jadi y -0,31 + kaki -0,92 dari POSE_SIT dipakai apa adanya. */
+var GAZEBO_JARAK = 3; /* m dari kotak bangku (keputusan Ryan) */
+var GAZEBO_KURSI_TERISI = 0.35; /* m: pemain lain sedekat ini = kursi terisi */
+var GAZEBO_BANGKU = {
+  utara: { kotak: { minX: 11.3, maxX: 12.7, minZ: 5.1, maxZ: 5.5 },
+    kursi: [{ x: 11.6, z: 5.45 }, { x: 12.4, z: 5.45 }], rotY: 0, bangun: { dx: 0, z: 4.6 } },
+  selatan: { kotak: { minX: 11.3, maxX: 12.7, minZ: 7.5, maxZ: 7.9 },
+    kursi: [{ x: 11.6, z: 7.55 }, { x: 12.4, z: 7.55 }], rotY: Math.PI, bangun: { dx: 0, z: 8.4 } },
+  timur: { kotak: { minX: 13.1, maxX: 13.5, minZ: 5.9, maxZ: 7.1 },
+    kursi: [{ x: 13.15, z: 6.2 }, { x: 13.15, z: 6.8 }], rotY: -Math.PI / 2, bangun: { x: 14.1 } },
+  barat: { kotak: { minX: 10.5, maxX: 10.9, minZ: 5.9, maxZ: 7.1 },
+    kursi: [{ x: 10.85, z: 6.2 }, { x: 10.85, z: 6.8 }], rotY: Math.PI / 2, bangun: { x: 9.9 } }
+};
+function jarakKeKotak(x, z, k) {
+  /* jarak titik (x,z) ke AABB k; 0 kalau di dalam. */
+  var dx = Math.max(k.minX - x, 0, x - k.maxX), dz = Math.max(k.minZ - z, 0, z - k.maxZ);
+  return Math.sqrt(dx * dx + dz * dz);
+}
+function gazeboKursiTerisi(kursi, pemain) {
+  /* pemain = [{x,z}] pemain LAIN yang sedang duduk di halaman. */
+  for (var i = 0; i < pemain.length; i++) {
+    if (Math.hypot(pemain[i].x - kursi.x, pemain[i].z - kursi.z) <= GAZEBO_KURSI_TERISI) return true;
+  }
+  return false;
+}
+function gazeboPilihKursi(nama, ax, az, pemain) {
+  /* kursi kosong terdekat ke avatar di bangku itu -> jangkar
+     {x,z,y,rotX,rotY,leg,bangun}; null = bangku tak dikenal / penuh. */
+  var b = Object.prototype.hasOwnProperty.call(GAZEBO_BANGKU, nama) ? GAZEBO_BANGKU[nama] : null;
+  if (!b) return null;
+  var pilih = null, terdekat = Infinity;
+  for (var i = 0; i < b.kursi.length; i++) {
+    var k = b.kursi[i];
+    if (gazeboKursiTerisi(k, pemain || [])) continue;
+    var d = Math.hypot(k.x - ax, k.z - az);
+    if (d < terdekat) { terdekat = d; pilih = k; }
+  }
+  if (!pilih) return null;
+  var bx = typeof b.bangun.x === 'number' ? b.bangun.x : pilih.x + (b.bangun.dx || 0);
+  var bz = typeof b.bangun.z === 'number' ? b.bangun.z : pilih.z;
+  return { x: pilih.x, z: pilih.z, y: -0.31, rotX: 0, rotY: b.rotY, leg: -0.92, bangun: { x: bx, z: bz, rotY: b.rotY } };
+}
+/* ==== GAZEBO-END ==== */
 var toastTimer = null;
 function toastKosan(msg) {
   var t = document.getElementById('toast');
@@ -3181,6 +3232,7 @@ function bangunDariKasur(diam) {
   var w = (poseJangkar && poseJangkar.bangun) || WAKE_SPOT; /* Tahap 1 — titik bangun ikut jangkar (kasur / kursi gazebo) */
   roomPose = null;
   poseJangkar = null;
+  poseDiGazebo = false;
   avatar.rotation.x = 0;
   avatarPos.x = w.x; avatarPos.z = w.z;
   avatar.rotation.y = w.rotY;
@@ -3726,6 +3778,59 @@ function showIbuCard() {
   cardBody.innerHTML = '<p>Pemilik kosan ini. Kosan dibangun lewat komen kalian: follow = Penghuni Baru, komen = request bebas, like terbanyak = langsung Ibu bangun. 🏠</p>';
   cardActions.innerHTML = '';
   openCard();
+}
+/* Tahap 1 — kartu Gazebo + duduk di bangku (spek §4). Pose 'sit' yang
+   sudah ada di protokol -> pemain lain melihat kita duduk (tanpa pesan baru). */
+var poseDiGazebo = false; /* true = jangkar aktif adalah kursi gazebo (bukan kasur) */
+function gazeboPemainDuduk() {
+  var out = [];
+  for (var id in remotePlayers) {
+    var e = remotePlayers[id];
+    if (e && e.realm === 'yard' && e.pose === 'sit') out.push({ x: e.tx, z: e.tz });
+  }
+  return out;
+}
+function showGazeboCard(nama) {
+  var b = GAZEBO_BANGKU[nama];
+  if (!b || myRealm !== 'yard') return;
+  cardTitle.innerHTML = iconSvg('chair') + ' Gazebo';
+  cardActions.innerHTML = '';
+  var html = '<p>Gazebo kos — tempat nongkrong bareng tetangga.</p>';
+  if (roomPose === 'sit' && poseDiGazebo) {
+    html += '<p style="margin-top:4px">Kamu lagi <b>duduk</b> di gazebo. 🪑</p>';
+    var bw = document.createElement('button');
+    bw.id = 'gazeboBangunBtn';
+    bw.innerHTML = iconSvg('stand') + ' Bangun';
+    bw.addEventListener('click', function () { bangunDariKasur(); closeCard(); });
+    cardActions.appendChild(bw);
+  } else if (jarakKeKotak(avatarPos.x, avatarPos.z, b.kotak) > GAZEBO_JARAK) {
+    html += '<p style="margin-top:4px">Jalan ke gazebo dulu ya, baru duduk. 🚶</p>';
+  } else {
+    var bd = document.createElement('button');
+    bd.id = 'gazeboDudukBtn';
+    bd.innerHTML = iconSvg('chair') + ' Duduk di sini';
+    bd.addEventListener('click', function () { gazeboDuduk(nama); });
+    cardActions.appendChild(bd);
+  }
+  cardBody.innerHTML = html;
+  openCard();
+}
+function gazeboDuduk(nama) {
+  if (myRealm !== 'yard' || roomPose) return;
+  var b = GAZEBO_BANGKU[nama];
+  if (!b) return;
+  if (jarakKeKotak(avatarPos.x, avatarPos.z, b.kotak) > GAZEBO_JARAK) { toastKosan('Jalan ke gazebo dulu ya 🚶'); return; }
+  var j = gazeboPilihKursi(nama, avatarPos.x, avatarPos.z, gazeboPemainDuduk());
+  if (!j) { toastKosan('Bangkunya penuh, coba bangku lain 🙂'); return; }
+  roomPose = 'sit';
+  poseJangkar = j;
+  poseDiGazebo = true;
+  terapkanPoseKamar();
+  mpKirimPos(); /* pose berubah: publish segera */
+  closeCard();
+  document.getElementById('wakeBtn').style.display = 'inline-block';
+  toastKosan('🪑 Nongkrong di gazebo — ketuk Bangun buat berdiri');
+  misiSelesai('gazebo');
 }
 /* Ronde 42 — kartu area laundry (pemenang Ep 2): ketuk mesin cuci /
    pengering di halaman. */
@@ -5391,6 +5496,7 @@ function canvasTap(e, wasPinch) {
      punya card 'room-in' juga, tapi ketukannya harus ke interaksi. */
   if (ud.interact === 'bed') { showBedCard(); return; }
   if (ud.interact === 'lamp') { toggleRoomLamp(); return; }
+  if (ud.interact === 'bangku') { showGazeboCard(ud.bangku); return; } /* Tahap 1 — gazebo */
   /* Ronde 48 — interaksi dapur (dicek sebelum 'card', pola bed/lamp). */
   if (ud.interact === 'stove') { toggleDapurStove(); return; }
   if (ud.interact === 'faucet') { toggleDapurFaucet(); return; }

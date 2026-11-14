@@ -348,7 +348,7 @@ function harnessPose() {
     avatarPos: { x: 0, z: 0 }, avatar: { position: { set(x, y, z) { this.x = x; this.y = y; this.z = z; } }, rotation: { x: 0, y: 0 } },
     avLegL: rot(), avLegR: rot(), avArmL: rot(), avArmR: rot(), avTubuh: rot(), avatarLabel: { sprite: { visible: true } }
   };
-  const f = new Function('env', 'with (env) {\n' + kons + '\nvar roomPose = null, poseJangkar = null;\n'
+  const f = new Function('env', 'with (env) {\n' + kons + '\nvar roomPose = null, poseJangkar = null, poseDiGazebo = false;\n'
     + 'function misiSelesai(i) { env.misi.push(i); } function mpKirimPos() { env.pos++; } function closeCard() {}\n'
     + 'function toastKosan(m) { env.toast.push(m); } var document = { getElementById: function () { return env.wake; } };\n'
     + nama.map(ambil).join('\n')
@@ -392,4 +392,56 @@ test('Tahap 1: pemain lain yang duduk tetap berlabel, yang tidur tidak', () => {
     parts: { legL: r(), legR: r(), armL: r(), armR: r(), tubuh: r() }, label: { sprite: { visible: true } } });
   const duduk = entri('sit'); f(duduk); assert.equal(duduk.label.sprite.visible, true);
   const tidur = entri('sleep'); f(tidur); assert.equal(tidur.label.sprite.visible, false);
+});
+
+function blokMurni(awal, akhir, ekspor) {
+  const a = HTML.indexOf('/* ==== ' + awal + ' ==== */'), b = HTML.indexOf('/* ==== ' + akhir + ' ==== */');
+  assert.ok(a > 0 && b > a, awal + ' tidak ditemukan');
+  return new Function(HTML.slice(a, b) + '\nreturn {' + ekspor.join(',') + '};')();
+}
+const GZ = () => blokMurni('GAZEBO-START', 'GAZEBO-END', ['GAZEBO_BANGKU', 'GAZEBO_JARAK', 'jarakKeKotak', 'gazeboKursiTerisi', 'gazeboPilihKursi']);
+
+test('Tahap 1 gazebo: jarakKeKotak (di dalam 0, samping, sudut)', () => {
+  const { jarakKeKotak } = GZ();
+  const k = { minX: 0, maxX: 2, minZ: 0, maxZ: 1 };
+  assert.equal(jarakKeKotak(1, 0.5, k), 0);
+  assert.equal(jarakKeKotak(5, 0.5, k), 3);
+  assert.equal(jarakKeKotak(-3, 5, k), 5); /* 3-4-5 dari sudut (0,1) */
+});
+
+test('Tahap 1 gazebo: 4 bangku x 2 kursi, kursi + titik bangun cocok dengan PLAZA_SOLIDS', () => {
+  const { GAZEBO_BANGKU, gazeboPilihKursi, jarakKeKotak } = GZ();
+  const a = HTML.indexOf('var PLAZA_SOLIDS = ['), solids = new Function('return ' + HTML.slice(a + 'var PLAZA_SOLIDS = '.length, HTML.indexOf('];', a) + 1))();
+  assert.deepEqual(Object.keys(GAZEBO_BANGKU), ['utara', 'selatan', 'timur', 'barat']);
+  for (const [nama, b] of Object.entries(GAZEBO_BANGKU)) {
+    assert.ok(solids.some((s) => s.minX === b.kotak.minX && s.maxX === b.kotak.maxX && s.minZ === b.kotak.minZ && s.maxZ === b.kotak.maxZ), nama + ': kotak = AABB bangku');
+    assert.equal(b.kursi.length, 2);
+    for (const k of b.kursi) {
+      assert.equal(jarakKeKotak(k.x, k.z, b.kotak), 0, nama + ': kursi di atas jok');
+      const j = gazeboPilihKursi(nama, k.x, k.z, []);
+      assert.deepEqual([j.x, j.z, j.y, j.leg], [k.x, k.z, -0.31, -0.92]);
+      /* titik bangun: di dek gazebo (x 8,5..15,5, z 3,5..9,5) dan > 0,3 m dari semua benda padat */
+      assert.ok(j.bangun.x > 8.5 && j.bangun.x < 15.5 && j.bangun.z > 3.5 && j.bangun.z < 9.5, nama + ': bangun di dek');
+      for (const s of solids) assert.ok(jarakKeKotak(j.bangun.x, j.bangun.z, s) > 0.3, nama + ': bangun bebas ' + JSON.stringify(s));
+    }
+  }
+});
+
+test('Tahap 1 gazebo: kursi terdekat, lewati yang terisi, penuh -> null, bangku asing -> null', () => {
+  const { gazeboPilihKursi } = GZ();
+  assert.equal(gazeboPilihKursi('utara', 12.6, 4.5, []).x, 12.4);
+  assert.equal(gazeboPilihKursi('utara', 11.0, 4.5, []).x, 11.6);
+  assert.equal(gazeboPilihKursi('utara', 12.6, 4.5, [{ x: 12.4, z: 5.45 }]).x, 11.6, 'kursi dekat terisi -> kursi lain');
+  assert.equal(gazeboPilihKursi('utara', 12.6, 4.5, [{ x: 12.4, z: 5.45 }, { x: 11.7, z: 5.4 }]), null, 'dua-duanya terisi');
+  assert.equal(gazeboPilihKursi('utara', 12.6, 4.5, [{ x: 12.4, z: 6.5 }]).x, 12.4, 'pemain 1 m jauhnya tidak menghalangi');
+  for (const n of ['__proto__', 'constructor', 'toString', 'tengah']) assert.equal(gazeboPilihKursi(n, 12, 6, []), null, n);
+  assert.equal(gazeboPilihKursi('timur', 14, 6, []).rotY, -Math.PI / 2);
+});
+
+test('Tahap 1 gazebo: bangku bisa diketuk + pindah alam bangun dulu', () => {
+  assert.match(HTML, /if \(ud\.interact === 'bangku'\) \{ showGazeboCard\(ud\.bangku\); return; \}/);
+  for (const f of ['enterLiving', 'enterDapur']) {
+    const a = HTML.indexOf('function ' + f + '('), blok = HTML.slice(a, HTML.indexOf('\n}\n', a));
+    assert.ok(blok.indexOf('if (roomPose) bangunDariKasur(true);') < blok.indexOf('savedYard ='), f + ': bangun sebelum savedYard');
+  }
 });
