@@ -161,3 +161,73 @@ test('9b: string lama hilang dari masukKosan; pesan belum-terdaftar entryLogin +
   assert.ok(HTML.includes("entryShowError('Nama ini belum terdaftar sebagai penghuni — daftar dulu, atau masuk sebagai tamu.')"));
   assert.match(HTML, /function showKosanPenuh\(/);
 });
+
+/* ---------- perbaikan 10 (tes produksi 14 Nov 16:02): tamu saat kosan penuh ---------- */
+function ambilBlok(nama) {
+  const awal = HTML.indexOf('function ' + nama + '(');
+  assert.ok(awal > 0, nama);
+  return HTML.slice(awal, HTML.indexOf('\n}\n', awal) + 3);
+}
+/* jalankan masukTamu -> masukSebagai -> setIdentity -> spawnAvatar ASLI dari
+   index.html dengan dunia tiruan; previewFor bisa dibuat null (kosan penuh). */
+function duniaTamu({ preview, online }) {
+  const jejak = { label: [], kartuPenuh: 0, kartuKamar: 0 };
+  const stub = {
+    previewFor: () => preview, showKosanPenuh: () => { jejak.kartuPenuh++; }, showRoomCard: () => { jejak.kartuKamar++; },
+    makeId: (n, r) => 'KOSAN-' + r + '-' + n, setLabel: (_l, t) => jejak.label.push(t), avatarLabel: {},
+    usernameValid: () => true, entryShowError: (m) => { throw new Error('error: ' + m); },
+    normalize: (n) => String(n).trim().replace(/^@+/, '').toLowerCase(),
+    masukLayarPenuh() {}, ensurePlayerId() {}, camDistAwalHalaman: () => 9, pasangBackGuard() {},
+    entryOverlay: { classList: { remove() {} } }, updateWhoami() {}, mpMulai() {}, mpKirimPresence() {}, mpKirimPos() {},
+    OCCUPANTS: [{ room: 3, name: 'rina' }], remotePlayers: Object.assign(Object.create(null), online || {}), entryBusy: false,
+    localStorage: { setItem() { throw new Error('nama tamu tidak boleh disimpan'); } }
+  };
+  const k = Object.keys(stub);
+  const src = "var visitorName = 'kamu', visitorRoom = 0, visitorId = '', isResidentSession = false, entered = false, layarPenuhDariKetuk = false;\n"
+    + "var myRealm = 'yard', camYaw = 0, camPitch = 0, camDist = 0;\n"
+    + ['spawnAvatar', 'setIdentity', 'masukSebagai', 'tamuNama', 'tamuPilihNomor', 'tamuNamaTerpakai', 'masukTamu'].map(ambilBlok).join('')
+    + '\nmasukTamu();\nreturn { visitorName: visitorName, visitorRoom: visitorRoom, visitorId: visitorId, entered: entered };';
+  const hasil = new Function(...k, src)(...k.map((x) => stub[x]));
+  return Object.assign(hasil, jejak);
+}
+
+test('10 (a): tamu saat kosan penuh (preview null) -> nama Tamu-1, label "Tamu-1 · tamu", visitorRoom 0, kartu penuh', () => {
+  const h = duniaTamu({ preview: null });
+  assert.equal(h.visitorName, 'Tamu-1');
+  assert.equal(h.label[h.label.length - 1], 'Tamu-1 · tamu');
+  assert.ok(!h.label.includes('kamu · tamu'));
+  assert.equal(h.visitorRoom, 0); assert.equal(h.visitorId, '');
+  assert.equal(h.kartuPenuh, 1); assert.equal(h.kartuKamar, 0);
+  assert.equal(h.entered, true);
+});
+
+test('10 (a): tamu kedua saat penuh (Tamu-1 sudah online) -> Tamu-2', () => {
+  const h = duniaTamu({ preview: null, online: { pa1111111: { nama: 'Tamu-1' } } });
+  assert.equal(h.visitorName, 'Tamu-2');
+  assert.equal(h.label[h.label.length - 1], 'Tamu-2 · tamu');
+});
+
+test('10 (a): saat ada kamar kosong perilaku tetap (preview ada -> visitorRoom terisi, kartu preview)', () => {
+  const h = duniaTamu({ preview: { room: 5, resident: false } });
+  assert.equal(h.visitorName, 'Tamu-1'); assert.equal(h.visitorRoom, 5); assert.equal(h.kartuKamar, 1); assert.equal(h.kartuPenuh, 0);
+});
+
+function klikHomeBtn(visitorRoom) {
+  const awal = HTML.indexOf("document.getElementById('homeBtn').addEventListener('click', function () {");
+  assert.ok(awal > 0);
+  const badan = HTML.slice(HTML.indexOf('{', awal) + 1, HTML.indexOf('\n});', awal));
+  const jejak = { masuk: [], toast: [] };
+  new Function('visitorRoom', 'enterRoom', 'toastKosan', badan)(visitorRoom, (n) => jejak.masuk.push(n), (m) => jejak.toast.push(m));
+  return jejak;
+}
+
+test('10 (b): KAMAR KAMU saat visitorRoom 0 -> toast, tanpa navigasi', () => {
+  const j = klikHomeBtn(0);
+  assert.deepEqual(j.masuk, []);
+  assert.deepEqual(j.toast, ['Tamu tidak punya kamar — daftar dulu jadi penghuni ya!']);
+});
+
+test('10 (b): KAMAR KAMU penghuni (visitorRoom > 0) tetap masuk kamar, tanpa toast', () => {
+  const j = klikHomeBtn(13);
+  assert.deepEqual(j.masuk, [13]); assert.deepEqual(j.toast, []);
+});

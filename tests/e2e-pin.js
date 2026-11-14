@@ -161,6 +161,28 @@ const cek = (nama, ok, info) => { hasil.push({ nama, ok: !!ok }); console.log((o
     cek('G7 penghuni baru tercatat (lewat /api/daftar)', occ.some((x) => x.name === '135799'));
     await ctx.close();
 
+    /* ---------- H. tamu saat kosan PENUH (perbaikan 10) ---------- */
+    {
+      const penuh = Array.from({ length: 20 }, (_, i) => ({ room: i + 1, name: 'penghuni' + (i + 1) }));
+      const ctxH = await browser.newContext({ viewport: { width: 900, height: 700 } });
+      await ctxH.route('**/*', (route) => {
+        const u = route.request().url();
+        if (u.startsWith(BASE)) return route.continue();
+        if (u.includes('supabase.co/rest/v1/rpc/kosan_occupants')) return route.fulfill({ json: penuh });
+        return route.abort();
+      });
+      const pg = await ctxH.newPage();
+      pg.on('pageerror', (e) => catatan.err.push(e.message));
+      await pg.goto(BASE + '/'); await pg.waitForTimeout(1500);
+      await pg.click('#entryGuestLink'); await pg.waitForTimeout(1200);
+      const w = await teks(pg, '#whoami');
+      cek('H1 tamu saat penuh -> HUD "Tamu-1 · tamu" (bukan "kamu")', /Tamu-1 · tamu/.test(w) && !/kamu · tamu/.test(w), w.trim());
+      cek('H2 kartu "Kosan penuh" tetap muncul', /Kosan penuh/.test(await teks(pg, '#cardTitle')));
+      await klikJs(pg, '#homeBtn'); await pg.waitForTimeout(400);
+      cek('H3 KAMAR KAMU saat tamu penuh -> toast, tidak masuk kamar', /Tamu tidak punya kamar/.test(await teks(pg, '#toast')) && !(await diKamar(pg)) && !(await keypadTampil(pg)));
+      await ctxH.close();
+    }
+
     cek('Z1 0 error CSP', catatan.csp.length === 0, catatan.csp.slice(0, 2).join(' | '));
     cek('Z2 0 request ke unpkg', catatan.unpkg.length === 0);
     cek('Z3 0 error JavaScript halaman', catatan.err.length === 0, catatan.err.slice(0, 2).join(' | '));

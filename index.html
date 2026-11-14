@@ -3411,6 +3411,7 @@ function showLaundryCard() {
    sendiri + masuk ruang tamu, langsung tanpa kartu perantara. */
 document.getElementById('homeBtn').addEventListener('click', function () {
   if (visitorRoom > 0) enterRoom(visitorRoom);
+  else toastKosan('Tamu tidak punya kamar — daftar dulu jadi penghuni ya!'); /* perbaikan 10: dulu diam tanpa pesan */
 });
 document.getElementById('livingBtn').addEventListener('click', function () {
   if (myRealm.indexOf('room-') === 0) exitRoom(); /* dari dalam kamar: keluar dulu (biar savedYard + pose benar) */
@@ -3460,11 +3461,14 @@ function setIdentity(nama) {
      besar-kecil dipertahankan untuk tampilan tamu (nama tersimpan di DB
      sudah lowercase). */
   nama = (nama || '').trim().replace(/^@+/, '').trim();
+  /* perbaikan 10 (tes produksi 14 Nov 16:02): identitas (nama) DIISI DULU,
+     terlepas dari hasil preview kamar. Dulu spawnAvatar baru jalan sesudah
+     cek preview, jadi saat kosan penuh tamu tetap bernama 'kamu'. */
+  spawnAvatar(nama.trim());
   var preview = previewFor(nama);
-  if (!preview) { showKosanPenuh(); return null; }
+  if (!preview) { visitorRoom = 0; visitorId = ''; showKosanPenuh(); return null; } /* penuh: tidak ada kamar untuk di-preview */
   visitorRoom = preview.room;
   visitorId = makeId(nama, preview.room);
-  spawnAvatar(nama.trim());
   if (isResidentSession) { try { localStorage.setItem('kosan3d-nama', nama.trim()); } catch (e) { /* abaikan */ } } /* perbaikan 9: nama Tamu-N tidak disimpan */
   showRoomCard(preview.room, true, preview, nama.trim());
   return preview;
