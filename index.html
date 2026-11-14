@@ -3123,6 +3123,13 @@ var POSE_SIT = { x: -1.95, z: -0.65, y: -0.31, rotX: 0, rotY: 0, leg: -0.92 };
    cos = 0,48/0,79); hadap selatan (rotY 0, ke arah ruangan).
    Ronde 17 — jangkar ikut kasur geser 0,5 m ke utara (dulu z -0,15). */
 var WAKE_SPOT = { x: -1.95, z: 0.2, rotY: 0 }; /* bangun: di luar footprint kasur (z max -0,6), lantai bebas; Ronde 17 — ikut kasur geser 0,5 m ke utara (dulu z 0,7) */
+/* Tahap 1 — jangkar pose aktif (kasur ATAU kursi gazebo): posisi + tinggi +
+   rotasi + sudut kaki + titik bangun. roomPose tetap jadi status yang
+   dipublish ('sit'/'sleep'); poseJangkar = DI MANA pose itu dipasang. */
+var poseJangkar = null;
+function jangkarPose(p, bangun) {
+  return { x: p.x, z: p.z, y: p.y, rotX: p.rotX, rotY: p.rotY, leg: p.leg, bangun: { x: bangun.x, z: bangun.z, rotY: bangun.rotY } };
+}
 var toastTimer = null;
 function toastKosan(msg) {
   var t = document.getElementById('toast');
@@ -3136,18 +3143,21 @@ function terapkanPoseKamar() {
   /* dipanggil tiap frame di animate saat roomPose aktif — menimpa
      posisi/rotasi/anggota gerak SETELAH animasi jalan (supaya ayunan
      idle tidak menggerakkan badan yang rebah/duduk). */
-  var p = roomPose === 'sleep' ? POSE_SLEEP : POSE_SIT;
+  var p = poseJangkar || (roomPose === 'sleep' ? POSE_SLEEP : POSE_SIT);
   avatarPos.x = p.x; avatarPos.z = p.z;
   avatar.position.set(p.x, p.y, p.z);
   avatar.rotation.x = p.rotX; avatar.rotation.y = p.rotY;
   avLegL.rotation.x = p.leg; avLegR.rotation.x = p.leg;
   avArmL.rotation.x = 0; avArmR.rotation.x = 0;
   avTubuh.rotation.y = 0;
-  if (avatarLabel) avatarLabel.sprite.visible = false; /* label ikut grup: saat rebah posisinya melayang ke dinding utara */
+  /* label ikut grup: saat rebah posisinya melayang ke dinding utara -> sembunyi.
+     Tahap 1 (keputusan Ryan): saat DUDUK label tetap tampil. */
+  if (avatarLabel) avatarLabel.sprite.visible = roomPose !== 'sleep';
 }
 function tidurDiKasur() {
   if (myRealm.indexOf('room-') !== 0) return;
   roomPose = 'sleep';
+  poseJangkar = jangkarPose(POSE_SLEEP, WAKE_SPOT);
   misiSelesai('tidur'); /* Ronde 20 — misi harian: tidur di kasur */
   terapkanPoseKamar(); /* jangkar langsung — publish pertama sudah bawa posisi kasur */
   mpKirimPos(); /* Ronde 15a — pose berubah: publish segera (bukan tunggu heartbeat 3 dtk) */
@@ -3158,6 +3168,7 @@ function tidurDiKasur() {
 function dudukDiKasur() {
   if (myRealm.indexOf('room-') !== 0) return;
   roomPose = 'sit';
+  poseJangkar = jangkarPose(POSE_SIT, WAKE_SPOT);
   misiSelesai('duduk'); /* Ronde 20 — misi harian: duduk santai */
   terapkanPoseKamar(); /* jangkar langsung — publish pertama sudah bawa posisi kasur */
   mpKirimPos(); /* Ronde 15a — pose berubah: publish segera (bukan tunggu heartbeat 3 dtk) */
@@ -3167,11 +3178,13 @@ function dudukDiKasur() {
 }
 function bangunDariKasur(diam) {
   if (!roomPose) return;
+  var w = (poseJangkar && poseJangkar.bangun) || WAKE_SPOT; /* Tahap 1 — titik bangun ikut jangkar (kasur / kursi gazebo) */
   roomPose = null;
+  poseJangkar = null;
   avatar.rotation.x = 0;
-  avatarPos.x = WAKE_SPOT.x; avatarPos.z = WAKE_SPOT.z;
-  avatar.rotation.y = WAKE_SPOT.rotY;
-  avatar.position.set(WAKE_SPOT.x, 0, WAKE_SPOT.z);
+  avatarPos.x = w.x; avatarPos.z = w.z;
+  avatar.rotation.y = w.rotY;
+  avatar.position.set(w.x, 0, w.z);
   avLegL.rotation.x = 0; avLegR.rotation.x = 0;
   if (avatarLabel) avatarLabel.sprite.visible = true;
   document.getElementById('wakeBtn').style.display = 'none';
@@ -5724,7 +5737,7 @@ function mpPindahRealmRemote(entri, realm, ts) { /* realm baru (ts lebih baru) -
 function mpTerapkanPoseRemote(entri) { /* Ronde 15a — pose pemain lain di posisi
    mereka (x/z dari publish): mirror POSE_SLEEP/POSE_SIT lokal — sleep rebah
    (rotX -PI/2, y 0,8), sit duduk (kaki -0,92, y -0,31), stand ayunan jalan
-   biasa. Label disembunyikan saat pose, seperti lokal (terapkanPoseKamar). */
+   biasa. Label disembunyikan saat tidur; Tahap 1: tetap tampil saat duduk, seperti lokal (terapkanPoseKamar). */
   var g = entri.group, p = entri.parts;
   if (entri.pose === 'sleep') {
     g.position.y = 0.8; g.rotation.x = -Math.PI / 2;
@@ -5737,7 +5750,7 @@ function mpTerapkanPoseRemote(entri) { /* Ronde 15a — pose pemain lain di posi
     p.legL.rotation.x = -0.92; p.legR.rotation.x = -0.92;
     p.armL.rotation.x = 0; p.armR.rotation.x = 0;
     p.tubuh.rotation.y = 0;
-    entri.label.sprite.visible = false;
+    entri.label.sprite.visible = true; /* Tahap 1 (keputusan Ryan): label tetap tampil saat duduk; tidur tetap sembunyi */
   } else {
     g.position.y = 0; g.rotation.x = 0;
     var rsw = Math.sin(walkT * 11 + entri.walkPhase);

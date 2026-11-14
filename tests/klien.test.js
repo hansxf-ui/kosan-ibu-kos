@@ -335,3 +335,61 @@ test('Tahap 1 Tugas 0: sceneUntukRealm menaruh pemain dapur di dapurScene', () =
   const f = new Function('scene', 'livingScene', 'dapurScene', 'roomScene', kode + '\nreturn sceneUntukRealm;')('Y', 'L', 'D', 'R');
   assert.equal(f('dapur'), 'D'); assert.equal(f('living'), 'L'); assert.equal(f('room-3'), 'R'); assert.equal(f('yard'), 'Y');
 });
+
+/* Tahap 1 — poseJangkar: harness kecil untuk tidur/duduk/bangun di kasur
+   (perilaku kasur tidak boleh berubah) + label saat duduk. */
+function harnessPose() {
+  const nama = ['jangkarPose', 'terapkanPoseKamar', 'tidurDiKasur', 'dudukDiKasur', 'bangunDariKasur'];
+  const ambil = (n) => { const a = HTML.indexOf('function ' + n + '('); return HTML.slice(a, HTML.indexOf('\n}\n', a) + 3); };
+  const kons = ['POSE_SLEEP', 'POSE_SIT', 'WAKE_SPOT'].map((k) => { const a = HTML.indexOf('var ' + k + ' = '); return HTML.slice(a, HTML.indexOf(';', a) + 1); }).join('\n');
+  const rot = () => ({ rotation: { x: 0, y: 0 } });
+  const env = {
+    myRealm: 'room-3', misi: [], pos: 0, toast: [], wake: { style: { display: 'none' } },
+    avatarPos: { x: 0, z: 0 }, avatar: { position: { set(x, y, z) { this.x = x; this.y = y; this.z = z; } }, rotation: { x: 0, y: 0 } },
+    avLegL: rot(), avLegR: rot(), avArmL: rot(), avArmR: rot(), avTubuh: rot(), avatarLabel: { sprite: { visible: true } }
+  };
+  const f = new Function('env', 'with (env) {\n' + kons + '\nvar roomPose = null, poseJangkar = null;\n'
+    + 'function misiSelesai(i) { env.misi.push(i); } function mpKirimPos() { env.pos++; } function closeCard() {}\n'
+    + 'function toastKosan(m) { env.toast.push(m); } var document = { getElementById: function () { return env.wake; } };\n'
+    + nama.map(ambil).join('\n')
+    + '\nreturn { tidur: tidurDiKasur, duduk: dudukDiKasur, bangun: bangunDariKasur, terapkan: terapkanPoseKamar, pose: function () { return roomPose; }, jangkar: function () { return poseJangkar; }, set: function (j, r) { poseJangkar = j; roomPose = r; }, POSE_SIT: POSE_SIT, POSE_SLEEP: POSE_SLEEP, WAKE_SPOT: WAKE_SPOT, jangkarPose: jangkarPose }; }');
+  return { env, h: f(env) };
+}
+
+test('Tahap 1 poseJangkar: duduk/tidur di kasur tetap di jangkar lama, bangun di WAKE_SPOT', () => {
+  const { env, h } = harnessPose();
+  h.duduk();
+  assert.equal(h.pose(), 'sit');
+  assert.deepEqual([env.avatarPos.x, env.avatarPos.z, env.avatar.position.y], [h.POSE_SIT.x, h.POSE_SIT.z, h.POSE_SIT.y]);
+  assert.equal(env.avLegL.rotation.x, h.POSE_SIT.leg);
+  assert.equal(env.avatarLabel.sprite.visible, true, 'label tampil saat duduk (keputusan Ryan)');
+  h.bangun(true);
+  assert.equal(h.pose(), null); assert.equal(h.jangkar(), null);
+  assert.deepEqual([env.avatarPos.x, env.avatarPos.z], [h.WAKE_SPOT.x, h.WAKE_SPOT.z]);
+  h.tidur();
+  assert.equal(env.avatar.position.y, h.POSE_SLEEP.y);
+  assert.equal(env.avatarLabel.sprite.visible, false, 'label sembunyi saat tidur');
+  h.bangun(true);
+  assert.equal(env.avatarLabel.sprite.visible, true);
+  assert.deepEqual(env.misi, ['duduk', 'tidur']);
+});
+
+test('Tahap 1 poseJangkar: jangkar lain (kursi) dipakai terapkanPoseKamar + titik bangunnya sendiri', () => {
+  const { env, h } = harnessPose();
+  h.set(h.jangkarPose({ x: 11.6, z: 5.3, y: -0.31, rotX: 0, rotY: 0, leg: -0.92 }, { x: 11.6, z: 4.6, rotY: Math.PI }), 'sit');
+  h.terapkan();
+  assert.deepEqual([env.avatarPos.x, env.avatarPos.z], [11.6, 5.3]);
+  h.bangun(true);
+  assert.deepEqual([env.avatarPos.x, env.avatarPos.z, env.avatar.rotation.y], [11.6, 4.6, Math.PI]);
+});
+
+test('Tahap 1: pemain lain yang duduk tetap berlabel, yang tidur tidak', () => {
+  const a = HTML.indexOf('function mpTerapkanPoseRemote(');
+  const kode = HTML.slice(a, HTML.indexOf('\n}\n', a) + 3);
+  const f = new Function('walkT', kode + '\nreturn mpTerapkanPoseRemote;')(0);
+  const r = () => ({ rotation: { x: 0, y: 0 } });
+  const entri = (pose) => ({ pose, gerak: 0, walkPhase: 0, group: { position: { y: 0 }, rotation: { x: 0 } },
+    parts: { legL: r(), legR: r(), armL: r(), armR: r(), tubuh: r() }, label: { sprite: { visible: true } } });
+  const duduk = entri('sit'); f(duduk); assert.equal(duduk.label.sprite.visible, true);
+  const tidur = entri('sleep'); f(tidur); assert.equal(tidur.label.sprite.visible, false);
+});
