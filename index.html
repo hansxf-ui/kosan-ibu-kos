@@ -724,7 +724,7 @@
     <button id="entryGuestLink" type="button" class="entry-guest">Masuk sebagai tamu</button>
     <button id="entryModeLink" type="button" class="entry-guest">Sudah punya akun? Masuk di sini</button>
     <button id="entryKeluarAkun" type="button" class="entry-guest" style="display:none">Bukan kamu? Keluar akun</button>
-    <p id="entryNote" class="entry-note">Username &amp; gender dikunci selama di dalam — keluar dulu untuk ganti.</p>
+    <p id="entryNote" class="entry-note">Username &amp; gender dikunci selama di dalam — muat ulang halaman untuk ganti.</p>
   </div>
 </div>
 
@@ -774,15 +774,18 @@ import * as THREE from 'three';
    "kosan penuh". OCCUPANTS null = belum dimuat/offline (diperlakukan
    sebagai kosan kosong — gerbang masuk yang menangani offline). */
 /* Ronde 50 — PIN penghuni (anti-impersonasi): tiap penghuni terdaftar punya
-   PIN rahasia 6 digit. PIN ASLI TIDAK PERNAH ada di file ini — yang disimpan
-   di Supabase cuma HASH-nya (pinHash di bawah, dikirim ke kosan_register /
-   kosan_login; hash tidak pernah dikembalikan ke browser). PIN asli dibuat
-   penghuni sendiri saat daftar (2x konfirmasi); kalau lupa = reset via SQL
-   (runbook PENGHUNI.md), PIN lama tidak bisa dipulihkan. Hash = FNV-1a
-   diulang 10000x di atas (salt + '|' + PIN) — cek sekali ~10ms,
-   brute-force 1 jt PIN jadi berat. Bukan keamanan bank — tapi cukup buat
-   impersonasi kasual. JANGAN PERNAH tulis PIN asli di file ini, di komen,
-   atau di chat publik. */
+   PIN rahasia 6 digit. PIN ASLI TIDAK PERNAH ada di file ini. Sejak Fase A
+   (perbaikan 9) klien mengirim PIN yang diketik di keypad lewat HTTPS ke
+   server sendiri (/api/masuk, /api/daftar, /api/kamar/masuk); SERVER yang
+   menghitung hash-nya (port 1:1 pinHash di bawah, api/_lib/inti.js) lalu
+   memanggil kosan_login / kosan_register dengan service role. Di Supabase
+   yang tersimpan cuma HASH-nya; hash tidak pernah dikembalikan ke browser.
+   Fungsi pinHash di bawah TIDAK dipanggil klien lagi — dibiarkan sebagai
+   rujukan paritas (tests/server.test.js membandingkannya dengan server).
+   Kalau lupa PIN = reset via SQL (runbook PENGHUNI.md), PIN lama tidak bisa
+   dipulihkan. Hash = FNV-1a diulang 10000x (salt + '|' + PIN). Bukan
+   keamanan bank — tapi cukup buat impersonasi kasual. JANGAN PERNAH tulis
+   PIN asli di file ini, di komen, atau di chat publik. */
 var PIN_SALT = 'kosan-ibu-kos-pin-v1';
 var OCCUPANTS = [];
 function pinHash(pin) {
@@ -2666,9 +2669,19 @@ function pinBuka(n) {
 function pinTutup() {
   pinOverlay.classList.remove('open');
   pinDigit = '';
+  /* Perbaikan 11 (M2): menutup keypad saat "Memproses…" -> jawaban server
+     nanti DIABAIKAN (pinMasihAktif); keypad dibuka lagi dalam keadaan bebas. */
+  var dibatalkan = pinBusy; /* ditutup pengguna saat menunggu server */
+  pinBusy = false;
   pinRender();
   pinMode = null;
+  /* layar penuh dari ketukan kirim dibatalkan HANYA kalau keypad ditutup
+     saat menunggu (jalur sukses memanggil pinSelesaiSibuk dulu, jadi
+     auto-landscape perbaikan 3 tetap jalan) */
+  if (dibatalkan && !entered && typeof batalLayarPenuhKetuk === 'function') batalLayarPenuhKetuk();
 }
+/* true kalau keypad yang mengirim permintaan masih yang aktif */
+function pinMasihAktif(m) { return !!m && pinMode === m && pinOverlay.classList.contains('open'); }
 function pinMulaiSibuk() { pinBusy = true; pinRender(); /* keypad terkunci + "Memproses…" sampai server menjawab */ }
 function pinSelesaiSibuk() { pinBusy = false; pinDigit = ''; pinRender(); /* berhasil atau gagal: titik dikosongkan */ }
 function pinKirim() {
@@ -2679,9 +2692,10 @@ function pinKirim() {
   pinMode.kirim(pin);
 }
 function pinKirimKamar(pin) {
-  var n = pinMode.room;
+  var m = pinMode, n = m.room;
   pinMulaiSibuk();
   apiKosan('POST', '/api/kamar/masuk', { room: n, pin: pin }).then(function (r) {
+    if (!pinMasihAktif(m)) return; /* M2: keypad sudah ditutup -> jangan masuk kamar */
     pinSelesaiSibuk();
     if (r.status === 200 && r.data && r.data.ok) {
       pinTutup();
@@ -3493,11 +3507,12 @@ var entryOverlay = document.getElementById('entryOverlay');
 var entryName = document.getElementById('entryName');
 var entryBtn = document.getElementById('entryBtn');
 var entryError = document.getElementById('entryError'); /* Ronde 50 — pesan error masuk */
-/* Ronde 51 — pendaftaran + login penghuni MANDIRI via Supabase (PostgREST
-   RPC, raw fetch — tanpa SDK). Anon key = kunci PUBLIK client (by design,
-   sama seperti NEXT_PUBLIC_SUPABASE_ANON_KEY di galeri): boleh ada di kode;
-   yang TIDAK BOLEH bocor = PIN asli (cuma hash yang dikirim). fetch HANYA
-   ke SB_URL di bawah — tidak ke host lain. */
+/* Ronde 51 — daftar penghuni publik via Supabase (PostgREST RPC, raw
+   fetch — tanpa SDK). Anon key = kunci PUBLIK client (by design, sama
+   seperti NEXT_PUBLIC_SUPABASE_ANON_KEY di galeri): boleh ada di kode.
+   Sejak Fase A, klien lewat anon key HANYA membaca kosan_occupants; login,
+   daftar, dan PIN kamar lewat server sendiri (/api/*, PIN mentah via HTTPS,
+   hash dihitung server). */
 var SB_URL = 'https://lpuvkrbdctankydvmzpy.supabase.co';
 var SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxwdXZrcmJkY3Rhbmt5ZHZtenB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk0ODEwNTYsImV4cCI6MjEwNTA1NzA1Nn0.T7FMBWk_OeBUt9O90N-j2tahpCygWBkCIBvEc6kVfxY'; /* Ronde 51 — diisi otomatis dari supabase/anon-key.txt saat edit, JANGAN ketik manual */
 var OCCUPANTS_OK = false; /* true sesudah kosan_occupants berhasil dimuat */
@@ -3848,15 +3863,17 @@ window.addEventListener('popstate', function () {
    11 Nov 17:42 "cabut pemulihan"): keluar fullscreen di dalam game
    sekarang dibiarkan windowed (portrait boleh), tidak ada lagi yang
    narik balik ke landscape. */
-/* Ronde 52 — SATU halaman entry (ganti alur 2 langkah Ronde 51):
-   - nama terdaftar -> PIN saja -> kosan_login -> cocok = PENGHUNI.
-   - nama baru -> gender + kode kunci dari caption terbaru sekali + PIN 2x -> kosan_register
-     -> PENGHUNI + kunci ter-klaim.
-   - kunjungan berikut: nama terdaftar -> PIN saja, kunci tidak ditanya lagi.
+/* Ronde 52 — SATU halaman entry. Alur sekarang (Fase A, perbaikan 9):
+   - MASUK: username -> keypad PIN -> /api/masuk (server memanggil
+     kosan_login) -> cocok = PENGHUNI (sesi + cookie).
+   - DAFTAR: username + gender + kode kunci -> keypad buat PIN 2x ->
+     /api/daftar (server: PIN != username, lalu kosan_register) -> PENGHUNI
+     + kunci ter-klaim.
+   - TAMU: sekali ketuk, nama otomatis Tamu-N.
    - gender DIPILIH SEKALI saat daftar dan TERKUNCI: login memakai gender
-     dari DB (setGender dari baris kosan_login); register nama yang sudah
-     ada ditolak server ("nama sudah terdaftar") — bukan celah update gender.
-   - Supabase tidak terjangkau -> masuk sebagai tamu preview + toast sopan. */
+     dari DB (dikembalikan /api/masuk); register nama yang sudah ada ditolak
+     server ("nama sudah terdaftar") — bukan celah update gender.
+   - Supabase tidak terjangkau -> masuk sebagai tamu Tamu-N + toast sopan. */
 function masukSebagai(nama, resident) {
   /* Ronde 54 — audit keamanan (anti-homoglyph): tamu juga harus pakai
      username ber-charset aman — nama peniru tidak boleh tampil di dalam
@@ -3920,6 +3937,10 @@ function entryLogin() {
   var nama = entryName.value;
   if (!normalize(nama)) { entryName.focus(); return; }
   if (entryBusy) return;
+  /* Perbaikan 11 (P3): di LOGIN tidak ada cek charset terpisah — nama di
+     luar charset yang bukan penghuni otomatis tidak cocok di sini (pesan
+     belum-terdaftar, keypad tidak dibuka); penghuni lama di luar charset
+     (kalau ada) tetap bisa login. Charset hanya ditegakkan saat DAFTAR. */
   if (!entryIsRegistered(nama)) {
     entryShowError('Nama ini belum terdaftar sebagai penghuni — daftar dulu, atau masuk sebagai tamu.');
     return;
@@ -3929,11 +3950,13 @@ function entryLogin() {
     sub: 'Masukkan PIN-mu (6 digit).', kirim: function (pin) { pinKirimMasuk(username, pin); } });
 }
 function pinKirimMasuk(username, pin) {
+  var m = pinMode;
   layarPenuhSaatKetuk(); /* sinkron di ketukan digit ke-6 / ✓ (perbaikan 3) */
   pinMulaiSibuk();
   apiKosan('POST', '/api/masuk', {
     username: username, pin: pin, ingat: !!(entryIngat && entryIngat.checked), perangkat: perangkatId()
   }).then(function (r) {
+    if (!pinMasihAktif(m)) return; /* M2: keypad sudah ditutup -> jangan masuk dunia */
     pinSelesaiSibuk();
     if (r.status === 200 && r.data && r.data.room) { pinTutup(); selesaiMasukPenghuni(r.data); return; }
     batalLayarPenuhKetuk();
@@ -3952,7 +3975,14 @@ function selesaiMasukPenghuni(data) {
     entrySetBusy(false);
     /* Tanpa daftar penghuni, kamar dihitung dari hash (bisa salah kamar):
        jangan masuk sebagai penghuni. */
-    if (!OCCUPANTS_OK) { entryShowError('Tidak bisa terhubung ke server, coba lagi ya.'); return; }
+    if (!OCCUPANTS_OK) {
+      /* Perbaikan 11 (M5): sesi SUDAH dibuat server — jangan bilang gagal
+         total. Tampilan pindah ke "Masuk Kosan" (sesi), ketuk lagi = muat
+         ulang daftar penghuni tanpa PIN. */
+      entryTerapkanSesi();
+      entryShowError('Login berhasil, tapi daftar kamar belum termuat — coba ketuk Masuk lagi.');
+      return;
+    }
     masukSebagai(data.name, true);
     /* Ronde 51 — penghuni yang login sudah punya kunci: klaim otomatis
        kalau belum ada di HP ini (+1 Bintang, perilaku klaim lama). */
@@ -3993,6 +4023,12 @@ function entryDaftar() {
     entryShowError('Username hanya boleh huruf, angka, spasi, _ . - (maks 30 karakter).');
     return;
   }
+  /* Perbaikan 11 (M4): pola nama tamu otomatis tidak boleh didaftarkan
+     (server menolak juga). */
+  if (namaPolaTamu(normalize(nama))) { entryShowError('Nama itu dipakai untuk tamu — pilih nama lain.'); return; }
+  /* Perbaikan 11 (M3): nama yang sudah terdaftar ditolak SEBELUM keypad
+     (server tetap penentu akhir). */
+  if (entryIsRegistered(nama)) { entryShowError('Username @' + normalize(nama) + ' sudah dipakai, pilih username lain ya.'); return; }
   var kunci = entryKey ? entryKey.value : '';
   if (!kunciKodeCek(kunci)) {
     entryShowError('Kode kunci salah, cek lagi kode di caption terbaru @ibu__kos.');
@@ -4015,12 +4051,17 @@ function entryDaftar() {
     }
     if (pin !== data.pin1) { putaran1(); pinTampilError('PIN kedua tidak sama dengan PIN pertama. Coba lagi ya.'); return; }
     data.pin1 = '';
+    var m = pinMode;
     layarPenuhSaatKetuk(); /* sinkron di ketukan (perbaikan 3) */
     pinMulaiSibuk();
     apiKosan('POST', '/api/daftar', {
       username: data.username, gender: visitorGender === 'cowok' ? 'cowok' : 'cewek', kunci: data.kunci, pin: pin,
       ingat: !!(entryIngat && entryIngat.checked), perangkat: perangkatId()
     }).then(function (r) {
+      /* M2: keypad ditutup saat mendaftar -> abaikan jawaban. Kalau
+         pendaftarannya sudah tersimpan di server, nama itu terdaftar dan
+         bisa langsung login di mode MASUK. */
+      if (!pinMasihAktif(m)) return;
       pinSelesaiSibuk();
       if (r.status === 200 && r.data && r.data.room) {
         pinTutup();
@@ -4047,6 +4088,10 @@ function masukKosan() {
     entryOverlay.classList.remove('open');
     return;
   }
+  /* Perbaikan 11 (M5): sesi tersimpan -> langsung entryLogin (yang memuat
+     ulang daftar penghuni sendiri), jangan jatuh ke jalur tamu saat daftar
+     penghuni belum termuat. */
+  if (entryLoginView && entryTahap === 'sesi' && sesiPenghuni) { entryLogin(); return; }
   /* Ronde 54 — routing dari MODE eksplisit (bukan dari nama): mode MASUK
      -> entryLogin, mode DAFTAR -> entryDaftar. Username terdaftar yang
      dikirim lewat mode DAFTAR ditolak server ("sudah dipakai"); username

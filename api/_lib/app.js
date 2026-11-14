@@ -33,6 +33,7 @@ const PESAN = {
   belumTerdaftar: 'Nama ini belum terdaftar sebagai penghuni — daftar dulu, atau masuk sebagai tamu.',
   pinSalah: 'PIN salah. Coba lagi ya.',
   pinSamaUsername: 'PIN tidak boleh sama dengan username.',
+  namaTamu: 'Nama itu dipakai untuk tamu — pilih nama lain.',
   terkunci: 'Terlalu banyak percobaan — coba lagi sekitar 20 menit lagi.',
   batas: 'Terlalu banyak percobaan — coba lagi nanti.'
 };
@@ -58,20 +59,39 @@ function cekPermintaan(ctx) {
   return null;
 }
 const pinSah = (pin) => typeof pin === 'string' && /^\d{6}$/.test(pin);
+/* Perbaikan 11 (M4): pola nama tamu otomatis (Tamu-N) tidak boleh didaftarkan. */
+const namaPolaTamu = (nama) => /^tamu-[0-9]+$/.test(I.normalize(nama));
 const genderDari = (g) => (g === 'Cowok' || g === 'cowok' ? 'cowok' : 'cewek');
 
 function buatApp({ db, rahasia, sekarang = () => Date.now(), aman = true }) {
   if (!db) throw new Error('db wajib');
   if (typeof rahasia !== 'string' || rahasia.length < 32) throw new Error('KOSAN_SECRET minimal 32 karakter');
 
+  const kunciBatas = (jenis, ctx) => jenis + ':' + I.kunciBatasIp(rahasia, ctx.ip);
   async function lewatBatas(jenis, ctx) {
-    const n = await db.batasTambah(jenis + ':' + I.kunciBatasIp(rahasia, ctx.ip), 3600);
+    const n = await db.batasTambah(kunciBatas(jenis, ctx), 3600);
     return n > BATAS[jenis];
+  }
+  /* Perbaikan 11 (P1): yang BERHASIL mengembalikan satu unit jatah IP-nya,
+     jadi batas per jaringan (CGNAT) hanya menghitung percobaan gagal /
+     ditolak. Nilai BATAS tidak berubah. Best-effort: kalau pengembalian
+     gagal (mis. fungsi SQL belum dipasang), login tetap sukses — perilaku
+     jatuh ke cara lama (sukses ikut terhitung), tidak pernah lebih buruk. */
+  async function kembalikanBatas(jenis, ctx) {
+    try { await db.batasKembali(kunciBatas(jenis, ctx), 3600); }
+    catch (e) { console.warn('[kosan] batasKembali gagal:', e && e.status, e && e.message); }
   }
   /* Verifikasi PIN lewat RPC lama kosan_login, di belakang gerbang per kamar. */
   async function cekPin(penghuni, pin) {
     if (!(await db.gerbangAmbil('pin:' + penghuni.room, GERBANG))) return 'terkunci';
-    const r = await db.loginPin(penghuni.name, I.pinHash(pin));
+    let r;
+    try {
+      r = await db.loginPin(penghuni.name, I.pinHash(pin));
+    } catch (e) {
+      /* Perbaikan 11 (M1): DB error/timeout bukan percobaan pengguna — kembalikan jatahnya, lalu lempar ulang (503 generik). */
+      try { await db.gerbangLepas('pin:' + penghuni.room); } catch (e2) { /* abaikan */ }
+      throw e;
+    }
     if (r.ok) { await db.gerbangLepas('pin:' + penghuni.room); return { row: r.row }; }
     return r.terkunci ? 'terkunci' : 'salah';
   }
@@ -114,10 +134,13 @@ function buatApp({ db, rahasia, sekarang = () => Date.now(), aman = true }) {
   async function masuk(ctx) {
     const tolak = cekPermintaan(ctx); if (tolak) return tolak;
     const { username, pin, ingat } = ctx.body;
-    if (!I.usernameValid(username)) return galat(400, 'format', 'Isi username dulu ya.');
+    /* Perbaikan 11 (P3): di LOGIN tidak ada cek charset — cukup normalize +
+       panjang, lalu cocokkan ke daftar penghuni. Charset hanya saat DAFTAR. */
+    const namaNorm = typeof username === 'string' ? I.normalize(username) : '';
+    if (!namaNorm) return galat(400, 'format', 'Isi username dulu ya.');
     if (!pinSah(pin)) return galat(400, 'format', 'Masukkan PIN 6 digit.');
     if (await lewatBatas('masuk', ctx)) return galat(429, 'terkunci', PESAN.batas);
-    const penghuni = I.cariPenghuni(await db.occupants(), username);
+    const penghuni = namaNorm.length <= 30 ? I.cariPenghuni(await db.occupants(), username) : null;
     if (!penghuni) return galat(401, 'tidak_terdaftar', PESAN.belumTerdaftar);
     /* Catatan: aturan PIN != username TIDAK berlaku di login (penghuni lama
        yang PIN-nya kebetulan sama dengan username tetap bisa masuk). */
@@ -127,6 +150,7 @@ function buatApp({ db, rahasia, sekarang = () => Date.now(), aman = true }) {
     const gender = genderDari(r.row && r.row.gender);
     const cookie = await bukaSesi(penghuni, gender, ingat === true);
     await catat('masuk', penghuni.room, ctx);
+    await kembalikanBatas('masuk', ctx);
     return balas(200, hasilMasuk(penghuni, gender), [cookie]);
   }
 
@@ -138,6 +162,7 @@ function buatApp({ db, rahasia, sekarang = () => Date.now(), aman = true }) {
     const tolak = cekPermintaan(ctx); if (tolak) return tolak;
     const { username, gender, kunci, pin, ingat } = ctx.body;
     if (!I.usernameValid(username)) return galat(400, 'username_tidak_valid', 'Username hanya boleh huruf, angka, spasi, _ . - (maks 30 karakter).');
+    if (namaPolaTamu(username)) return galat(400, 'nama_tamu', PESAN.namaTamu);
     if (gender !== 'cewek' && gender !== 'cowok') return galat(400, 'format', 'Pilih gender dulu ya.');
     if (typeof kunci !== 'string' || !kunci.trim() || kunci.length > 20) return galat(400, 'kunci_salah', 'Kode kunci salah, cek lagi kode di caption terbaru @ibu__kos.');
     if (!pinSah(pin)) return galat(400, 'format', 'PIN harus 6 digit angka.');
@@ -156,7 +181,8 @@ function buatApp({ db, rahasia, sekarang = () => Date.now(), aman = true }) {
     const penghuni = I.cariPenghuni(await db.occupants(), username);
     if (!penghuni) return galat(503, 'server', 'Server lagi sibuk, coba lagi ya.');
     const cookie = await bukaSesi(penghuni, gender, ingat === true);
-    await catat('setup', penghuni.room, ctx);
+    await catat('setup', penghuni.room, ctx); /* 'setup' = daftar baru (lihat runbook; tanpa migrasi CHECK) */
+    await kembalikanBatas('daftar', ctx);
     return balas(200, hasilMasuk(penghuni, gender), [cookie]);
   }
 
@@ -198,6 +224,7 @@ function buatApp({ db, rahasia, sekarang = () => Date.now(), aman = true }) {
     const r = await cekPin(s.sah.penghuni, pin);
     if (r === 'terkunci') return galat(429, 'terkunci', PESAN.terkunci);
     if (r === 'salah') return galat(401, 'pin_salah', PESAN.pinSalah);
+    await kembalikanBatas('kamar', ctx);
     return balas(200, { ok: true });
   }
 

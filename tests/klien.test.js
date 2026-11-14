@@ -231,3 +231,92 @@ test('10 (b): KAMAR KAMU penghuni (visitorRoom > 0) tetap masuk kamar, tanpa toa
   const j = klikHomeBtn(13);
   assert.deepEqual(j.masuk, [13]); assert.deepEqual(j.toast, []);
 });
+
+/* ---------- perbaikan 11 (audit cb21617) ---------- */
+function blokFungsi(nama) {
+  const awal = HTML.indexOf('function ' + nama + '(');
+  assert.ok(awal > 0, nama);
+  return HTML.slice(awal, HTML.indexOf('\n}\n', awal) + 3);
+}
+function jalankanDenganStub(stub, namaFungsi, prolog, epilog) {
+  const k = Object.keys(stub);
+  return new Function(...k, (prolog || '') + namaFungsi.map(blokFungsi).join('') + (epilog || ''))(...k.map((x) => stub[x]));
+}
+
+function duniaDaftar({ nama, terdaftar }) {
+  const j = { error: [], keypad: 0 };
+  jalankanDenganStub({
+    entryName: { value: nama, focus() {} }, entryKey: { value: 'KOSAN', focus() {} },
+    normalize: (n) => String(n).trim().replace(/^@+/, '').trim().toLowerCase(), usernameValid: () => true,
+    entryIsRegistered: () => terdaftar, kunciKodeCek: () => true, entryShowError: (m) => j.error.push(m),
+    entryBusy: false, pinBukaMode: () => { j.keypad++; }
+  }, ['namaPolaTamu', 'entryDaftar'], '', '\nentryDaftar();');
+  return j;
+}
+test('11 M3: mode DAFTAR, nama terdaftar (rina) -> langsung ditolak, keypad tidak dibuka', () => {
+  const j = duniaDaftar({ nama: 'rina', terdaftar: true });
+  assert.deepEqual(j.error, ['Username @rina sudah dipakai, pilih username lain ya.']);
+  assert.equal(j.keypad, 0);
+  assert.equal(duniaDaftar({ nama: 'sari', terdaftar: false }).keypad, 1);
+});
+test('11 M4: mode DAFTAR, tamu-3 -> diblokir klien sebelum keypad', () => {
+  for (const n of ['tamu-3', 'Tamu-12', '@TAMU-1']) {
+    const j = duniaDaftar({ nama: n, terdaftar: false });
+    assert.deepEqual(j.error, ['Nama itu dipakai untuk tamu — pilih nama lain.'], n);
+    assert.equal(j.keypad, 0);
+  }
+  assert.equal(duniaDaftar({ nama: 'tamuku', terdaftar: false }).keypad, 1);
+});
+
+test('11 M2: keypad ditutup saat "Memproses…" -> jawaban PIN benar diabaikan, tidak masuk kamar', async () => {
+  let selesai;
+  const j = { masuk: [], izin: null };
+  const kelas = new Set(['open']);
+  const api = jalankanDenganStub({
+    pinOverlay: { classList: { contains: (c) => kelas.has(c), remove: (c) => kelas.delete(c), add: (c) => kelas.add(c) } },
+    apiKosan: () => new Promise((r) => { selesai = r; }), enterRoom: (n) => j.masuk.push(n), pinTampilError() {},
+    pinRender() {}, entered: true, batalLayarPenuhKetuk() {}
+  }, ['pinMasihAktif', 'pinTutup', 'pinMulaiSibuk', 'pinSelesaiSibuk', 'pinKirimKamar'],
+  "var pinMode = { jenis: 'kamar', room: 13 }, pinBusy = false, pinDigit = '135790', kamarIzin = null;\n",
+  '\nreturn { kirim: function () { pinKirimKamar(pinDigit); }, tutup: pinTutup, busy: function () { return pinBusy; }, mode: function () { return pinMode; } };');
+  api.kirim();
+  assert.equal(api.busy(), true);
+  api.tutup();
+  assert.equal(api.busy(), false); assert.equal(api.mode(), null);
+  selesai({ status: 200, data: { ok: true } });
+  await new Promise((r) => setTimeout(r, 10));
+  assert.deepEqual(j.masuk, []);
+});
+test('11 M2: pinKirimMasuk dan daftar juga memeriksa keypad masih aktif sebelum memakai jawaban', () => {
+  assert.match(blokFungsi('pinKirimMasuk'), /if \(!pinMasihAktif\(m\)\) return;/);
+  assert.match(blokFungsi('entryDaftar'), /if \(!pinMasihAktif\(m\)\) return;/);
+});
+
+test('11 M5: login berhasil tapi daftar penghuni gagal dimuat -> pesan "Login berhasil…", tidak "gagal total"', async () => {
+  const j = { error: [], masuk: 0, sesi: 0 };
+  jalankanDenganStub({
+    entryKosongkanRahasia() {}, setGender() {}, entryName: {}, entrySetBusy() {},
+    muatOccupants: () => Promise.resolve(), entryShowError: (m) => j.error.push(m), entryTerapkanSesi: () => { j.sesi++; },
+    masukSebagai: () => { j.masuk++; }, kunciKlaim: () => false, toastKosan() {}
+  }, ['selesaiMasukPenghuni'], 'var sesiPenghuni = null, OCCUPANTS_OK = false;\n', "\nselesaiMasukPenghuni({ room: 3, name: 'rina', gender: 'cewek' });");
+  await new Promise((r) => setTimeout(r, 10));
+  assert.deepEqual(j.error, ['Login berhasil, tapi daftar kamar belum termuat — coba ketuk Masuk lagi.']);
+  assert.equal(j.sesi, 1); assert.equal(j.masuk, 0);
+});
+
+test('11 P3: login nama di luar charset yang bukan penghuni -> pesan belum-terdaftar, keypad tidak dibuka', () => {
+  const j = { error: [], keypad: 0 };
+  jalankanDenganStub({
+    entryTahap: 'masuk', sesiPenghuni: null, entryName: { value: 'rína😊', focus() {} },
+    normalize: (n) => String(n).trim().toLowerCase(), entryBusy: false,
+    entryIsRegistered: () => false, entryShowError: (m) => j.error.push(m), pinBukaMode: () => { j.keypad++; }
+  }, ['entryLogin'], '', '\nentryLogin();');
+  assert.deepEqual(j.error, ['Nama ini belum terdaftar sebagai penghuni — daftar dulu, atau masuk sebagai tamu.']);
+  assert.equal(j.keypad, 0);
+});
+
+test('11 M6: frasa basi sudah hilang', () => {
+  for (const f of ['cuma hash yang dikirim', 'nama terdaftar -> PIN saja -> kosan_login', 'keluar dulu untuk ganti', 'cuma HASH-nya (pinHash di bawah, dikirim']) {
+    assert.ok(!HTML.includes(f), f);
+  }
+});

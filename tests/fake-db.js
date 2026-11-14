@@ -74,6 +74,12 @@ function buatFakeDb({ penghuni, sekarang = () => Date.now() }) {
       const k = kunci + '@' + j;
       const n = (t.batas.get(k) || 0) + 1; t.batas.set(k, n); return n;
     },
+    /* meniru kosan_batas_kembali: jendela sama dengan batasTambah, tidak di bawah 0 */
+    async batasKembali(kunci, detik) {
+      const j = Math.floor(sekarang() / 1000 / detik) * detik;
+      const k = kunci + '@' + j;
+      if (t.batas.get(k) > 0) t.batas.set(k, t.batas.get(k) - 1);
+    },
     /* meniru kosan_gerbang_ambil/lepas: atomik karena JS satu thread dan
        tidak ada await di dalamnya */
     async gerbangAmbil(kunci, g) {

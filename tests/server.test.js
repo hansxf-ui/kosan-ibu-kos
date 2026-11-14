@@ -407,3 +407,111 @@ test('pembungkus Vercel: env kosong -> 503, metode salah -> 405, Set-Cookie dite
   assert.equal(r3.statusCode, 200); assert.deepEqual(r3.headers['Set-Cookie'], ['a=b']);
   assert.equal(r3.headers['Cache-Control'], 'no-store');
 });
+
+/* ---------- perbaikan 11 (audit cb21617) ---------- */
+const ipKe = (ctx, ip) => { ctx.ip = ip; return ctx; };
+const hitungBatas = (db, awalan) => [...db._t.batas.entries()].filter(([k]) => k.startsWith(awalan)).reduce((a, [, n]) => a + n, 0);
+
+test('P1: 20 login BERHASIL dari satu IP -> login ke-21 tetap 200 (bukan 429)', async () => {
+  const { app, db } = siapkan();
+  for (let i = 0; i < 21; i++) {
+    const r = await app.masuk(ipKe(post({ username: 'rina', pin: '246810' }), '114.10.20.30'));
+    assert.equal(r.status, 200, 'login ke-' + (i + 1));
+  }
+  assert.equal(hitungBatas(db, 'masuk:'), 0);
+});
+
+test('P1: 20 login GAGAL dari satu IP -> ke-21 429 (batas tetap 20)', async () => {
+  const { app } = siapkan();
+  const out = [];
+  for (let i = 0; i < 21; i++) out.push((await app.masuk(ipKe(post({ username: 'orang-asing-' + i, pin: '123456' }), '114.10.20.31'))).status);
+  assert.deepEqual(out.slice(0, 20), Array(20).fill(401));
+  assert.equal(out[20], 429);
+});
+
+test('P1: campuran — 15 gagal + banyak sukses: jatah hanya terpakai oleh yang gagal', async () => {
+  const { app, db } = siapkan();
+  const ip = '114.10.20.32';
+  for (let i = 0; i < 15; i++) await app.masuk(ipKe(post({ username: 'asing' + i, pin: '123456' }), ip));
+  for (let i = 0; i < 10; i++) assert.equal((await app.masuk(ipKe(post({ username: 'dil', pin: '135790' }), ip))).status, 200);
+  assert.equal(hitungBatas(db, 'masuk:'), 15);
+  for (let i = 0; i < 5; i++) assert.equal((await app.masuk(ipKe(post({ username: 'asing-x' + i, pin: '123456' }), ip))).status, 401);
+  assert.equal((await app.masuk(ipKe(post({ username: 'asing-y', pin: '123456' }), ip))).status, 429);
+  assert.equal(hitungBatas(db, 'masuk:'), 21);
+});
+
+test('P1: sukses konkuren tidak merusak counter (tidak negatif, kembali ke 0)', async () => {
+  const { app, db } = siapkan();
+  /* 4 penghuni x 3 login bersamaan dari satu IP (<= 5 per kamar: gerbang per
+     kamar mencadangkan jatah sebelum verifikasi, jadi >5 bersamaan untuk
+     SATU kamar memang dianggap banjir) */
+  const akun = [['rina', '246810'], ['dilla', '135790'], ['dil', '135790'], ['864200', '864200']];
+  const out = await Promise.all(Array.from({ length: 12 }, (_, i) => app.masuk(ipKe(post({ username: akun[i % 4][0], pin: akun[i % 4][1] }), '114.10.20.33'))));
+  assert.ok(out.every((o) => o.status === 200));
+  assert.equal(hitungBatas(db, 'masuk:'), 0);
+  for (const [, n] of db._t.batas) assert.ok(n >= 0);
+});
+
+test('P1: daftar dan masuk kamar yang berhasil juga mengembalikan jatahnya', async () => {
+  const { app, db } = siapkan();
+  const r = await app.daftar(ipKe(post(daftarBody({ username: 'sari' })), '114.10.20.34'));
+  assert.equal(r.status, 200);
+  assert.equal(hitungBatas(db, 'daftar:'), 0);
+  const tok = tokenDari(await app.masuk(ipKe(post({ username: 'rina', pin: '246810' }), '114.10.20.34')));
+  for (let i = 0; i < 61; i++) {
+    assert.equal((await app.kamarMasuk(ipKe(denganCookie(post({ room: 3, pin: '246810' }), tok), '114.10.20.34'))).status, 200, 'kamar ke-' + (i + 1));
+  }
+  assert.equal(hitungBatas(db, 'kamar:'), 0);
+  /* daftar gagal tetap terhitung */
+  await app.daftar(ipKe(post(daftarBody({ username: 'rina' })), '114.10.20.34'));
+  assert.equal(hitungBatas(db, 'daftar:'), 1);
+});
+
+test('P1: pengembalian jatah gagal (fungsi SQL belum ada) -> login tetap 200', async () => {
+  const { app, db } = siapkan();
+  db.batasKembali = async () => { const e = new Error('Could not find the function'); e.status = 404; throw e; };
+  assert.equal((await app.masuk(post({ username: 'rina', pin: '246810' }))).status, 200);
+});
+
+test('P3: login nama beraksen / emoji / homoglyph / >30 -> 401 tidak_terdaftar (bukan 400)', async () => {
+  const { app } = siapkan();
+  for (const u of ['rína', 'rina😊', 'rіna', 'x'.repeat(31)]) {
+    const r = await app.masuk(post({ username: u, pin: '246810' }));
+    assert.equal(r.status, 401, u); assert.equal(r.body.galat, 'tidak_terdaftar', u); assert.equal(r.body.pesan, PESAN.belumTerdaftar);
+  }
+  assert.equal((await app.masuk(post({ username: '  ', pin: '246810' }))).status, 400);
+});
+
+test('P3: penghuni lama dengan nama di luar charset (data hipotetis) tetap bisa login', async () => {
+  let jam = Date.parse('2026-11-14T03:00:00Z');
+  const db = buatFakeDb({ penghuni: [{ room: 9, name: 'siti nurhalizä', gender: 'Cewek', pin: '777123' }], sekarang: () => jam });
+  const app = buatApp({ db, rahasia: RAHASIA, sekarang: () => jam });
+  const r = await app.masuk(post({ username: 'Siti  Nurhalizä', pin: '777123' }));
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+});
+
+test('P3: daftar nama di luar charset -> 400 pesan charset; login penghuni normal tetap jalan', async () => {
+  const { app } = siapkan();
+  const r = await app.daftar(post(daftarBody({ username: 'sári' })));
+  assert.equal(r.status, 400); assert.equal(r.body.pesan, 'Username hanya boleh huruf, angka, spasi, _ . - (maks 30 karakter).');
+  assert.ok(await login(app, '@Rina', '246810'));
+});
+
+test('M1: loginPin melempar timeout 5x lalu PIN benar -> masuk (bukan 429), gerbang tidak bocor', async () => {
+  const { app, db } = siapkan();
+  const asli = db.loginPin; let gangguan = 5;
+  db.loginPin = async (...a) => { if (gangguan-- > 0) { const e = new Error('timeout'); throw e; } return asli.apply(db, a); };
+  for (let i = 0; i < 5; i++) await assert.rejects(app.masuk(post({ username: 'rina', pin: '246810' })), /timeout/);
+  assert.equal(db._t.gerbang.get('pin:3').n, 0);
+  assert.equal((await app.masuk(post({ username: 'rina', pin: '246810' }))).status, 200);
+});
+
+test('M4: daftar tamu-3 (pola nama tamu) -> 400 nama_tamu, tidak memanggil kosan_register', async () => {
+  const { app, db } = siapkan();
+  for (const u of ['tamu-3', 'Tamu-12', '@TAMU-1']) {
+    const r = await app.daftar(post(daftarBody({ username: u })));
+    assert.equal(r.status, 400, u); assert.equal(r.body.galat, 'nama_tamu'); assert.equal(r.body.pesan, 'Nama itu dipakai untuk tamu — pilih nama lain.');
+  }
+  assert.ok(!db._panggilan.includes('register'));
+  assert.equal((await app.daftar(post(daftarBody({ username: 'tamuku' })))).status, 200);
+});

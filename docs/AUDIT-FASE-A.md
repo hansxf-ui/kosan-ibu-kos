@@ -491,3 +491,25 @@ di sini.
    login.
 4. **P4**: merge PR #4 sesudah V2 cocok.
 5. Minor dan Observasi bisa dikerjakan bertahap.
+
+---
+
+## Status perbaikan 11 (perintah Ryan 14 Nov 17:13)
+
+| Temuan | Status | Di mana |
+|---|---|---|
+| P1 batas IP hitung sukses | Diperbaiki: sukses mengembalikan 1 unit (`batasKembali`, atomik, ≥0); nilai 20/20/60 tetap | `api/_lib/app.js`, `api/_lib/db.js`, `supabase/migrations/20261114_batas_kembali.sql` (perlu dijalankan) |
+| P2 revoke | Ditangani terpisah oleh Vesper (cron) — tidak disentuh | — |
+| P3 charset di login | Diperbaiki: login hanya normalize + panjang ≤30 → 401 `tidak_terdaftar`; charset hanya saat daftar | `api/_lib/app.js` (`masuk`); klien sudah ditutup oleh cek belum-terdaftar |
+| P4 desain basi | §5 desain ditandai DICABUT di branch PR #3; merge PR #4 ditunda sampai promosi | `docs/RASA-AMAN-DESAIN.md` (PR #3) |
+| M1 jatah gerbang hilang saat DB error | Diperbaiki (`gerbangLepas` lalu lempar ulang) | `api/_lib/app.js` (`cekPin`) |
+| M2 tutup keypad tidak membatalkan | Diperbaiki (jawaban diabaikan bila keypad sudah ditutup/berganti) | `index.html` (`pinTutup`, `pinMasihAktif`, `pinKirim*`, daftar) |
+| M3 nama terpakai ditolak telat | Diperbaiki (cek sebelum keypad) | `index.html` (`entryDaftar`) |
+| M4 nama `tamu-N` | Diperbaiki (server + klien) | `api/_lib/app.js` (`daftar`), `index.html` |
+| M5 pesan sesudah login | Diperbaiki ("Login berhasil, tapi daftar kamar belum termuat…", tombol jadi "Masuk Kosan") | `index.html` |
+| M6 komentar basi | Diperbaiki (grep frasa = 0) | `index.html` |
+| M7 arti `setup` | Didokumentasikan (tanpa migrasi) | `docs/RASA-AMAN-FASE-A.md` |
+| O1 berkas mati | OrbitControls dikeluarkan dari daftar deploy (README); `app.js`/`style.css`/`confetti` TIDAK dihapus karena masih dirujuk dokumen riwayat | `README.md` |
+| O4 tautan tamu di mode MASUK | Disengaja (konsisten dengan pesan "atau masuk sebagai tamu"); tidak diubah | — |
+| O8 HSTS | Tidak ditambah: Vercel menyetel sendiri di domain bawaan; cara cek di runbook | `docs/RASA-AMAN-FASE-A.md` |
+| O9 rotasi secret | Didokumentasikan | `docs/RASA-AMAN-FASE-A.md` |

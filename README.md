@@ -45,6 +45,17 @@ dengan daftar file eksplisit (20 file, termasuk `vendor/mqtt/mqtt.min.js` dan
 Sejak rasa aman Fase A, daftar itu wajib ditambah 10 file `api/` (termasuk `api/_lib/`) + env var
 Vercel (lihat `docs/RASA-AMAN-FASE-A.md`).
 
+Berkas yang benar-benar dipakai game saat runtime (audit Fase A, O1):
+`index.html`, `kosan-3d.html` (redirect), `vercel.json`,
+`vendor/three/three.module.js`, `vendor/html2canvas.min.js`,
+`vendor/mqtt/mqtt.min.js`, `fonts/fonts-local.css` + 8 `fonts/*.woff2`,
+`assets/favicon.png`, `assets/og.jpg`, dan 10 berkas `api/`.
+**`vendor/three/OrbitControls.js` TIDAK perlu di-deploy** (tidak dipakai
+sejak ronde 7, hanya disebut di komentar). `app.js`, `style.css`,
+`vendor/confetti.min.js`, `assets/batik-strip.svg`, `assets/hero.jpg`,
+`assets/ibu-kos.webp` juga tidak dirujuk game (sisa web lama); berkasnya
+dibiarkan di repo karena masih dirujuk dokumen riwayat.
+
 ## Aturan kerja
 
 - Gedung baru (C/D/E) hanya dibuka atas perintah pemilik.

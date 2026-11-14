@@ -183,6 +183,58 @@ const cek = (nama, ok, info) => { hasil.push({ nama, ok: !!ok }); console.log((o
       await ctxH.close();
     }
 
+    /* ---------- I. perbaikan 11 (M2, M3, M4, M5, P3) ---------- */
+    {
+      let occGagal = 0; /* > 0 = kosan_occupants gagal sekian kali berikutnya */
+      const ctxI = await browser.newContext({ viewport: { width: 900, height: 700 } });
+      await ctxI.route('**/*', async (route) => {
+        const u = route.request().url();
+        if (u.startsWith(BASE + '/api/kamar/masuk')) { await new Promise((r) => setTimeout(r, 1500)); return route.continue(); }
+        if (u.startsWith(BASE)) return route.continue();
+        if (u.includes('supabase.co/rest/v1/rpc/kosan_occupants')) {
+          if (occGagal > 0) { occGagal--; return route.fulfill({ status: 503, json: { message: 'sibuk' } }); }
+          return route.fulfill({ json: await (await fetch(BASE + '/__uji/occupants')).json() });
+        }
+        return route.abort();
+      });
+      const pg = await ctxI.newPage();
+      pg.on('pageerror', (e) => catatan.err.push(e.message));
+      await pg.goto(BASE + '/'); await pg.waitForTimeout(1500);
+      /* M3 + M4 di mode DAFTAR */
+      await pg.fill('#entryName', 'rina'); await pg.fill('#entryKey', 'KOSAN');
+      await pg.click('#entryBtn'); await pg.waitForTimeout(300);
+      cek('I1 (M3) DAFTAR nama terdaftar -> langsung "sudah dipakai", keypad tidak terbuka', /sudah dipakai/.test(await teks(pg, '#entryError')) && !(await keypadTampil(pg)));
+      await pg.fill('#entryName', 'tamu-3');
+      await pg.click('#entryBtn'); await pg.waitForTimeout(300);
+      cek('I2 (M4) DAFTAR tamu-3 -> "dipakai untuk tamu", keypad tidak terbuka', /dipakai untuk tamu/.test(await teks(pg, '#entryError')) && !(await keypadTampil(pg)));
+      const stDaftar = await pg.evaluate(async () => (await fetch('/api/daftar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'tamu-3', gender: 'cewek', kunci: 'KOSAN', pin: '864213' }) })).json());
+      cek('I3 (M4) server juga menolak tamu-3', stDaftar.galat === 'nama_tamu', JSON.stringify(stDaftar));
+      /* P3 di mode MASUK */
+      await keModeMasuk(pg);
+      await pg.fill('#entryName', 'rína😊'); await pg.click('#entryBtn'); await pg.waitForTimeout(300);
+      cek('I4 (P3) MASUK nama beraksen/emoji -> pesan belum-terdaftar, keypad tidak terbuka', /belum terdaftar sebagai penghuni/.test(await teks(pg, '#entryError')) && !(await keypadTampil(pg)));
+      /* M5: login benar, daftar penghuni gagal sekali sesudahnya */
+      await pg.fill('#entryName', 'dil'); await pg.click('#entryBtn'); await pg.waitForTimeout(300);
+      occGagal = 1;
+      await ketikPin(pg, '135790'); await pg.waitForTimeout(1500);
+      cek('I5 (M5) login berhasil + daftar kamar gagal -> pesan "Login berhasil…", belum masuk',
+        /Login berhasil, tapi daftar kamar belum termuat/.test(await teks(pg, '#entryError')) && !(await sudahMasuk(pg)));
+      cek('I6 (M5) tombol jadi "Masuk Kosan" (sesi)', /Masuk Kosan/.test(await teks(pg, '#entryBtn')));
+      await pg.click('#entryBtn'); await pg.waitForTimeout(1500);
+      cek('I7 (M5) ketuk lagi -> masuk sebagai penghuni tanpa PIN ulang', (await sudahMasuk(pg)) && /@dil/.test(await teks(pg, '#whoami')));
+      /* M2: tutup keypad PIN kamar saat Memproses */
+      await pg.evaluate(() => (document.fullscreenElement ? document.exitFullscreen().catch(() => {}) : null));
+      await klikJs(pg, '#homeBtn'); await pg.waitForTimeout(400);
+      await ketikPin(pg, '135790'); await pg.waitForTimeout(200);
+      const sibuk = await tampil(pg, '#pinStatus');
+      await pg.click('#pinClose'); await pg.waitForTimeout(2500);
+      cek('I8 (M2) tutup keypad saat "Memproses…" -> PIN benar TIDAK membawa masuk kamar', sibuk && !(await diKamar(pg)) && !(await keypadTampil(pg)));
+      await klikJs(pg, '#homeBtn'); await pg.waitForTimeout(400);
+      cek('I9 (M2) keypad dibuka lagi dalam keadaan bebas (tidak terkunci "Memproses…")',
+        (await keypadTampil(pg)) && !(await tampil(pg, '#pinStatus')) && (await pg.evaluate(() => [...document.querySelectorAll('#pinPad button')].every((b) => !b.disabled))));
+      await ctxI.close();
+    }
+
     cek('Z1 0 error CSP', catatan.csp.length === 0, catatan.csp.slice(0, 2).join(' | '));
     cek('Z2 0 request ke unpkg', catatan.unpkg.length === 0);
     cek('Z3 0 error JavaScript halaman', catatan.err.length === 0, catatan.err.slice(0, 2).join(' | '));

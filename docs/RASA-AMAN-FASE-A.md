@@ -78,6 +78,17 @@ supaya tidak perlu migrasi).
    gerbang `pin:<kamar>` mulai dari nol karena sepi 15 menit, baris itu ikut
    dihapus (tanpa dobel-hitung).
 2. **Migrasi Fase A** sudah dijalankan (perbaikan 9 tidak menambah SQL).
+   **Perbaikan 11 menambah satu fungsi:** jalankan
+   `supabase/migrations/20261114_batas_kembali.sql` (idempoten, satu
+   transaksi, hanya `create or replace function kosan_batas_kembali` +
+   grant `service_role`). Fungsi ini mengembalikan satu unit jatah batas per
+   jaringan sesudah login / daftar / masuk kamar BERHASIL, jadi batas
+   20/20/60 per jam hanya menghitung percobaan gagal (CGNAT operator
+   seluler, audit P1). Kalau belum dijalankan, server tetap jalan: panggilan
+   pengembaliannya gagal diam-diam (log `batasKembali gagal`) dan perilaku
+   sama dengan sebelum perbaikan 11. Uji cepatnya ada di akhir file SQL.
+   **Belum pernah dijalankan di Postgres asli dari sandbox** — tes server
+   memakai database palsu.
 3. **Env var Vercel** (Production + Preview), jangan pernah di repo:
    `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `KOSAN_SECRET` (32 byte
    acak). Tanpa salah satunya, endpoint membalas 503 (gagal aman).
@@ -105,6 +116,24 @@ supaya tidak perlu migrasi).
    menambah jatah tebakan. Jangan ditunda lama.
 
 ## Operasional
+
+- **Arti peristiwa log perangkat (`kosan_perangkat_log.peristiwa`):**
+  `masuk` = login penghuni (username + PIN); **`setup` sekarang berarti
+  "daftar baru"** (`/api/daftar`), BUKAN "buat password". Baris `setup` /
+  `setup_pin` yang tercatat sebelum perbaikan 9 (14 Nov, masa password)
+  artinya berbeda: `setup_pin` = PIN lama diverifikasi untuk buat password,
+  `setup` = password dibuat. Nilai `daftar` tersendiri butuh migrasi kecil
+  ke CHECK (ditunda).
+- **Rotasi `KOSAN_SECRET`** mereset hitungan batas per jaringan (kuncinya
+  HMAC dari IP) dan membuat HMAC IP lama di log tidak bisa dibandingkan
+  dengan yang baru. Sesi tidak terpengaruh (token acak, bukan turunan
+  rahasia).
+- **HSTS:** tidak diset di `vercel.json` karena Vercel menambahkan
+  `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`
+  sendiri untuk domain bawaan (`*.vercel.app`) dan header itu tidak bisa
+  ditimpa lewat `vercel.json`. Verifikasi:
+  `curl -sI https://kosan-ibu-kos.vercel.app/ | grep -i strict-transport`.
+  Kalau kosong, tambahkan header itu ke `vercel.json`.
 
 - **Lupa PIN** (sesudah verifikasi lewat DM IG): reset PIN lewat SQL seperti
   runbook lama (`docs/PENGHUNI.md`). Lalu `select kosan_akun_reset(<kamar>);`
