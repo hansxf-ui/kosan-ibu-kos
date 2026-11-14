@@ -4876,7 +4876,11 @@ var MISI_LIST = [
   { id: 'jalan', nama: 'Jalan-jalan', ket: 'Jalan sejauh 300 m', ikon: 'person', target: 300 },
   /* Ronde 21 — misi mini game Lempar Sendal (Fase 2b): tercentang saat
      lemparan pertama hari itu (hook misiSelesai di sendalLempar). */
-  { id: 'sendal', nama: 'Main Lempar Sendal', ket: 'Lempar sendal 1x di mini game', ikon: 'sendal', target: 1 }
+  { id: 'sendal', nama: 'Main Lempar Sendal', ket: 'Lempar sendal 1x di mini game', ikon: 'sendal', target: 1 },
+  /* Tahap 1 (docs/TAHAP-1-AKTIVITAS-SPEC.md §6) — 7 -> 10 misi */
+  { id: 'gazebo', nama: 'Nongkrong di Gazebo', ket: 'Duduk di bangku gazebo', ikon: 'chair', target: 1 },
+  { id: 'jemur', nama: 'Jemur Cucian', ket: 'Angkat cucian kering dari jemuran', ikon: 'baju', target: 1 },
+  { id: 'ibu', nama: 'Ngobrol sama Ibu Kos', ket: 'Ketuk Ibu Kos lalu ngobrol', ikon: 'obrol', target: 1 }
 ];
 var MISI_JALAN_TARGET = 300; /* meter kumulatif per hari; jalan 4 m/dtk, lari 7 m/dtk */
 var MISI_HARI = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
@@ -5030,7 +5034,7 @@ function misiRender() {
     var prog = '';
     if (m.id === 'jalan') prog = '<span class="mprog" id="misiJalanProg">' + Math.min(Math.floor(st.jalan), m.target) + ' / ' + m.target + ' m</span>';
     html += '<li class="' + (done ? 'done' : '') + '"><span class="mikon">' + iconSvg(m.ikon) + '</span>'
-      + '<span class="mbody"><span class="mnama">' + m.nama + '</span><br><span class="mket">' + m.ket + '</span></span>'
+      + '<span class="mbody"><span class="mnama">' + m.nama + '</span><br><span class="mket">' + (m.id === 'jemur' && !done && !ktaIsResident() ? 'Khusus penghuni' : m.ket) + '</span></span>' /* Tahap 1: tamu tidak bisa pakai dapur */
       + prog
       + '<span class="mcek">✓</span></li>';
   }

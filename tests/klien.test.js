@@ -558,3 +558,24 @@ test('Tahap 1 Ibu Kos: urutan acak per hari, tetap sepanjang hari, tidak berulan
     assert.equal(ibuObrolanBerikut(rusak, '2026-11-14').teks, IBU_OBROLAN[a[0]], JSON.stringify(rusak));
   }
 });
+
+test('Tahap 1 misi: 10 misi, 3 baru tercentang sekali per hari, state lama tetap terbaca', () => {
+  const m = blokMurni('MISI-START', 'MISI-END', ['MISI_LIST', 'misiStateBaru', 'misiSelesaiDiState', 'misiHitungSelesai']);
+  assert.deepEqual(m.MISI_LIST.map((x) => x.id), ['kamar', 'tidur', 'duduk', 'lampu', 'living', 'jalan', 'sendal', 'gazebo', 'jemur', 'ibu']);
+  const st = { done: { kamar: true, sendal: true }, jalan: 12 }; /* state lama (7 misi) */
+  assert.equal(m.misiHitungSelesai(st), 2);
+  for (const id of ['gazebo', 'jemur', 'ibu']) {
+    assert.equal(m.misiSelesaiDiState(st, id), true, id + ' baru');
+    assert.equal(m.misiSelesaiDiState(st, id), false, id + ' tidak dobel');
+  }
+  assert.equal(m.misiHitungSelesai(st), 5);
+  assert.equal(m.misiSelesaiDiState(st, '__proto__'), false);
+  for (const ikon of ['baju', 'obrol', 'chair']) assert.ok(HTML.includes('  ' + ikon + ": '<"), 'ikon ' + ikon);
+});
+
+test('Tahap 1 misi: hook gazebo / jemur / ibu terpasang di aksinya', () => {
+  const blok = (f) => { const a = HTML.indexOf('function ' + f + '('); return HTML.slice(a, HTML.indexOf('\n}\n', a)); };
+  assert.match(blok('gazeboDuduk'), /misiSelesai\('gazebo'\)/);
+  assert.match(blok('jemuranAngkat'), /misiSelesai\('jemur'\)/);
+  assert.match(blok('showIbuCard'), /misiSelesai\('ibu'\)/);
+});
