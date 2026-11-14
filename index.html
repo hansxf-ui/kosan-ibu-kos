@@ -1450,7 +1450,7 @@ function mpAmbilToken(ember, now) { /* ember: { token, t } -> { ok, ember } */
 }
 
 function mpRealmDikenal(realm) {
-  if (realm === 'yard' || realm === 'living') return realm;
+  if (realm === 'yard' || realm === 'living' || realm === 'dapur') return realm; /* Tahap 1 Tugas 0: dapur dikenal (dulu jatuh ke yard) */
   if (typeof realm === 'string' && /^room-(?:[1-9]|1[0-9]|20)$/.test(realm)) return realm;
   return 'yard'; /* realm tak dikenal -> perlakukan sebagai yard (§2.7) */
 }
@@ -2758,6 +2758,7 @@ function exitDapur() {
    kecil saja — isi kamar tumbuh lewat komen episode, bukan furnishing penuh. */
 function sceneUntukRealm(realm) { /* scene THREE untuk satu alam (dipakai avatar lokal + pemain remote) */
   if (realm === 'living') return livingScene;
+  if (realm === 'dapur') return dapurScene; /* Tahap 1 Tugas 0: pemain remote di dapur tinggal di dapurScene (dulu ikut scene halaman) */
   if (typeof realm === 'string' && realm.indexOf('room-') === 0) return roomScene;
   return scene;
 }

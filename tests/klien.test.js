@@ -320,3 +320,18 @@ test('11 M6: frasa basi sudah hilang', () => {
     assert.ok(!HTML.includes(f), f);
   }
 });
+
+test('Tahap 1 Tugas 0: realm dapur dikenal; realm asing tetap jadi yard', () => {
+  const kenal = ambilFungsi('mpRealmDikenal');
+  assert.equal(kenal('dapur'), 'dapur');
+  assert.equal(kenal('living'), 'living');
+  assert.equal(kenal('room-20'), 'room-20');
+  for (const r of ['room-21', 'Dapur', '__proto__', '', null, 7]) assert.equal(kenal(r), 'yard', String(r));
+});
+
+test('Tahap 1 Tugas 0: sceneUntukRealm menaruh pemain dapur di dapurScene', () => {
+  const awal = HTML.indexOf('function sceneUntukRealm(');
+  const kode = HTML.slice(awal, HTML.indexOf('\n}\n', awal) + 3);
+  const f = new Function('scene', 'livingScene', 'dapurScene', 'roomScene', kode + '\nreturn sceneUntukRealm;')('Y', 'L', 'D', 'R');
+  assert.equal(f('dapur'), 'D'); assert.equal(f('living'), 'L'); assert.equal(f('room-3'), 'R'); assert.equal(f('yard'), 'Y');
+});
