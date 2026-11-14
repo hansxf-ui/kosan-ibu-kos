@@ -186,7 +186,6 @@
   #entryBtn:active { transform: scale(.98); }
   #entryBtn:disabled { opacity: .7; cursor: wait; transform: none; }
   .entry-guest:disabled { opacity: .5; cursor: wait; }
-  #entryCard .entry-note { font-size: 12px; font-weight: 700; color: #5a6b7d; margin-top: 12px; line-height: 1.45; }
   /* label identitas read-only di topbar (terkunci selama di dalam game) */
   #whoami { font-size: 12px; font-weight: 800; color: #fff;
     text-shadow: 0 1px 4px rgba(0,0,0,.5); margin-top: 2px; white-space: nowrap; }
@@ -686,7 +685,6 @@
     text-decoration: none; transition: background .12s; }
   .entry-guest:hover, .entry-guest:active { background: var(--kb-biru-muda); }
   #entryCard .entry-error { background: #fff1f3; border-radius: 12px; padding: 8px 12px; color: #c81e44; }
-  #entryCard .entry-note { color: #6b7d92; }
 
   /* ---- kartu kamar ---- */
   #roomCard { border-radius: 20px; box-shadow: var(--kb-bayang-2), inset 0 0 0 1px rgba(255,255,255,.7); }
@@ -735,7 +733,6 @@
     #entryBtn { padding: 10px 20px; }
     .entry-links { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 0 4px; margin-top: 4px; }
     .entry-guest { padding: 5px 10px; }
-    #entryCard .entry-note { margin-top: 4px; font-size: 11px; }
     #entryCard .entry-error { margin-top: 6px; padding: 6px 10px; }
   }
   @media (max-height: 430px) and (orientation: landscape) {
@@ -977,7 +974,6 @@
       <button id="entryModeLink" type="button" class="entry-guest">Sudah punya akun? Masuk di sini</button>
       <button id="entryKeluarAkun" type="button" class="entry-guest" style="display:none">Bukan kamu? Keluar akun</button>
     </div>
-    <p id="entryNote" class="entry-note">Username &amp; gender dikunci selama di dalam — muat ulang halaman untuk ganti.</p>
     </div>
   </div>
 </div>
@@ -3777,7 +3773,6 @@ var entryGuestLink = document.getElementById('entryGuestLink'); /* Ronde 52 — 
 var entryModeLink = document.getElementById('entryModeLink'); /* Ronde 54 — tautan pindah mode DAFTAR/MASUK */
 var genderRowEl = document.getElementById('genderRow'); /* Ronde 52 — disembunyikan saat mode MASUK */
 var entrySubEl = document.querySelector('#entryCard .entry-sub'); /* Ronde 52 — subjudul per mode */
-var entryNoteEl = document.getElementById('entryNote'); /* Task 11 — catatan kunci identitas, hanya di mode DAFTAR */
 var entryLoginView = false; /* Ronde 54 — true = mode MASUK (penghuni kembali, hanya username+PIN); false = mode DAFTAR */
 var entryModeManual = false; /* Ronde 54 — true sesudah pengguna memilih mode manual / sesudah daftar (jangan auto-ubah lagi) */
 var entryNameTouched = false; /* Ronde 54 — true sesudah pengguna mengetik username (jangan auto-ubah mode dari hasil load occupants) */
@@ -3889,7 +3884,6 @@ function entryApplyMode() {
   show(entryKey, !masuk);
   show(entryIngatRow, tahap !== 'sesi');
   show(genderRowEl, !masuk);
-  show(entryNoteEl, !masuk); /* Task 11 — catatan kunci identitas hanya di mode DAFTAR */
   show(entryKeluarAkun, tahap === 'sesi');
   if (entryModeLink) {
     entryModeLink.style.display = tahap === 'sesi' ? 'none' : '';
