@@ -54,6 +54,33 @@ function buatFakeDb({ penghuni, sekarang = () => Date.now() }) {
       lama.push({ room, name: n, gender: a.p_gender, pin_hash: a.p_pin_hash, gagal: 0, kunci: 0 });
       return room;
     },
+    /* tiru kosan_register_cd (supabase/migrations/20261115_gedung_c_d.sql):
+       KOSANC -> kamar kosong terendah 21-30, KOSAND -> 31-40; nama unik di
+       semua kamar; pesan penuh menunjuk gedung lain kalau masih ada kamar. */
+    async registerCd(a) {
+      panggilan.push('registerCd');
+      const tolak = (m) => { const e = new Error(m); e.status = 400; throw e; };
+      const key = String(a.p_key || '').trim().toUpperCase();
+      if (key !== 'KOSANC' && key !== 'KOSAND') tolak('kunci salah');
+      const n = normalize(a.p_name);
+      if (!n || n.length > 30) tolak('nama tidak valid');
+      if (!/^[a-z0-9 _.\-]+$/.test(n) || !/[a-z0-9]/.test(n)) tolak('username tidak valid');
+      if (!['Cewek', 'Cowok'].includes(a.p_gender)) tolak('gender tidak valid');
+      if (!/^[0-9a-f]{8}$/.test(a.p_pin_hash)) tolak('pin tidak valid');
+      if (lama.some((x) => normalize(x.name) === n)) tolak('nama sudah terdaftar');
+      const [lo, hi] = key === 'KOSANC' ? [21, 30] : [31, 40];
+      const terisi = new Set(lama.map((x) => x.room));
+      let room = (a.p_room >= lo && a.p_room <= hi && !terisi.has(a.p_room)) ? a.p_room : 0;
+      for (let r = lo; !room && r <= hi; r++) if (!terisi.has(r)) room = r;
+      if (!room) {
+        const lain = key === 'KOSANC' ? [31, 40] : [21, 30];
+        const isiLain = lama.filter((x) => x.room >= lain[0] && x.room <= lain[1]).length;
+        if (isiLain < 10) tolak(key === 'KOSANC' ? 'Gedung C penuh — kode Gedung D ada di caption video terbaru' : 'Gedung D penuh — kode Gedung C ada di caption video terbaru');
+        tolak('kosan penuh');
+      }
+      lama.push({ room, name: n, gender: a.p_gender, pin_hash: a.p_pin_hash, gagal: 0, kunci: 0 });
+      return room;
+    },
     async akunBuka(room) {
       t.gerbang.delete('pin:' + room); t.gerbang.delete('pw:' + room); hapusAttempts(room);
     },

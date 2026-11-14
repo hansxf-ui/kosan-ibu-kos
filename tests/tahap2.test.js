@@ -152,7 +152,7 @@ test('kabel: ketuk bantal/sofa, bangun sebelum keluar ruang tamu, emote ikut pos
 
 test('realm tidak diubah Tahap 2 (dapur tetap dikenal)', () => {
   assert.equal(F.mpRealmDikenal('dapur'), 'dapur');
-  assert.equal(F.mpRealmDikenal('room-21'), 'yard');
+  assert.equal(F.mpRealmDikenal('room-41'), 'yard'); /* Gedung C & D: room-1..40 dikenal */
 });
 
 test('TV + AC kamar dibangun SEKALI di roomScene (dipakai room-1..20), layar = Basic', () => {

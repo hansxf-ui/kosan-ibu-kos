@@ -4,13 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, interactive-widget=resizes-visual">
 <title>Kosan Ibu Kos — Jalan-jalan</title>
-<meta name="description" content="Jalan-jalan di Kosan Ibu Kos: gedung biru 2 lantai, 20 kamar, ruang tamu + WiFi. Ketik namamu, lihat preview kamarmu.">
+<meta name="description" content="Jalan-jalan di Kosan Ibu Kos: 4 gedung 2 lantai, 40 kamar, ruang tamu + WiFi. Ketik namamu, lihat preview kamarmu.">
 <meta name="theme-color" content="#2E7FD6">
 <!-- Ronde 41 — game jadi halaman utama (sampul dihapus): og tags dipindah dari
      sampul biar preview link saat dishare tetap bagus. -->
 <meta property="og:type" content="website">
 <meta property="og:title" content="Kosan Ibu Kos — Jalan-jalan di Kosan 3D">
-<meta property="og:description" content="20 kamar, 1 Ibu Kos, 0 ampun buat yang telat bayar. Ketik namamu, lihat preview kamarmu, jalan-jalan di kosan 3D.">
+<meta property="og:description" content="40 kamar, 1 Ibu Kos, 0 ampun buat yang telat bayar. Ketik namamu, lihat preview kamarmu, jalan-jalan di kosan 3D.">
 <meta property="og:image" content="assets/og.jpg">
 <link rel="icon" type="image/png" href="assets/favicon.png">
 <link rel="stylesheet" href="fonts/fonts-local.css">
@@ -865,7 +865,7 @@
 <div class="hud" id="topbar">
   <div id="hud-title">
     <h1><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 10v10h14V10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 20v-6h4v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Kosan Ibu Kos <span class="h1-sub">— Jalan-jalan</span></h1>
-    <p id="roomCount">20 kamar · 10 kosong</p>
+    <p id="roomCount">40 kamar · 30 kosong</p>
     <p id="whoami"></p>
   </div>
   <div id="topbtns">
@@ -1043,10 +1043,10 @@ import * as THREE from 'three';
    Ronde 51 — DAFTAR PENGHUNI PINDAH KE SUPABASE (pendaftaran mandiri):
    OCCUPANTS = daftar penghuni dari kosan_occupants(): [{room, name}],
    dimuat saat boot + disegarkan sesudah masuk/daftar (muatOccupants,
-   di luar blok PURE karena pakai fetch). Satu nama satu kamar, maks 20.
+   di luar blok PURE karena pakai fetch). Satu nama satu kamar, maks 40 (Gedung C & D: K21-40).
    Nama terdaftar dapat kamarnya (previewFor resident=true) + bisa klaim
    Kunci Kamar; kamar terdaftar dilewati pengunjung lain (preview pindah
-   ke kamar kosong); kalau 20 kamar terisi semua, pengunjung baru lihat
+   ke kamar kosong); kalau 40 kamar terisi semua, pengunjung baru lihat
    "kosan penuh". OCCUPANTS null = belum dimuat/offline (diperlakukan
    sebagai kosan kosong — gerbang masuk yang menangani offline). */
 /* Ronde 50 — PIN penghuni (anti-impersonasi): tiap penghuni terdaftar punya
@@ -1145,6 +1145,7 @@ function makeId(nama, room) {
   while (clean.length < 4) clean += 'X';
   return 'KOSAN-' + String(room).padStart(2, '0') + '-' + clean;
 }
+var JUMLAH_KAMAR = 40; /* Gedung C & D (15 Nov): A K1-10, B K11-20, C K21-30, D K31-40 */
 function previewFor(nama, occupants) {
   var occ = occupants || OCCUPANTS || [];
   var key = normalize(nama);
@@ -1159,7 +1160,7 @@ function previewFor(nama, occupants) {
   if (!taken[hashRoom]) {
     return { room: hashRoom, resident: false, moved: false };
   }
-  for (var n = 1; n <= 20; n++) {
+  for (var n = 1; n <= JUMLAH_KAMAR; n++) { /* Gedung C & D: 1..40 */
     if (!taken[n]) {
       return { room: n, resident: false, moved: true, hashRoom: hashRoom };
     }
@@ -1169,9 +1170,16 @@ function previewFor(nama, occupants) {
 
 /* Batas jalan avatar (halaman berpagar) + tabrakan gedung/meja.
    Murni matematika — bisa diuji di node tanpa WebGL. */
-var YARD = { minX: -19, maxX: 46, minZ: -17, maxZ: 17 }; /* Ronde 61 — Gedung B: halaman diperlebar ke timur */
+var YARD = { minX: -19, maxX: 46, minZ: -17, maxZ: 28 }; /* Ronde 61 — Gedung B: halaman diperlebar ke timur. Gedung C & D (15 Nov): maxZ 17 -> 28 (brief 27): butuh lorong 0,6 m di BELAKANG C/D (z 27,4..28) — tanpa itu pintu naik tangga D (z 26,1..26,6, x 44,4..45,6) terkurung (dinding D + kolong tangga + batas halaman). Pagar selatan z=29 (konvensi pagar 1 m di luar batas). */
 var BUILDING = { minX: -14.4, maxX: 12.4, minZ: -14.4, maxZ: -5.4 }; /* Fase 1 Task 1: dinding barat baru x=-14 (dilebarin ke barat) */
 var BUILDING_B = { minX: 17.6, maxX: 44.4, minZ: -14.4, maxZ: -5.4 }; /* Fase 1 Task 2: dinding timur baru x=44 (dilebarin ke timur) */ /* Ronde 61 — Gedung B (kembaran Gedung A, offset x=+30) */
+/* Gedung C & D (15 Nov, posisi disetujui Ryan): CERMINAN TEPAT A/B terhadap
+   z = 6,3 (z' = 12,6 - z), menghadap UTARA ke alun-alun/gazebo. Muka utara =
+   dinding sebenarnya z 18,6 (keputusan Vesper: K24-K25 bisa didatangi lewat
+   lorong ±0,5 m di belakang parkiran); belakang z 27 (cermin A -14,4). */
+var BUILDING_C = { minX: -14.4, maxX: 12.4, minZ: 18.6, maxZ: 27 }; /* K21-K30 */
+var BUILDING_D = { minX: 17.6, maxX: 44.4, minZ: 18.6, maxZ: 27 }; /* K31-K40 */
+var CERMIN_CD_Z = 12.6; /* z' = 12,6 - z (A/B -> C/D) */
 var TABLE_BOX = { minX: 15.2, maxX: 16.8, minZ: -2.8, maxZ: -1.2 };
 /* Tangga lantai 2 (Ryan 18:30) — KOLONG TANGGA padat untuk avatar tanah.
    Koridor tangga di atas strip masuk selatan (z -13,5..-9,0) adalah solid:
@@ -1196,7 +1204,10 @@ var TABLE_BOX = { minX: 15.2, maxX: 16.8, minZ: -2.8, maxZ: -1.2 };
    level=1 di ramp/balkon lewat clampBalcony, tidak kena solid ini). */
 var STAIR_SOLIDS = [
   { minX: -16.0, maxX: -14.4, minZ: -13.5, maxZ: -9.0 }, /* koridor A */
-  { minX: 44.4, maxX: 45.6, minZ: -13.5, maxZ: -9.0 } /* koridor B (tanpa pelebaran timur — halaman berakhir di x=46) */
+  { minX: 44.4, maxX: 45.6, minZ: -13.5, maxZ: -9.0 }, /* koridor B (tanpa pelebaran timur — halaman berakhir di x=46) */
+  /* Gedung C & D — cermin koridor A/B (z' = 12,6 - z); strip masuk z 26,1..26,6 TIDAK padat */
+  { minX: -16.0, maxX: -14.4, minZ: 21.6, maxZ: 26.1 }, /* koridor C */
+  { minX: 44.4, maxX: 45.6, minZ: 21.6, maxZ: 26.1 } /* koridor D */
 ];
 /* Fase 0 (Masterplan Kosan Modern) — kotak padat bedeng lapangan
    (4 segmen; dipakai loop resolveAABB di cabang halaman). */
@@ -1210,7 +1221,13 @@ var PLAZA_SOLIDS = [
   { minX: -12, maxX: -1.2, minZ: -2, maxZ: 0 },
   { minX: 1.2, maxX: 13.3, minZ: -2, maxZ: 0 },
   { minX: 18.7, maxX: 42, minZ: -2, maxZ: 0 },
-  { minX: -18, maxX: -2, minZ: 16, maxZ: 17.5 },
+  /* (bedeng pagar selatan lama x -18..-2, z 16..17,5 DIBONGKAR — Gedung C &
+     D, keputusan Vesper 15 Nov: menghalangi pintu lantai dasar K21-K23) */
+  /* Kanopi masuk Gedung C + D — cermin kolom kanopi A/B. */
+  { minX: -14.15, maxX: -13.85, minZ: 17.25, maxZ: 17.55 },
+  { minX: 11.85, maxX: 12.15, minZ: 17.25, maxZ: 17.55 },
+  { minX: 17.85, maxX: 18.15, minZ: 17.25, maxZ: 17.55 },
+  { minX: 43.85, maxX: 44.15, minZ: 17.25, maxZ: 17.55 },
   /* Gazebo modern luxury (Fase 0, Task 2 rework) — 6 kolom + meja +
      4 bangku + 4 panel railing + 2 planter; pusat (12.0, 6.5). Dek
      TANPA AABB (lantai). Tengah gazebo DI DALAM AABB meja. */
@@ -1276,6 +1293,14 @@ function collideBuilding(x, z) {
     if (m === dxl) x = bx0; else if (m === dxr) x = bx1;
     else if (m === dzl) z = bz0; else z = bz1;
   }
+  /* Gedung C & D (15 Nov) — cek ketiga + keempat, pola sama (nilai A/B tidak berubah). */
+  [BUILDING_C, BUILDING_D].forEach(function (Bx) {
+    var cx0 = Bx.minX - r, cx1 = Bx.maxX + r, cz0 = Bx.minZ - r, cz1 = Bx.maxZ + r;
+    if (x > cx0 && x < cx1 && z > cz0 && z < cz1) {
+      var e1 = x - cx0, e2 = cx1 - x, e3 = z - cz0, e4 = cz1 - z, mm = Math.min(e1, e2, e3, e4);
+      if (mm === e1) x = cx0; else if (mm === e2) x = cx1; else if (mm === e3) z = cz0; else z = cz1;
+    }
+  });
   /* Ronde 61 — cek kedua: Gedung B (kotak A di atas TIDAK berubah nilainya). */
   var bx0b = BUILDING_B.minX - r, bx1b = BUILDING_B.maxX + r;
   var bz0b = BUILDING_B.minZ - r, bz1b = BUILDING_B.maxZ + r;
@@ -1477,7 +1502,7 @@ function mpAmbilToken(ember, now) { /* ember: { token, t } -> { ok, ember } */
 
 function mpRealmDikenal(realm) {
   if (realm === 'yard' || realm === 'living' || realm === 'dapur') return realm; /* Tahap 1 Tugas 0: dapur dikenal (dulu jatuh ke yard) */
-  if (typeof realm === 'string' && /^room-(?:[1-9]|1[0-9]|20)$/.test(realm)) return realm;
+  if (typeof realm === 'string' && /^room-(?:[1-9]|[1-3][0-9]|40)$/.test(realm)) return realm; /* Gedung C & D: room-1..40 (dulu ..20 — pemain di K21-40 akan tampak di halaman) */
   return 'yard'; /* realm tak dikenal -> perlakukan sebagai yard (§2.7) */
 }
 function mpPoseDikenal(pose) { /* Ronde 15a — pose sinkron: 'stand' | 'sit' | 'sleep'; hilang/tak dikenal -> 'stand' (kompatibel mundur).
@@ -1852,6 +1877,63 @@ function cyl(mat, rt, rb, h, x, y, z, parent) {
 /* ---------- dunia ---------- */
 var ROOM_DOORS = {};   /* n -> { mesh, pos } */
 var clickables = [];   /* mesh dengan userData.card */
+/* ================= Gedung C & D (perintah Ryan 15 Nov 00:41) =================
+   20 kamar baru K21-K40 di baris SELATAN, sejajar A & B, menghadap UTARA ke
+   alun-alun (gazebo). C = cermin A, D = cermin B terhadap z = 6,3
+   (z' = 12,6 - z): mesh A/B DIKLON ke grup ber-scale.z = -1 (geometri +
+   material dipakai bersama, fasad SELALU sama dengan A/B — termasuk Fasad
+   ref 1, keputusan Vesper). Pintu dibuat baru (nomor kamar + material sendiri
+   untuk pulseDoor); penomoran = pola A/B persis (5 bawah lalu 5 atas, barat
+   -> timur). Tanpa plakat nomor (vonis Ryan 13 Nov; nomor di kartu + header).
+   Ruang tamu/dapur/interior kamar TIDAK ditambah (roomScene dipakai bersama).
+   Tiap gedung = 2 grup: 'badan' (dinding, atap, jendela, pintu) + 'depan'
+   (balkon, pagar kaca, kanopi, tangga). Keduanya disembunyikan UTUH saat
+   kamera ada di dalam / di belakang gedung (keputusan Vesper: angka kamera
+   tidak berubah), kecuali avatar sedang di balkon/tangga gedung itu: 'depan'
+   tetap tampil supaya pijakannya tidak hilang. */
+var GEDUNG_CD = [];
+function bangunGedungCD(meshAB, doorXA, doorXB) {
+  var defs = [
+    { nama: 'C', kotak: BUILDING_C, sumberB: false, awal: 21, doorX: doorXA, mat: M.walnutA },
+    { nama: 'D', kotak: BUILDING_D, sumberB: true, awal: 31, doorX: doorXB, mat: M.walnutB }
+  ];
+  defs.forEach(function (d) {
+    var badan = new THREE.Group(), depan = new THREE.Group();
+    [badan, depan].forEach(function (gr) { gr.scale.z = -1; gr.position.z = CERMIN_CD_Z; scene.add(gr); });
+    badan.name = 'gedung' + d.nama + '-badan'; depan.name = 'gedung' + d.nama + '-depan';
+    meshAB.forEach(function (m) {
+      if (!m.isMesh || (m.userData && m.userData.card === 'room')) return; /* pintu A/B tidak diklon */
+      if ((m.position.x >= 15) !== d.sumberB) return;
+      var p = m.position;
+      var tangga = (p.x <= -14.0 && p.x >= -15.7 || p.x >= 44.0 && p.x <= 45.7) && p.y < 6 && p.z < -5.75;
+      var diBadan = !tangga && p.z <= -5.75;
+      (diBadan ? badan : depan).add(m.clone());
+    });
+    for (var n = d.awal; n < d.awal + 10; n++) {
+      var k = n - d.awal, floor2 = k >= 5, x = d.doorX[k % 5], yBase = floor2 ? 4.2 : 0;
+      var door = box(d.mat.clone(), 1.3, 2.4, 0.14, x, yBase + 1.2, -5.84, badan); /* koordinat lokal A/B; grup mencerminkan ke z 18,44 */
+      door.userData = { card: 'room', room: n };
+      clickables.push(door);
+      ROOM_DOORS[n] = { mesh: door, pos: new THREE.Vector3(x, yBase + 1.2, CERMIN_CD_Z + 4.1), hadapUtara: true };
+    }
+    GEDUNG_CD.push({ nama: d.nama, kotak: d.kotak, badan: badan, depan: depan });
+  });
+}
+function gedungCdTerlihat(obj) { /* raycast: abaikan mesh di grup yang sedang disembunyikan */
+  for (var o = obj; o; o = o.parent) if (!o.visible) return false;
+  return true;
+}
+function gedungCdPerbarui(camPos, ax, az, level) {
+  /* kamera di dalam / di belakang muka utara (z > 18,4) dalam rentang x
+     gedung -> sembunyikan; avatar di balkon/tangga gedung itu -> 'depan' tetap. */
+  for (var i = 0; i < GEDUNG_CD.length; i++) {
+    var G = GEDUNG_CD[i], k = G.kotak;
+    var belakang = camPos.z > k.minZ - 0.2 && camPos.x > k.minX - 0.6 && camPos.x < k.maxX + 0.6;
+    var diAtas = level === 1 && az > 16.9 && ax > k.minX - 1.4 && ax < k.maxX + 1.4;
+    G.badan.visible = !belakang;
+    G.depan.visible = !belakang || diAtas;
+  }
+}
 var LIVING_POS = new THREE.Vector3(16, 0.5, -2);
 
 function buildWorld() {
@@ -1877,13 +1959,19 @@ function buildWorld() {
     return m;
   }
   fenceRun(-20, -18, 47, -18);
-  fenceRun(-20, -18, -20, 18);
-  fenceRun(47, -18, 47, 18);
-  fenceRun(-20, 18, -1.6, 18);
-  fenceRun(1.6, 18, 47, 18);
-  box(M.fence, 0.3, 1.5, 0.3, -1.6, 0.75, 18);
-  box(M.fence, 0.3, 1.5, 0.3, 1.6, 0.75, 18);
+  /* Gedung C & D (15 Nov): halaman diperluas ke selatan — pagar barat/timur
+     sampai z=29, pagar selatan pindah z=18 -> 29 (YARD.maxZ 28 + 1 m), gerbang
+     pindah dari x 0 (kini di belakang Gedung C) ke celah C-D x 15 (keputusan Vesper). */
+  fenceRun(-20, -18, -20, 29);
+  fenceRun(47, -18, 47, 29);
+  fenceRun(-20, 29, 13.4, 29);
+  fenceRun(16.6, 29, 47, 29);
+  box(M.fence, 0.3, 1.5, 0.3, 13.4, 0.75, 29);
+  box(M.fence, 0.3, 1.5, 0.3, 16.6, 0.75, 29);
+  /* jalan setapak gerbang -> alun-alun lewat celah C-D (berhenti di pagar tanaman selatan parkiran z 17,25) */
+  box(M.path, 2.4, 0.06, 11.7, 15, 0.03, 23.15).receiveShadow = true;
 
+  var awalGedungAB = scene.children.length; /* Gedung C & D: semua mesh A/B sesudah titik ini dicerminkan */
   /* ---- gedung kosan: batu terang modern, 2 lantai ---- */
   /* ---- Fase 1 Task 1 — Gedung A modern (26x10x8, batu terang):
      REPLACEMENT blok biru lama (24x7x8). Ruling R1: kotak utama dalam 8
@@ -2144,6 +2232,8 @@ function buildWorld() {
     };
   }
 
+  bangunGedungCD(scene.children.slice(awalGedungAB), doorXA, doorXB);
+
   /* ---- Fase 0 (Masterplan Kosan Modern) — lapangan: perkerasan +
      jalur silang + bedeng taman + 2 pohon + 6 lampu jalan. Blok
      ADDITIVE — tidak mengubah satu baris pun kode di atas. Tinggi
@@ -2161,8 +2251,7 @@ function buildWorld() {
   box(M.leaf, 12.1, 0.5, 0.5, 7.25, 0.53, -1);
   box(M.soil, 23.3, 0.25, 2, 30.35, 0.155, -1);
   box(M.leaf, 23.3, 0.5, 0.5, 30.35, 0.53, -1);
-  box(M.soil, 16, 0.25, 1.5, -10, 0.125, 16.75);
-  box(M.leaf, 16, 0.5, 0.5, -10, 0.5, 16.75);
+  /* (bedeng pagar selatan lama x -18..-2, z 16,75 DIBONGKAR — Gedung C & D, keputusan Vesper 15 Nov) */
   /* 2 pohon baru (tanpa AABB, konsisten dengan 3 pohon lama) */
   tree(-4, 15); tree(-8, 15);
   /* 6 lampu jalan (tanpa AABB, konsisten dengan pohon) */
@@ -4101,7 +4190,7 @@ function updateRoomCount() {
   /* Ronde 51 — hitung dari OCCUPANTS (Supabase); belum dimuat/offline
      (null) = biarkan teks yang ada (jangan tampilkan angka ngarang). */
   if (!OCCUPANTS) return;
-  roomCountEl.textContent = '20 kamar · ' + (20 - OCCUPANTS.length) + ' kosong';
+  roomCountEl.textContent = JUMLAH_KAMAR + ' kamar · ' + Math.max(0, JUMLAH_KAMAR - OCCUPANTS.length) + ' kosong'; /* Gedung C & D: 40 kamar */
 }
 var kartuTahanKlik = 0; /* Fix Ketuk-Kartu 15 Nov — id timeout penahan klik kartu (tap-through) */
 function openCard() { ibuBicara = false; cardEl.classList.add('open'); document.body.classList.add('card-open'); /* Tahap 1: kartu lain = Ibu berhenti menoleh */ /* Fix Ketuk-Kartu 15 Nov — tahan klik 400ms: ketukan yg membuka kartu (pointerup -> canvasTap -> showBedCard) diikuti event click di titik yg sama; kalau kartu baru muncul menutupi titik itu, click mendarat di tombol kartu (Tidur/Keluar) dan tidur/keluar tanpa sengaja (laporan Ryan 00:08). pointer-events none 400ms memblokir click hantu itu; ketukan sengaja (sesudah kartu terlihat) tetap jalan. */ cardEl.style.pointerEvents = 'none'; if (kartuTahanKlik) clearTimeout(kartuTahanKlik); kartuTahanKlik = setTimeout(function () { cardEl.style.pointerEvents = ''; kartuTahanKlik = 0; }, 400); }
@@ -4812,7 +4901,7 @@ document.addEventListener('click', function (e) {
        label "rina", kamar 10, localStorage "rina", header stale "budi"). */
 function showKosanPenuh() {
   cardTitle.textContent = 'Kosan penuh';
-  cardBody.innerHTML = '<p>Dua puluh kamar sudah terisi semua — belum ada kamar kosong untuk di-preview. Tunggu episode berikutnya ya!</p>';
+  cardBody.innerHTML = '<p>Empat puluh kamar sudah terisi semua — belum ada kamar kosong untuk di-preview. Tunggu episode berikutnya ya!</p>';
   cardActions.innerHTML = '';
   openCard();
 }
@@ -5355,8 +5444,10 @@ function daftarPesan(nama, msg) {
   if (msg.indexOf('kamar sudah terisi') !== -1) return 'Kamar yang kamu tuju baru saja terisi. Coba daftar lagi ya.';
   if (msg.indexOf('Gedung B belum dibuka') !== -1) return 'Gedung B belum dibuka — tunggu video terbaru';
   if (msg.indexOf('Gedung B penuh') !== -1) return 'Gedung B sudah penuh (Kamar 11–20 terisi semua). Coba kode Gedung A — kodenya ada di caption video terbaru @ibu__kos.';
-  if (msg.indexOf('kosan penuh') !== -1) return 'Kosan sudah penuh (20 kamar terisi semua). Tunggu episode berikutnya ya!';
+  if (msg.indexOf('kosan penuh') !== -1) return 'Kosan sudah penuh (40 kamar terisi semua). Tunggu episode berikutnya ya!';
   if (msg.indexOf('Gedung A penuh') !== -1) return 'Gedung A penuh — kode Gedung B ada di caption video terbaru';
+  if (msg.indexOf('Gedung C penuh') !== -1) return 'Gedung C sudah penuh (Kamar 21–30 terisi semua) — kode Gedung D ada di caption video terbaru @ibu__kos.';
+  if (msg.indexOf('Gedung D penuh') !== -1) return 'Gedung D sudah penuh (Kamar 31–40 terisi semua) — kode Gedung C ada di caption video terbaru @ibu__kos.';
   if (msg.indexOf('nama tidak valid') !== -1) return 'Nama terlalu panjang (maks 30 karakter).';
   if (msg.indexOf('kunci salah') !== -1 || msg.indexOf('Kode kunci salah') !== -1) return 'Kode kunci salah, cek lagi kode di caption terbaru @ibu__kos.';
   if (msg.indexOf('Terlalu banyak percobaan') !== -1) return msg;
@@ -5461,8 +5552,8 @@ function masukKosan() {
          gabungan (bisa jadi salah eja); DAFTAR = penuh polos (orang memang
          sedang mendaftarkan nama baru; kalimat sama dengan daftarPesan). */
       entryShowError(entryLoginView
-        ? 'Nama ini belum terdaftar — dan kosan juga sudah penuh (20 kamar terisi semua). Coba cek ejaan namamu, atau masuk sebagai tamu.'
-        : 'Kosan sudah penuh (20 kamar terisi semua). Tunggu episode berikutnya ya!');
+        ? 'Nama ini belum terdaftar — dan kosan juga sudah penuh (40 kamar terisi semua). Coba cek ejaan namamu, atau masuk sebagai tamu.'
+        : 'Kosan sudah penuh (40 kamar terisi semua). Tunggu episode berikutnya ya!');
       return;
     }
     if (entryLoginView) { entryLogin(); } else { entryDaftar(); }
@@ -6060,7 +6151,7 @@ function kunciKlaim() {
    case-insensitive.
    Ronde 61 — DUA kunci: KOSAN = Gedung A (Kamar 1–10), KOSANBARU =
    Gedung B (Kamar 11–20); kunci memilih gedung (RPC yang memetakan). */
-var KUNCI_KODE_LIST = ['KOSAN', 'KOSANBARU']; /* tambah kode di sini saat Ryan posting kode baru */
+var KUNCI_KODE_LIST = ['KOSAN', 'KOSANBARU', 'KOSANC', 'KOSAND']; /* tambah kode di sini saat Ryan posting kode baru; Gedung C & D: KOSANC = K21-30, KOSAND = K31-40 */
 function kunciKodeCek(kode) {
   return KUNCI_KODE_LIST.indexOf(String(kode || '').trim().toUpperCase()) !== -1;
 }
@@ -6178,7 +6269,7 @@ function flyToDoor(n) {
   var flyDist = Math.hypot(6, 1.9);
   flyTarget = {
     camTarget: new THREE.Vector3(p.x, p.y - 1.5, p.z),
-    camYaw: 0,
+    camYaw: ROOM_DOORS[n].hadapUtara ? Math.PI : 0, /* Gedung C & D menghadap utara: kamera dari utara (alun-alun) */
     camPitch: Math.asin(1.9 / flyDist),
     camDist: flyDist
   };
@@ -6416,6 +6507,7 @@ function canvasTap(e, wasPinch) {
      Ronde 11b — sama untuk kamar ('room-N' -> roomClickables). */
   var targets = myRealm === 'living' ? livingClickables : (myRealm === 'dapur' ? dapurClickables : (myRealm.indexOf('room-') === 0 ? roomClickables : clickables));
   var hits = raycaster.intersectObjects(targets, false);
+  hits = hits.filter(function (h) { return gedungCdTerlihat(h.object); }); /* Gedung C & D: grup yang disembunyikan tidak bisa diketuk */
   if (!hits.length) {
     /* Ronde 56 — ketuk area kosong = tutup kartu (pola game lain: tap di
        luar popup menutupnya; sama seperti backdrop KTA yang menutup saat
@@ -6971,6 +7063,9 @@ function lantaiY(x, z) {
      (lantaiY = 0) — tidak teleport ke lantai 2. */
   if (x >= -15.6 && x <= -14.4 && z >= -14 && z <= -13.5) return BALCONY_Y * Math.min(1, (z + 14) / 8);
   if (x >= 44.4 && x <= 45.6 && z >= -14 && z <= -13.5) return BALCONY_Y * Math.min(1, (z + 14) / 8);
+  /* Gedung C & D — cermin (z' = 12,6 - z): strip masuk z 26,1..26,6 dari SELATAN, naik ke utara. */
+  if (x >= -15.6 && x <= -14.4 && z >= 26.1 && z <= 26.6) return BALCONY_Y * Math.min(1, (26.6 - z) / 8);
+  if (x >= 44.4 && x <= 45.6 && z >= 26.1 && z <= 26.6) return BALCONY_Y * Math.min(1, (26.6 - z) / 8);
   /* Balkon A (x -14,4..11,6) + B (x 18,4..44,4), z -5,4..-4,6 — HANYA overhang
      DI LUAR dinding (z=-5,4) + HANYA bila level avatar = 1 (STICKY).
      Bug A: di tanah (level=0) di bawah kanopi/overhang, lantai = 0 — avatar
@@ -6985,6 +7080,11 @@ function lantaiY(x, z) {
        panel kaca samping + tiang kaca. */
     if (x >= -15.6 && x <= 11.6 && z >= -5.4 && z <= -4.6) return BALCONY_Y;
     if (x >= 18.4 && x <= 45.6 && z >= -5.4 && z <= -4.6) return BALCONY_Y;
+    /* Gedung C & D — cermin koridor (z 18,0..26,1) + balkon/pendaratan (z 17,2..18,0) */
+    if (x >= -15.6 && x <= -14.4 && z >= 18.0 && z < 26.1) return BALCONY_Y * Math.min(1, (26.6 - z) / 8);
+    if (x >= 44.4 && x <= 45.6 && z >= 18.0 && z < 26.1) return BALCONY_Y * Math.min(1, (26.6 - z) / 8);
+    if (x >= -15.6 && x <= 11.6 && z >= 17.2 && z <= 18.0) return BALCONY_Y;
+    if (x >= 18.4 && x <= 45.6 && z >= 17.2 && z <= 18.0) return BALCONY_Y;
   }
   return 0;
 }
@@ -7011,7 +7111,12 @@ function clampBalcony(nx, nz) {
     { minX: -15.25, maxX: -14.7, minZ: -14, maxZ: -5.1 }, /* koridor A (barat -15,25: badan 0,3 m dari handrail x=-15,6) */
     { minX: -15.25, maxX: 11.3, minZ: -5.1, maxZ: -4.6 }, /* balkon A */
     { minX: 44.7, maxX: 45.25, minZ: -14, maxZ: -5.1 }, /* koridor B */
-    { minX: 18.7, maxX: 45.25, minZ: -5.1, maxZ: -4.6 } /* balkon B */
+    { minX: 18.7, maxX: 45.25, minZ: -5.1, maxZ: -4.6 }, /* balkon B */
+    /* Gedung C & D — cermin A/B (z' = 12,6 - z): tepi selatan koridor (26,6) tidak dijepit = turun ke tanah */
+    { minX: -15.25, maxX: -14.7, minZ: 17.7, maxZ: 26.6 }, /* koridor C */
+    { minX: -15.25, maxX: 11.3, minZ: 17.2, maxZ: 17.7 }, /* balkon C */
+    { minX: 44.7, maxX: 45.25, minZ: 17.7, maxZ: 26.6 }, /* koridor D */
+    { minX: 18.7, maxX: 45.25, minZ: 17.2, maxZ: 17.7 } /* balkon D */
   ];
   for (var i = 0; i < rects.length; i++) {
     var r = rects[i];
@@ -7180,6 +7285,7 @@ function animate() {
   /* Ronde 12d — jepit kamera 12a DICABUT (vonis Ryan 09:07: view nyekik,
      karakter gede); kamera kembali rumus langsung pra-12a. */
   camera.position.set(cp.x, cp.y, cp.z);
+  if (myRealm === 'yard') gedungCdPerbarui(cp, avatarPos.x, avatarPos.z, avatarLevel); /* Gedung C & D: sembunyi saat kamera di dalam/belakang */
   camera.lookAt(camTarget.x, camTarget.y + 1.5, camTarget.z);
   /* Ronde 10a — label nama 3D diskalakan berdasar jarak kamera: sprite
      berukuran dunia tetap (2,4) membesar menutupi gedung/langit saat zoom
