@@ -4056,21 +4056,27 @@ function krTeksturWajah(jenis) {
   });
 }
 function krKulit() { return krMat('kulit', function () { return new THREE.MeshLambertMaterial({ color: KR_SKIN }); }); }
-/* Revisi kaki (Ryan: betis "kayak batang pohon"): kaki dibentuk lewat profil
-   putar (LatheGeometry) — paha, lutut ramping, betis menggembung ke BELAKANG,
-   pergelangan ramping — bukan silinder lurus. Kaus kaki pendek bergaris
+/* Revisi kaki (Ryan: betis "kayak batang pohon", lalu "yang normal aja"): kaki
+   dibentuk lewat profil putar (LatheGeometry) — meruncing halus dari paha ke
+   pergelangan, lekuk lutut/betis tipis, beda cewek/cowok — bukan silinder lurus. Kaus kaki pendek bergaris
    dilukis di tekstur kaki (tanpa mesh tambahan). Pinggul tetap y 0 lokal. */
-function krGeoKaki(sampai) {
-  var pr = [[0.05, sampai], [0.054, sampai + 0.03], [0.056, -0.56], [0.064, -0.5], [0.08, -0.43], [0.088, -0.38],
-    [0.084, -0.33], [0.075, -0.28], [0.079, -0.22], [0.09, -0.12], [0.096, -0.04], [0.096, 0.02]];
+function krGeoKaki(sampai, cewek) {
+  /* Revisi Ryan ("yang normal aja ... laki banget betisnya"): lekuk HALUS, bukan
+     betis berotot. Cewek (+ Ibu Kos) ramping meruncing lembut; cowok sedikit
+     lebih tebal. Gembung betis ke belakang kecil saja. */
+  var pr = cewek
+    ? [[0.048, sampai], [0.051, sampai + 0.03], [0.053, -0.56], [0.06, -0.5], [0.07, -0.43], [0.074, -0.38],
+       [0.073, -0.33], [0.071, -0.28], [0.075, -0.22], [0.083, -0.12], [0.088, -0.04], [0.088, 0.02]]
+    : [[0.052, sampai], [0.055, sampai + 0.03], [0.057, -0.56], [0.064, -0.5], [0.075, -0.43], [0.08, -0.38],
+       [0.079, -0.33], [0.077, -0.28], [0.081, -0.22], [0.089, -0.12], [0.094, -0.04], [0.094, 0.02]];
   var kurva = new THREE.SplineCurve(pr.map(function (q) { return new THREE.Vector2(q[0], q[1]); }));
   var geo = new THREE.LatheGeometry(kurva.getPoints(14), 10);
+  var gembung = cewek ? 0.05 : 0.08;
   var P = geo.attributes.position;
   for (var i = 0; i < P.count; i++) {
     var y = P.getY(i), z = P.getZ(i);
-    var betis = Math.exp(-Math.pow((y + 0.39) / 0.08, 2)); /* gembung betis di belakang */
-    var tulangKering = Math.exp(-Math.pow((y + 0.42) / 0.1, 2));
-    P.setZ(i, z < 0 ? z * (1 + 0.22 * betis) : z * (1 - 0.12 * tulangKering));
+    var betis = Math.exp(-Math.pow((y + 0.39) / 0.09, 2));
+    if (z < 0) P.setZ(i, z * (1 + gembung * betis));
   }
   geo.computeVertexNormals();
   return geo;
@@ -4225,7 +4231,7 @@ function makeKosanAvatar(gender, rupa, opt) {
   /* kaki: pivot pinggul (+-0,12, 0,72, 0) — kaki + sepatu (ibu: sandal) */
   [-1, 1].forEach(function (sx, k) {
     var leg = pivot(sx * 0.12, 0.72, 0);
-    pasang([{ geo: krGeoKaki(ibu ? -0.69 : -0.63), m: new THREE.Matrix4() }], ibu ? kulit : krKakiMat(), leg); /* kaki berlekuk (revisi Ryan) */
+    pasang([{ geo: krGeoKaki(ibu ? -0.69 : -0.63, isF), m: new THREE.Matrix4() }], ibu ? kulit : krKakiMat(), leg); /* kaki berlekuk (revisi Ryan) */
     if (ibu) {
       pasang([krBagian(new THREE.BoxGeometry(0.17, 0.035, 0.3), 0, -0.705, 0.04), krBagian(new THREE.BoxGeometry(0.15, 0.02, 0.04), 0, -0.68, 0.1)], krPolos('sandal', 0x7c5227), leg);
     } else {
