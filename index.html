@@ -2131,21 +2131,35 @@ function buildWorld() {
      di barat lapangan; layar di sisi timur (menghadap lapangan),
      atas y=1,1 — rendah, tidak menutup pandangan dari spawn ke
      Gedung A. 15 mesh (cap +16). */
-  /* 4 tiang baja ramping (puncak y=2,0) */
-  cyl(M.steelDark, 0.08, 0.08, 2.0, -16.5, 1.0, 1);
-  cyl(M.steelDark, 0.08, 0.08, 2.0, -16.5, 1.0, 7);
-  cyl(M.steelDark, 0.08, 0.08, 2.0, -14.5, 1.0, 1);
-  cyl(M.steelDark, 0.08, 0.08, 2.0, -14.5, 1.0, 7);
-  /* 2 tali lurus z 1..7 di ketinggian 1,7 m */
-  box(M.white, 0.04, 0.04, 6, -16.5, 1.7, 4);
-  box(M.white, 0.04, 0.04, 6, -14.5, 1.7, 4);
-  /* layar tanaman rendah di sisi timur (atas y=1,1) */
-  box(M.leaf, 0.6, 1.1, 8, -13, 0.55, 4);
-  /* 4 pakaian di tali (tengah y=1,35, atas menyentuh tali y=1,7) */
-  box(M.white, 0.06, 0.7, 0.5, -16.5, 1.35, 2.5);
-  box(M.leaf, 0.06, 0.7, 0.5, -16.5, 1.35, 5.5);
-  box(M.stoneLight, 0.06, 0.7, 0.5, -14.5, 1.35, 3.5);
-  box(M.white, 0.06, 0.7, 0.5, -14.5, 1.35, 6.5);
+  /* Tahap 1 — tiang, tali, layar, dan pakaian bisa diketuk (interact
+     'jemuran') -> kartu Jemuran (spek §3). */
+  var jemuranKetuk = [
+    /* 4 tiang baja ramping (puncak y=2,0) */
+    cyl(M.steelDark, 0.08, 0.08, 2.0, -16.5, 1.0, 1),
+    cyl(M.steelDark, 0.08, 0.08, 2.0, -16.5, 1.0, 7),
+    cyl(M.steelDark, 0.08, 0.08, 2.0, -14.5, 1.0, 1),
+    cyl(M.steelDark, 0.08, 0.08, 2.0, -14.5, 1.0, 7),
+    /* 2 tali lurus z 1..7 di ketinggian 1,7 m */
+    box(M.white, 0.04, 0.04, 6, -16.5, 1.7, 4),
+    box(M.white, 0.04, 0.04, 6, -14.5, 1.7, 4),
+    /* layar tanaman rendah di sisi timur (atas y=1,1) */
+    box(M.leaf, 0.6, 1.1, 8, -13, 0.55, 4),
+    /* 4 pakaian di tali (tengah y=1,35, atas menyentuh tali y=1,7) */
+    box(M.white, 0.06, 0.7, 0.5, -16.5, 1.35, 2.5),
+    box(M.leaf, 0.06, 0.7, 0.5, -16.5, 1.35, 5.5),
+    box(M.stoneLight, 0.06, 0.7, 0.5, -14.5, 1.35, 3.5),
+    box(M.white, 0.06, 0.7, 0.5, -14.5, 1.35, 6.5)
+  ];
+  /* Tahap 1 — 3 helai cucian PEMAIN di slot tali yang kosong; tersembunyi
+     kecuali status dijemur/kering. Lokal (hanya di layar pemain ini), TANPA
+     AABB. Material dipakai ulang (tanpa material baru). Atas 1,7 = tali. */
+  jemuranCucian = [
+    box(M.clothesTeal, 0.06, 0.6, 0.45, -16.5, 1.4, 4.0),
+    box(M.clothesYellow, 0.06, 0.6, 0.45, -14.5, 1.4, 2.0),
+    box(M.shirtRed, 0.06, 0.6, 0.45, -14.5, 1.4, 5.0)
+  ];
+  jemuranCucian.forEach(function (m) { m.visible = false; jemuranKetuk.push(m); });
+  jemuranKetuk.forEach(function (m) { m.userData = { interact: 'jemuran' }; clickables.push(m); });
   /* 2 pot tanaman di tengah antara 2 baris tiang (box soil + bola leaf)
      — Fix Preview Check (Ryan 15:28): dulu menempel tiang (x -14,5),
      tiang menembus bola -> kelihatan nyatu. */
@@ -2692,6 +2706,13 @@ function startWash(which) {
   var st = which === 'wm' ? washWM : washDR;
   var nama = which === 'wm' ? 'Mesin cuci' : 'Pengering';
   if (st.active) { toastKosan(nama + ' lagi jalan, tunggu bentar ya 🌀'); return; }
+  /* Tahap 1 — satu cucian per pemain: selama cucian masih di keranjang /
+     di jemuran, mesin cuci belum bisa dipakai lagi (pengering tidak diubah). */
+  if (which === 'wm') {
+    var sj = jemuranStatusSekarang();
+    if (sj === 'basah') { toastKosan('Cucianmu masih di keranjang — jemur dulu di halaman barat 🧺'); return; }
+    if (sj === 'dijemur' || sj === 'kering') { toastKosan('Cucianmu masih di jemuran — angkat dulu ya 🧺'); return; }
+  }
   st.active = true; st.t = WASH_DUR;
   toastKosan(nama + ' jalan… (' + WASH_DUR + ' dtk) 🌀');
 }
@@ -2700,6 +2721,7 @@ function finishWash(which) {
   st.active = false; st.t = 0;
   if (which === 'wm') { if (wmLed) wmLed.visible = true; }
   else { if (drLed) drLed.visible = true; }
+  if (which === 'wm' && jemuranAksi('cuci_selesai')) { toastKosan('✅ Cucian selesai! Bawa ke jemuran di halaman barat 🧺'); return; } /* Tahap 1 */
   toastKosan(which === 'wm' ? '✅ Cucian selesai! 👕' : '✅ Pakaian kering! 👕');
 }
 
@@ -3181,6 +3203,49 @@ function gazeboPilihKursi(nama, ax, az, pemain) {
   return { x: pilih.x, z: pilih.z, y: -0.31, rotX: 0, rotY: b.rotY, leg: -0.92, bangun: { x: bx, z: bz, rotY: b.rotY } };
 }
 /* ==== GAZEBO-END ==== */
+/* ==== JEMURAN-START ==== */
+/* Tahap 1 — jemuran (spek §3). Helper MURNI — dites node. Status
+   disimpan: kosong | basah | dijemur (+ sejak, ms). 'kering' TIDAK
+   disimpan: dihitung dari dijemur + waktu >= JEMUR_DUR (jam nyata, jadi
+   tetap jalan walau halaman dimuat ulang). */
+var JEMUR_DUR = 3 * 60 * 1000; /* 3 menit (keputusan Ryan) */
+var JEMURAN_JARAK = 3; /* m dari kotak jemuran (keputusan Ryan) */
+var JEMURAN_KOTAK = { minX: -16.6, maxX: -14.4, minZ: 0.9, maxZ: 7.1 }; /* 4 tiang + 2 tali */
+function jemuranBaru() { return { status: 'kosong', sejak: 0 }; }
+function jemuranMuat(raw, sekarang) {
+  /* parsing aman: apa pun yang aneh -> kosong. sejak di masa depan
+     (jam HP dimundurkan) dipotong ke sekarang. */
+  var p;
+  try { p = JSON.parse(raw); } catch (e) { return jemuranBaru(); }
+  if (!p || typeof p !== 'object') return jemuranBaru();
+  if (p.status === 'basah') return { status: 'basah', sejak: 0 };
+  if (p.status === 'dijemur' && typeof p.sejak === 'number' && isFinite(p.sejak) && p.sejak > 0) {
+    return { status: 'dijemur', sejak: Math.min(p.sejak, sekarang) };
+  }
+  return jemuranBaru();
+}
+function jemuranStatus(st, sekarang, dur) {
+  if (!st) return 'kosong';
+  if (st.status === 'dijemur') return sekarang - st.sejak >= dur ? 'kering' : 'dijemur';
+  return st.status === 'basah' ? 'basah' : 'kosong';
+}
+function jemuranSisaDetik(st, sekarang, dur) {
+  if (!st || st.status !== 'dijemur') return 0;
+  return Math.max(0, Math.ceil((st.sejak + dur - sekarang) / 1000));
+}
+function jemuranTransisi(st, aksi, sekarang, dur) {
+  /* state baru, atau null kalau aksi tidak sah dari status sekarang. */
+  var now = jemuranStatus(st, sekarang, dur);
+  if (aksi === 'cuci_selesai' && now === 'kosong') return { status: 'basah', sejak: 0 };
+  if (aksi === 'jemur' && now === 'basah') return { status: 'dijemur', sejak: sekarang };
+  if (aksi === 'angkat' && now === 'kering') return jemuranBaru();
+  return null;
+}
+function jemuranTeksSisa(detik) {
+  if (detik <= 60) return 'kurang dari 1 menit lagi';
+  return 'kira-kira ' + Math.ceil(detik / 60) + ' menit lagi';
+}
+/* ==== JEMURAN-END ==== */
 var toastTimer = null;
 function toastKosan(msg) {
   var t = document.getElementById('toast');
@@ -3832,6 +3897,97 @@ function gazeboDuduk(nama) {
   toastKosan('🪑 Nongkrong di gazebo — ketuk Bangun buat berdiri');
   misiSelesai('gazebo');
 }
+/* Tahap 1 — jemuran: simpan/baca + visual (cucian di tali, keranjang di
+   tangan) + kartu. Semua LOKAL (localStorage 'kosan3d-jemuran'). */
+var jemuranCucian; /* diisi buildWorld (tanpa inisialisasi di sini: jangan menimpa) */
+var jemuranKeranjang = null; /* THREE.Group, dibuat malas, menempel ke avatar saat basah */
+function jemuranBaca() {
+  try { return jemuranMuat(localStorage.getItem('kosan3d-jemuran'), Date.now()); } catch (e) { return jemuranBaru(); }
+}
+function jemuranTulis(st) {
+  try { localStorage.setItem('kosan3d-jemuran', JSON.stringify(st)); } catch (e) { /* abaikan */ }
+}
+function jemuranStatusSekarang() {
+  /* tamu tidak pernah punya cucian (dapur khusus penghuni) — sisa status
+     penghuni lain di HP yang sama tidak ditampilkan ke tamu. */
+  if (!ktaIsResident()) return 'kosong';
+  return jemuranStatus(jemuranBaca(), Date.now(), JEMUR_DUR);
+}
+function jemuranBuatKeranjang() {
+  var k = new THREE.Group();
+  box(M.wood, 0.44, 0.22, 0.3, 0, 0, 0, k); /* badan keranjang anyaman (bukan biru: dressBlue = capBlue, tenggelam di baju) */
+  box(M.clothesTeal, 0.38, 0.07, 0.24, 0, 0.13, 0, k); /* tumpukan cucian basah */
+  box(M.woodDark, 0.46, 0.04, 0.32, 0, 0.11, 0, k); /* bibir keranjang */
+  k.position.set(0, 0.8, 0.42); /* di depan perut, di antara dua tangan (lokal grup avatar) */
+  return k;
+}
+function jemuranTerapkanVisual() {
+  var status = jemuranStatusSekarang();
+  var diTali = status === 'dijemur' || status === 'kering';
+  if (jemuranCucian) jemuranCucian.forEach(function (m) { m.visible = diTali; });
+  var bawa = status === 'basah';
+  if (bawa && !jemuranKeranjang) jemuranKeranjang = jemuranBuatKeranjang();
+  if (jemuranKeranjang) {
+    if (bawa && avatar && jemuranKeranjang.parent !== avatar) avatar.add(jemuranKeranjang); /* juga setelah avatar dibangun ulang (ganti gender) */
+    if (!bawa && jemuranKeranjang.parent) jemuranKeranjang.parent.remove(jemuranKeranjang);
+  }
+}
+setInterval(jemuranTerapkanVisual, 1000); /* status login / kering / avatar baru -> visual ikut dalam 1 dtk */
+function jemuranAksi(aksi) {
+  if (!ktaIsResident()) return null;
+  var baru = jemuranTransisi(jemuranBaca(), aksi, Date.now(), JEMUR_DUR);
+  if (!baru) return null;
+  jemuranTulis(baru);
+  jemuranTerapkanVisual();
+  return baru;
+}
+function showJemuranCard() {
+  if (myRealm !== 'yard') return;
+  cardTitle.innerHTML = iconSvg('baju') + ' Jemuran';
+  cardActions.innerHTML = '';
+  var html;
+  var status = jemuranStatusSekarang();
+  var dekat = jarakKeKotak(avatarPos.x, avatarPos.z, JEMURAN_KOTAK) <= JEMURAN_JARAK;
+  var tombol = null;
+  if (!ktaIsResident()) {
+    html = '<p>Jemuran kos. Cuci dulu di dapur, khusus penghuni. 🧺</p>';
+  } else if (status === 'kosong') {
+    html = '<p>Jemuran kos. Belum ada cucianmu di sini — cuci dulu di mesin cuci dapur, nanti jemur di sini. 🧺</p>';
+  } else if (status === 'basah') {
+    html = '<p>Cucianmu masih basah di keranjang. 🧺</p>';
+    if (dekat) tombol = ['jemurBtn', 'Jemur cucian', function () { jemuranJemur(); }];
+    else html += '<p style="margin-top:4px">Jalan ke jemuran dulu ya. 🚶</p>';
+  } else if (status === 'dijemur') {
+    html = '<p>Cucianmu lagi dijemur. Kering ' + jemuranTeksSisa(jemuranSisaDetik(jemuranBaca(), Date.now(), JEMUR_DUR)) + '. ☀️</p>';
+  } else {
+    html = '<p>Cucianmu sudah <b>kering</b>! 👕</p>';
+    if (dekat) tombol = ['angkatBtn', 'Angkat cucian', function () { jemuranAngkat(); }];
+    else html += '<p style="margin-top:4px">Jalan ke jemuran dulu ya. 🚶</p>';
+  }
+  if (ktaIsResident() && status !== 'kosong') html += '<p class="kartu-catatan" style="margin-top:4px;font-size:12px;opacity:.75">Cucian ini cuma kelihatan di HP-mu.</p>';
+  cardBody.innerHTML = html;
+  if (tombol) {
+    var b = document.createElement('button');
+    b.id = tombol[0];
+    b.innerHTML = iconSvg('baju') + ' ' + tombol[1];
+    b.addEventListener('click', tombol[2]);
+    cardActions.appendChild(b);
+  }
+  openCard();
+}
+function jemuranJemur() {
+  if (jarakKeKotak(avatarPos.x, avatarPos.z, JEMURAN_KOTAK) > JEMURAN_JARAK) { toastKosan('Jalan ke jemuran dulu ya 🚶'); return; }
+  if (!jemuranAksi('jemur')) return;
+  closeCard();
+  toastKosan('👕 Cucian dijemur — kering kira-kira 3 menit lagi');
+}
+function jemuranAngkat() {
+  if (jarakKeKotak(avatarPos.x, avatarPos.z, JEMURAN_KOTAK) > JEMURAN_JARAK) { toastKosan('Jalan ke jemuran dulu ya 🚶'); return; }
+  if (!jemuranAksi('angkat')) return;
+  closeCard();
+  toastKosan('👕 Cucian kering diangkat');
+  misiSelesai('jemur');
+}
 /* Ronde 42 — kartu area laundry (pemenang Ep 2): ketuk mesin cuci /
    pengering di halaman. */
 function showLaundryCard() {
@@ -4117,6 +4273,9 @@ function genderSymbolSvg(g) {
    warna teks tombol (putih/biru/kuning). Tombol statis topbar pakai SVG
    inline langsung di HTML; tombol kartu (dibuat JS) pakai helper ini. */
 var UICONS = {
+  /* Tahap 1 — ikon misi/kartu baru */
+  baju: '<path d="M8 3l-5 3 2 4 2-1v12h10V9l2 1 2-4-5-3a4 4 0 0 1-8 0z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
+  obrol: '<path d="M4 5h16v10H9l-5 4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 9h8M8 12h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
   door: '<path d="M7 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 21h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="13" cy="12" r="0.7" fill="currentColor"/>',
   person: '<circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
   bed: '<path d="M2 4v16M2 8h18a2 2 0 0 1 2 2v10M2 17h20M6 8v9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
@@ -5497,6 +5656,7 @@ function canvasTap(e, wasPinch) {
   if (ud.interact === 'bed') { showBedCard(); return; }
   if (ud.interact === 'lamp') { toggleRoomLamp(); return; }
   if (ud.interact === 'bangku') { showGazeboCard(ud.bangku); return; } /* Tahap 1 — gazebo */
+  if (ud.interact === 'jemuran') { showJemuranCard(); return; } /* Tahap 1 — jemuran */
   /* Ronde 48 — interaksi dapur (dicek sebelum 'card', pola bed/lamp). */
   if (ud.interact === 'stove') { toggleDapurStove(); return; }
   if (ud.interact === 'faucet') { toggleDapurFaucet(); return; }
@@ -6286,6 +6446,10 @@ function animate() {
       if (drLed) drLed.visible = (Math.floor(washDR.t * 3) % 2 === 0);
       if (washDR.t <= 0) finishWash('dr');
     }
+  }
+  /* Tahap 1 — cucian pemain di jemuran bergoyang pelan (hanya di halaman, hanya saat tampil) */
+  if (myRealm === 'yard' && jemuranCucian && jemuranCucian[0].visible) {
+    for (var jc = 0; jc < jemuranCucian.length; jc++) jemuranCucian[jc].rotation.z = Math.sin(walkT * 1.6 + jc * 1.3) * 0.05;
   }
   renderer.render(myRealm === 'living' ? livingScene : (myRealm === 'dapur' ? dapurScene : (myRealm.indexOf('room-') === 0 ? roomScene : scene)), camera);
 }

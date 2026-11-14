@@ -445,3 +445,69 @@ test('Tahap 1 gazebo: bangku bisa diketuk + pindah alam bangun dulu', () => {
     assert.ok(blok.indexOf('if (roomPose) bangunDariKasur(true);') < blok.indexOf('savedYard ='), f + ': bangun sebelum savedYard');
   }
 });
+
+const JM = () => blokMurni('JEMURAN-START', 'JEMURAN-END', ['JEMUR_DUR', 'JEMURAN_JARAK', 'JEMURAN_KOTAK', 'jemuranMuat', 'jemuranStatus', 'jemuranSisaDetik', 'jemuranTransisi', 'jemuranTeksSisa']);
+
+test('Tahap 1 jemuran: keputusan Ryan (3 menit, 3 m)', () => {
+  const j = JM();
+  assert.equal(j.JEMUR_DUR, 180000);
+  assert.equal(j.JEMURAN_JARAK, 3);
+});
+
+test('Tahap 1 jemuran: jemuranMuat aman untuk data rusak / asing / jam mundur', () => {
+  const { jemuranMuat } = JM();
+  const now = 1_800_000_000_000;
+  for (const raw of [null, '', '{', 'null', '7', '"dijemur"', '{"status":"kering"}', '{"status":"__proto__"}',
+    '{"status":"dijemur"}', '{"status":"dijemur","sejak":"1"}', '{"status":"dijemur","sejak":-5}', '{"status":"dijemur","sejak":1e999}']) {
+    assert.deepEqual(jemuranMuat(raw, now), { status: 'kosong', sejak: 0 }, String(raw));
+  }
+  assert.deepEqual(jemuranMuat('{"status":"basah","sejak":123}', now), { status: 'basah', sejak: 0 });
+  assert.deepEqual(jemuranMuat('{"status":"dijemur","sejak":' + (now - 5000) + '}', now), { status: 'dijemur', sejak: now - 5000 });
+  assert.deepEqual(jemuranMuat('{"status":"dijemur","sejak":' + (now + 999999) + '}', now), { status: 'dijemur', sejak: now }, 'masa depan dipotong');
+});
+
+test('Tahap 1 jemuran: status + sisa waktu, batas tepat JEMUR_DUR', () => {
+  const { jemuranStatus, jemuranSisaDetik, JEMUR_DUR } = JM();
+  const st = { status: 'dijemur', sejak: 1000 };
+  assert.equal(jemuranStatus(st, 1000 + JEMUR_DUR - 1, JEMUR_DUR), 'dijemur');
+  assert.equal(jemuranStatus(st, 1000 + JEMUR_DUR, JEMUR_DUR), 'kering');
+  assert.equal(jemuranSisaDetik(st, 1000, JEMUR_DUR), 180);
+  assert.equal(jemuranSisaDetik(st, 1000 + JEMUR_DUR - 1, JEMUR_DUR), 1);
+  assert.equal(jemuranSisaDetik(st, 1000 + JEMUR_DUR + 50, JEMUR_DUR), 0);
+  assert.equal(jemuranStatus({ status: 'basah', sejak: 0 }, 5, JEMUR_DUR), 'basah');
+  assert.equal(jemuranStatus(null, 5, JEMUR_DUR), 'kosong');
+});
+
+test('Tahap 1 jemuran: transisi sah dan tidak sah', () => {
+  const { jemuranTransisi, JEMUR_DUR } = JM();
+  const kosong = { status: 'kosong', sejak: 0 }, basah = { status: 'basah', sejak: 0 };
+  const dijemur = { status: 'dijemur', sejak: 1000 };
+  assert.deepEqual(jemuranTransisi(kosong, 'cuci_selesai', 5, JEMUR_DUR), basah);
+  assert.deepEqual(jemuranTransisi(basah, 'jemur', 777, JEMUR_DUR), { status: 'dijemur', sejak: 777 });
+  assert.equal(jemuranTransisi(dijemur, 'angkat', 1000 + JEMUR_DUR - 1, JEMUR_DUR), null, 'belum kering');
+  assert.deepEqual(jemuranTransisi(dijemur, 'angkat', 1000 + JEMUR_DUR, JEMUR_DUR), kosong);
+  /* tidak sah */
+  assert.equal(jemuranTransisi(basah, 'cuci_selesai', 5, JEMUR_DUR), null);
+  assert.equal(jemuranTransisi(dijemur, 'cuci_selesai', 1000 + JEMUR_DUR, JEMUR_DUR), null, 'kering di tali: belum boleh cuci lagi');
+  assert.equal(jemuranTransisi(kosong, 'jemur', 5, JEMUR_DUR), null);
+  assert.equal(jemuranTransisi(dijemur, 'jemur', 5, JEMUR_DUR), null);
+  assert.equal(jemuranTransisi(kosong, 'angkat', 5, JEMUR_DUR), null);
+  assert.equal(jemuranTransisi(kosong, 'hapus', 5, JEMUR_DUR), null);
+});
+
+test('Tahap 1 jemuran: teks sisa waktu', () => {
+  const { jemuranTeksSisa } = JM();
+  assert.equal(jemuranTeksSisa(180), 'kira-kira 3 menit lagi');
+  assert.equal(jemuranTeksSisa(61), 'kira-kira 2 menit lagi');
+  assert.equal(jemuranTeksSisa(60), 'kurang dari 1 menit lagi');
+});
+
+test('Tahap 1 jemuran: kabel ke mesin cuci, ketuk, dan cucian baru tanpa AABB', () => {
+  assert.match(HTML, /if \(ud\.interact === 'jemuran'\) \{ showJemuranCard\(\); return; \}/);
+  const a = HTML.indexOf('function finishWash('), fw = HTML.slice(a, HTML.indexOf('\n}\n', a));
+  assert.match(fw, /which === 'wm' && jemuranAksi\('cuci_selesai'\)/);
+  const b = HTML.indexOf('function startWash('), sw = HTML.slice(b, HTML.indexOf('\n}\n', b));
+  assert.ok(sw.indexOf("jemuranStatusSekarang()") < sw.indexOf('st.active = true'), 'cek jemuran sebelum mesin jalan');
+  assert.equal((HTML.match(/jemuranCucian = \[/g) || []).length, 1);
+  assert.ok(!/var jemuranCucian\s*=/.test(HTML), 'deklarasi tanpa inisialisasi (jangan menimpa isi buildWorld)');
+});
