@@ -1,8 +1,11 @@
 -- Gedung C & D (perintah Ryan 15 Nov 00:41): 20 kamar baru K21-K40.
 -- HANYA MENAMBAH fungsi baru kosan_register_cd + melebarkan CHECK kamar
--- tabel Fase A (kosan_akun, kosan_sesi) dari 1..20 ke 1..40.
+-- (kosan_residents, kosan_akun, kosan_sesi) dari 1..20 ke 1..40.
 -- TIDAK disentuh: kosan_register (kunci KOSAN / KOSANBARU), kosan_login,
--- kosan_occupants, tabel kosan_residents, data penghuni K1-K20.
+-- kosan_occupants, data penghuni K1-K20.
+-- PERBAIKAN Vesper 15 Nov 02:25 (uji fungsi live): kosan_residents JUGA punya
+-- CHECK room 1..20 (kosan_residents_room_check) — tanpa melebarkannya, INSERT
+-- kamar 21+ GAGAL walau fungsi + kosan_akun/kosan_sesi sudah 1..40.
 -- Kunci = gerbang bersama (pola KOSAN, tanpa flag gedung): KOSANC -> K21-30
 -- (Gedung C), KOSAND -> K31-40 (Gedung D). Server (/api/daftar) memanggil
 -- fungsi ini HANYA untuk kunci KOSANC/KOSAND (api/_lib/app.js).
@@ -10,21 +13,24 @@
 
 begin;
 
--- ---------- 1. CHECK kamar tabel Fase A: 1..20 -> 1..40 ----------
+-- ---------- 1. CHECK kamar: 1..20 -> 1..40 ----------
 -- Nama constraint bawaan Postgres untuk CHECK kolom inline = <tabel>_room_check,
 -- tapi dicari lewat definisinya supaya tetap benar kalau namanya lain.
+-- Mencakup kosan_residents (tabel penghuni utama) + tabel Fase A (kosan_akun, kosan_sesi).
 do $$
 declare c record;
 begin
   for c in
     select t.relname as tabel, k.conname as nama
       from pg_constraint k join pg_class t on t.oid = k.conrelid join pg_namespace s on s.oid = t.relnamespace
-     where s.nspname = 'public' and t.relname in ('kosan_akun', 'kosan_sesi') and k.contype = 'c'
+     where s.nspname = 'public' and t.relname in ('kosan_residents', 'kosan_akun', 'kosan_sesi') and k.contype = 'c'
        and pg_get_constraintdef(k.oid) ~ 'room' and pg_get_constraintdef(k.oid) ~ '20'
   loop
     execute format('alter table public.%I drop constraint %I', c.tabel, c.nama);
   end loop;
 end $$;
+alter table public.kosan_residents drop constraint if exists kosan_residents_room_check;
+alter table public.kosan_residents add constraint kosan_residents_room_check check (room between 1 and 40);
 alter table public.kosan_akun drop constraint if exists kosan_akun_room_check;
 alter table public.kosan_akun add constraint kosan_akun_room_check check (room between 1 and 40);
 alter table public.kosan_sesi drop constraint if exists kosan_sesi_room_check;
