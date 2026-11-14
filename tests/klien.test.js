@@ -107,3 +107,48 @@ test('perbaikan 9: tombol tamu tidak membaca kolom nama', () => {
   assert.ok(!/entryName/.test(blok), blok);
   assert.match(blok, /tamuPilihNomor\(tamuNamaTerpakai\(\)\)/);
 });
+
+/* ---------- perbaikan 9b (Ryan 14 Nov 15:37): pesan gabungan kosan penuh ---------- */
+const PESAN_GABUNG = 'Nama ini belum terdaftar — dan kosan juga sudah penuh (20 kamar terisi semua). Coba cek ejaan namamu, atau masuk sebagai tamu.';
+/* jalankan masukKosan() ASLI dari index.html dengan dunia tiruan */
+function jalankanMasukKosan({ nama, preview, loginView }) {
+  const awal = HTML.indexOf('function masukKosan() {');
+  const src = HTML.slice(awal, HTML.indexOf('\n}\n', awal) + 3);
+  const jejak = { error: [], login: 0, daftar: 0 };
+  const dunia = {
+    entryName: { value: nama, focus() {} }, normalize: (n) => String(n).trim().replace(/^@+/, '').toLowerCase(),
+    entryBusy: false, entered: false, visitorName: 'kamu', entryOverlay: { classList: { remove() {} } },
+    OCCUPANTS_OK: true, toastKosan() {}, masukTamu() {}, previewFor: () => preview,
+    entryShowError: (m) => jejak.error.push(m), entryLoginView: loginView,
+    entryLogin: () => { jejak.login++; }, entryDaftar: () => { jejak.daftar++; },
+    entryTahap: 'masuk', sesiPenghuni: null, layarPenuhSaatKetuk() {}, entrySetBusy() {},
+    muatOccupants: () => Promise.resolve(), entryModeManual: false, entryNameTouched: false, entryDecideInitialMode() {}
+  };
+  const k = Object.keys(dunia);
+  new Function(...k, src + '\nmasukKosan();')(...k.map((x) => dunia[x]));
+  return jejak;
+}
+
+test('9b: preview null (20/20 penuh, nama bukan penghuni) -> pesan gabungan, entryLogin tidak jalan', () => {
+  for (const loginView of [true, false]) {
+    const j = jalankanMasukKosan({ nama: 'rinna', preview: null, loginView });
+    assert.deepEqual(j.error, [PESAN_GABUNG]);
+    assert.equal(j.login + j.daftar, 0);
+  }
+});
+
+test('9b: preview ada -> lanjut ke entryLogin/entryDaftar seperti biasa (tanpa pesan gabungan)', () => {
+  const a = jalankanMasukKosan({ nama: 'rina', preview: { room: 3, resident: true }, loginView: true });
+  assert.deepEqual(a.error, []); assert.equal(a.login, 1);
+  const b = jalankanMasukKosan({ nama: 'sari', preview: { room: 5, resident: false }, loginView: false });
+  assert.deepEqual(b.error, []); assert.equal(b.daftar, 1);
+});
+
+test('9b: string lama hilang dari masukKosan; pesan belum-terdaftar entryLogin + kartu showKosanPenuh tidak berubah', () => {
+  const awal = HTML.indexOf('function masukKosan() {');
+  const src = HTML.slice(awal, HTML.indexOf('\n}\n', awal) + 3);
+  assert.ok(src.includes(PESAN_GABUNG));
+  assert.ok(!src.includes("entryShowError('Kosan sudah penuh (20 kamar terisi semua).')"));
+  assert.ok(HTML.includes("entryShowError('Nama ini belum terdaftar sebagai penghuni — daftar dulu, atau masuk sebagai tamu.')"));
+  assert.match(HTML, /function showKosanPenuh\(/);
+});
