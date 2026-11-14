@@ -1248,17 +1248,28 @@ var PLAZA_SOLIDS = [
   { minX: 12, maxX: 15.5, minZ: 9.47, maxZ: 9.53 },
   { minX: 8.75, maxX: 9.25, minZ: 2.75, maxZ: 3.25 },
   { minX: 14.75, maxX: 15.25, minZ: 2.75, maxZ: 3.25 },
-  /* Parkiran (Fase 0, Task 3) — 6 tiang + 3 pagar tanaman; sisi utara
-     TERBUKA (masuk dari lapangan); fascia/lampu/papan TANPA AABB. */
-  { minX: 4.35, maxX: 4.65, minZ: 13.35, maxZ: 13.65 },
-  { minX: 9.85, maxX: 10.15, minZ: 13.35, maxZ: 13.65 },
-  { minX: 15.35, maxX: 15.65, minZ: 13.35, maxZ: 13.65 },
-  { minX: 4.35, maxX: 4.65, minZ: 16.35, maxZ: 16.65 },
-  { minX: 9.85, maxX: 10.15, minZ: 16.35, maxZ: 16.65 },
-  { minX: 15.35, maxX: 15.65, minZ: 16.35, maxZ: 16.65 },
-  { minX: 3.75, maxX: 4.25, minZ: 13, maxZ: 17 },
-  { minX: 15.75, maxX: 16.25, minZ: 13, maxZ: 17 },
-  { minX: 4, maxX: 16, minZ: 16.75, maxZ: 17.25 },
+  /* Parkiran (Fase 0, Task 3) — 6 tiang + 3 pagar tanaman; sisi BARAT
+     TERBUKA (masuk dari lapangan, menghadap jemuran); fascia/lampu/papan
+     TANPA AABB. Rapihin tengah 15 Nov: PINDAH x 4..16, z 13..17 ->
+     x 30..42, z 4..8, lalu DIPUTAR 90 derajat (vonis Ryan dari screenshot
+     HP) -> x 34..38, z 0..12, depan barat, lalu DIMUNDURIN 1 m ke selatan
+     (vonis Ryan 06:21) -> x 34..38, z 1..13, lalu DIMUNDURIN 1 m ke
+     TIMUR (vonis Ryan 06:48 + 06:55 + 07:13) -> x 35..39, z 1..13;
+     geser selatan DIREVERT 07:13 (kesamping); lalu DIMUNDURIN LAGI
+     2 m ke TIMUR (vonis Ryan 07:13 + 07:14) -> x 37..41, z 1..13;
+     lalu DIMUNDURIN LAGI 1 m ke TIMUR (vonis Ryan 07:25, "lagi,
+     sampe pembatas cream itu": pembatas cream = tepi timur perkerasan
+     plaza (x 42)) -> x 38..42, z 1..13; pagar timur (x 42) mentok
+     di pembatas cream itu (tepi perkerasan, x 42). */
+  { minX: 38.35, maxX: 38.65, minZ: 1.35, maxZ: 1.65 },
+  { minX: 38.35, maxX: 38.65, minZ: 6.85, maxZ: 7.15 },
+  { minX: 38.35, maxX: 38.65, minZ: 12.35, maxZ: 12.65 },
+  { minX: 41.35, maxX: 41.65, minZ: 1.35, maxZ: 1.65 },
+  { minX: 41.35, maxX: 41.65, minZ: 6.85, maxZ: 7.15 },
+  { minX: 41.35, maxX: 41.65, minZ: 12.35, maxZ: 12.65 },
+  { minX: 38, maxX: 42, minZ: 0.75, maxZ: 1.25 },
+  { minX: 38, maxX: 42, minZ: 12.75, maxZ: 13.25 },
+  { minX: 41.75, maxX: 42.25, minZ: 1, maxZ: 13 },
   /* Jemuran (Fase 0, Task 4) — 4 tiang + layar + 4 pakaian + 2 pot
      (Fix Preview Check: pot di tengah antara 2 baris tiang, AABB sendiri). */
   { minX: -16.6, maxX: -16.4, minZ: 0.9, maxZ: 1.1 },
@@ -1968,8 +1979,8 @@ function buildWorld() {
   fenceRun(16.6, 29, 47, 29);
   box(M.fence, 0.3, 1.5, 0.3, 13.4, 0.75, 29);
   box(M.fence, 0.3, 1.5, 0.3, 16.6, 0.75, 29);
-  /* jalan setapak gerbang -> alun-alun lewat celah C-D (berhenti di pagar tanaman selatan parkiran z 17,25) */
-  box(M.path, 2.4, 0.06, 11.7, 15, 0.03, 23.15).receiveShadow = true;
+  /* jalan setapak gerbang -> alun-alun lewat celah C-D (menyambung ke perkerasan plaza z 14; dulu berhenti di pagar tanaman parkiran z 17,25 — parkir pindah 15 Nov, jalur kini tembus sampai plaza) */
+  box(M.path, 2.4, 0.06, 15, 15, 0.03, 21.5).receiveShadow = true;
 
   var awalGedungAB = scene.children.length; /* Gedung C & D: semua mesh A/B sesudah titik ini dicerminkan */
   /* ---- gedung kosan: batu terang modern, 2 lantai ---- */
@@ -2253,7 +2264,7 @@ function buildWorld() {
   box(M.leaf, 23.3, 0.5, 0.5, 30.35, 0.53, -1);
   /* (bedeng pagar selatan lama x -18..-2, z 16,75 DIBONGKAR — Gedung C & D, keputusan Vesper 15 Nov) */
   /* 2 pohon baru (tanpa AABB, konsisten dengan 3 pohon lama) */
-  tree(-4, 15); tree(-8, 15);
+  tree(6.5, 13); tree(23.5, 13); /* Rapihin tengah 15 Nov: pindah dari (-4,15)/(-8,15) yang melayang di barat parkiran lama — kini membingkai jalur gerbang x 15, simetris ±8,5 m. Koreksi: di CELAH antar pintu (6,5 di antara pintu C x4/x9; 23,5 di antara pintu D x21/x26) — BUKAN di depan pintu (8/22 menutup pintu K25/K31) */
   /* 6 lampu jalan (tanpa AABB, konsisten dengan pohon) */
   [[-11, -3], [41, -3], [-12, 14], [41, 12], [-8, 12], [30, 12]].forEach(function (p) {
     cyl(M.steelDark, 0.09, 0.09, 2.2, p[0], 1.1, p[1]);
@@ -2367,55 +2378,73 @@ function buildWorld() {
   box(M.soil, 0.5, 0.35, 0.5, 15.0, 0.175, 3.0);
   ball(M.leaf, 0.35, 15.0, 0.55, 3.0);
 
-  /* ---- PARKIRAN motor beratap (Fase 0, Task 3) — 10 slot, x 4..16,
-     z 13..17, pusat (10, 15). Sisi UTARA TERBUKA (masuk dari lapangan);
-     koridor masuk (x -1,6..1,6) + pagar selatan (z=18) TIDAK disentuh.
+  /* ---- PARKIRAN motor beratap (Fase 0, Task 3) — 10 slot, x 38..42,
+     z 1..13, pusat (40, 7). Sisi BARAT TERBUKA (masuk dari lapangan,
+     menghadap JEMURAN — vonis Ryan 15 Nov dari screenshot HP).
+     Revisi 15 Nov: DIPUTAR 90 derajat dari x 30..42, z 4..8 (depan utara)
+     — depan kini barat, papan PARKIR di sisi barat menghadap jemuran.
+     Lalu DIMUNDURIN 1 m ke selatan (vonis Ryan 06:21 dari screenshot HP:
+     ujung selatan parkir harus pas di tempat dia berdiri, ~z 13).
+     Lalu DIMUNDURIN 1 m ke TIMUR (vonis Ryan 06:48 + 06:55 + 07:13:
+     depan = tempelan PARKIR (BARAT), BELAKANG = TIMUR; Ryan berdiri
+     di BELAKANG (timur); MUNDUR = TIMUR. Geser selatan 1 m
+     (07:02–07:03) DIREVERT 07:13 karena itu KESAMPING.) Lalu
+     DIMUNDURIN LAGI 2 m ke TIMUR (vonis Ryan 07:13 + 07:14) ->
+     x 37..41; pagar timur (x 41) mentok tempat Ryan (41,12). Lalu
+     DIMUNDURIN LAGI 1 m ke TIMUR (vonis Ryan 07:25, "lagi, sampe
+     pembatas cream itu": pembatas cream = tepi timur perkerasan
+     plaza (x 42)) -> x 38..42; pagar timur (x 42) mentok di
+     pembatas cream itu.
+     Rapihin tengah 15 Nov (Vesper): PINDAH dari x 4..16, z 13..17 — posisi
+     lama kejepit Gedung C (pagar z 17,25 -> dinding C z 18,6 = 1,35 m)
+     + menutup jalur gerbang x 15. Posisi baru di timur plaza, utara
+     Gedung D (jarak ke dinding D 10,6 m), sumbu gerbang->gazebo BEBAS.
      Ruling 5: fascia + 2 lampu gantung hangat + papan PARKIR (upgrade
      ringan standar modern luxury; total Task 3 = 29 mesh, cap +30). */
   /* 6 tiang baja (puncak y=3,05) */
-  box(M.steelDark, 0.3, 3.05, 0.3, 4.5, 1.525, 13.5);
-  box(M.steelDark, 0.3, 3.05, 0.3, 10, 1.525, 13.5);
-  box(M.steelDark, 0.3, 3.05, 0.3, 15.5, 1.525, 13.5);
-  box(M.steelDark, 0.3, 3.05, 0.3, 4.5, 1.525, 16.5);
-  box(M.steelDark, 0.3, 3.05, 0.3, 10, 1.525, 16.5);
-  box(M.steelDark, 0.3, 3.05, 0.3, 15.5, 1.525, 16.5);
+  box(M.steelDark, 0.3, 3.05, 0.3, 38.5, 1.525, 1.5);
+  box(M.steelDark, 0.3, 3.05, 0.3, 38.5, 1.525, 7);
+  box(M.steelDark, 0.3, 3.05, 0.3, 38.5, 1.525, 12.5);
+  box(M.steelDark, 0.3, 3.05, 0.3, 41.5, 1.525, 1.5);
+  box(M.steelDark, 0.3, 3.05, 0.3, 41.5, 1.525, 7);
+  box(M.steelDark, 0.3, 3.05, 0.3, 41.5, 1.525, 12.5);
   /* atap panel tembus cahaya — SATU lapis Basic transparan (opacity
      0,65), TANPA lapisan Lambert di belakangnya; bawah atap y=3,05 */
-  box(M.parkRoof, 12, 0.08, 4, 10, 3.09, 15);
+  box(M.parkRoof, 4, 0.08, 12, 40, 3.09, 7);
   /* fascia baja gelap keliling tepi atap (Ruling 5, tanpa AABB) */
-  box(M.steelDark, 12, 0.25, 0.08, 10, 3.0, 13);
-  box(M.steelDark, 12, 0.25, 0.08, 10, 3.0, 17);
-  box(M.steelDark, 0.08, 0.25, 4, 4, 3.0, 15);
-  box(M.steelDark, 0.08, 0.25, 4, 16, 3.0, 15);
+  box(M.steelDark, 4, 0.25, 0.08, 40, 3.0, 1);
+  box(M.steelDark, 4, 0.25, 0.08, 40, 3.0, 13);
+  box(M.steelDark, 0.08, 0.25, 12, 38, 3.0, 7);
+  box(M.steelDark, 0.08, 0.25, 12, 42, 3.0, 7);
   /* 2 lampu gantung hangat di bawah atap (Ruling 5 — SATU lapis glow
      Basic, tanpa AABB) */
-  cyl(M.steelDark, 0.02, 0.02, 0.3, 7, 2.9, 15);
-  ball(M.lampWarm, 0.13, 7, 2.73, 15);
-  cyl(M.steelDark, 0.02, 0.02, 0.3, 13, 2.9, 15);
-  ball(M.lampWarm, 0.13, 13, 2.73, 15);
-  /* papan nama PARKIR — sisi utara menghadap lapangan, di bawah tepi
-     atap (Ruling 5, tanpa AABB; pola papan RUANG TAMU) */
-  box(M.steelDark, 1.95, 0.6, 0.06, 10, 2.55, 12.97); /* backing papan */
+  cyl(M.steelDark, 0.02, 0.02, 0.3, 40, 2.9, 4);
+  ball(M.lampWarm, 0.13, 40, 2.73, 4);
+  cyl(M.steelDark, 0.02, 0.02, 0.3, 40, 2.9, 10);
+  ball(M.lampWarm, 0.13, 40, 2.73, 10);
+  /* papan nama PARKIR — sisi barat menghadap jemuran/lapangan, di bawah
+     tepi atap (Ruling 5, tanpa AABB; pola papan RUANG TAMU) */
+  box(M.steelDark, 0.06, 0.6, 1.95, 37.97, 2.55, 7); /* backing papan */
   var parkTex = textTexture('PARKIR', { w: 512, h: 128, bg: '#7c5227', color: '#ffffff', size: 62 });
   var parkSign = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.42),
     new THREE.MeshBasicMaterial({ map: parkTex }));
-  parkSign.position.set(10, 2.55, 12.93);
-  parkSign.rotation.y = Math.PI;
+  parkSign.position.set(37.93, 2.55, 7);
+  parkSign.rotation.y = -Math.PI / 2; /* hadap barat (-x) ke jemuran */
   scene.add(parkSign);
   /* 9 garis slot (10 slot @1,2 m; atas y=0,04 — di atas ubin 0,03) */
-  box(M.white, 0.12, 0.01, 2.5, 5.2, 0.035, 15);
-  box(M.white, 0.12, 0.01, 2.5, 6.4, 0.035, 15);
-  box(M.white, 0.12, 0.01, 2.5, 7.6, 0.035, 15);
-  box(M.white, 0.12, 0.01, 2.5, 8.8, 0.035, 15);
-  box(M.white, 0.12, 0.01, 2.5, 10.0, 0.035, 15);
-  box(M.white, 0.12, 0.01, 2.5, 11.2, 0.035, 15);
-  box(M.white, 0.12, 0.01, 2.5, 12.4, 0.035, 15);
-  box(M.white, 0.12, 0.01, 2.5, 13.6, 0.035, 15);
-  box(M.white, 0.12, 0.01, 2.5, 14.8, 0.035, 15);
-  /* pagar tanaman rendah 3 sisi (utara TERBUKA, atas y=0,53) */
-  box(M.leaf, 0.5, 0.5, 4, 4, 0.28, 15);
-  box(M.leaf, 0.5, 0.5, 4, 16, 0.28, 15);
-  box(M.leaf, 12, 0.5, 0.5, 10, 0.28, 17);
+  box(M.white, 2.5, 0.01, 0.12, 40, 0.035, 2.2);
+  box(M.white, 2.5, 0.01, 0.12, 40, 0.035, 3.4);
+  box(M.white, 2.5, 0.01, 0.12, 40, 0.035, 4.6);
+  box(M.white, 2.5, 0.01, 0.12, 40, 0.035, 5.8);
+  box(M.white, 2.5, 0.01, 0.12, 40, 0.035, 7.0);
+  box(M.white, 2.5, 0.01, 0.12, 40, 0.035, 8.2);
+  box(M.white, 2.5, 0.01, 0.12, 40, 0.035, 9.4);
+  box(M.white, 2.5, 0.01, 0.12, 40, 0.035, 10.6);
+  box(M.white, 2.5, 0.01, 0.12, 40, 0.035, 11.8);
+  /* pagar tanaman rendah 3 sisi (barat TERBUKA, atas y=0,53) */
+  box(M.leaf, 4, 0.5, 0.5, 40, 0.28, 1);
+  box(M.leaf, 0.5, 0.5, 12, 42, 0.28, 7);
+  box(M.leaf, 4, 0.5, 0.5, 40, 0.28, 13);
 
   /* ---- Ronde 14 — pintu utama + porch Ruang Tamu DICABUT (vonis Ryan
      09:25: porch + pintu utama "gak rapih"). Gedung adalah kotak PADAT
@@ -2423,27 +2452,11 @@ function buildWorld() {
      celah yang perlu ditutup: fasad kembali polos (10 pintu kamar +
      jendela + balkon). Ruang tamu kini dimasuki lewat tombol "Masuk
      Ruang Tamu" di kartu kamar (showRoomCard). */
-  /* ---- teras luar (sisi kanan depan gedung) — Ronde 11a: BUKAN lagi
-     pintu masuk ruang tamu, hanya tempat duduk luar ---- */
-  /* Ronde 11a — alas teras TIDAK LAGI membuka kartu Ruang Tamu (vonis
-     Ryan 01:01: ruang tamu itu di DALAM gedung, bukan di halaman).
-     Alas tetap sebagai dekorasi luar; masuk ruang tamu lewat tombol
-     "Masuk Ruang Tamu" di kartu kamar (Ronde 14 — pintu utama + porch
-     12b dicabut, vonis Ryan 09:25). */
-  var rug = box(M.rug, 5.4, 0.05, 4.2, 16, 0.03, -2);
-  rug.castShadow = false;
-  var table = box(M.wood, 1.6, 0.12, 0.9, 16, 0.45, -2);
-  box(M.woodDark, 0.12, 0.45, 0.12, 15.35, 0.22, -2.35);
-  box(M.woodDark, 0.12, 0.45, 0.12, 16.65, 0.22, -2.35);
-  box(M.woodDark, 0.12, 0.45, 0.12, 15.35, 0.22, -1.65);
-  box(M.woodDark, 0.12, 0.45, 0.12, 16.65, 0.22, -1.65);
-  /* Ronde 10b — router PINDAH KE DALAM ruang tamu (buildLivingRoom):
-     tidak ada lagi WiFi di atas meja terbuka di halaman depan (perintah
-     Ryan: tidak ada orang naruh router di luar rumah). Meja teras tetap
-     ada sebagai tempat duduk luar, tanpa router. */
-  /* bantal duduk */
-  var c1 = cyl(M.cushion, 0.42, 0.42, 0.18, 14.3, 0.09, -3.2);
-  var c2 = cyl(M.cushion2, 0.42, 0.42, 0.18, 17.7, 0.09, -0.9);
+  /* ---- teras luar DIHAPUS (vonis Ryan 15 Nov 06:16 dari screenshot HP:
+     "alas merah meja bantal hapus aja") — alas merah + meja + 4 kaki +
+     2 bantal duduk dicabut semua. Dulu tempat duduk luar (Ronde 11a: bukan
+     lagi pintu masuk ruang tamu; Ronde 14: porch dicabut). Ruang tamu kini
+     HANYA di dalam gedung (tombol "Masuk Ruang Tamu" di kartu kamar). */
   /* Ronde 11a — hit-proxy teras (ronde 2) DICABUT: area teras tidak lagi
      membuka kartu Ruang Tamu. */
   /* Ronde 11a — papan "RUANG TAMU" berdiri bebas di halaman DICABUT

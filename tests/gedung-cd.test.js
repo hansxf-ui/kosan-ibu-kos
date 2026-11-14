@@ -23,8 +23,14 @@ test('C&D: posisi sesuai brief (cermin A/B terhadap z 6,3), muka utara di dindin
   assert.equal(F.CERMIN_CD_Z, 12.6);
   assert.equal(cermin(F.BUILDING).maxZ, F.BUILDING_C.maxZ);
   assert.equal(F.YARD.maxZ, 28);
-  /* tidak pindah: gazebo, parkiran, jemuran (kotak AABB lama masih ada persis) */
-  for (const k of [{ minX: 11.2, maxX: 12.8, minZ: 6.1, maxZ: 6.9 }, { minX: 4, maxX: 16, minZ: 16.75, maxZ: 17.25 }, { minX: -16.6, maxX: -16.4, minZ: 0.9, maxZ: 1.1 }]) {
+  /* tidak pindah: gazebo, jemuran (kotak AABB lama masih ada persis).
+     Parkiran PINDAH + DIPUTAR + DIMUNDURIN (rapihin tengah 15 Nov, revisi
+     vonis Ryan): x 4..16, z 13..17 -> x 30..42, z 4..8 -> x 34..38,
+     z 0..12, depan barat -> x 34..38, z 1..13 (ujung selatan z 13).
+     (Mentok selatan ke pintu D DIBATALKAN vonis Ryan 06:48 — itu
+     KESAMPING, bukan MUNDUR. MUNDUR = ke timur.)
+     Jadi yang dicek adalah pagar selatan (z 12,75..13,25) di posisi baru x 38..42, z 1..13. */
+  for (const k of [{ minX: 11.2, maxX: 12.8, minZ: 6.1, maxZ: 6.9 }, { minX: 38, maxX: 42, minZ: 12.75, maxZ: 13.25 }, { minX: -16.6, maxX: -16.4, minZ: 0.9, maxZ: 1.1 }]) {
     assert.ok(F.PLAZA_SOLIDS.some((s) => JSON.stringify(s) === JSON.stringify(k)), JSON.stringify(k));
   }
   assert.ok(!F.PLAZA_SOLIDS.some((s) => s.minX === -18 && s.maxX === -2 && s.minZ === 16), 'bedeng selatan lama dibongkar');
