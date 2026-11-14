@@ -755,11 +755,8 @@
   }
   .kb-x { width: 14px; height: 14px; display: block; }
 
-  /* ---- UI refresh 2: label, placeholder, checkbox, ikon ---- */
-  .entry-label { display: block; text-align: left; font-size: 12px; font-weight: 800; color: var(--kb-teks-2);
-    letter-spacing: .3px; margin: 0 0 5px 4px; }
-  #entryKeyLabel { margin-top: 10px; }
-  #entryKey { margin-top: 0; text-transform: uppercase; letter-spacing: 1px; }
+  /* ---- UI refresh 2: placeholder, checkbox, ikon ---- */
+  #entryKey { text-transform: uppercase; letter-spacing: 1px; }
   #ktaKunciInput::placeholder, #entryKey::placeholder { text-transform: none; letter-spacing: 0; }
   #entryName::placeholder, #entryKey::placeholder, #ktaKunciInput::placeholder { color: #9aa9bb; font-weight: 600; opacity: 1; }
   .entry-ingat input { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; margin: 0; flex: 0 0 auto;
@@ -790,10 +787,6 @@
   }
   @media (max-width: 374px) and (orientation: portrait) {
     #roomCard .actions button { padding: 9px 5px; gap: 4px; font-size: 12.5px; }
-  }
-  @media (max-height: 500px) and (orientation: landscape) {
-    .entry-label { display: none !important; } /* landscape pendek: placeholder cukup, hemat tinggi */
-    #entryKey { margin-top: 6px; }
   }
   /* =================== AKHIR UI REFRESH =================== */
 </style>
@@ -966,13 +959,11 @@
       <p class="entry-sub">Ketik namamu, pilih karakter, lalu masuk.</p>
     </div>
     <div class="entry-form">
-    <label id="entryNameLabel" class="entry-label" for="entryName">Username</label>
     <input id="entryName" type="text" placeholder="@username" maxlength="40" autocomplete="off" autocapitalize="none" spellcheck="false">
     <!-- Ronde 54 — dua mode EKSPLISIT: DAFTAR (username + gender + kode
          kunci, lalu buat PIN di keypad) / MASUK (username, lalu PIN di
          keypad). Perbaikan 9 (Ryan 14 Nov): TANPA password; PIN selalu lewat
          keypad #pinOverlay. -->
-    <label id="entryKeyLabel" class="entry-label" for="entryKey" style="display:none">Kode kunci</label>
     <input id="entryKey" type="text" placeholder="Kode kunci dari caption terbaru" maxlength="20" autocomplete="off" autocapitalize="characters" spellcheck="false" style="display:none">
     <label id="entryIngatRow" class="entry-ingat" style="display:none"><input id="entryIngat" type="checkbox"> Ingat saya di perangkat ini</label>
     <p id="entryError" class="entry-error" style="display:none"></p>
@@ -3895,9 +3886,7 @@ function entryApplyMode() {
   var tahap = masuk ? entryTahap : '';
   var show = function (el, on) { if (el) el.style.display = on ? '' : 'none'; };
   show(entryName, tahap !== 'sesi');
-  show(document.getElementById('entryNameLabel'), tahap !== 'sesi'); /* UI refresh: label ikut kolomnya */
   show(entryKey, !masuk);
-  show(document.getElementById('entryKeyLabel'), !masuk);
   show(entryIngatRow, tahap !== 'sesi');
   show(genderRowEl, !masuk);
   show(entryNoteEl, !masuk); /* Task 11 — catatan kunci identitas hanya di mode DAFTAR */
