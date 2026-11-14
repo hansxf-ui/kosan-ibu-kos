@@ -967,13 +967,13 @@
     </div>
     <div class="entry-form">
     <label id="entryNameLabel" class="entry-label" for="entryName">Username</label>
-    <input id="entryName" type="text" placeholder="Nama Instagram-mu, mis. rina" maxlength="40" autocomplete="off" autocapitalize="none" spellcheck="false">
+    <input id="entryName" type="text" placeholder="@username" maxlength="40" autocomplete="off" autocapitalize="none" spellcheck="false">
     <!-- Ronde 54 — dua mode EKSPLISIT: DAFTAR (username + gender + kode
          kunci, lalu buat PIN di keypad) / MASUK (username, lalu PIN di
          keypad). Perbaikan 9 (Ryan 14 Nov): TANPA password; PIN selalu lewat
          keypad #pinOverlay. -->
     <label id="entryKeyLabel" class="entry-label" for="entryKey" style="display:none">Kode kunci</label>
-    <input id="entryKey" type="text" placeholder="Ada di caption video terbaru" maxlength="20" autocomplete="off" autocapitalize="characters" spellcheck="false" style="display:none">
+    <input id="entryKey" type="text" placeholder="Kode kunci dari caption terbaru" maxlength="20" autocomplete="off" autocapitalize="characters" spellcheck="false" style="display:none">
     <label id="entryIngatRow" class="entry-ingat" style="display:none"><input id="entryIngat" type="checkbox"> Ingat saya di perangkat ini</label>
     <p id="entryError" class="entry-error" style="display:none"></p>
     <div id="genderRow">
@@ -5006,7 +5006,7 @@ function ktaRenderKunci() {
     return;
   }
   el.innerHTML = '<div class="kta-kunci"><label class="kta-kunci-label" for="ktaKunciInput">Punya kode dari @ibu__kos? Masukkan di sini:</label>'
-    + '<div class="kta-kunci-row"><input id="ktaKunciInput" type="text" placeholder="Kode dari caption" maxlength="20" autocomplete="off" autocapitalize="characters">'
+    + '<div class="kta-kunci-row"><input id="ktaKunciInput" type="text" placeholder="Kode kunci…" maxlength="20" autocomplete="off" autocapitalize="characters">'
     + '<button id="ktaKunciBtn" type="button">' + iconSvg('key') + 'Klaim Kunci</button></div>'
     + '<p class="kta-kunci-note">Kode ada di postingan/bio @ibu__kos — follow tidak bisa dicek otomatis di sini. Belum follow? <a href="https://www.instagram.com/ibu__kos/" target="_blank" rel="noopener">Buka profil @ibu__kos</a></p></div>';
   var b = document.getElementById('ktaKunciBtn');
