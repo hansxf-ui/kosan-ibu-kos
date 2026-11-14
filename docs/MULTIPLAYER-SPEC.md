@@ -217,7 +217,7 @@ Untuk Kosan, salin bulat-bulat dengan penyesuaian nama:
 | `id` | string | `playerId` permanen pengirim (§4). **Kunci identitas — bukan nama.** |
 | `nama` | string | Nama tampilan, sudah `trim()`, maks 40 karakter (sama dengan `maxlength="40"` di `#nameInput`). Kosong → `"Pemain"`. |
 | `gender` | string | `"cewek"` atau `"cowok"` saja. |
-| `realm` | string | Alam/lokasi pemain: `"yard"` di v1; `"living"`, `"room-1"`…`"room-10"` di masa depan (§8). |
+| `realm` | string | Alam/lokasi pemain: `"yard"` di v1; `"living"`, `"dapur"`, `"room-1"`…`"room-20"` (§8). |
 | `x`, `z` | number | Posisi meter, dalam batas `YARD` (`x` −19…19, `z` −17…17) + toleransi 1 m. |
 | `rot` | number | Arah hadap radian, ternormalisasi ke [−π, π] (sama seperti `avatar.rotation.y` di `animate()`). |
 | `gerak` | number | 0…1 — besar defleksi ter-latch (`mag` dari `deadzoneLatch`); 0 = diam, 1 = lari penuh. Dipakai untuk ayunan kaki pemain lain (§3.4). |
@@ -298,7 +298,7 @@ diam-diam (tanpa pesan error, tanpa crash):
 3. `pos`: `x`/`z` number dan finite, dalam `YARD` + toleransi 1 m;
    `rot` number finite; `gerak` number 0…1; `gender` salah satu dari
    `cewek`/`cowok`; `realm` string dalam daftar yang dikenal
-   (`yard`, `living`, `room-1`…`room-10` — realm tak dikenal → perlakukan
+   (`yard`, `living`, `dapur`, `room-1`…`room-20` — realm tak dikenal → perlakukan
    sebagai `yard` JANGAN buang pesan, supaya pemain dari versi baru tetap
    terlihat); `nama` string, potong ke 40 karakter.
 4. `presence`: `id`/`nama`/`gender`/`realm` valid seperti di atas.
@@ -653,7 +653,7 @@ saat masuk pintu.
    baru — tidak perlu subscription baru, tidak perlu ganti topik, tidak
    perlu naik versi protokol.
 2. **Nilai realm v1:** `"yard"` (halaman luar — satu-satunya alam di v1).
-   Nilai masa depan: `"living"` (ruang tamu), `"room-1"` … `"room-10"`
+   Nilai masa depan: `"living"` (ruang tamu), `"dapur"`, `"room-1"` … `"room-20"`
    (kamar). Daftar ini terbuka — implementer interior boleh menambah nilai
    tanpa mengubah §2.
 3. **Aturan tampil:** klien hanya me-render pemain lain yang

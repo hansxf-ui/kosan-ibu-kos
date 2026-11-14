@@ -785,6 +785,9 @@
   @media (max-width: 374px) and (orientation: portrait) {
     #roomCard .actions button { padding: 9px 5px; gap: 4px; font-size: 12.5px; }
   }
+  /* Tahap 1 — gelembung kalimat Ibu Kos di kartu */
+  .ibu-gelembung { margin-top: 8px; padding: 10px 12px; background: var(--kb-biru-muda); color: var(--kb-teks);
+    border-radius: 14px 14px 14px 4px; font-weight: 700; line-height: 1.45; }
   /* =================== AKHIR UI REFRESH =================== */
 </style>
 <script type="importmap">
@@ -1450,7 +1453,7 @@ function mpAmbilToken(ember, now) { /* ember: { token, t } -> { ok, ember } */
 }
 
 function mpRealmDikenal(realm) {
-  if (realm === 'yard' || realm === 'living') return realm;
+  if (realm === 'yard' || realm === 'living' || realm === 'dapur') return realm; /* Tahap 1 Tugas 0: dapur dikenal (dulu jatuh ke yard) */
   if (typeof realm === 'string' && /^room-(?:[1-9]|1[0-9]|20)$/.test(realm)) return realm;
   return 'yard'; /* realm tak dikenal -> perlakukan sebagai yard (§2.7) */
 }
@@ -2131,21 +2134,35 @@ function buildWorld() {
      di barat lapangan; layar di sisi timur (menghadap lapangan),
      atas y=1,1 — rendah, tidak menutup pandangan dari spawn ke
      Gedung A. 15 mesh (cap +16). */
-  /* 4 tiang baja ramping (puncak y=2,0) */
-  cyl(M.steelDark, 0.08, 0.08, 2.0, -16.5, 1.0, 1);
-  cyl(M.steelDark, 0.08, 0.08, 2.0, -16.5, 1.0, 7);
-  cyl(M.steelDark, 0.08, 0.08, 2.0, -14.5, 1.0, 1);
-  cyl(M.steelDark, 0.08, 0.08, 2.0, -14.5, 1.0, 7);
-  /* 2 tali lurus z 1..7 di ketinggian 1,7 m */
-  box(M.white, 0.04, 0.04, 6, -16.5, 1.7, 4);
-  box(M.white, 0.04, 0.04, 6, -14.5, 1.7, 4);
-  /* layar tanaman rendah di sisi timur (atas y=1,1) */
-  box(M.leaf, 0.6, 1.1, 8, -13, 0.55, 4);
-  /* 4 pakaian di tali (tengah y=1,35, atas menyentuh tali y=1,7) */
-  box(M.white, 0.06, 0.7, 0.5, -16.5, 1.35, 2.5);
-  box(M.leaf, 0.06, 0.7, 0.5, -16.5, 1.35, 5.5);
-  box(M.stoneLight, 0.06, 0.7, 0.5, -14.5, 1.35, 3.5);
-  box(M.white, 0.06, 0.7, 0.5, -14.5, 1.35, 6.5);
+  /* Tahap 1 — tiang, tali, layar, dan pakaian bisa diketuk (interact
+     'jemuran') -> kartu Jemuran (spek §3). */
+  var jemuranKetuk = [
+    /* 4 tiang baja ramping (puncak y=2,0) */
+    cyl(M.steelDark, 0.08, 0.08, 2.0, -16.5, 1.0, 1),
+    cyl(M.steelDark, 0.08, 0.08, 2.0, -16.5, 1.0, 7),
+    cyl(M.steelDark, 0.08, 0.08, 2.0, -14.5, 1.0, 1),
+    cyl(M.steelDark, 0.08, 0.08, 2.0, -14.5, 1.0, 7),
+    /* 2 tali lurus z 1..7 di ketinggian 1,7 m */
+    box(M.white, 0.04, 0.04, 6, -16.5, 1.7, 4),
+    box(M.white, 0.04, 0.04, 6, -14.5, 1.7, 4),
+    /* layar tanaman rendah di sisi timur (atas y=1,1) */
+    box(M.leaf, 0.6, 1.1, 8, -13, 0.55, 4),
+    /* 4 pakaian di tali (tengah y=1,35, atas menyentuh tali y=1,7) */
+    box(M.white, 0.06, 0.7, 0.5, -16.5, 1.35, 2.5),
+    box(M.leaf, 0.06, 0.7, 0.5, -16.5, 1.35, 5.5),
+    box(M.stoneLight, 0.06, 0.7, 0.5, -14.5, 1.35, 3.5),
+    box(M.white, 0.06, 0.7, 0.5, -14.5, 1.35, 6.5)
+  ];
+  /* Tahap 1 — 3 helai cucian PEMAIN di slot tali yang kosong; tersembunyi
+     kecuali status dijemur/kering. Lokal (hanya di layar pemain ini), TANPA
+     AABB. Material dipakai ulang (tanpa material baru). Atas 1,7 = tali. */
+  jemuranCucian = [
+    box(M.clothesTeal, 0.06, 0.6, 0.45, -16.5, 1.4, 4.0),
+    box(M.clothesYellow, 0.06, 0.6, 0.45, -14.5, 1.4, 2.0),
+    box(M.shirtRed, 0.06, 0.6, 0.45, -14.5, 1.4, 5.0)
+  ];
+  jemuranCucian.forEach(function (m) { m.visible = false; jemuranKetuk.push(m); });
+  jemuranKetuk.forEach(function (m) { m.userData = { interact: 'jemuran' }; clickables.push(m); });
   /* 2 pot tanaman di tengah antara 2 baris tiang (box soil + bola leaf)
      — Fix Preview Check (Ryan 15:28): dulu menempel tiang (x -14,5),
      tiang menembus bola -> kelihatan nyatu. */
@@ -2203,14 +2220,15 @@ function buildWorld() {
   box(M.woodDark, 0.08, 0.61, 0.08, 12.7, 0.365, 6.8);
   /* 4 bangku keliling meja (pola bangku pedestal modern: jok + panel
      tengah; menghadap meja) */
-  box(M.wood, 1.4, 0.08, 0.4, 12.0, 0.45, 5.3);
-  box(M.woodDark, 0.08, 0.35, 0.4, 12.0, 0.235, 5.3);
-  box(M.wood, 1.4, 0.08, 0.4, 12.0, 0.45, 7.7);
-  box(M.woodDark, 0.08, 0.35, 0.4, 12.0, 0.235, 7.7);
-  box(M.wood, 0.4, 0.08, 1.2, 13.3, 0.45, 6.5);
-  box(M.woodDark, 0.4, 0.35, 0.08, 13.3, 0.235, 6.5);
-  box(M.wood, 0.4, 0.08, 1.2, 10.7, 0.45, 6.5);
-  box(M.woodDark, 0.4, 0.35, 0.08, 10.7, 0.235, 6.5);
+  /* Tahap 1 — jok + panel bangku bisa diketuk (interact 'bangku') -> kartu Gazebo / duduk */
+  [
+    [box(M.wood, 1.4, 0.08, 0.4, 12.0, 0.45, 5.3), box(M.woodDark, 0.08, 0.35, 0.4, 12.0, 0.235, 5.3), 'utara'],
+    [box(M.wood, 1.4, 0.08, 0.4, 12.0, 0.45, 7.7), box(M.woodDark, 0.08, 0.35, 0.4, 12.0, 0.235, 7.7), 'selatan'],
+    [box(M.wood, 0.4, 0.08, 1.2, 13.3, 0.45, 6.5), box(M.woodDark, 0.4, 0.35, 0.08, 13.3, 0.235, 6.5), 'timur'],
+    [box(M.wood, 0.4, 0.08, 1.2, 10.7, 0.45, 6.5), box(M.woodDark, 0.4, 0.35, 0.08, 10.7, 0.235, 6.5), 'barat']
+  ].forEach(function (b) {
+    for (var i = 0; i < 2; i++) { b[i].userData = { interact: 'bangku', bangku: b[2] }; clickables.push(b[i]); }
+  });
   /* 2 planter batu di luar dek sisi utara (box soil + bola leaf) */
   box(M.soil, 0.5, 0.35, 0.5, 9.0, 0.175, 3.0);
   ball(M.leaf, 0.35, 9.0, 0.55, 3.0);
@@ -2464,6 +2482,7 @@ function enterLiving() {
      Gerbang di sini (bukan di tombol) supaya SEMUA jalur tertutup:
      dropdown "Masuk ke", kartu kamar, kartu ruang tamu, ketuk pintu. */
   if (!ktaIsResident()) { toastKosan('Tamu belum bisa masuk ruang tamu — daftar dulu jadi penghuni ya!'); return; }
+  if (roomPose) bangunDariKasur(true); /* Tahap 1 — duduk di gazebo lalu pindah alam: bangun dulu (sebelum savedYard) */
   if (myRealm === 'dapur') exitDapur(); /* Ronde 43 — tidak bisa langsung dapur -> ruang tamu; keluar dulu */
   savedYard = { x: avatarPos.x, z: avatarPos.z, rot: avatar.rotation.y, camDist: camDist, camYaw: camYaw, camPitch: camPitch, camTarget: { x: camTarget.x, y: camTarget.y, z: camTarget.z } }; /* Ronde 10c: framing ikut disimpan; Ronde 10e: camTarget ASLI ikut disimpan (bukan posisi avatar) — camTarget tertinggal di belakang avatar saat jalan */
   myRealm = 'living';
@@ -2690,6 +2709,13 @@ function startWash(which) {
   var st = which === 'wm' ? washWM : washDR;
   var nama = which === 'wm' ? 'Mesin cuci' : 'Pengering';
   if (st.active) { toastKosan(nama + ' lagi jalan, tunggu bentar ya 🌀'); return; }
+  /* Tahap 1 — satu cucian per pemain: selama cucian masih di keranjang /
+     di jemuran, mesin cuci belum bisa dipakai lagi (pengering tidak diubah). */
+  if (which === 'wm') {
+    var sj = jemuranStatusSekarang();
+    if (sj === 'basah') { toastKosan('Cucianmu masih di keranjang — jemur dulu di halaman barat 🧺'); return; }
+    if (sj === 'dijemur' || sj === 'kering') { toastKosan('Cucianmu masih di jemuran — angkat dulu ya 🧺'); return; }
+  }
   st.active = true; st.t = WASH_DUR;
   toastKosan(nama + ' jalan… (' + WASH_DUR + ' dtk) 🌀');
 }
@@ -2698,6 +2724,7 @@ function finishWash(which) {
   st.active = false; st.t = 0;
   if (which === 'wm') { if (wmLed) wmLed.visible = true; }
   else { if (drLed) drLed.visible = true; }
+  if (which === 'wm' && jemuranAksi('cuci_selesai')) { toastKosan('✅ Cucian selesai! Bawa ke jemuran di halaman barat 🧺'); return; } /* Tahap 1 */
   toastKosan(which === 'wm' ? '✅ Cucian selesai! 👕' : '✅ Pakaian kering! 👕');
 }
 
@@ -2710,6 +2737,7 @@ function enterDapur() {
   /* Ronde 55 — tamu DILARANG masuk ruangan apa pun (vonis Ryan 11 Nov):
      gerbang di fungsi masuk (choke point) — semua jalur tertutup. */
   if (!ktaIsResident()) { toastKosan('Tamu belum bisa masuk dapur — daftar dulu jadi penghuni ya!'); return; }
+  if (roomPose) bangunDariKasur(true); /* Tahap 1 — duduk di gazebo lalu pindah alam: bangun dulu (sebelum savedYard) */
   if (myRealm === 'living') exitLiving(); /* tidak bisa langsung living -> dapur; keluar dulu */
   if (myRealm.indexOf('room-') === 0) exitRoom(); /* tidak bisa langsung kamar -> dapur; keluar dulu */
   savedYard = { x: avatarPos.x, z: avatarPos.z, rot: avatar.rotation.y, camDist: camDist, camYaw: camYaw, camPitch: camPitch, camTarget: { x: camTarget.x, y: camTarget.y, z: camTarget.z } };
@@ -2758,6 +2786,7 @@ function exitDapur() {
    kecil saja — isi kamar tumbuh lewat komen episode, bukan furnishing penuh. */
 function sceneUntukRealm(realm) { /* scene THREE untuk satu alam (dipakai avatar lokal + pemain remote) */
   if (realm === 'living') return livingScene;
+  if (realm === 'dapur') return dapurScene; /* Tahap 1 Tugas 0: pemain remote di dapur tinggal di dapurScene (dulu ikut scene halaman) */
   if (typeof realm === 'string' && realm.indexOf('room-') === 0) return roomScene;
   return scene;
 }
@@ -3122,6 +3151,165 @@ var POSE_SIT = { x: -1.95, z: -0.65, y: -0.31, rotX: 0, rotY: 0, leg: -0.92 };
    cos = 0,48/0,79); hadap selatan (rotY 0, ke arah ruangan).
    Ronde 17 — jangkar ikut kasur geser 0,5 m ke utara (dulu z -0,15). */
 var WAKE_SPOT = { x: -1.95, z: 0.2, rotY: 0 }; /* bangun: di luar footprint kasur (z max -0,6), lantai bebas; Ronde 17 — ikut kasur geser 0,5 m ke utara (dulu z 0,7) */
+/* Tahap 1 — jangkar pose aktif (kasur ATAU kursi gazebo): posisi + tinggi +
+   rotasi + sudut kaki + titik bangun. roomPose tetap jadi status yang
+   dipublish ('sit'/'sleep'); poseJangkar = DI MANA pose itu dipasang. */
+var poseJangkar = null;
+function jangkarPose(p, bangun) {
+  return { x: p.x, z: p.z, y: p.y, rotX: p.rotX, rotY: p.rotY, leg: p.leg, bangun: { x: bangun.x, z: bangun.z, rotY: bangun.rotY } };
+}
+/* ==== GAZEBO-START ==== */
+/* Tahap 1 — nongkrong di gazebo (docs/TAHAP-1-AKTIVITAS-SPEC.md §4).
+   Helper MURNI (tanpa DOM/THREE) — dites node. Kotak = AABB bangku di
+   PLAZA_SOLIDS. Kursi: pinggul 0,05 m di dalam tepi depan jok (pola
+   POSE_SIT di tepi kasur), menghadap meja; jok 0,49 m ~ kasur 0,48 m,
+   jadi y -0,31 + kaki -0,92 dari POSE_SIT dipakai apa adanya. */
+var GAZEBO_JARAK = 3; /* m dari kotak bangku (keputusan Ryan) */
+var GAZEBO_KURSI_TERISI = 0.35; /* m: pemain lain sedekat ini = kursi terisi */
+var GAZEBO_BANGKU = {
+  utara: { kotak: { minX: 11.3, maxX: 12.7, minZ: 5.1, maxZ: 5.5 },
+    kursi: [{ x: 11.6, z: 5.45 }, { x: 12.4, z: 5.45 }], rotY: 0, bangun: { dx: 0, z: 4.6 } },
+  selatan: { kotak: { minX: 11.3, maxX: 12.7, minZ: 7.5, maxZ: 7.9 },
+    kursi: [{ x: 11.6, z: 7.55 }, { x: 12.4, z: 7.55 }], rotY: Math.PI, bangun: { dx: 0, z: 8.4 } },
+  timur: { kotak: { minX: 13.1, maxX: 13.5, minZ: 5.9, maxZ: 7.1 },
+    kursi: [{ x: 13.15, z: 6.2 }, { x: 13.15, z: 6.8 }], rotY: -Math.PI / 2, bangun: { x: 14.1 } },
+  barat: { kotak: { minX: 10.5, maxX: 10.9, minZ: 5.9, maxZ: 7.1 },
+    kursi: [{ x: 10.85, z: 6.2 }, { x: 10.85, z: 6.8 }], rotY: Math.PI / 2, bangun: { x: 9.9 } }
+};
+function jarakKeKotak(x, z, k) {
+  /* jarak titik (x,z) ke AABB k; 0 kalau di dalam. */
+  var dx = Math.max(k.minX - x, 0, x - k.maxX), dz = Math.max(k.minZ - z, 0, z - k.maxZ);
+  return Math.sqrt(dx * dx + dz * dz);
+}
+function gazeboKursiTerisi(kursi, pemain) {
+  /* pemain = [{x,z}] pemain LAIN yang sedang duduk di halaman. */
+  for (var i = 0; i < pemain.length; i++) {
+    if (Math.hypot(pemain[i].x - kursi.x, pemain[i].z - kursi.z) <= GAZEBO_KURSI_TERISI) return true;
+  }
+  return false;
+}
+function gazeboPilihKursi(nama, ax, az, pemain) {
+  /* kursi kosong terdekat ke avatar di bangku itu -> jangkar
+     {x,z,y,rotX,rotY,leg,bangun}; null = bangku tak dikenal / penuh. */
+  var b = Object.prototype.hasOwnProperty.call(GAZEBO_BANGKU, nama) ? GAZEBO_BANGKU[nama] : null;
+  if (!b) return null;
+  var pilih = null, terdekat = Infinity;
+  for (var i = 0; i < b.kursi.length; i++) {
+    var k = b.kursi[i];
+    if (gazeboKursiTerisi(k, pemain || [])) continue;
+    var d = Math.hypot(k.x - ax, k.z - az);
+    if (d < terdekat) { terdekat = d; pilih = k; }
+  }
+  if (!pilih) return null;
+  var bx = typeof b.bangun.x === 'number' ? b.bangun.x : pilih.x + (b.bangun.dx || 0);
+  var bz = typeof b.bangun.z === 'number' ? b.bangun.z : pilih.z;
+  return { x: pilih.x, z: pilih.z, y: -0.31, rotX: 0, rotY: b.rotY, leg: -0.92, bangun: { x: bx, z: bz, rotY: b.rotY } };
+}
+/* ==== GAZEBO-END ==== */
+/* ==== JEMURAN-START ==== */
+/* Tahap 1 — jemuran (spek §3). Helper MURNI — dites node. Status
+   disimpan: kosong | basah | dijemur (+ sejak, ms). 'kering' TIDAK
+   disimpan: dihitung dari dijemur + waktu >= JEMUR_DUR (jam nyata, jadi
+   tetap jalan walau halaman dimuat ulang). */
+var JEMUR_DUR = 3 * 60 * 1000; /* 3 menit (keputusan Ryan) */
+var JEMURAN_JARAK = 3; /* m dari kotak jemuran (keputusan Ryan) */
+var JEMURAN_KOTAK = { minX: -16.6, maxX: -14.4, minZ: 0.9, maxZ: 7.1 }; /* 4 tiang + 2 tali */
+function jemuranBaru() { return { status: 'kosong', sejak: 0 }; }
+function jemuranMuat(raw, sekarang) {
+  /* parsing aman: apa pun yang aneh -> kosong. sejak di masa depan
+     (jam HP dimundurkan) dipotong ke sekarang. */
+  var p;
+  try { p = JSON.parse(raw); } catch (e) { return jemuranBaru(); }
+  if (!p || typeof p !== 'object') return jemuranBaru();
+  if (p.status === 'basah') return { status: 'basah', sejak: 0 };
+  if (p.status === 'dijemur' && typeof p.sejak === 'number' && isFinite(p.sejak) && p.sejak > 0) {
+    return { status: 'dijemur', sejak: Math.min(p.sejak, sekarang) };
+  }
+  return jemuranBaru();
+}
+function jemuranStatus(st, sekarang, dur) {
+  if (!st) return 'kosong';
+  if (st.status === 'dijemur') return sekarang - st.sejak >= dur ? 'kering' : 'dijemur';
+  return st.status === 'basah' ? 'basah' : 'kosong';
+}
+function jemuranSisaDetik(st, sekarang, dur) {
+  if (!st || st.status !== 'dijemur') return 0;
+  return Math.max(0, Math.ceil((st.sejak + dur - sekarang) / 1000));
+}
+function jemuranTransisi(st, aksi, sekarang, dur) {
+  /* state baru, atau null kalau aksi tidak sah dari status sekarang. */
+  var now = jemuranStatus(st, sekarang, dur);
+  if (aksi === 'cuci_selesai' && now === 'kosong') return { status: 'basah', sejak: 0 };
+  if (aksi === 'jemur' && now === 'basah') return { status: 'dijemur', sejak: sekarang };
+  if (aksi === 'angkat' && now === 'kering') return jemuranBaru();
+  return null;
+}
+function jemuranTeksSisa(detik) {
+  if (detik <= 60) return 'kurang dari 1 menit lagi';
+  return 'kira-kira ' + Math.ceil(detik / 60) + ' menit lagi';
+}
+/* ==== JEMURAN-END ==== */
+/* ==== IBU-START ==== */
+/* Tahap 1 — ngobrol dengan Ibu Kos (spek §5). Helper MURNI — dites node.
+   Isi kalimat DISETUJUI Ryan 14 Nov (4 sapaan + 11 kalimat; kalimat ke-12
+   draf dicoret karena kedengaran janji). Aturan isi: tidak menjanjikan
+   fasilitas yang belum dibangun, tidak menyebut nama penghuni lain, tidak
+   menyebut tanggal episode. */
+var IBU_SAPAAN = {
+  pagi: 'Pagi! Udah sarapan belum? Mumpung cerah, enak buat jemur cucian.',
+  siang: 'Siang-siang gini enaknya ngadem di gazebo.',
+  sore: 'Sore, Nak. Cucian di jemuran jangan lupa diangkat ya.',
+  malam: 'Udah malam, jangan begadang. Lampu kamar dimatiin kalau tidur.'
+};
+var IBU_OBROLAN = [
+  'Gazebo itu dibangun karena kalian yang minta. Dipakai ya, jangan cuma difoto.',
+  'Mesin cuci di dapur gratis buat penghuni. Habis nyuci, jemur di halaman barat.',
+  'Kalau ketemu tetangga, sapa dong. Kos ini rame karena kalian.',
+  'Mau fasilitas baru? Komen di video Ibu. Like terbanyak, Ibu bangun.',
+  'Tangga ke balkon lantai dua itu enak buat lihat pemandangan sore.',
+  'Ibu nggak galak kok. Asal kamar rapi dan saling jaga, Ibu senang.',
+  'WiFi ruang tamu itu dulu request pertama kalian. Kenceng kan?',
+  'Parkiran di selatan itu buat motor, bukan buat jemur sendal ya.',
+  'Kalau capek, rebahan dulu di kasur. Kamar itu rumahmu.',
+  'Kode kunci kamar selalu Ibu taruh di caption video terbaru.',
+  'Lempar sendal boleh, asal jangan ke jendela tetangga.'
+];
+var IBU_JARAK_MENOLEH = 6; /* m: Ibu memutar badan ke pemain saat kartu terbuka */
+function ibuWaktu(d) {
+  /* jam WIB (UTC+7, pola misiTanggal): pagi 04-10, siang 10-15, sore 15-18, malam 18-04 */
+  var j = new Date(d.getTime() + 7 * 3600 * 1000).getUTCHours();
+  if (j >= 4 && j < 10) return 'pagi';
+  if (j >= 10 && j < 15) return 'siang';
+  if (j >= 15 && j < 18) return 'sore';
+  return 'malam';
+}
+function ibuPilihKalimat(ctx) {
+  /* kalimat pembuka tiap kartu dibuka, urut prioritas spek §5.2 */
+  if (ctx.cucianKering) return 'Cucianmu udah kering tuh di jemuran, angkat gih sebelum diambil angin 😄';
+  if (ctx.tamu) return 'Mau jadi penghuni? Kode kuncinya ada di caption video terbaru Ibu ya.';
+  if (ctx.misiSisa > 0) return 'Misi hari ini masih ada ' + ctx.misiSisa + ' lagi, semangat!';
+  return Object.prototype.hasOwnProperty.call(IBU_SAPAAN, ctx.waktu) ? IBU_SAPAAN[ctx.waktu] : IBU_SAPAAN.siang; /* bukan IBU_SAPAAN[x] || ...: '__proto__' truthy */
+}
+function ibuUrutan(tanggal, n) {
+  /* acak Fisher-Yates dengan seed dari string tanggal: beda tiap hari,
+     sama sepanjang hari (deterministik -> bisa dites). */
+  var h = 2166136261;
+  for (var i = 0; i < tanggal.length; i++) { h ^= tanggal.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  var a = [];
+  for (var k = 0; k < n; k++) a.push(k);
+  for (var m = n - 1; m > 0; m--) {
+    h = (Math.imul(h, 1664525) + 1013904223) >>> 0;
+    var r = h % (m + 1), t = a[m]; a[m] = a[r]; a[r] = t;
+  }
+  return a;
+}
+function ibuObrolanBerikut(simpan, tanggal) {
+  /* simpan = {tanggal, i} dari localStorage (boleh rusak) -> kalimat + simpan baru */
+  var i = simpan && simpan.tanggal === tanggal && typeof simpan.i === 'number' && isFinite(simpan.i) && simpan.i >= 0 ? Math.floor(simpan.i) : 0;
+  var u = ibuUrutan(tanggal, IBU_OBROLAN.length);
+  return { teks: IBU_OBROLAN[u[i % u.length]], simpan: { tanggal: tanggal, i: i + 1 } };
+}
+/* ==== IBU-END ==== */
 var toastTimer = null;
 function toastKosan(msg) {
   var t = document.getElementById('toast');
@@ -3135,18 +3323,21 @@ function terapkanPoseKamar() {
   /* dipanggil tiap frame di animate saat roomPose aktif — menimpa
      posisi/rotasi/anggota gerak SETELAH animasi jalan (supaya ayunan
      idle tidak menggerakkan badan yang rebah/duduk). */
-  var p = roomPose === 'sleep' ? POSE_SLEEP : POSE_SIT;
+  var p = poseJangkar || (roomPose === 'sleep' ? POSE_SLEEP : POSE_SIT);
   avatarPos.x = p.x; avatarPos.z = p.z;
   avatar.position.set(p.x, p.y, p.z);
   avatar.rotation.x = p.rotX; avatar.rotation.y = p.rotY;
   avLegL.rotation.x = p.leg; avLegR.rotation.x = p.leg;
   avArmL.rotation.x = 0; avArmR.rotation.x = 0;
   avTubuh.rotation.y = 0;
-  if (avatarLabel) avatarLabel.sprite.visible = false; /* label ikut grup: saat rebah posisinya melayang ke dinding utara */
+  /* label ikut grup: saat rebah posisinya melayang ke dinding utara -> sembunyi.
+     Tahap 1 (keputusan Ryan): saat DUDUK label tetap tampil. */
+  if (avatarLabel) avatarLabel.sprite.visible = roomPose !== 'sleep';
 }
 function tidurDiKasur() {
   if (myRealm.indexOf('room-') !== 0) return;
   roomPose = 'sleep';
+  poseJangkar = jangkarPose(POSE_SLEEP, WAKE_SPOT);
   misiSelesai('tidur'); /* Ronde 20 — misi harian: tidur di kasur */
   terapkanPoseKamar(); /* jangkar langsung — publish pertama sudah bawa posisi kasur */
   mpKirimPos(); /* Ronde 15a — pose berubah: publish segera (bukan tunggu heartbeat 3 dtk) */
@@ -3157,6 +3348,7 @@ function tidurDiKasur() {
 function dudukDiKasur() {
   if (myRealm.indexOf('room-') !== 0) return;
   roomPose = 'sit';
+  poseJangkar = jangkarPose(POSE_SIT, WAKE_SPOT);
   misiSelesai('duduk'); /* Ronde 20 — misi harian: duduk santai */
   terapkanPoseKamar(); /* jangkar langsung — publish pertama sudah bawa posisi kasur */
   mpKirimPos(); /* Ronde 15a — pose berubah: publish segera (bukan tunggu heartbeat 3 dtk) */
@@ -3166,11 +3358,14 @@ function dudukDiKasur() {
 }
 function bangunDariKasur(diam) {
   if (!roomPose) return;
+  var w = (poseJangkar && poseJangkar.bangun) || WAKE_SPOT; /* Tahap 1 — titik bangun ikut jangkar (kasur / kursi gazebo) */
   roomPose = null;
+  poseJangkar = null;
+  poseDiGazebo = false;
   avatar.rotation.x = 0;
-  avatarPos.x = WAKE_SPOT.x; avatarPos.z = WAKE_SPOT.z;
-  avatar.rotation.y = WAKE_SPOT.rotY;
-  avatar.position.set(WAKE_SPOT.x, 0, WAKE_SPOT.z);
+  avatarPos.x = w.x; avatarPos.z = w.z;
+  avatar.rotation.y = w.rotY;
+  avatar.position.set(w.x, 0, w.z);
   avLegL.rotation.x = 0; avLegR.rotation.x = 0;
   if (avatarLabel) avatarLabel.sprite.visible = true;
   document.getElementById('wakeBtn').style.display = 'none';
@@ -3519,8 +3714,9 @@ function updateRoomCount() {
   if (!OCCUPANTS) return;
   roomCountEl.textContent = '20 kamar · ' + (20 - OCCUPANTS.length) + ' kosong';
 }
-function openCard() { cardEl.classList.add('open'); document.body.classList.add('card-open'); }
+function openCard() { ibuBicara = false; cardEl.classList.add('open'); document.body.classList.add('card-open'); } /* Tahap 1: kartu lain = Ibu berhenti menoleh */
 function closeCard() {
+  ibuBicara = false;
   cardEl.classList.remove('open'); document.body.classList.remove('card-open');
 }
 document.getElementById('cardClose').addEventListener('click', closeCard);
@@ -3707,11 +3903,182 @@ function showLivingCard() {
   cardActions.appendChild(b);
   openCard();
 }
+var ibuBicara = false; /* Tahap 1 — kartu Ibu Kos sedang terbuka -> Ibu menoleh ke pemain */
+function ibuObrolanLanjut() {
+  var simpan = null;
+  try { simpan = JSON.parse(localStorage.getItem('kosan3d-ibu-obrolan') || 'null'); } catch (e) { simpan = null; }
+  var r = ibuObrolanBerikut(simpan, misiTanggal(new Date()));
+  try { localStorage.setItem('kosan3d-ibu-obrolan', JSON.stringify(r.simpan)); } catch (e) { /* abaikan */ }
+  return r.teks;
+}
+function ibuTampilKalimat(teks) {
+  var el = document.getElementById('ibuGelembung');
+  if (el) el.textContent = teks;
+}
 function showIbuCard() {
+  misiSelesai('ibu'); /* Tahap 1 — ngobrol pertama hari ini; dipanggil SEBELUM hitung sisa misi supaya angkanya pas */
   cardTitle.textContent = 'Ibu Kos';
-  cardBody.innerHTML = '<p>Pemilik kosan ini. Kosan dibangun lewat komen kalian: follow = Penghuni Baru, komen = request bebas, like terbanyak = langsung Ibu bangun. 🏠</p>';
+  cardBody.innerHTML = '<p>Pemilik kosan ini. Kosan dibangun lewat komen kalian: follow = Penghuni Baru, komen = request bebas, like terbanyak = langsung Ibu bangun. 🏠</p>'
+    + '<p id="ibuGelembung" class="ibu-gelembung"></p>';
+  var st = misiState || (misiState = misiMuat());
+  ibuTampilKalimat(ibuPilihKalimat({
+    cucianKering: jemuranStatusSekarang() === 'kering',
+    tamu: !ktaIsResident(),
+    misiSisa: MISI_LIST.length - misiHitungSelesai(st),
+    waktu: ibuWaktu(new Date())
+  }));
   cardActions.innerHTML = '';
+  var b = document.createElement('button');
+  b.id = 'ibuNgobrolBtn';
+  b.innerHTML = iconSvg('obrol') + ' Ngobrol lagi';
+  b.addEventListener('click', function () { ibuTampilKalimat(ibuObrolanLanjut()); });
+  cardActions.appendChild(b);
   openCard();
+  ibuBicara = true; /* SETELAH openCard (openCard mereset penanda) */
+}
+/* Tahap 1 — kartu Gazebo + duduk di bangku (spek §4). Pose 'sit' yang
+   sudah ada di protokol -> pemain lain melihat kita duduk (tanpa pesan baru). */
+var poseDiGazebo = false; /* true = jangkar aktif adalah kursi gazebo (bukan kasur) */
+function gazeboPemainDuduk() {
+  var out = [];
+  for (var id in remotePlayers) {
+    var e = remotePlayers[id];
+    if (e && e.realm === 'yard' && e.pose === 'sit') out.push({ x: e.tx, z: e.tz });
+  }
+  return out;
+}
+function showGazeboCard(nama) {
+  var b = GAZEBO_BANGKU[nama];
+  if (!b || myRealm !== 'yard') return;
+  cardTitle.innerHTML = iconSvg('chair') + ' Gazebo';
+  cardActions.innerHTML = '';
+  var html = '<p>Gazebo kos — tempat nongkrong bareng tetangga.</p>';
+  if (roomPose === 'sit' && poseDiGazebo) {
+    html += '<p style="margin-top:4px">Kamu lagi <b>duduk</b> di gazebo. 🪑</p>';
+    var bw = document.createElement('button');
+    bw.id = 'gazeboBangunBtn';
+    bw.innerHTML = iconSvg('stand') + ' Bangun';
+    bw.addEventListener('click', function () { bangunDariKasur(); closeCard(); });
+    cardActions.appendChild(bw);
+  } else if (jarakKeKotak(avatarPos.x, avatarPos.z, b.kotak) > GAZEBO_JARAK) {
+    html += '<p style="margin-top:4px">Jalan ke gazebo dulu ya, baru duduk. 🚶</p>';
+  } else {
+    var bd = document.createElement('button');
+    bd.id = 'gazeboDudukBtn';
+    bd.innerHTML = iconSvg('chair') + ' Duduk di sini';
+    bd.addEventListener('click', function () { gazeboDuduk(nama); });
+    cardActions.appendChild(bd);
+  }
+  cardBody.innerHTML = html;
+  openCard();
+}
+function gazeboDuduk(nama) {
+  if (myRealm !== 'yard' || roomPose) return;
+  var b = GAZEBO_BANGKU[nama];
+  if (!b) return;
+  if (jarakKeKotak(avatarPos.x, avatarPos.z, b.kotak) > GAZEBO_JARAK) { toastKosan('Jalan ke gazebo dulu ya 🚶'); return; }
+  var j = gazeboPilihKursi(nama, avatarPos.x, avatarPos.z, gazeboPemainDuduk());
+  if (!j) { toastKosan('Bangkunya penuh, coba bangku lain 🙂'); return; }
+  roomPose = 'sit';
+  poseJangkar = j;
+  poseDiGazebo = true;
+  terapkanPoseKamar();
+  mpKirimPos(); /* pose berubah: publish segera */
+  closeCard();
+  document.getElementById('wakeBtn').style.display = 'inline-block';
+  toastKosan('🪑 Nongkrong di gazebo — ketuk Bangun buat berdiri');
+  misiSelesai('gazebo');
+}
+/* Tahap 1 — jemuran: simpan/baca + visual (cucian di tali, keranjang di
+   tangan) + kartu. Semua LOKAL (localStorage 'kosan3d-jemuran'). */
+var jemuranCucian; /* diisi buildWorld (tanpa inisialisasi di sini: jangan menimpa) */
+var jemuranKeranjang = null; /* THREE.Group, dibuat malas, menempel ke avatar saat basah */
+function jemuranBaca() {
+  try { return jemuranMuat(localStorage.getItem('kosan3d-jemuran'), Date.now()); } catch (e) { return jemuranBaru(); }
+}
+function jemuranTulis(st) {
+  try { localStorage.setItem('kosan3d-jemuran', JSON.stringify(st)); } catch (e) { /* abaikan */ }
+}
+function jemuranStatusSekarang() {
+  /* tamu tidak pernah punya cucian (dapur khusus penghuni) — sisa status
+     penghuni lain di HP yang sama tidak ditampilkan ke tamu. */
+  if (!ktaIsResident()) return 'kosong';
+  return jemuranStatus(jemuranBaca(), Date.now(), JEMUR_DUR);
+}
+function jemuranBuatKeranjang() {
+  var k = new THREE.Group();
+  box(M.wood, 0.44, 0.22, 0.3, 0, 0, 0, k); /* badan keranjang anyaman (bukan biru: dressBlue = capBlue, tenggelam di baju) */
+  box(M.clothesTeal, 0.38, 0.07, 0.24, 0, 0.13, 0, k); /* tumpukan cucian basah */
+  box(M.woodDark, 0.46, 0.04, 0.32, 0, 0.11, 0, k); /* bibir keranjang */
+  k.position.set(0, 0.8, 0.42); /* di depan perut, di antara dua tangan (lokal grup avatar) */
+  return k;
+}
+function jemuranTerapkanVisual() {
+  var status = jemuranStatusSekarang();
+  var diTali = status === 'dijemur' || status === 'kering';
+  if (jemuranCucian) jemuranCucian.forEach(function (m) { m.visible = diTali; });
+  var bawa = status === 'basah';
+  if (bawa && !jemuranKeranjang) jemuranKeranjang = jemuranBuatKeranjang();
+  if (jemuranKeranjang) {
+    if (bawa && avatar && jemuranKeranjang.parent !== avatar) avatar.add(jemuranKeranjang); /* juga setelah avatar dibangun ulang (ganti gender) */
+    if (!bawa && jemuranKeranjang.parent) jemuranKeranjang.parent.remove(jemuranKeranjang);
+  }
+}
+setInterval(jemuranTerapkanVisual, 1000); /* status login / kering / avatar baru -> visual ikut dalam 1 dtk */
+function jemuranAksi(aksi) {
+  if (!ktaIsResident()) return null;
+  var baru = jemuranTransisi(jemuranBaca(), aksi, Date.now(), JEMUR_DUR);
+  if (!baru) return null;
+  jemuranTulis(baru);
+  jemuranTerapkanVisual();
+  return baru;
+}
+function showJemuranCard() {
+  if (myRealm !== 'yard') return;
+  cardTitle.innerHTML = iconSvg('baju') + ' Jemuran';
+  cardActions.innerHTML = '';
+  var html;
+  var status = jemuranStatusSekarang();
+  var dekat = jarakKeKotak(avatarPos.x, avatarPos.z, JEMURAN_KOTAK) <= JEMURAN_JARAK;
+  var tombol = null;
+  if (!ktaIsResident()) {
+    html = '<p>Jemuran kos. Cuci dulu di dapur, khusus penghuni. 🧺</p>';
+  } else if (status === 'kosong') {
+    html = '<p>Jemuran kos. Belum ada cucianmu di sini — cuci dulu di mesin cuci dapur, nanti jemur di sini. 🧺</p>';
+  } else if (status === 'basah') {
+    html = '<p>Cucianmu masih basah di keranjang. 🧺</p>';
+    if (dekat) tombol = ['jemurBtn', 'Jemur cucian', function () { jemuranJemur(); }];
+    else html += '<p style="margin-top:4px">Jalan ke jemuran dulu ya. 🚶</p>';
+  } else if (status === 'dijemur') {
+    html = '<p>Cucianmu lagi dijemur. Kering ' + jemuranTeksSisa(jemuranSisaDetik(jemuranBaca(), Date.now(), JEMUR_DUR)) + '. ☀️</p>';
+  } else {
+    html = '<p>Cucianmu sudah <b>kering</b>! 👕</p>';
+    if (dekat) tombol = ['angkatBtn', 'Angkat cucian', function () { jemuranAngkat(); }];
+    else html += '<p style="margin-top:4px">Jalan ke jemuran dulu ya. 🚶</p>';
+  }
+  if (ktaIsResident() && status !== 'kosong') html += '<p class="kartu-catatan" style="margin-top:4px;font-size:12px;opacity:.75">Cucian ini cuma kelihatan di HP-mu.</p>';
+  cardBody.innerHTML = html;
+  if (tombol) {
+    var b = document.createElement('button');
+    b.id = tombol[0];
+    b.innerHTML = iconSvg('baju') + ' ' + tombol[1];
+    b.addEventListener('click', tombol[2]);
+    cardActions.appendChild(b);
+  }
+  openCard();
+}
+function jemuranJemur() {
+  if (jarakKeKotak(avatarPos.x, avatarPos.z, JEMURAN_KOTAK) > JEMURAN_JARAK) { toastKosan('Jalan ke jemuran dulu ya 🚶'); return; }
+  if (!jemuranAksi('jemur')) return;
+  closeCard();
+  toastKosan('👕 Cucian dijemur — kering kira-kira 3 menit lagi');
+}
+function jemuranAngkat() {
+  if (jarakKeKotak(avatarPos.x, avatarPos.z, JEMURAN_KOTAK) > JEMURAN_JARAK) { toastKosan('Jalan ke jemuran dulu ya 🚶'); return; }
+  if (!jemuranAksi('angkat')) return;
+  closeCard();
+  toastKosan('👕 Cucian kering diangkat');
+  misiSelesai('jemur');
 }
 /* Ronde 42 — kartu area laundry (pemenang Ep 2): ketuk mesin cuci /
    pengering di halaman. */
@@ -3998,6 +4365,9 @@ function genderSymbolSvg(g) {
    warna teks tombol (putih/biru/kuning). Tombol statis topbar pakai SVG
    inline langsung di HTML; tombol kartu (dibuat JS) pakai helper ini. */
 var UICONS = {
+  /* Tahap 1 — ikon misi/kartu baru */
+  baju: '<path d="M8 3l-5 3 2 4 2-1v12h10V9l2 1 2-4-5-3a4 4 0 0 1-8 0z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
+  obrol: '<path d="M4 5h16v10H9l-5 4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 9h8M8 12h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
   door: '<path d="M7 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 21h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="13" cy="12" r="0.7" fill="currentColor"/>',
   person: '<circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
   bed: '<path d="M2 4v16M2 8h18a2 2 0 0 1 2 2v10M2 17h20M6 8v9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
@@ -4506,7 +4876,11 @@ var MISI_LIST = [
   { id: 'jalan', nama: 'Jalan-jalan', ket: 'Jalan sejauh 300 m', ikon: 'person', target: 300 },
   /* Ronde 21 — misi mini game Lempar Sendal (Fase 2b): tercentang saat
      lemparan pertama hari itu (hook misiSelesai di sendalLempar). */
-  { id: 'sendal', nama: 'Main Lempar Sendal', ket: 'Lempar sendal 1x di mini game', ikon: 'sendal', target: 1 }
+  { id: 'sendal', nama: 'Main Lempar Sendal', ket: 'Lempar sendal 1x di mini game', ikon: 'sendal', target: 1 },
+  /* Tahap 1 (docs/TAHAP-1-AKTIVITAS-SPEC.md §6) — 7 -> 10 misi */
+  { id: 'gazebo', nama: 'Nongkrong di Gazebo', ket: 'Duduk di bangku gazebo', ikon: 'chair', target: 1 },
+  { id: 'jemur', nama: 'Jemur Cucian', ket: 'Angkat cucian kering dari jemuran', ikon: 'baju', target: 1 },
+  { id: 'ibu', nama: 'Ngobrol sama Ibu Kos', ket: 'Ketuk Ibu Kos lalu ngobrol', ikon: 'obrol', target: 1 }
 ];
 var MISI_JALAN_TARGET = 300; /* meter kumulatif per hari; jalan 4 m/dtk, lari 7 m/dtk */
 var MISI_HARI = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
@@ -4660,7 +5034,7 @@ function misiRender() {
     var prog = '';
     if (m.id === 'jalan') prog = '<span class="mprog" id="misiJalanProg">' + Math.min(Math.floor(st.jalan), m.target) + ' / ' + m.target + ' m</span>';
     html += '<li class="' + (done ? 'done' : '') + '"><span class="mikon">' + iconSvg(m.ikon) + '</span>'
-      + '<span class="mbody"><span class="mnama">' + m.nama + '</span><br><span class="mket">' + m.ket + '</span></span>'
+      + '<span class="mbody"><span class="mnama">' + m.nama + '</span><br><span class="mket">' + (m.id === 'jemur' && !done && !ktaIsResident() ? 'Khusus penghuni' : m.ket) + '</span></span>' /* Tahap 1: tamu tidak bisa pakai dapur */
       + prog
       + '<span class="mcek">✓</span></li>';
   }
@@ -5377,6 +5751,8 @@ function canvasTap(e, wasPinch) {
      punya card 'room-in' juga, tapi ketukannya harus ke interaksi. */
   if (ud.interact === 'bed') { showBedCard(); return; }
   if (ud.interact === 'lamp') { toggleRoomLamp(); return; }
+  if (ud.interact === 'bangku') { showGazeboCard(ud.bangku); return; } /* Tahap 1 — gazebo */
+  if (ud.interact === 'jemuran') { showJemuranCard(); return; } /* Tahap 1 — jemuran */
   /* Ronde 48 — interaksi dapur (dicek sebelum 'card', pola bed/lamp). */
   if (ud.interact === 'stove') { toggleDapurStove(); return; }
   if (ud.interact === 'faucet') { toggleDapurFaucet(); return; }
@@ -5723,7 +6099,7 @@ function mpPindahRealmRemote(entri, realm, ts) { /* realm baru (ts lebih baru) -
 function mpTerapkanPoseRemote(entri) { /* Ronde 15a — pose pemain lain di posisi
    mereka (x/z dari publish): mirror POSE_SLEEP/POSE_SIT lokal — sleep rebah
    (rotX -PI/2, y 0,8), sit duduk (kaki -0,92, y -0,31), stand ayunan jalan
-   biasa. Label disembunyikan saat pose, seperti lokal (terapkanPoseKamar). */
+   biasa. Label disembunyikan saat tidur; Tahap 1: tetap tampil saat duduk, seperti lokal (terapkanPoseKamar). */
   var g = entri.group, p = entri.parts;
   if (entri.pose === 'sleep') {
     g.position.y = 0.8; g.rotation.x = -Math.PI / 2;
@@ -5736,7 +6112,7 @@ function mpTerapkanPoseRemote(entri) { /* Ronde 15a — pose pemain lain di posi
     p.legL.rotation.x = -0.92; p.legR.rotation.x = -0.92;
     p.armL.rotation.x = 0; p.armR.rotation.x = 0;
     p.tubuh.rotation.y = 0;
-    entri.label.sprite.visible = false;
+    entri.label.sprite.visible = true; /* Tahap 1 (keputusan Ryan): label tetap tampil saat duduk; tidur tetap sembunyi */
   } else {
     g.position.y = 0; g.rotation.x = 0;
     var rsw = Math.sin(walkT * 11 + entri.walkPhase);
@@ -6166,6 +6542,17 @@ function animate() {
       if (drLed) drLed.visible = (Math.floor(washDR.t * 3) % 2 === 0);
       if (washDR.t <= 0) finishWash('dr');
     }
+  }
+  /* Tahap 1 — Ibu Kos menoleh ke pemain selama kartunya terbuka (≤ 6 m),
+     lalu kembali menghadap halaman (rotY 0). Hanya di layar pemain ini. */
+  if (ibuAvatar && myRealm === 'yard') {
+    var ibuDx = avatarPos.x - ibuAvatar.position.x, ibuDz = avatarPos.z - ibuAvatar.position.z;
+    var ibuArah = (ibuBicara && Math.hypot(ibuDx, ibuDz) <= IBU_JARAK_MENOLEH) ? Math.atan2(ibuDx, ibuDz) : 0;
+    ibuAvatar.rotation.y = turnToward(ibuAvatar.rotation.y, ibuArah, 1 - Math.exp(-6 * dt));
+  }
+  /* Tahap 1 — cucian pemain di jemuran bergoyang pelan (hanya di halaman, hanya saat tampil) */
+  if (myRealm === 'yard' && jemuranCucian && jemuranCucian[0].visible) {
+    for (var jc = 0; jc < jemuranCucian.length; jc++) jemuranCucian[jc].rotation.z = Math.sin(walkT * 1.6 + jc * 1.3) * 0.05;
   }
   renderer.render(myRealm === 'living' ? livingScene : (myRealm === 'dapur' ? dapurScene : (myRealm.indexOf('room-') === 0 ? roomScene : scene)), camera);
 }

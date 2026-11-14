@@ -320,3 +320,262 @@ test('11 M6: frasa basi sudah hilang', () => {
     assert.ok(!HTML.includes(f), f);
   }
 });
+
+test('Tahap 1 Tugas 0: realm dapur dikenal; realm asing tetap jadi yard', () => {
+  const kenal = ambilFungsi('mpRealmDikenal');
+  assert.equal(kenal('dapur'), 'dapur');
+  assert.equal(kenal('living'), 'living');
+  assert.equal(kenal('room-20'), 'room-20');
+  for (const r of ['room-21', 'Dapur', '__proto__', '', null, 7]) assert.equal(kenal(r), 'yard', String(r));
+});
+
+test('Tahap 1 Tugas 0: sceneUntukRealm menaruh pemain dapur di dapurScene', () => {
+  const awal = HTML.indexOf('function sceneUntukRealm(');
+  const kode = HTML.slice(awal, HTML.indexOf('\n}\n', awal) + 3);
+  const f = new Function('scene', 'livingScene', 'dapurScene', 'roomScene', kode + '\nreturn sceneUntukRealm;')('Y', 'L', 'D', 'R');
+  assert.equal(f('dapur'), 'D'); assert.equal(f('living'), 'L'); assert.equal(f('room-3'), 'R'); assert.equal(f('yard'), 'Y');
+});
+
+/* Tahap 1 — poseJangkar: harness kecil untuk tidur/duduk/bangun di kasur
+   (perilaku kasur tidak boleh berubah) + label saat duduk. */
+function harnessPose() {
+  const nama = ['jangkarPose', 'terapkanPoseKamar', 'tidurDiKasur', 'dudukDiKasur', 'bangunDariKasur'];
+  const ambil = (n) => { const a = HTML.indexOf('function ' + n + '('); return HTML.slice(a, HTML.indexOf('\n}\n', a) + 3); };
+  const kons = ['POSE_SLEEP', 'POSE_SIT', 'WAKE_SPOT'].map((k) => { const a = HTML.indexOf('var ' + k + ' = '); return HTML.slice(a, HTML.indexOf(';', a) + 1); }).join('\n');
+  const rot = () => ({ rotation: { x: 0, y: 0 } });
+  const env = {
+    myRealm: 'room-3', misi: [], pos: 0, toast: [], wake: { style: { display: 'none' } },
+    avatarPos: { x: 0, z: 0 }, avatar: { position: { set(x, y, z) { this.x = x; this.y = y; this.z = z; } }, rotation: { x: 0, y: 0 } },
+    avLegL: rot(), avLegR: rot(), avArmL: rot(), avArmR: rot(), avTubuh: rot(), avatarLabel: { sprite: { visible: true } }
+  };
+  const f = new Function('env', 'with (env) {\n' + kons + '\nvar roomPose = null, poseJangkar = null, poseDiGazebo = false;\n'
+    + 'function misiSelesai(i) { env.misi.push(i); } function mpKirimPos() { env.pos++; } function closeCard() {}\n'
+    + 'function toastKosan(m) { env.toast.push(m); } var document = { getElementById: function () { return env.wake; } };\n'
+    + nama.map(ambil).join('\n')
+    + '\nreturn { tidur: tidurDiKasur, duduk: dudukDiKasur, bangun: bangunDariKasur, terapkan: terapkanPoseKamar, pose: function () { return roomPose; }, jangkar: function () { return poseJangkar; }, set: function (j, r) { poseJangkar = j; roomPose = r; }, POSE_SIT: POSE_SIT, POSE_SLEEP: POSE_SLEEP, WAKE_SPOT: WAKE_SPOT, jangkarPose: jangkarPose }; }');
+  return { env, h: f(env) };
+}
+
+test('Tahap 1 poseJangkar: duduk/tidur di kasur tetap di jangkar lama, bangun di WAKE_SPOT', () => {
+  const { env, h } = harnessPose();
+  h.duduk();
+  assert.equal(h.pose(), 'sit');
+  assert.deepEqual([env.avatarPos.x, env.avatarPos.z, env.avatar.position.y], [h.POSE_SIT.x, h.POSE_SIT.z, h.POSE_SIT.y]);
+  assert.equal(env.avLegL.rotation.x, h.POSE_SIT.leg);
+  assert.equal(env.avatarLabel.sprite.visible, true, 'label tampil saat duduk (keputusan Ryan)');
+  h.bangun(true);
+  assert.equal(h.pose(), null); assert.equal(h.jangkar(), null);
+  assert.deepEqual([env.avatarPos.x, env.avatarPos.z], [h.WAKE_SPOT.x, h.WAKE_SPOT.z]);
+  h.tidur();
+  assert.equal(env.avatar.position.y, h.POSE_SLEEP.y);
+  assert.equal(env.avatarLabel.sprite.visible, false, 'label sembunyi saat tidur');
+  h.bangun(true);
+  assert.equal(env.avatarLabel.sprite.visible, true);
+  assert.deepEqual(env.misi, ['duduk', 'tidur']);
+});
+
+test('Tahap 1 poseJangkar: jangkar lain (kursi) dipakai terapkanPoseKamar + titik bangunnya sendiri', () => {
+  const { env, h } = harnessPose();
+  h.set(h.jangkarPose({ x: 11.6, z: 5.3, y: -0.31, rotX: 0, rotY: 0, leg: -0.92 }, { x: 11.6, z: 4.6, rotY: Math.PI }), 'sit');
+  h.terapkan();
+  assert.deepEqual([env.avatarPos.x, env.avatarPos.z], [11.6, 5.3]);
+  h.bangun(true);
+  assert.deepEqual([env.avatarPos.x, env.avatarPos.z, env.avatar.rotation.y], [11.6, 4.6, Math.PI]);
+});
+
+test('Tahap 1: pemain lain yang duduk tetap berlabel, yang tidur tidak', () => {
+  const a = HTML.indexOf('function mpTerapkanPoseRemote(');
+  const kode = HTML.slice(a, HTML.indexOf('\n}\n', a) + 3);
+  const f = new Function('walkT', kode + '\nreturn mpTerapkanPoseRemote;')(0);
+  const r = () => ({ rotation: { x: 0, y: 0 } });
+  const entri = (pose) => ({ pose, gerak: 0, walkPhase: 0, group: { position: { y: 0 }, rotation: { x: 0 } },
+    parts: { legL: r(), legR: r(), armL: r(), armR: r(), tubuh: r() }, label: { sprite: { visible: true } } });
+  const duduk = entri('sit'); f(duduk); assert.equal(duduk.label.sprite.visible, true);
+  const tidur = entri('sleep'); f(tidur); assert.equal(tidur.label.sprite.visible, false);
+});
+
+function blokMurni(awal, akhir, ekspor) {
+  const a = HTML.indexOf('/* ==== ' + awal + ' ==== */'), b = HTML.indexOf('/* ==== ' + akhir + ' ==== */');
+  assert.ok(a > 0 && b > a, awal + ' tidak ditemukan');
+  return new Function(HTML.slice(a, b) + '\nreturn {' + ekspor.join(',') + '};')();
+}
+const GZ = () => blokMurni('GAZEBO-START', 'GAZEBO-END', ['GAZEBO_BANGKU', 'GAZEBO_JARAK', 'jarakKeKotak', 'gazeboKursiTerisi', 'gazeboPilihKursi']);
+
+test('Tahap 1 gazebo: jarakKeKotak (di dalam 0, samping, sudut)', () => {
+  const { jarakKeKotak } = GZ();
+  const k = { minX: 0, maxX: 2, minZ: 0, maxZ: 1 };
+  assert.equal(jarakKeKotak(1, 0.5, k), 0);
+  assert.equal(jarakKeKotak(5, 0.5, k), 3);
+  assert.equal(jarakKeKotak(-3, 5, k), 5); /* 3-4-5 dari sudut (0,1) */
+});
+
+test('Tahap 1 gazebo: 4 bangku x 2 kursi, kursi + titik bangun cocok dengan PLAZA_SOLIDS', () => {
+  const { GAZEBO_BANGKU, gazeboPilihKursi, jarakKeKotak } = GZ();
+  const a = HTML.indexOf('var PLAZA_SOLIDS = ['), solids = new Function('return ' + HTML.slice(a + 'var PLAZA_SOLIDS = '.length, HTML.indexOf('];', a) + 1))();
+  assert.deepEqual(Object.keys(GAZEBO_BANGKU), ['utara', 'selatan', 'timur', 'barat']);
+  for (const [nama, b] of Object.entries(GAZEBO_BANGKU)) {
+    assert.ok(solids.some((s) => s.minX === b.kotak.minX && s.maxX === b.kotak.maxX && s.minZ === b.kotak.minZ && s.maxZ === b.kotak.maxZ), nama + ': kotak = AABB bangku');
+    assert.equal(b.kursi.length, 2);
+    for (const k of b.kursi) {
+      assert.equal(jarakKeKotak(k.x, k.z, b.kotak), 0, nama + ': kursi di atas jok');
+      const j = gazeboPilihKursi(nama, k.x, k.z, []);
+      assert.deepEqual([j.x, j.z, j.y, j.leg], [k.x, k.z, -0.31, -0.92]);
+      /* titik bangun: di dek gazebo (x 8,5..15,5, z 3,5..9,5) dan > 0,3 m dari semua benda padat */
+      assert.ok(j.bangun.x > 8.5 && j.bangun.x < 15.5 && j.bangun.z > 3.5 && j.bangun.z < 9.5, nama + ': bangun di dek');
+      for (const s of solids) assert.ok(jarakKeKotak(j.bangun.x, j.bangun.z, s) > 0.3, nama + ': bangun bebas ' + JSON.stringify(s));
+    }
+  }
+});
+
+test('Tahap 1 gazebo: kursi terdekat, lewati yang terisi, penuh -> null, bangku asing -> null', () => {
+  const { gazeboPilihKursi } = GZ();
+  assert.equal(gazeboPilihKursi('utara', 12.6, 4.5, []).x, 12.4);
+  assert.equal(gazeboPilihKursi('utara', 11.0, 4.5, []).x, 11.6);
+  assert.equal(gazeboPilihKursi('utara', 12.6, 4.5, [{ x: 12.4, z: 5.45 }]).x, 11.6, 'kursi dekat terisi -> kursi lain');
+  assert.equal(gazeboPilihKursi('utara', 12.6, 4.5, [{ x: 12.4, z: 5.45 }, { x: 11.7, z: 5.4 }]), null, 'dua-duanya terisi');
+  assert.equal(gazeboPilihKursi('utara', 12.6, 4.5, [{ x: 12.4, z: 6.5 }]).x, 12.4, 'pemain 1 m jauhnya tidak menghalangi');
+  for (const n of ['__proto__', 'constructor', 'toString', 'tengah']) assert.equal(gazeboPilihKursi(n, 12, 6, []), null, n);
+  assert.equal(gazeboPilihKursi('timur', 14, 6, []).rotY, -Math.PI / 2);
+});
+
+test('Tahap 1 gazebo: bangku bisa diketuk + pindah alam bangun dulu', () => {
+  assert.match(HTML, /if \(ud\.interact === 'bangku'\) \{ showGazeboCard\(ud\.bangku\); return; \}/);
+  for (const f of ['enterLiving', 'enterDapur']) {
+    const a = HTML.indexOf('function ' + f + '('), blok = HTML.slice(a, HTML.indexOf('\n}\n', a));
+    assert.ok(blok.indexOf('if (roomPose) bangunDariKasur(true);') < blok.indexOf('savedYard ='), f + ': bangun sebelum savedYard');
+  }
+});
+
+const JM = () => blokMurni('JEMURAN-START', 'JEMURAN-END', ['JEMUR_DUR', 'JEMURAN_JARAK', 'JEMURAN_KOTAK', 'jemuranMuat', 'jemuranStatus', 'jemuranSisaDetik', 'jemuranTransisi', 'jemuranTeksSisa']);
+
+test('Tahap 1 jemuran: keputusan Ryan (3 menit, 3 m)', () => {
+  const j = JM();
+  assert.equal(j.JEMUR_DUR, 180000);
+  assert.equal(j.JEMURAN_JARAK, 3);
+});
+
+test('Tahap 1 jemuran: jemuranMuat aman untuk data rusak / asing / jam mundur', () => {
+  const { jemuranMuat } = JM();
+  const now = 1_800_000_000_000;
+  for (const raw of [null, '', '{', 'null', '7', '"dijemur"', '{"status":"kering"}', '{"status":"__proto__"}',
+    '{"status":"dijemur"}', '{"status":"dijemur","sejak":"1"}', '{"status":"dijemur","sejak":-5}', '{"status":"dijemur","sejak":1e999}']) {
+    assert.deepEqual(jemuranMuat(raw, now), { status: 'kosong', sejak: 0 }, String(raw));
+  }
+  assert.deepEqual(jemuranMuat('{"status":"basah","sejak":123}', now), { status: 'basah', sejak: 0 });
+  assert.deepEqual(jemuranMuat('{"status":"dijemur","sejak":' + (now - 5000) + '}', now), { status: 'dijemur', sejak: now - 5000 });
+  assert.deepEqual(jemuranMuat('{"status":"dijemur","sejak":' + (now + 999999) + '}', now), { status: 'dijemur', sejak: now }, 'masa depan dipotong');
+});
+
+test('Tahap 1 jemuran: status + sisa waktu, batas tepat JEMUR_DUR', () => {
+  const { jemuranStatus, jemuranSisaDetik, JEMUR_DUR } = JM();
+  const st = { status: 'dijemur', sejak: 1000 };
+  assert.equal(jemuranStatus(st, 1000 + JEMUR_DUR - 1, JEMUR_DUR), 'dijemur');
+  assert.equal(jemuranStatus(st, 1000 + JEMUR_DUR, JEMUR_DUR), 'kering');
+  assert.equal(jemuranSisaDetik(st, 1000, JEMUR_DUR), 180);
+  assert.equal(jemuranSisaDetik(st, 1000 + JEMUR_DUR - 1, JEMUR_DUR), 1);
+  assert.equal(jemuranSisaDetik(st, 1000 + JEMUR_DUR + 50, JEMUR_DUR), 0);
+  assert.equal(jemuranStatus({ status: 'basah', sejak: 0 }, 5, JEMUR_DUR), 'basah');
+  assert.equal(jemuranStatus(null, 5, JEMUR_DUR), 'kosong');
+});
+
+test('Tahap 1 jemuran: transisi sah dan tidak sah', () => {
+  const { jemuranTransisi, JEMUR_DUR } = JM();
+  const kosong = { status: 'kosong', sejak: 0 }, basah = { status: 'basah', sejak: 0 };
+  const dijemur = { status: 'dijemur', sejak: 1000 };
+  assert.deepEqual(jemuranTransisi(kosong, 'cuci_selesai', 5, JEMUR_DUR), basah);
+  assert.deepEqual(jemuranTransisi(basah, 'jemur', 777, JEMUR_DUR), { status: 'dijemur', sejak: 777 });
+  assert.equal(jemuranTransisi(dijemur, 'angkat', 1000 + JEMUR_DUR - 1, JEMUR_DUR), null, 'belum kering');
+  assert.deepEqual(jemuranTransisi(dijemur, 'angkat', 1000 + JEMUR_DUR, JEMUR_DUR), kosong);
+  /* tidak sah */
+  assert.equal(jemuranTransisi(basah, 'cuci_selesai', 5, JEMUR_DUR), null);
+  assert.equal(jemuranTransisi(dijemur, 'cuci_selesai', 1000 + JEMUR_DUR, JEMUR_DUR), null, 'kering di tali: belum boleh cuci lagi');
+  assert.equal(jemuranTransisi(kosong, 'jemur', 5, JEMUR_DUR), null);
+  assert.equal(jemuranTransisi(dijemur, 'jemur', 5, JEMUR_DUR), null);
+  assert.equal(jemuranTransisi(kosong, 'angkat', 5, JEMUR_DUR), null);
+  assert.equal(jemuranTransisi(kosong, 'hapus', 5, JEMUR_DUR), null);
+});
+
+test('Tahap 1 jemuran: teks sisa waktu', () => {
+  const { jemuranTeksSisa } = JM();
+  assert.equal(jemuranTeksSisa(180), 'kira-kira 3 menit lagi');
+  assert.equal(jemuranTeksSisa(61), 'kira-kira 2 menit lagi');
+  assert.equal(jemuranTeksSisa(60), 'kurang dari 1 menit lagi');
+});
+
+test('Tahap 1 jemuran: kabel ke mesin cuci, ketuk, dan cucian baru tanpa AABB', () => {
+  assert.match(HTML, /if \(ud\.interact === 'jemuran'\) \{ showJemuranCard\(\); return; \}/);
+  const a = HTML.indexOf('function finishWash('), fw = HTML.slice(a, HTML.indexOf('\n}\n', a));
+  assert.match(fw, /which === 'wm' && jemuranAksi\('cuci_selesai'\)/);
+  const b = HTML.indexOf('function startWash('), sw = HTML.slice(b, HTML.indexOf('\n}\n', b));
+  assert.ok(sw.indexOf("jemuranStatusSekarang()") < sw.indexOf('st.active = true'), 'cek jemuran sebelum mesin jalan');
+  assert.equal((HTML.match(/jemuranCucian = \[/g) || []).length, 1);
+  assert.ok(!/var jemuranCucian\s*=/.test(HTML), 'deklarasi tanpa inisialisasi (jangan menimpa isi buildWorld)');
+});
+
+const IB = () => blokMurni('IBU-START', 'IBU-END', ['IBU_SAPAAN', 'IBU_OBROLAN', 'ibuWaktu', 'ibuPilihKalimat', 'ibuUrutan', 'ibuObrolanBerikut']);
+
+test('Tahap 1 Ibu Kos: isi kalimat = yang disetujui Ryan (4 sapaan, 11 kalimat, nomor 12 dicoret)', () => {
+  const { IBU_SAPAAN, IBU_OBROLAN } = IB();
+  assert.deepEqual(Object.keys(IBU_SAPAAN), ['pagi', 'siang', 'sore', 'malam']);
+  assert.equal(IBU_OBROLAN.length, 11);
+  assert.ok(!HTML.includes('acara kumpul-kumpul'), 'kalimat ke-12 tidak boleh ada');
+});
+
+test('Tahap 1 Ibu Kos: sapaan per jam WIB (batas 04/10/15/18)', () => {
+  const { ibuWaktu } = IB();
+  const wib = (jam, menit) => new Date(Date.UTC(2026, 10, 14, jam - 7, menit || 0)); /* jam WIB -> Date */
+  assert.equal(ibuWaktu(wib(3, 59)), 'malam');
+  assert.equal(ibuWaktu(wib(4)), 'pagi');
+  assert.equal(ibuWaktu(wib(9, 59)), 'pagi');
+  assert.equal(ibuWaktu(wib(10)), 'siang');
+  assert.equal(ibuWaktu(wib(15)), 'sore');
+  assert.equal(ibuWaktu(wib(18)), 'malam');
+  assert.equal(ibuWaktu(wib(23, 30)), 'malam');
+});
+
+test('Tahap 1 Ibu Kos: prioritas kalimat pembuka (kering > tamu > misi > sapaan)', () => {
+  const { ibuPilihKalimat, IBU_SAPAAN } = IB();
+  const dasar = { cucianKering: false, tamu: false, misiSisa: 0, waktu: 'sore' };
+  assert.match(ibuPilihKalimat({ ...dasar, cucianKering: true, tamu: true, misiSisa: 3 }), /Cucianmu udah kering/);
+  assert.match(ibuPilihKalimat({ ...dasar, tamu: true, misiSisa: 3 }), /Mau jadi penghuni/);
+  assert.equal(ibuPilihKalimat({ ...dasar, misiSisa: 3 }), 'Misi hari ini masih ada 3 lagi, semangat!');
+  assert.equal(ibuPilihKalimat(dasar), IBU_SAPAAN.sore);
+  assert.equal(ibuPilihKalimat({ ...dasar, waktu: '__proto__' }), IBU_SAPAAN.siang);
+});
+
+test('Tahap 1 Ibu Kos: urutan acak per hari, tetap sepanjang hari, tidak berulang dalam satu putaran', () => {
+  const { ibuUrutan, ibuObrolanBerikut, IBU_OBROLAN } = IB();
+  const a = ibuUrutan('2026-11-14', 11), b = ibuUrutan('2026-11-14', 11), c = ibuUrutan('2026-11-15', 11);
+  assert.deepEqual(a, b);
+  assert.notDeepEqual(a, c);
+  assert.deepEqual([...a].sort((x, y) => x - y), [...Array(11).keys()]);
+  let simpan = null; const dilihat = new Set();
+  for (let k = 0; k < 11; k++) { const r = ibuObrolanBerikut(simpan, '2026-11-14'); dilihat.add(r.teks); simpan = r.simpan; }
+  assert.equal(dilihat.size, 11, '11 kali Ngobrol lagi = 11 kalimat berbeda');
+  assert.equal(ibuObrolanBerikut(simpan, '2026-11-14').teks, IBU_OBROLAN[a[0]], 'putaran berikutnya mulai lagi');
+  assert.deepEqual(ibuObrolanBerikut({ tanggal: '2026-11-13', i: 5 }, '2026-11-14').simpan, { tanggal: '2026-11-14', i: 1 }, 'hari baru -> mulai dari awal');
+  for (const rusak of [null, 7, { tanggal: '2026-11-14', i: -3 }, { tanggal: '2026-11-14', i: 'x' }, { tanggal: '2026-11-14', i: Infinity }]) {
+    assert.equal(ibuObrolanBerikut(rusak, '2026-11-14').teks, IBU_OBROLAN[a[0]], JSON.stringify(rusak));
+  }
+});
+
+test('Tahap 1 misi: 10 misi, 3 baru tercentang sekali per hari, state lama tetap terbaca', () => {
+  const m = blokMurni('MISI-START', 'MISI-END', ['MISI_LIST', 'misiStateBaru', 'misiSelesaiDiState', 'misiHitungSelesai']);
+  assert.deepEqual(m.MISI_LIST.map((x) => x.id), ['kamar', 'tidur', 'duduk', 'lampu', 'living', 'jalan', 'sendal', 'gazebo', 'jemur', 'ibu']);
+  const st = { done: { kamar: true, sendal: true }, jalan: 12 }; /* state lama (7 misi) */
+  assert.equal(m.misiHitungSelesai(st), 2);
+  for (const id of ['gazebo', 'jemur', 'ibu']) {
+    assert.equal(m.misiSelesaiDiState(st, id), true, id + ' baru');
+    assert.equal(m.misiSelesaiDiState(st, id), false, id + ' tidak dobel');
+  }
+  assert.equal(m.misiHitungSelesai(st), 5);
+  assert.equal(m.misiSelesaiDiState(st, '__proto__'), false);
+  for (const ikon of ['baju', 'obrol', 'chair']) assert.ok(HTML.includes('  ' + ikon + ": '<"), 'ikon ' + ikon);
+});
+
+test('Tahap 1 misi: hook gazebo / jemur / ibu terpasang di aksinya', () => {
+  const blok = (f) => { const a = HTML.indexOf('function ' + f + '('); return HTML.slice(a, HTML.indexOf('\n}\n', a)); };
+  assert.match(blok('gazeboDuduk'), /misiSelesai\('gazebo'\)/);
+  assert.match(blok('jemuranAngkat'), /misiSelesai\('jemur'\)/);
+  assert.match(blok('showIbuCard'), /misiSelesai\('ibu'\)/);
+});
