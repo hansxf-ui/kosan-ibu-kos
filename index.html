@@ -186,7 +186,6 @@
   #entryBtn:active { transform: scale(.98); }
   #entryBtn:disabled { opacity: .7; cursor: wait; transform: none; }
   .entry-guest:disabled { opacity: .5; cursor: wait; }
-  #entryCard .entry-note { font-size: 12px; font-weight: 700; color: #5a6b7d; margin-top: 12px; line-height: 1.45; }
   /* label identitas read-only di topbar (terkunci selama di dalam game) */
   #whoami { font-size: 12px; font-weight: 800; color: #fff;
     text-shadow: 0 1px 4px rgba(0,0,0,.5); margin-top: 2px; white-space: nowrap; }
@@ -419,22 +418,55 @@
     text-decoration: none; cursor: pointer; }
   /* Ronde 23 — loading screen: overlay HTML statis, tampil sejak awal
      (sebelum modul Three.js jalan); JS menyembunyikannya begitu scene +
-     entry siap (fade 350ms lalu display:none). */
+     entry siap. UI refresh (Nov 2026): langit + awan, gedung kos dengan
+     jendela yang menyala bergantian, bilah progres, tips bergilir, dan
+     pesan "koneksi lambat" + tombol muat ulang kalau kelamaan. */
   #loadingOverlay { position: fixed; inset: 0; z-index: 100; display: flex;
-    align-items: center; justify-content: center;
-    background: linear-gradient(180deg, #2E7FD6, #1B5FA8); color: #fff;
-    transition: opacity .35s ease; }
-  #loadingOverlay.hide { opacity: 0; pointer-events: none; }
+    align-items: center; justify-content: center; overflow: hidden;
+    background: linear-gradient(180deg, #7cc7f5 0%, #3b92e3 48%, #1b5fa8 100%); color: #fff;
+    transition: opacity .45s ease, visibility .45s; }
+  #loadingOverlay.hide { opacity: 0; visibility: hidden; pointer-events: none; }
   #loadingOverlay.gone { display: none; }
-  #loadingCard { text-align: center; padding: 16px; }
-  #loadingCard .uicon { width: 40px; height: 40px; }
-  #loadingCard h1 { font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 26px;
-    letter-spacing: 1px; text-shadow: 0 2px 8px rgba(0,0,0,.35); margin-top: 4px; }
-  #loadingCard p { font-size: 14px; font-weight: 800; color: #FFE9A8; margin-top: 10px; }
-  .load-spin { width: 44px; height: 44px; margin: 16px auto 0; border-radius: 50%;
-    border: 4px solid rgba(255,255,255,.3); border-top-color: #FFD11A;
-    animation: loadSpin 1s linear infinite; }
-  @keyframes loadSpin { to { transform: rotate(360deg); } }
+  #loadingCard { position: relative; z-index: 2; text-align: center; padding: 24px; width: min(340px, 100%); }
+  .load-gedung { width: 132px; height: 132px; margin: 0 auto; animation: kbMelayang 3.2s ease-in-out infinite; }
+  .load-gedung .kb-gedung { width: 100%; height: 100%; filter: drop-shadow(0 10px 18px rgba(8,28,58,.30)); }
+  .load-gedung .kb-jendela { animation: kbLampu 2.4s ease-in-out infinite; }
+  .load-gedung .kb-jendela:nth-of-type(2) { animation-delay: .4s; }
+  .load-gedung .kb-jendela:nth-of-type(3) { animation-delay: .8s; }
+  .load-gedung .kb-jendela:nth-of-type(4) { animation-delay: 1.2s; }
+  .load-gedung .kb-jendela:nth-of-type(5) { animation-delay: 1.6s; }
+  #loadingCard h1 { font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 32px; font-weight: 800;
+    line-height: 1.1; letter-spacing: .3px; margin-top: 10px; text-shadow: 0 3px 12px rgba(8,28,58,.35); }
+  #loadingCard .load-tag { font-size: 13px; font-weight: 700; color: rgba(255,255,255,.85); margin-top: 4px; }
+  .load-bar { width: 220px; max-width: 80%; height: 8px; margin: 22px auto 0; border-radius: 999px;
+    background: rgba(255,255,255,.25); overflow: hidden; box-shadow: inset 0 1px 2px rgba(8,28,58,.25); }
+  #loadBarIsi { display: block; height: 100%; width: 4%; border-radius: inherit;
+    background: linear-gradient(90deg, #ffe066, #ffc400); box-shadow: 0 0 12px rgba(255,209,26,.7);
+    transition: width .25s ease-out; }
+  #loadTip { font-size: 13px; font-weight: 800; color: #FFE9A8; margin-top: 12px; min-height: 18px; }
+  #loadReload { margin-top: 12px; font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 14px; font-weight: 800;
+    border: none; border-radius: 999px; padding: 8px 18px; cursor: pointer;
+    background: #fff; color: #1B5FA8; box-shadow: 0 4px 14px rgba(8,28,58,.3); }
+  #loadReload[hidden] { display: none; }
+  .load-awan { position: absolute; z-index: 1; border-radius: 999px; background: rgba(255,255,255,.55);
+    filter: blur(1px); animation: kbAwan linear infinite; }
+  .load-awan::before, .load-awan::after { content: ""; position: absolute; border-radius: 50%; background: inherit; }
+  .load-awan::before { width: 55%; height: 160%; left: 15%; bottom: 30%; }
+  .load-awan::after { width: 38%; height: 120%; left: 52%; bottom: 35%; }
+  .load-awan-1 { width: 120px; height: 28px; top: 14%; left: -140px; animation-duration: 26s; }
+  .load-awan-2 { width: 90px; height: 22px; top: 28%; left: -110px; animation-duration: 34s; animation-delay: -12s; opacity: .8; }
+  .load-awan-3 { width: 150px; height: 32px; top: 8%; left: -170px; animation-duration: 40s; animation-delay: -24s; opacity: .6; }
+  .load-tanah { position: absolute; z-index: 1; left: -10%; right: -10%; bottom: -60px; height: 140px;
+    border-radius: 50% 50% 0 0; background: linear-gradient(180deg, #6cc067, #4a9e4f); opacity: .9; }
+  @keyframes kbMelayang { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+  @keyframes kbLampu { 0%, 100% { fill: #fff3c4; } 50% { fill: #ffd11a; } }
+  @keyframes kbAwan { to { transform: translateX(calc(100vw + 340px)); } }
+  @media (max-height: 430px) and (orientation: landscape) {
+    .load-gedung { width: 92px; height: 92px; }
+    #loadingCard h1 { font-size: 26px; margin-top: 4px; }
+    .load-bar { margin-top: 14px; }
+    .load-tanah { height: 90px; bottom: -50px; }
+  }
   /* Ronde 23 — layout landscape pendek (mis. HP 800x360): topbar ramping,
      kartu bawah lebih pendek, hint lebih kecil — HUD tidak menutupi
      terlalu banyak viewport. Desktop (lebar >420px) yang berlaku di
@@ -575,6 +607,185 @@
        max-height 200px memaksa scroll padahal isi ~300px). */
     #roomCard { max-height: calc(100dvh - 60px); }
   }
+
+  /* ===================== UI REFRESH (Nov 2026) =====================
+     Lapisan tampilan saja: warna, sudut, bayangan, tipografi, animasi
+     halus, dan dua perbaikan responsive (kartu masuk landscape 2 kolom,
+     tombol kartu kamar jadi grid 2 kolom). POSISI elemen yang sudah
+     divonis Ryan TIDAK diubah (kartu landscape di tengah, actionbar,
+     hanya tombol ✕, ukuran tombol keypad >= 56 px). HUD di atas kanvas
+     sengaja TANPA backdrop-filter (blur di atas kanvas 3D yang dirender
+     tiap frame berat). Overlay juga TANPA blur: diukur di playtest, blur
+     4px di belakang overlay membuat tiap frame ~2x lebih lambat (ketukan
+     keypad dari ~1,5 dtk jadi ~3,7 dtk). Latar overlay cukup digelapkan. */
+  :root {
+    --kb-biru: #1B5FA8; --kb-biru-2: #2E7FD6; --kb-biru-muda: #eaf3ff;
+    --kb-teks: #13253a; --kb-teks-2: #4a5d73; --kb-garis: #dbe5f0; --kb-isi: #f4f7fb;
+    --kb-bayang-1: 0 2px 10px rgba(13,38,76,.18);
+    --kb-bayang-2: 0 24px 60px rgba(8,28,58,.38);
+  }
+  button, input { font-family: inherit; }
+  button:focus-visible, input:focus-visible, a:focus-visible { outline: 3px solid rgba(46,127,214,.55); outline-offset: 2px; }
+
+  /* ---- HUD (topbar, pil, actionbar, dropdown) ---- */
+  #topbar { background: linear-gradient(rgba(14,48,92,.55), rgba(14,48,92,0)); }
+  .pillbtn { box-shadow: inset 0 0 0 1px rgba(255,255,255,.75), var(--kb-bayang-1); transition: transform .08s, background .15s; }
+  .pillbtn:active { transform: scale(.97); }
+  #mpPill, #clockWib, #menuBtn { background: rgba(255,255,255,.94); color: var(--kb-biru); }
+  #masukBtn, #wakeBtn { background: linear-gradient(180deg, #ffdb4d, #ffc700); color: #3d2c00;
+    box-shadow: inset 0 -2px 0 rgba(0,0,0,.08), 0 4px 12px rgba(255,180,0,.35); }
+  #menuDrop, #masukMenu { border-radius: 16px; box-shadow: 0 16px 40px rgba(13,38,76,.28), inset 0 0 0 1px rgba(19,37,58,.06);
+    animation: kbTurun .16s ease-out; }
+  #menuDrop .pillbtn, #masukMenu button { border-radius: 10px; color: var(--kb-teks); transition: background .12s; }
+  #menuDrop .pillbtn { box-shadow: none; }
+  #menuDrop .pillbtn:hover, #menuDrop .pillbtn:active, #masukMenu button:hover, #masukMenu button:active { background: var(--kb-biru-muda); color: var(--kb-biru); }
+  #menuDrop .uicon, #masukMenu .uicon { color: var(--kb-biru-2); }
+  #hint, #hintToggle { background: rgba(14,36,66,.62); box-shadow: inset 0 0 0 1px rgba(255,255,255,.18), var(--kb-bayang-1); }
+  #toast { background: rgba(14,36,66,.92); box-shadow: inset 0 0 0 1px rgba(255,255,255,.12), 0 10px 28px rgba(8,28,58,.35); }
+  #toast.show { animation: kbToast .22s ease-out; }
+  #joy { background: rgba(255,255,255,.18); border-color: rgba(255,255,255,.65); }
+
+  /* ---- overlay + kartu modal ---- */
+  #entryOverlay, #misiOverlay, #sendalOverlay, #ktaOverlay, #pinOverlay {
+    background: radial-gradient(120% 90% at 50% 0%, rgba(20,60,110,.5), rgba(8,22,45,.72)); }
+  #entryCard, #misiCard, #sendalCard, #ktaCard, #pinCard {
+    border-radius: 24px; box-shadow: var(--kb-bayang-2), inset 0 0 0 1px rgba(255,255,255,.7); }
+  #entryOverlay.open #entryCard, #misiOverlay.open #misiCard, #sendalOverlay.open #sendalCard,
+  #ktaOverlay.open #ktaCard, #pinOverlay.open #pinCard { animation: kbMuncul .24s cubic-bezier(.2,.8,.2,1); }
+  #misiCard h2, #sendalCard h2, #ktaCard h2, #pinCard h2, #roomCard h2 { color: var(--kb-biru); letter-spacing: .2px; }
+  #cardClose, #misiClose, #sendalClose, #ktaClose, #pinClose {
+    display: flex; align-items: center; justify-content: center; font-size: 14px;
+    background: var(--kb-isi); color: var(--kb-teks-2); transition: background .12s, color .12s; }
+  #cardClose:hover, #misiClose:hover, #sendalClose:hover, #ktaClose:hover, #pinClose:hover { background: #e3ebf5; color: var(--kb-teks); }
+
+  /* ---- kartu masuk ---- */
+  .entry-head { margin-bottom: 14px; }
+  .entry-logo { width: 68px; height: 68px; margin: 0 auto 8px; border-radius: 22px;
+    background: linear-gradient(160deg, #eef6ff, #d3e7ff); display: flex; align-items: center; justify-content: center;
+    box-shadow: inset 0 0 0 1px rgba(46,127,214,.16); }
+  .entry-logo .kb-gedung { width: 48px; height: 48px; }
+  #entryCard h1 { font-size: 24px; font-weight: 800; color: var(--kb-biru); line-height: 1.15; }
+  #entryCard .entry-sub { margin: 4px 0 0; color: var(--kb-teks-2); line-height: 1.45; }
+  #entryName, #entryKey, #ktaKunciInput { border: 1.5px solid var(--kb-garis); background: var(--kb-isi);
+    border-radius: 14px; transition: border-color .15s, box-shadow .15s, background .15s; }
+  #entryName:focus, #entryKey:focus, #ktaKunciInput:focus { border-color: var(--kb-biru-2); background: #fff;
+    box-shadow: 0 0 0 4px rgba(46,127,214,.16); }
+  #entryName::placeholder, #entryKey::placeholder { color: #8a9bb0; font-weight: 700; }
+  .entry-ingat { color: var(--kb-teks-2); }
+  #entryOverlay #genderRow { width: fit-content; margin: 12px auto; padding: 4px; gap: 4px;
+    border-radius: 999px; background: var(--kb-isi); box-shadow: inset 0 0 0 1px var(--kb-garis); }
+  #entryOverlay #genderRow .gbtn { background: transparent; color: var(--kb-teks-2); border: none; box-shadow: none;
+    padding: 8px 18px; transition: background .15s, color .15s, box-shadow .15s; }
+  #entryOverlay #genderRow .gbtn.active { background: #fff; color: var(--kb-biru); box-shadow: 0 2px 8px rgba(13,38,76,.16); }
+  #entryBtn { background: linear-gradient(180deg, #ffdb4d, #ffc700); color: #3d2c00; border-radius: 16px;
+    box-shadow: inset 0 -2px 0 rgba(0,0,0,.08), 0 8px 18px rgba(255,180,0,.32); transition: transform .08s, filter .15s; }
+  #entryBtn:hover { filter: brightness(1.03); }
+  .entry-links { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-top: 8px; }
+  .entry-guest { margin: 0; padding: 7px 12px; border-radius: 10px; color: var(--kb-biru); font-weight: 800;
+    text-decoration: none; transition: background .12s; }
+  .entry-guest:hover, .entry-guest:active { background: var(--kb-biru-muda); }
+  #entryCard .entry-error { background: #fff1f3; border-radius: 12px; padding: 8px 12px; color: #c81e44; }
+
+  /* ---- kartu kamar ---- */
+  #roomCard { border-radius: 20px; box-shadow: var(--kb-bayang-2), inset 0 0 0 1px rgba(255,255,255,.7); }
+  #roomCard.open { animation: kbPudar .18s ease-out; } /* opacity saja: transform dipakai posisi tengah landscape */
+  #roomCard .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  #roomCard .actions button { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 42px;
+    line-height: 1.2; text-align: center; background: var(--kb-isi); color: #24476e;
+    box-shadow: inset 0 0 0 1px var(--kb-garis); transition: background .12s, transform .08s; }
+  #roomCard .actions button:active { transform: scale(.98); }
+  #roomCard .actions button:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  #goRoomBtn, #sendalAgainBtn { background: linear-gradient(180deg, #3a8de6, #1f6fc9) !important; color: #fff !important;
+    box-shadow: 0 6px 14px rgba(31,111,201,.28) !important; }
+  .kta { border-width: 1.5px; border-color: var(--kb-garis); border-radius: 16px; background: linear-gradient(180deg, #f7fbff, #fff); }
+
+  /* ---- keypad PIN (ukuran tidak diubah: min 56 px, muat di 740x360) ---- */
+  #pinPad button { background: var(--kb-isi); box-shadow: inset 0 0 0 1px #e2eaf3; border-radius: 16px; color: var(--kb-teks);
+    transition: background .1s, transform .08s; }
+  #pinPad button:active { background: #e3ebf5; }
+  #pinPad button.pin-buka { background: linear-gradient(180deg, #ffdb4d, #ffc700); color: #3d2c00;
+    box-shadow: inset 0 -2px 0 rgba(0,0,0,.08); }
+  #pinTitik span { border-color: var(--kb-biru-2); transition: background .15s, transform .15s; }
+  #pinTitik span.isi { background: var(--kb-biru-2); transform: scale(1.12); }
+  #pinCard .entry-error { color: #c81e44; }
+
+  /* ---- misi / sendal / kta ---- */
+  #misiList li { border-radius: 14px; background: var(--kb-isi); }
+  #misiList li.done { background: #e9f7ee; }
+  #sendalCloseBtn, #misiSendalBtn { background: var(--kb-isi) !important; box-shadow: inset 0 0 0 1px var(--kb-garis); }
+
+  /* ---- responsive: HP landscape pendek ---- */
+  @media (max-height: 500px) and (orientation: landscape) {
+    /* kartu masuk 2 kolom (kepala kiri, form kanan) -> muat tanpa scroll */
+    #entryOverlay { align-items: center; padding: 10px; }
+    #entryCard { max-width: 720px; display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr);
+      gap: 0 22px; align-items: center; padding: 16px 20px; }
+    .entry-head { margin: 0; }
+    .entry-logo { width: 60px; height: 60px; border-radius: 18px; }
+    .entry-logo .kb-gedung { width: 42px; height: 42px; }
+    #entryCard h1 { font-size: 22px; }
+    #entryCard .entry-sub { font-size: 13px; }
+    #entryName, #entryKey { padding: 10px 14px; }
+    #entryKey { margin-top: 6px; }
+    .entry-ingat { margin-top: 6px; }
+    #entryOverlay #genderRow { margin: 8px auto; }
+    #entryOverlay #genderRow .gbtn { padding: 6px 16px; font-size: 14px; }
+    #entryBtn { padding: 10px 20px; }
+    .entry-links { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 0 4px; margin-top: 4px; }
+    .entry-guest { padding: 5px 10px; }
+    #entryCard .entry-error { margin-top: 6px; padding: 6px 10px; }
+  }
+  @media (max-height: 430px) and (orientation: landscape) {
+    /* kartu kamar landscape: tetap susunan lama (flex membungkus), tombol lebih pendek */
+    #roomCard .actions { display: flex; flex-wrap: wrap; gap: 6px; }
+    #roomCard .actions button { min-height: 32px; }
+  }
+
+  /* ---- animasi ---- */
+  @keyframes kbMuncul { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
+  @keyframes kbPudar { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes kbTurun { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+  @keyframes kbToast { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important;
+      transition-duration: .001ms !important; }
+  }
+  .kb-x { width: 14px; height: 14px; display: block; }
+
+  /* ---- UI refresh 2: placeholder, checkbox, ikon ---- */
+  #entryKey { text-transform: uppercase; letter-spacing: 1px; }
+  #ktaKunciInput::placeholder, #entryKey::placeholder { text-transform: none; letter-spacing: 0; }
+  #entryName::placeholder, #entryKey::placeholder, #ktaKunciInput::placeholder { color: #9aa9bb; font-weight: 600; opacity: 1; }
+  .entry-ingat input { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; margin: 0; flex: 0 0 auto;
+    border-radius: 6px; border: 1.5px solid #b9c8da; background: #fff; cursor: pointer;
+    transition: background .12s, border-color .12s; }
+  .entry-ingat input:checked { border-color: var(--kb-biru-2); background: var(--kb-biru-2) center / 14px 14px no-repeat
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+  .kb-ikon { width: 18px; height: 18px; vertical-align: -4px; }
+  #pinPad button.pin-aksi { display: flex; align-items: center; justify-content: center; gap: 6px; }
+  #masukArrow { display: inline-flex; margin-left: 2px; }
+  .kb-chev { width: 13px; height: 13px; transition: transform .15s; }
+  #masukBtn[aria-expanded="true"] .kb-chev { transform: rotate(180deg); }
+  .mp-titik { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px;
+    background: #9aa9bb; box-shadow: 0 0 0 2px rgba(154,169,187,.25); }
+  .mp-titik.mp-on { background: #22a06b; box-shadow: 0 0 0 2px rgba(34,160,107,.25); }
+  .mp-titik.mp-sambung { background: #f2b705; box-shadow: 0 0 0 2px rgba(242,183,5,.25); animation: kbKedip 1s ease-in-out infinite; }
+  @keyframes kbKedip { 50% { opacity: .35; } }
+  #hud-title p { text-shadow: 0 1px 3px rgba(8,28,58,.75), 0 0 8px rgba(8,28,58,.35); }
+  /* keypad PIN terbuka: kartu masuk di belakangnya disembunyikan supaya tidak
+     tampak seperti "bayangan kotak" di balik keypad (browser tanpa :has() =
+     tampilan lama, tidak rusak) */
+  body:has(#pinOverlay.open) #entryCard { visibility: hidden; }
+  /* tombol kartu kamar (grid 2 kolom): padding samping lebih hemat supaya
+     "Simpan Kartu (PNG)" / "Masuk Ruang Tamu" muat 1 baris di HP ~390 px */
+  @media (min-height: 431px), (orientation: portrait) {
+    #roomCard .actions button { padding: 9px 8px; gap: 5px; font-size: 13.5px; text-wrap: balance; }
+    #roomCard .actions button .uicon { flex: 0 0 auto; }
+  }
+  @media (max-width: 374px) and (orientation: portrait) {
+    #roomCard .actions button { padding: 9px 5px; gap: 4px; font-size: 12.5px; }
+  }
+  /* =================== AKHIR UI REFRESH =================== */
 </style>
 <script type="importmap">
 {
@@ -588,14 +799,45 @@
 
 <!-- Ronde 23 — loading screen: tampil sejak awal (HTML statis, sebelum
      modul Three.js jalan); JS menyembunyikannya begitu scene + entry siap. -->
-<div id="loadingOverlay">
+<div id="loadingOverlay" role="status" aria-live="polite">
+  <div class="load-awan load-awan-1"></div><div class="load-awan load-awan-2"></div><div class="load-awan load-awan-3"></div>
   <div id="loadingCard">
-    <svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 10v10h14V10" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 20v-6h4v6" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    <h1>KOSAN IBU KOS</h1>
-    <div class="load-spin"></div>
-    <p>Memuat Kosan...</p>
+    <div class="load-gedung"><svg class="kb-gedung" viewBox="0 0 64 64" aria-hidden="true"><ellipse cx="32" cy="59" rx="25" ry="3" fill="rgba(8,28,58,.18)"/><rect x="5" y="9" width="54" height="7" rx="3" fill="#8d9aa8"/><rect x="8" y="15" width="48" height="42" rx="3" fill="#2e8fe0"/><rect x="8" y="35" width="48" height="3" fill="#1b5fa8"/><rect class="kb-jendela" x="13" y="20" width="9" height="9" rx="1.5" fill="#fff3c4"/><rect class="kb-jendela" x="27.5" y="20" width="9" height="9" rx="1.5" fill="#fff3c4"/><rect class="kb-jendela" x="42" y="20" width="9" height="9" rx="1.5" fill="#fff3c4"/><rect class="kb-jendela" x="13" y="42" width="9" height="9" rx="1.5" fill="#fff3c4"/><rect class="kb-jendela" x="42" y="42" width="9" height="9" rx="1.5" fill="#fff3c4"/><rect x="27" y="42" width="10" height="15" rx="1.5" fill="#1b5fa8"/><circle cx="34.5" cy="50" r="0.9" fill="#ffd11a"/></svg></div>
+    <h1>Kosan Ibu Kos</h1>
+    <p class="load-tag">Kos virtual yang dibangun bareng penonton</p>
+    <div class="load-bar" role="progressbar" aria-label="Memuat kosan" aria-valuemin="0" aria-valuemax="100" aria-valuenow="4"><span id="loadBarIsi"></span></div>
+    <p id="loadTip">Memuat Kosan…</p>
+    <button id="loadReload" type="button" hidden>Muat ulang</button>
   </div>
+  <div class="load-tanah"></div>
 </div>
+<!-- UI refresh — progres loading: naik pelan mendekati 90% selama modul
+     Three.js dimuat, jadi 100% saat hideLoading(). Script biasa (bukan
+     modul) supaya jalan SEBELUM modul selesai diunduh. -->
+<script>
+(function () {
+  var isi = document.getElementById('loadBarIsi'), tip = document.getElementById('loadTip');
+  var bar = isi && isi.parentNode, btn = document.getElementById('loadReload');
+  var t0 = Date.now(), selesai = false, lambat = false, n = 0;
+  var tips = ['Ibu Kos lagi nyapu halaman…', 'Nyalain lampu kamar…', 'Ngecek WiFi ruang tamu…', 'Jemur cucian dulu…', 'Ngelap meja gazebo…'];
+  function set(p) { if (isi) isi.style.width = p + '%'; if (bar) bar.setAttribute('aria-valuenow', String(Math.round(p))); }
+  function detak() {
+    if (selesai) return;
+    var d = (Date.now() - t0) / 1000;
+    set(4 + 86 * (1 - Math.exp(-d / 2.5)));
+    if (d > 12 && !lambat && tip) { lambat = true; tip.textContent = 'Koneksi lagi lambat — tunggu sebentar ya…'; }
+    if (d > 25 && btn) btn.hidden = false;
+    setTimeout(detak, 200);
+  }
+  var giliran = setInterval(function () {
+    if (selesai || lambat || !tip) return;
+    tip.textContent = tips[n++ % tips.length];
+  }, 2200);
+  window.__kosanLoadSelesai = function () { selesai = true; clearInterval(giliran); set(100); };
+  if (btn) btn.addEventListener('click', function () { location.reload(); });
+  detak();
+})();
+</script>
 
 <div id="scene"></div>
 
@@ -607,7 +849,7 @@
   </div>
   <div id="topbtns">
     <button id="wakeBtn" class="pillbtn" type="button" style="display:none"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 8v6M12 14l-3 7M12 14l3 7M8 10.5L12 9l4 1.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Bangun</button>
-    <button id="mpPill" class="pillbtn" type="button" title="Status multiplayer — ketuk untuk coba lagi">⚪ Sendiri</button>
+    <button id="mpPill" class="pillbtn" type="button" title="Status multiplayer — ketuk untuk coba lagi"><span class="mp-titik mp-off"></span>Sendiri</button>
     <!-- Ronde 15b — jam WIB (UTC+7, BUKAN WITA): pil kecil di baris 1 sebelah pil MP; teks diisi JS tiap detik. -->
     <span id="clockWib" class="pillbtn" title="Jam WIB (UTC+7)"><span id="clockWibTime">--:--</span> WIB</span>
     <!-- Ronde 41 — "Web Utama" (backLink) DIHAPUS: game sekarang ADALAH halaman
@@ -630,7 +872,7 @@
        dulu); di desktop fixed di bawah topbar. -->
   <div class="hud" id="actionbar">
     <div class="dropdown" id="masukDropdown">
-      <button id="masukBtn" type="button" title="Masuk ke...">Masuk ke <span id="masukArrow">▾</span></button>
+      <button id="masukBtn" type="button" title="Masuk ke..." aria-expanded="false">Masuk ke <span id="masukArrow"><svg class="kb-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
       <div id="masukMenu">
         <button id="homeBtn" type="button" title="Masuk ke kamarmu sendiri"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 10v10h14V10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> KAMAR KAMU</button>
         <button id="livingBtn" type="button" title="Masuk ke ruang tamu"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 21h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> RUANG TAMU</button>
@@ -651,7 +893,7 @@
 <div id="roomCard">
   <div id="cardHead">
     <h2 id="cardTitle"></h2>
-    <button id="cardClose" type="button" aria-label="Tutup">✕</button>
+    <button id="cardClose" type="button" aria-label="Tutup"><svg class="kb-x" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button>
   </div>
   <div id="cardBody"></div>
   <div class="actions" id="cardActions"></div>
@@ -661,7 +903,7 @@
      #entryOverlay); daftar misi + progres + Bintang Kosan (lokal). -->
 <div id="misiOverlay">
   <div id="misiCard">
-    <button id="misiClose" type="button" aria-label="Tutup">✕</button>
+    <button id="misiClose" type="button" aria-label="Tutup"><svg class="kb-x" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button>
     <h2><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/></svg> Misi Harian</h2>
     <p id="misiDate"></p>
     <p id="misiStars"></p>
@@ -675,7 +917,7 @@
      (pola #misiOverlay); kanvas 2D, seret-lepas untuk melempar, 5 sendal. -->
 <div id="sendalOverlay">
   <div id="sendalCard">
-    <button id="sendalClose" type="button" aria-label="Tutup">✕</button>
+    <button id="sendalClose" type="button" aria-label="Tutup"><svg class="kb-x" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button>
     <h2><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6a3 3 0 0 1 3 3v10a6 6 0 0 1-12 0V6a3 3 0 0 1 3-3z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 8l-3.5 5M12 8l3.5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Lempar Sendal</h2>
     <p id="sendalHud">Skor: <b id="sendalSkor">0</b> · Sendal: <b id="sendalSisa">5/5</b> · Terbaik: <b id="sendalBest">0</b></p>
     <canvas id="sendalCanvas" width="360" height="280"></canvas>
@@ -691,7 +933,7 @@
      #misiOverlay); isi di-render JS (ktaRender) dari identitas pengunjung. -->
 <div id="ktaOverlay">
   <div id="ktaCard">
-    <button id="ktaClose" type="button" aria-label="Tutup">✕</button>
+    <button id="ktaClose" type="button" aria-label="Tutup"><svg class="kb-x" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button>
     <h2><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="11" r="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5.5 16c.5-1.5 1.7-2.2 3-2.2s2.5.7 3 2.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M15 9.5h4M15 13.5h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> KTA — Kosan Ibu Kos</h2>
     <p class="kta-sub">Kartu Tanda Penghuni</p>
     <div id="ktaBody"></div>
@@ -706,14 +948,20 @@
      (bukan lagi toggle gonta-ganti di dalam game). -->
 <div id="entryOverlay">
   <div id="entryCard">
-    <h1><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 10v10h14V10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 20v-6h4v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Kosan Ibu Kos</h1>
-    <p class="entry-sub">Ketik namamu, pilih karakter, lalu masuk.</p>
-    <input id="entryName" type="text" placeholder="@username" maxlength="40" autocomplete="off">
+    <!-- UI refresh — kepala (logo + judul + subjudul) dipisah dari form
+         supaya di HP landscape bisa jadi 2 kolom tanpa scroll. -->
+    <div class="entry-head">
+      <div class="entry-logo"><svg class="kb-gedung" viewBox="0 0 64 64" aria-hidden="true"><ellipse cx="32" cy="59" rx="25" ry="3" fill="rgba(8,28,58,.18)"/><rect x="5" y="9" width="54" height="7" rx="3" fill="#8d9aa8"/><rect x="8" y="15" width="48" height="42" rx="3" fill="#2e8fe0"/><rect x="8" y="35" width="48" height="3" fill="#1b5fa8"/><rect class="kb-jendela" x="13" y="20" width="9" height="9" rx="1.5" fill="#fff3c4"/><rect class="kb-jendela" x="27.5" y="20" width="9" height="9" rx="1.5" fill="#fff3c4"/><rect class="kb-jendela" x="42" y="20" width="9" height="9" rx="1.5" fill="#fff3c4"/><rect class="kb-jendela" x="13" y="42" width="9" height="9" rx="1.5" fill="#fff3c4"/><rect class="kb-jendela" x="42" y="42" width="9" height="9" rx="1.5" fill="#fff3c4"/><rect x="27" y="42" width="10" height="15" rx="1.5" fill="#1b5fa8"/><circle cx="34.5" cy="50" r="0.9" fill="#ffd11a"/></svg></div>
+      <h1>Kosan Ibu Kos</h1>
+      <p class="entry-sub">Ketik namamu, pilih karakter, lalu masuk.</p>
+    </div>
+    <div class="entry-form">
+    <input id="entryName" type="text" placeholder="@username" maxlength="40" autocomplete="off" autocapitalize="none" spellcheck="false">
     <!-- Ronde 54 — dua mode EKSPLISIT: DAFTAR (username + gender + kode
          kunci, lalu buat PIN di keypad) / MASUK (username, lalu PIN di
          keypad). Perbaikan 9 (Ryan 14 Nov): TANPA password; PIN selalu lewat
          keypad #pinOverlay. -->
-    <input id="entryKey" type="text" placeholder="Kode kunci dari caption terbaru" maxlength="20" autocomplete="off" autocapitalize="characters" style="display:none">
+    <input id="entryKey" type="text" placeholder="Kode kunci dari caption terbaru" maxlength="20" autocomplete="off" autocapitalize="characters" spellcheck="false" style="display:none">
     <label id="entryIngatRow" class="entry-ingat" style="display:none"><input id="entryIngat" type="checkbox"> Ingat saya di perangkat ini</label>
     <p id="entryError" class="entry-error" style="display:none"></p>
     <div id="genderRow">
@@ -721,10 +969,12 @@
       <button id="genderM" class="gbtn" type="button"><svg class="gsym" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9.5" cy="14.5" r="5.5" fill="none" stroke="#3b82f6" stroke-width="2.6"/><path d="M13.8 10.2L20 4M14.8 4H20v5.2" fill="none" stroke="#3b82f6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg> Cowok</button>
     </div>
     <button id="entryBtn" type="button">Masuk Kosan</button>
-    <button id="entryGuestLink" type="button" class="entry-guest">Masuk sebagai tamu</button>
-    <button id="entryModeLink" type="button" class="entry-guest">Sudah punya akun? Masuk di sini</button>
-    <button id="entryKeluarAkun" type="button" class="entry-guest" style="display:none">Bukan kamu? Keluar akun</button>
-    <p id="entryNote" class="entry-note">Username &amp; gender dikunci selama di dalam — muat ulang halaman untuk ganti.</p>
+    <div class="entry-links">
+      <button id="entryGuestLink" type="button" class="entry-guest">Masuk sebagai tamu</button>
+      <button id="entryModeLink" type="button" class="entry-guest">Sudah punya akun? Masuk di sini</button>
+      <button id="entryKeluarAkun" type="button" class="entry-guest" style="display:none">Bukan kamu? Keluar akun</button>
+    </div>
+    </div>
   </div>
 </div>
 
@@ -733,7 +983,7 @@
      kamar wajib ketik lagi. -->
 <div id="pinOverlay" role="dialog" aria-modal="true" aria-labelledby="pinJudul">
   <div id="pinCard">
-    <button id="pinClose" type="button" aria-label="Tutup">✕</button>
+    <button id="pinClose" type="button" aria-label="Tutup"><svg class="kb-x" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button>
     <h2 id="pinJudul">Masuk Kamar</h2>
     <p id="pinSub" class="pin-sub">Masukkan PIN kamarmu. PIN tidak disimpan, jadi tiap masuk kamar ketik lagi ya.</p>
     <!-- 14 Nov #2 — pinInput hanya penyimpan nilai (type=hidden: bukan kolom
@@ -749,9 +999,9 @@
       <button type="button" data-digit="1">1</button><button type="button" data-digit="2">2</button><button type="button" data-digit="3">3</button>
       <button type="button" data-digit="4">4</button><button type="button" data-digit="5">5</button><button type="button" data-digit="6">6</button>
       <button type="button" data-digit="7">7</button><button type="button" data-digit="8">8</button><button type="button" data-digit="9">9</button>
-      <button type="button" class="pin-aksi" data-aksi="hapus" aria-label="Hapus digit terakhir">⌫ Hapus</button>
+      <button type="button" class="pin-aksi" data-aksi="hapus" aria-label="Hapus digit terakhir"><svg class="kb-ikon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H9l-6-7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 9.5l5 5M17 9.5l-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Hapus</button>
       <button type="button" data-digit="0">0</button>
-      <button id="pinOk" type="button" class="pin-aksi pin-buka" data-aksi="buka" aria-label="Buka pintu">✓ Buka</button>
+      <button id="pinOk" type="button" class="pin-aksi pin-buka" data-aksi="buka" aria-label="Buka pintu"><svg class="kb-ikon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg> Buka</button>
     </div>
     <button id="pinBtn" type="button" style="display:none">Buka pintu</button>
   </div>
@@ -2708,7 +2958,7 @@ function pinBukaMode(m) {
   var j = document.getElementById('pinJudul');
   if (j) j.textContent = m.judul;
   if (pinSub) pinSub.textContent = m.sub;
-  if (pinOk) { pinOk.textContent = '✓ ' + m.ok; pinOk.setAttribute('aria-label', m.ok); }
+  if (pinOk) { pinOk.innerHTML = '<svg class="kb-ikon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>' + ' ' + escapeHtml(m.ok); pinOk.setAttribute('aria-label', m.ok); }
   /* kalau ada kolom teks yang masih fokus, lepas supaya keyboard HP turun */
   try { var ae = document.activeElement; if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) ae.blur(); } catch (e) { /* abaikan */ }
   pinRender();
@@ -3376,12 +3626,12 @@ function showRoomCard(n, isPreview, preview, nama) {
   if (kta) {
     var b5 = document.createElement('button');
     b5.id = 'saveCardBtn';
-    b5.textContent = '💾 Simpan Kartu (PNG)';
+    b5.innerHTML = iconSvg('simpan') + ' Simpan Kartu (PNG)';
     b5.addEventListener('click', function () { simpanKartuKosan(); });
     cardActions.appendChild(b5);
     var b6 = document.createElement('button');
     b6.id = 'shareCardBtn';
-    b6.textContent = '🔗 Bagikan Kamarku';
+    b6.innerHTML = iconSvg('bagikan') + ' Bagikan Kamarku';
     b6.addEventListener('click', function () { bagikanKamarKosan(n, !!resident); });
     cardActions.appendChild(b6);
   }
@@ -3496,12 +3746,12 @@ var masukMenu = document.getElementById('masukMenu');
 var masukArrow = document.getElementById('masukArrow');
 function tutupMasukMenu() {
   masukMenu.classList.remove('open');
-  if (masukArrow) masukArrow.textContent = '▾';
+  document.getElementById('masukBtn').setAttribute('aria-expanded', 'false'); /* UI refresh: panah SVG diputar CSS */
 }
 document.getElementById('masukBtn').addEventListener('click', function (e) {
   e.stopPropagation();
   var buka = masukMenu.classList.toggle('open');
-  if (masukArrow) masukArrow.textContent = buka ? '▴' : '▾';
+  this.setAttribute('aria-expanded', buka ? 'true' : 'false');
 });
 masukMenu.addEventListener('click', function () { tutupMasukMenu(); });
 document.addEventListener('click', function (e) {
@@ -3575,7 +3825,6 @@ var entryGuestLink = document.getElementById('entryGuestLink'); /* Ronde 52 — 
 var entryModeLink = document.getElementById('entryModeLink'); /* Ronde 54 — tautan pindah mode DAFTAR/MASUK */
 var genderRowEl = document.getElementById('genderRow'); /* Ronde 52 — disembunyikan saat mode MASUK */
 var entrySubEl = document.querySelector('#entryCard .entry-sub'); /* Ronde 52 — subjudul per mode */
-var entryNoteEl = document.getElementById('entryNote'); /* Task 11 — catatan kunci identitas, hanya di mode DAFTAR */
 var entryLoginView = false; /* Ronde 54 — true = mode MASUK (penghuni kembali, hanya username+PIN); false = mode DAFTAR */
 var entryModeManual = false; /* Ronde 54 — true sesudah pengguna memilih mode manual / sesudah daftar (jangan auto-ubah lagi) */
 var entryNameTouched = false; /* Ronde 54 — true sesudah pengguna mengetik username (jangan auto-ubah mode dari hasil load occupants) */
@@ -3687,7 +3936,6 @@ function entryApplyMode() {
   show(entryKey, !masuk);
   show(entryIngatRow, tahap !== 'sesi');
   show(genderRowEl, !masuk);
-  show(entryNoteEl, !masuk); /* Task 11 — catatan kunci identitas hanya di mode DAFTAR */
   show(entryKeluarAkun, tahap === 'sesi');
   if (entryModeLink) {
     entryModeLink.style.display = tahap === 'sesi' ? 'none' : '';
@@ -3765,6 +4013,8 @@ var UICONS = {
   /* Ronde 24 — ikon kunci untuk lencana "Kunci Kamar" (Fase 2d); gaya sama (stroke currentColor). */
   key: '<circle cx="8" cy="8" r="4.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M11.5 11.5L20 20M16 16l2-2M13.5 13.5l2.5-2.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
   /* Ronde 28 — ikon kaca pembesar untuk tombol cari namebar (ikon saja, tanpa teks); gaya sama. */
+  simpan: '<path d="M12 4v11M7.5 10.5L12 15l4.5-4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 19h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  bagikan: '<circle cx="6" cy="12" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="6" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="18" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8.2 10.8l7.6-3.6M8.2 13.2l7.6 3.6" fill="none" stroke="currentColor" stroke-width="2"/>',
   search: '<circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16.5 16.5L21 21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'
 };
 function iconSvg(n) {
@@ -4842,8 +5092,12 @@ updateRoomCount();
 var loadingOverlay = document.getElementById('loadingOverlay');
 function hideLoading() {
   if (!loadingOverlay || loadingOverlay.classList.contains('gone')) return;
-  loadingOverlay.classList.add('hide');
-  setTimeout(function () { loadingOverlay.classList.add('gone'); }, 400);
+  /* UI refresh: bilah progres penuh dulu (±0,2 dtk), lalu memudar */
+  if (typeof window.__kosanLoadSelesai === 'function') window.__kosanLoadSelesai();
+  setTimeout(function () {
+    loadingOverlay.classList.add('hide');
+    setTimeout(function () { loadingOverlay.classList.add('gone'); }, 480);
+  }, 220);
 }
 hideLoading();
 muatOccupants().then(function () { if (entryOverlay.classList.contains('open') && !entryModeManual && !entryNameTouched) entryDecideInitialMode(); }); /* Ronde 54 — sesudah daftar penghuni dimuat, putuskan mode awal sekali (username tersimpan terdaftar -> MASUK); jangan ubah kalau pengguna sudah mengetik/memilih mode */
@@ -5379,7 +5633,10 @@ function mpHitungSekitar() {
 }
 function mpPerbaruiPil() {
   if (!mpPill) return;
-  mpPill.textContent = mpTeksStatus(mpStatus, mpHitungSekitar());
+  /* UI refresh: emoji bulat di awal teks diganti titik warna CSS
+     (tampil sama di semua HP); teks dari mpTeksStatus tetap. */
+  var teksPil = mpTeksStatus(mpStatus, mpHitungSekitar()).replace(/^\S+\s+/, '');
+  mpPill.innerHTML = '<span class="mp-titik mp-' + (mpStatus === 'on' ? 'on' : (mpStatus === 'connecting' ? 'sambung' : 'off')) + '"></span>' + escapeHtml(teksPil);
 }
 function mpSetStatus(s) { mpStatus = s; mpPerbaruiPil(); }
 function mpModeSendiri() { mpSetStatus('solo'); }
