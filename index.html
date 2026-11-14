@@ -1181,7 +1181,17 @@ var BUILDING_C = { minX: -14.4, maxX: 12.4, minZ: 18.6, maxZ: 27 }; /* K21-K30 *
 var BUILDING_D = { minX: 17.6, maxX: 44.4, minZ: 18.6, maxZ: 27 }; /* K31-K40 */
 var CERMIN_CD_Z = 12.6; /* z' = 12,6 - z (A/B -> C/D) */
 var TABLE_BOX = { minX: 15.2, maxX: 16.8, minZ: -2.8, maxZ: -1.2 };
-var PARKIR_GESER = { x: 26, z: -8 }; /* Rapihin alun-alun (15 Nov): parkiran x 4..16, z 13..17 -> x 30..42, z 5..9 */
+/* Rapihin alun-alun (15 Nov, revisi Ryan): parkiran DIPUTAR 90 deg + dipindah ke
+   ujung TIMUR plaza, sisi terbuka MENGHADAP BARAT ke jemuran (ujung barat plaza),
+   pas di antara dua sudut bedeng timur (bedeng utara z 0, bedeng selatan z 12):
+   x 38..42, z 0..12, pusat (40, 6). Susunan asli di kode (pusat 10, 15, terbuka
+   ke utara) dipetakan: x' = 40 + (z - 15), z' = 6 - (x - 10) (putar y +90 deg). */
+var PARKIR_POS = { x: 40, z: 6, asalX: 10, asalZ: 15, rotY: Math.PI / 2 };
+/* Rapihin alun-alun — tepi selatan plaza (bedeng z 12..14, pagar tanaman z 13):
+   pohon di CELAH pagar tanaman, lampu di ujung bedeng (di luar pagar tanaman). */
+var POHON_SELATAN = [[-6, 13], [6, 13], [24, 13], [34, 13]];
+var LAMPU_SELATAN = [[-11.6, 13], [12.9, 13], [17.1, 13], [41.6, 13]];
+var BEDENG_SELATAN_PAGAR = [[-11.2, -6.7], [-5.3, -1.2], [1.2, 5.3], [6.7, 12.5], [17.5, 23.3], [24.7, 33.3], [34.7, 41.2]];
 /* Tangga lantai 2 (Ryan 18:30) — KOLONG TANGGA padat untuk avatar tanah.
    Koridor tangga di atas strip masuk selatan (z -13,5..-9,0) adalah solid:
    tanpa ini avatar tanah masuk koridor dari sisi barat/timur atau utara
@@ -1249,20 +1259,20 @@ var PLAZA_SOLIDS = [
   { minX: 12, maxX: 15.5, minZ: 9.47, maxZ: 9.53 },
   { minX: 8.75, maxX: 9.25, minZ: 2.75, maxZ: 3.25 },
   { minX: 14.75, maxX: 15.25, minZ: 2.75, maxZ: 3.25 },
-  /* Parkiran (Fase 0, Task 3) — 6 tiang + 3 pagar tanaman; sisi utara
-     TERBUKA (masuk dari jalur silang); fascia/lampu/papan TANPA AABB.
-     Rapihin alun-alun (15 Nov): PINDAH dari x 4..16, z 13..17 (kejepit
-     Gedung C, 1,35 m dari dinding) ke SISI TIMUR plaza x 30..42, z 5..9
-     (geser +26, -8; jarak ke dinding D 9,35 m, ke balkon B 9,2 m). */
-  { minX: 30.35, maxX: 30.65, minZ: 5.35, maxZ: 5.65 },
-  { minX: 35.85, maxX: 36.15, minZ: 5.35, maxZ: 5.65 },
-  { minX: 41.35, maxX: 41.65, minZ: 5.35, maxZ: 5.65 },
-  { minX: 30.35, maxX: 30.65, minZ: 8.35, maxZ: 8.65 },
-  { minX: 35.85, maxX: 36.15, minZ: 8.35, maxZ: 8.65 },
-  { minX: 41.35, maxX: 41.65, minZ: 8.35, maxZ: 8.65 },
-  { minX: 29.75, maxX: 30.25, minZ: 5, maxZ: 9 },
-  { minX: 41.75, maxX: 42.25, minZ: 5, maxZ: 9 },
-  { minX: 30, maxX: 42, minZ: 8.75, maxZ: 9.25 },
+  /* Parkiran (Fase 0, Task 3) — 6 tiang + 3 pagar tanaman; fascia/lampu/
+     papan TANPA AABB. Rapihin alun-alun (15 Nov, revisi Ryan): pindah dari
+     x 4..16, z 13..17 (kejepit Gedung C) ke ujung TIMUR plaza x 38..42,
+     z 0..12, sisi TERBUKA menghadap BARAT (ke jemuran), pas di antara sudut
+     bedeng utara + selatan. Kotak = susunan asli diputar (PARKIR_POS). */
+  { minX: 38.35, maxX: 38.65, minZ: 11.35, maxZ: 11.65 },
+  { minX: 38.35, maxX: 38.65, minZ: 5.85, maxZ: 6.15 },
+  { minX: 38.35, maxX: 38.65, minZ: 0.35, maxZ: 0.65 },
+  { minX: 41.35, maxX: 41.65, minZ: 11.35, maxZ: 11.65 },
+  { minX: 41.35, maxX: 41.65, minZ: 5.85, maxZ: 6.15 },
+  { minX: 41.35, maxX: 41.65, minZ: 0.35, maxZ: 0.65 },
+  { minX: 38, maxX: 42, minZ: 11.75, maxZ: 12.25 },
+  { minX: 38, maxX: 42, minZ: -0.25, maxZ: 0.25 },
+  { minX: 41.75, maxX: 42.25, minZ: 0, maxZ: 12 },
   /* Rapihin alun-alun (15 Nov) — bedeng tepi SELATAN plaza (cermin bedeng
      utara z -2..0 terhadap sumbu plaza z 6): 3 segmen z 12..14, celah di
      jalan tengah (x +-1,2) + jalur gerbang (x 13,3..16,7). Pohon + lampu
@@ -2272,24 +2282,28 @@ function buildWorld() {
      jalan tengah (x 0) + jalur gerbang (x 15). Di selatannya lorong depan
      Gedung C/D (z 14,4..18,2, lebar 3,8 m) — pintu K21-K25 / K31-K35 lega. */
   box(M.soil, 10.8, 0.25, 2, -6.6, 0.155, 13);
-  box(M.leaf, 10.8, 0.5, 0.5, -6.6, 0.53, 13);
   box(M.soil, 12.1, 0.25, 2, 7.25, 0.155, 13);
-  box(M.leaf, 12.1, 0.5, 0.5, 7.25, 0.53, 13);
   box(M.soil, 25.3, 0.25, 2, 29.35, 0.155, 13);
-  box(M.leaf, 25.3, 0.5, 0.5, 29.35, 0.53, 13);
+  /* Revisi Ryan ("batang pohon-pohonnya coba kamu perhatikan"): pagar tanaman
+     DIPUTUS di tiap pohon (celah 1,4 m) + dipendekkan 0,4 m di ujung yang
+     bertiang lampu — batang + tiang tumbuh BERSIH dari tanah bedeng, tidak
+     lagi menembus pagar tanaman. Tanah bedeng tetap utuh (AABB tidak berubah). */
+  BEDENG_SELATAN_PAGAR.forEach(function (sg) { box(M.leaf, sg[1] - sg[0], 0.5, 0.5, (sg[0] + sg[1]) / 2, 0.53, 13); });
   /* pohon tepi selatan plaza — Rapihin alun-alun (15 Nov): dulu 2 pohon
      melayang di (-4, 15) + (-8, 15) (di jalur depan Gedung C); kini 4 pohon
      DI DALAM bedeng selatan, berpasangan simetris: (-6, 13) + (6, 13) mengapit
      jalan tengah, (24, 13) + (36, 13) di segmen timur. Batang terlindung kotak
      bedeng (avatar tidak menembus batang). Tajuk r 1,5 berhenti di z 14,5 —
-     2,3 m dari pagar kaca balkon C/D (z 16,8). */
-  tree(-6, 13); tree(6, 13); tree(24, 13); tree(36, 13);
+     2,3 m dari pagar kaca balkon C/D (z 16,8). Revisi Ryan: pohon timur
+     36 -> 34 (tajuk 1,8 m dari atap parkiran yang kini di x 38..42). */
+  POHON_SELATAN.forEach(function (t) { tree(t[0], t[1]); });
   /* 6 lampu jalan (tanpa AABB, konsisten dengan pohon) */
   /* Rapihin alun-alun (15 Nov): 2 lampu utara tetap (-11,-3) + (41,-3);
      4 lampu selatan (dulu berserakan (-12,14) (41,12) (-8,12) (30,12)) kini
-     DI DALAM bedeng selatan: 2 di ujung (-11,5 / 41,5) + 2 mengapit celah
-     jalur gerbang (12,8 / 17,2) — gerbang -> plaza terbaca sebagai pintu masuk. */
-  [[-11, -3], [41, -3], [-11.5, 13], [12.8, 13], [17.2, 13], [41.5, 13]].forEach(function (p) {
+     DI DALAM bedeng selatan, di ujung pagar tanaman (revisi Ryan: tidak menembus
+     pagar): 2 di ujung luar (-11,6 / 41,6) + 2 mengapit celah jalur gerbang
+     (12,9 / 17,1) — gerbang -> plaza terbaca sebagai pintu masuk. */
+  [[-11, -3], [41, -3]].concat(LAMPU_SELATAN).forEach(function (p) {
     cyl(M.steelDark, 0.09, 0.09, 2.2, p[0], 1.1, p[1]);
     ball(M.lampWarm, 0.18, p[0], 2.35, p[1]);
   });
@@ -2451,10 +2465,19 @@ function buildWorld() {
   box(M.leaf, 0.5, 0.5, 4, 4, 0.28, 15);
   box(M.leaf, 0.5, 0.5, 4, 16, 0.28, 15);
   box(M.leaf, 12, 0.5, 0.5, 10, 0.28, 17);
-  /* Rapihin alun-alun (15 Nov): geser seluruh parkiran (29 mesh) ke sisi timur
-     plaza, x 30..42, z 5..9 (pusat 36, 7) — bentuk/isi TIDAK berubah. Koordinat
-     di atas = susunan asli (pusat 10, 15); AABB di PLAZA_SOLIDS sudah tergeser. */
-  scene.children.slice(awalParkir).forEach(function (m) { m.position.x += PARKIR_GESER.x; m.position.z += PARKIR_GESER.z; });
+  /* Rapihin alun-alun (15 Nov, revisi Ryan): seluruh parkiran (29 mesh) masuk
+     satu grup yang diputar 90 deg di (40, 6) — sisi terbuka + papan PARKIR
+     menghadap barat ke jemuran. Bentuk/isi TIDAK berubah; koordinat di atas =
+     susunan asli (pusat 10, 15); AABB di PLAZA_SOLIDS sudah diputar. */
+  var parkirGrup = new THREE.Group();
+  parkirGrup.name = 'parkiran';
+  parkirGrup.position.set(PARKIR_POS.x, 0, PARKIR_POS.z);
+  parkirGrup.rotation.y = PARKIR_POS.rotY;
+  scene.children.slice(awalParkir).forEach(function (m) {
+    m.position.x -= PARKIR_POS.asalX; m.position.z -= PARKIR_POS.asalZ;
+    parkirGrup.add(m); /* add() melepas dari scene */
+  });
+  scene.add(parkirGrup);
 
   /* ---- Ronde 14 — pintu utama + porch Ruang Tamu DICABUT (vonis Ryan
      09:25: porch + pintu utama "gak rapih"). Gedung adalah kotak PADAT

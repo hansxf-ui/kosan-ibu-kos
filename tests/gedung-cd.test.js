@@ -25,7 +25,7 @@ test('C&D: posisi sesuai brief (cermin A/B terhadap z 6,3), muka utara di dindin
   assert.equal(F.YARD.maxZ, 28);
   /* tidak pindah: gazebo, jemuran (kotak AABB lama masih ada persis); parkiran dipindah
      ke sisi timur plaza oleh Rapihin alun-alun (tests/alun-alun.test.js) */
-  for (const k of [{ minX: 11.2, maxX: 12.8, minZ: 6.1, maxZ: 6.9 }, { minX: 30, maxX: 42, minZ: 8.75, maxZ: 9.25 }, { minX: -16.6, maxX: -16.4, minZ: 0.9, maxZ: 1.1 }]) {
+  for (const k of [{ minX: 11.2, maxX: 12.8, minZ: 6.1, maxZ: 6.9 }, { minX: 41.75, maxX: 42.25, minZ: 0, maxZ: 12 }, { minX: -16.6, maxX: -16.4, minZ: 0.9, maxZ: 1.1 }]) {
     assert.ok(F.PLAZA_SOLIDS.some((s) => JSON.stringify(s) === JSON.stringify(k)), JSON.stringify(k));
   }
   assert.ok(!F.PLAZA_SOLIDS.some((s) => s.minX === -18 && s.maxX === -2 && s.minZ === 16), 'bedeng selatan lama dibongkar');
