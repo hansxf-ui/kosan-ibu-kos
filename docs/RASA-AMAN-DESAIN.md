@@ -193,80 +193,57 @@ pakai email.
 
 ## 5. Alur masuk
 
-### 5.1 Penghuni (sudah punya password)
+> **DICABUT 14 Nov 2026 (perbaikan 9, keputusan Ryan 14:53/14:58/15:00):**
+> desain awal §5 (login username + **password**, setup password sekali untuk
+> penghuni lama lewat PIN lama + tiket, aturan password, scrypt, kunci
+> password 5x, lupa-password lewat reset `password_hash`) **tidak dipakai
+> lagi**. Begitu juga cek password bocor HIBP (perbaikan 7) dan fail-closed
+> (perbaikan 8). Alasan Ryan: setup password "terlalu rumit, orang bisa
+> kesel". Rincian implementasi yang berlaku ada di runbook
+> `docs/RASA-AMAN-FASE-A.md` (branch PR #4). Sebutan "password" di §10,
+> §12, dan §14 dokumen ini adalah riwayat desain awal.
 
-1. Layar masuk: **username + password** + centang **"Ingat saya"**.
-2. `POST /api/masuk {username, password, perangkat}` →
-   - server: cek batas percobaan → scrypt verify → buat sesi.
-   - set cookie `__Host-kosan_sesi` (`HttpOnly; Secure; SameSite=Strict;
-     Path=/`):
-     - "Ingat saya" dicentang: `Max-Age` 30 hari, diperpanjang saat dipakai.
-     - Tidak dicentang: cookie sesi biasa (hilang saat browser ditutup), dan
-       server tetap membatasi umurnya 12 jam.
-   - balas `{room, name, gender}`.
-3. Kunjungan berikut: `GET /api/sesi`. Kalau cookie masih berlaku, layar
-   masuk menampilkan "Masuk sebagai @nama" dengan satu tombol, tanpa
-   mengetik apa pun. Satu ketukan tetap perlu karena layar penuh + kunci
-   landscape hanya boleh dari gestur pengguna. Ada tautan "Bukan kamu?
-   Keluar akun".
-4. Yang tersimpan di perangkat **hanya token sesi acak 256-bit** (di cookie
-   HttpOnly). Di database yang disimpan hanya SHA-256 dari token itu.
-   Password tidak pernah disimpan di perangkat, baik di `localStorage`,
-   `sessionStorage`, maupun cookie yang bisa dibaca JS.
-5. **Keluar:** `POST /api/keluar` mencabut sesi dan menghapus cookie. Token
-   relay tidak diperpanjang lagi (§7.2).
+### 5.1 Penghuni (PIN saja)
 
-Aturan password:
-- 8–128 karakter, ditolak kalau ada di daftar password umum (±150 entri,
-  termasuk pola lokal seperti `bismillah`, `sayang`, `kosanibukos`), sama
-  dengan username, atau satu karakter diulang. Tanpa aturan "wajib simbol";
-- di-hash di server dengan `crypto.scrypt` bawaan Node (N=2^15, r=8, p=1,
-  salt acak 16 byte per akun), tanpa dependensi tambahan.
+1. Layar masuk: **username** + tombol **Masuk** (+ centang "Ingat saya").
+   Klien mencocokkan ke daftar penghuni publik (`kosan_occupants`). Bukan
+   penghuni → "Nama ini belum terdaftar sebagai penghuni — daftar dulu,
+   atau masuk sebagai tamu." (keypad tidak dibuka).
+2. Penghuni → **keypad PIN** (6 titik, kirim otomatis di digit ke-6) →
+   `POST /api/masuk {username, pin, ingat, perangkat}`. Server: batas per
+   jaringan (hanya percobaan gagal yang terhitung, perbaikan 11) → gerbang
+   per kamar (5 / 15 menit geser, kunci ±20 menit) → RPC lama `kosan_login`
+   lewat service role → PIN benar = sesi langsung.
+3. Login hanya normalize + panjang ≤30, lalu cocokkan ke daftar penghuni.
+   Charset username (`a-z0-9 _.-`) hanya ditegakkan saat daftar.
+4. "Ingat saya" = cookie `__Host-kosan_sesi` (HttpOnly, Secure,
+   SameSite=Strict), 30 hari geser; tanpa centang = cookie sesi + batas
+   server 12 jam. Di DB hanya SHA-256 token. Kunjungan berikut: satu
+   ketukan "Masuk Kosan". "Keluar akun" mencabut sesi.
+5. Lupa PIN: pemilik memverifikasi lewat DM IG, reset PIN lewat SQL
+   (runbook `PENGHUNI.md`), lalu `kosan_akun_reset(<kamar>)` mencabut sesi
+   + membuka kunci.
 
-Batas percobaan:
-- 5 salah per akun dalam 15 menit → akun dikunci 15 menit (pola sama dengan
-  kunci PIN Ronde 61);
-- 20 percobaan per IP per jam.
+### 5.2 Daftar (penghuni baru)
 
-### 5.2 Penghuni lama: setup password sekali
+Username + gender + kode kunci (KOSAN / KOSANBARU) → keypad "Buat PIN" →
+"Ulangi PIN" → `POST /api/daftar` → server memanggil RPC lama
+`kosan_register` (definisi tidak diubah) lewat service role → sesi
+langsung. Aturan tambahan, dicek di klien dan server:
 
-Untuk 20 penghuni yang `password_hash`-nya masih kosong:
-
-1. Pemain mengetik username + password apa saja → server membalas
-   `perlu_setup` (tanpa memeriksa password).
-2. UI: "Login pertama sejak pembaruan. Masukkan **PIN kamarmu** dulu ya."
-3. `POST /api/setup/pin {username, pin}` → server menghitung hash lama
-   (`pinHash` FNV, port 1:1 dari klien) dari PIN mentah, lalu memanggil RPC
-   lama `kosan_login` dengan service role (§10), sehingga kunci PIN 5x/15
-   menit yang sudah ada ikut berlaku. **PIN dan `pin_hash` tidak diubah.**
-   Lalu server menerbitkan tiket setup bertanda tangan (5 menit). Tiket itu
-   sekali pakai karena penyimpanan password bersyarat `password_hash IS
-   NULL` dan atomik.
-4. UI: "Buat password" (2x) → `POST /api/setup/password {tiket, password}` →
-   simpan hash scrypt, buat sesi, catat perangkat + IP (event `setup`).
-5. **Sejak itu login hanya lewat username + password.** Jalur PIN-saja
-   ditutup untuk akun itu. PIN tetap jadi PIN kamar.
-
-Tidak ada yang daftar ulang dan tidak ada yang kehilangan kamar. Data nama,
-kamar, gender, dan PIN tidak disentuh.
-
-Lupa password (tanpa email): pemilik memverifikasi lewat DM IG, lalu
-mengosongkan `password_hash` (runbook). Penghuni mengulang alur setup di
-atas dengan PIN-nya.
+- PIN tidak boleh sama dengan username (`pinHash(pin) ===
+  pinHash(normalize(username))`) — hanya saat daftar, tidak saat login;
+- nama yang sudah terdaftar ditolak sebelum keypad dibuka;
+- nama berpola `tamu-N` ditolak ("Nama itu dipakai untuk tamu — pilih
+  nama lain.").
 
 ### 5.3 Tamu
 
-1. Tamu mengetik nama, lalu "Masuk sebagai tamu" (tanpa password).
-2. `POST /api/tamu {nama, perangkat}` → server:
-   - tolak nama yang sama dengan nama penghuni (pakai `normalize`, dan
-     charset `usernameValid` mencegah homoglyph);
-   - tolak nama yang kena filter kata (§9.1);
-   - batas: 10 tamu per IP per jam, maks 200 tamu aktif;
-   - terbitkan `pt...` + token relay tamu (1 jam, diperpanjang selama
-     bermain) [Fase B].
-3. Tamu tidak punya sesi, jadi `/api/kamar/masuk` selalu menolak (§6).
-4. Kalau `/api/tamu` gagal (server down), tamu tetap masuk dalam **mode
-   sendiri**. Game tidak boleh mati.
+Sekali ketuk "Masuk sebagai tamu", tanpa mengetik nama. Nama otomatis
+`Tamu-N` (N terkecil yang belum dipakai nama penghuni maupun pemain
+online; bentrok bersamaan → yang id-nya lebih besar pilih ulang), label
+`Tamu-N · tamu`, juga saat kosan penuh. Tamu tidak bisa masuk kamar (server
+401, tombol "KAMAR KAMU" memberi toast).
 
 ---
 
