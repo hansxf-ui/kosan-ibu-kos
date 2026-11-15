@@ -164,7 +164,7 @@ Sapaan:
 5. "Tangga ke balkon lantai dua itu enak buat lihat pemandangan sore."
 6. "Ibu nggak galak kok. Asal kamar rapi dan saling jaga, Ibu senang."
 7. "WiFi ruang tamu itu dulu request pertama kalian. Kenceng kan?"
-8. "Parkiran di selatan itu buat motor, bukan buat jemur sendal ya."
+8. "Parkiran di timur itu buat motor, bukan buat jemur sendal ya." (dulu "di selatan"; diganti setelah parkiran pindah ke sisi timur)
 9. "Kalau capek, rebahan dulu di kasur. Kamar itu rumahmu."
 10. "Kode kunci kamar selalu Ibu taruh di caption video terbaru."
 11. "Lempar sendal boleh, asal jangan ke jendela tetangga."
