@@ -2654,8 +2654,8 @@ function bangunJemuranModern() {
     K.cat(0x3f7a3a); K.tambah(G.polos, new THREE.SphereGeometry(0.19, 12, 8), -15.5, 0.5, z, 0, 0, 0, 1, 0.82, 1);
     K.cat(0x4f8c42); K.tambah(G.polos, new THREE.SphereGeometry(0.12, 10, 7), -15.42, 0.64, z - 0.05);
   });
-  var hasil = Object.assign({}, K.selesai(true), Kk.selesai(false)), ketuk = [];
-  for (var k in hasil) ketuk.push(hasil[k]);
+  var ketuk = []; /* semua mesh gabungan bisa diketuk (K dan Kk sama-sama punya G.polos: jangan digabung per kunci) */
+  [K.selesai(true), Kk.selesai(false)].forEach(function (hasil) { for (var k in hasil) ketuk.push(hasil[k]); });
   /* 4 cucian tetap (tempat + kotak tabrakan lama): kaus putih, handuk sage, celana denim, kemeja krem di hanger */
   JEMURAN_HELAI = [
     jemuranHelai(-16.5, 2.5, 'kaus', [1.32, 1.32, 1.3], 0.52, 0.6, [1.4, 0.45, 0.4]),
@@ -3610,12 +3610,10 @@ function bahanPerabot() {
     baja: lam({ map: baja, color: 0xe2e5e8 }), /* stainless tersikat: panci, badan inox mesin */
     bajaDalam: lam({ map: baja, color: 0xd0d4d8, side: THREE.BackSide }), /* bak: kotak terbalik = dinding dalam + dasar, atas terbuka */
     hitam: lam({ color: IN_HITAM }), /* keran, kotak papan KELUAR */
-    gelap: lam({ vertexColors: true }), /* bagian gelap berwarna verteks: tungku, penyangga, kenop, karet pintu, kaki */
-    kaca: lam({ map: kaca }), /* kaca hitam: kompor tanam + panel mesin */
+    gelap: lam({ vertexColors: true }), /* detail berwarna verteks: tungku, penyangga, kenop; mesin: panel, bingkai pintu, karet, kaki, handuk, botol */
+    kaca: lam({ map: kaca }), /* kaca hitam kompor tanam */
     kuningan: lam({ color: 0xc9a227, emissive: 0x2a1e04 }),
-    krom: lam({ map: tek(64, 64, lukisKrom) }), /* bingkai pintu mesin, kenop, gagang */
     drum: lam({ map: tek(128, 64, lukisLubangDrum, [7, 2]), side: THREE.BackSide }), /* dinding dalam drum */
-    drumBelakang: lam({ map: tek(128, 64, lukisLubangDrum, [2, 1]) }),
     kacaPintu: lam({ color: 0x2b3a44, transparent: true, opacity: 0.36, depthWrite: false }), /* satu-satunya bidang transparan di mesin */
     kacaPintuDr: lam({ color: 0x40372f, transparent: true, opacity: 0.42, depthWrite: false }),
     airCuci: lam({ map: tek(64, 64, lukisAirSabun), emissive: 0x0b2630 }), /* air bersabun di dalam drum: OPAK (kaca pintu di depannya sudah transparan) */
@@ -3625,10 +3623,6 @@ function bahanPerabot() {
     keramik: lam({ map: tek(128, 64, lukisGalurKeramik), color: 0x4d555c }), /* badan lampu nakas: keramik slate gelap (lampu titik 0,5 m di depannya: krem jadi putih silau) */
     linen: tek(128, 128, lukisKain, [3, 1]), /* kap lampu nakas (map roomLampShadeMat) */
     kainSoundbar: lam({ map: tek(128, 32, lukisKainSoundbar) }),
-    handukTeal: lam({ map: kain, color: 0x3aa597 }),
-    handukKrem: lam({ map: kain, color: 0xf1e8d8 }),
-    botol: lam({ color: 0xf4f6f7 }),
-    botolLabel: lam({ color: 0x2e7fd6 }),
     keluar: new THREE.MeshBasicMaterial({ map: keluar }) /* muka papan KELUAR (menyala = Basic) */
   };
   return PB;
@@ -3657,11 +3651,6 @@ function lukisSikatBaja(ctx, w, h) { /* stainless tersikat: garis halus memanjan
 function lukisKacaHitam(ctx, w, h) { /* kaca hitam berkilap tipis menyilang */
   var g = ctx.createLinearGradient(0, 0, w, h);
   g.addColorStop(0, '#34383d'); g.addColorStop(0.42, '#141619'); g.addColorStop(0.5, '#23262a'); g.addColorStop(0.58, '#131518'); g.addColorStop(1, '#0c0d0f');
-  ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
-}
-function lukisKrom(ctx, w, h) { /* krom: pita terang-gelap sepanjang v (tabung torus = kilap melingkar) */
-  var g = ctx.createLinearGradient(0, 0, 0, h);
-  g.addColorStop(0, '#f6f8fa'); g.addColorStop(0.3, '#8f979e'); g.addColorStop(0.5, '#eef1f3'); g.addColorStop(0.72, '#737a81'); g.addColorStop(1, '#e3e6e9');
   ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
 }
 function lukisLubangDrum(ctx, w, h) { /* drum stainless berlubang (pola selang-seling) */
@@ -3770,7 +3759,7 @@ function bangunMejaDapurModern() {
   Kb.tambah(P.baja, new THREE.RingGeometry(0.028, 0.038, 24), -4.19, 0.7212, hz, -Math.PI / 2, 0, 0);
   Kb.tambah(P.hitam, new THREE.CylinderGeometry(0.026, 0.03, 0.035, 20), hx, 0.9375, hz); /* dudukan */
   Kb.tambah(P.hitam, new THREE.CylinderGeometry(0.0135, 0.016, 0.3, 14), hx, 1.105, hz); /* batang */
-  Kb.tambah(P.hitam, new THREE.TorusGeometry(0.1, 0.0135, 10, 24, Math.PI), hx + 0.1, 1.255, hz); /* leher angsa (puncak y 1,355) */
+  Kb.tambah(P.hitam, new THREE.TorusGeometry(0.1, 0.0135, 8, 18, Math.PI), hx + 0.1, 1.255, hz); /* leher angsa (puncak y 1,355) */
   Kb.tambah(P.hitam, new THREE.CylinderGeometry(0.0135, 0.0145, 0.06, 14), hx + 0.2, 1.225, hz); /* mulut */
   Kb.tambah(P.hitam, new THREE.CylinderGeometry(0.0165, 0.0165, 0.014, 14), hx + 0.2, 1.192, hz); /* aerator */
   Kb.tambah(P.hitam, new THREE.CylinderGeometry(0.009, 0.009, 0.075, 10), hx, 1.03, hz + 0.045, Math.PI / 2, 0, 0); /* tuas samping */
@@ -3790,24 +3779,24 @@ function bangunMejaDapurModern() {
   var Kk = new JalanKumpul(S);
   Kk.tambah(P.kaca, geoEmpuk(0.52, 0.012, 0.72, 0.004), -4.2, 0.926, 0.8);
   DAPUR_TUNGKU.forEach(function (p) {
-    Kk.cat(0x2b2e33); Kk.tambah(P.gelap, new THREE.CylinderGeometry(0.058, 0.062, 0.008, 24), p[0], 0.936, p[1]); /* cincin dasar */
-    Kk.cat(0x8d9197); Kk.tambah(P.gelap, new THREE.CylinderGeometry(0.044, 0.046, 0.016, 24), p[0], 0.948, p[1]); /* mahkota aluminium */
-    Kk.cat(0x121316); Kk.tambah(P.gelap, new THREE.CylinderGeometry(0.031, 0.034, 0.008, 20), p[0], 0.96, p[1]); /* tutup enamel hitam */
+    Kk.cat(0x2b2e33); Kk.tambah(P.gelap, new THREE.CylinderGeometry(0.058, 0.062, 0.008, 18), p[0], 0.936, p[1]); /* cincin dasar */
+    Kk.cat(0x8d9197); Kk.tambah(P.gelap, new THREE.CylinderGeometry(0.044, 0.046, 0.016, 18), p[0], 0.948, p[1]); /* mahkota aluminium */
+    Kk.cat(0x121316); Kk.tambah(P.gelap, new THREE.CylinderGeometry(0.031, 0.034, 0.008, 16), p[0], 0.96, p[1]); /* tutup enamel hitam */
     for (var k = 0; k < 4; k++) { /* penyangga besi cor: 4 jari menyebar, atas y 0,971 = alas panci */
       var a = Math.PI / 4 + k * Math.PI / 2;
       Kk.cat(0x26282c); Kk.tambah(P.gelap, new THREE.BoxGeometry(0.05, 0.022, 0.011), p[0] + Math.cos(a) * 0.08, 0.96, p[1] + Math.sin(a) * 0.08, 0, -a, 0);
     }
   });
   [0.52, 0.68, 0.92, 1.08].forEach(function (z) { /* 4 kenop di tepi depan kaca */
-    Kk.cat(0x1b1d20); Kk.tambah(P.gelap, new THREE.CylinderGeometry(0.019, 0.021, 0.02, 20), -3.975, 0.942, z);
+    Kk.cat(0x1b1d20); Kk.tambah(P.gelap, new THREE.CylinderGeometry(0.019, 0.021, 0.02, 14), -3.975, 0.942, z);
     Kk.cat(0xd9dde0); Kk.tambah(P.gelap, new THREE.BoxGeometry(0.016, 0.003, 0.004), -3.979, 0.9535, z);
   });
   /* panci stainless + tutup kubah + 2 pegangan di tungku pertama */
   var px = DAPUR_TUNGKU[0][0], pz = DAPUR_TUNGKU[0][1], py = 0.971;
-  Kk.tambah(P.baja, new THREE.CylinderGeometry(0.085, 0.08, 0.11, 28, 1, true), px, py + 0.055, pz);
-  Kk.tambah(P.baja, new THREE.CircleGeometry(0.08, 28), px, py + 0.001, pz, Math.PI / 2, 0, 0);
-  Kk.tambah(P.baja, new THREE.TorusGeometry(0.085, 0.004, 6, 28), px, py + 0.11, pz, Math.PI / 2, 0, 0);
-  Kk.tambah(P.baja, new THREE.SphereGeometry(0.1675, 28, 5, 0, Math.PI * 2, 0, 0.553), px, py + 0.1355 - 0.1675, pz); /* kubah tutup: puncak y 1,1065, tepi = bibir */
+  Kk.tambah(P.baja, new THREE.CylinderGeometry(0.085, 0.08, 0.11, 20, 1, true), px, py + 0.055, pz);
+  Kk.tambah(P.baja, new THREE.CircleGeometry(0.08, 20), px, py + 0.001, pz, Math.PI / 2, 0, 0);
+  Kk.tambah(P.baja, new THREE.TorusGeometry(0.085, 0.004, 4, 20), px, py + 0.11, pz, Math.PI / 2, 0, 0);
+  Kk.tambah(P.baja, new THREE.SphereGeometry(0.1675, 20, 4, 0, Math.PI * 2, 0, 0.553), px, py + 0.1355 - 0.1675, pz); /* kubah tutup: puncak y 1,1065, tepi = bibir */
   Kk.cat(0x1b1d20); Kk.tambah(P.gelap, new THREE.CylinderGeometry(0.012, 0.016, 0.018, 14), px, py + 0.145, pz);
   [-1, 1].forEach(function (s) { Kk.cat(0x1b1d20); Kk.tambah(P.gelap, geoEmpuk(0.026, 0.018, 0.045, 0.006), px, py + 0.085, pz + s * 0.1); });
   var mk = Kk.selesai(false);
@@ -3828,6 +3817,8 @@ function bangunMejaDapurModern() {
 }
 /* --- dapur: mesin cuci + pengering front-load --- */
 var wmMesin = null, drMesin = null; /* { grup, baju, air, layar, led, x0, z0, putar } */
+var GEO_BAJU_DRUM = null;
+function geoBajuDrum() { if (!GEO_BAJU_DRUM) GEO_BAJU_DRUM = new THREE.SphereGeometry(1, 9, 6); return GEO_BAJU_DRUM; } /* gumpal cucian di drum (dipakai bersama) */
 function bangunMesinModern(jenis, x, zc) { /* jenis 'wm' | 'dr'; badan 0,6 x 0,87 x 0,6 di atas kaki 3 cm, muka depan z zc + 0,3 */
   var P = bahanPerabot(), cuci = jenis === 'wm', g = new THREE.Group();
   g.position.set(x, 0, zc); dapurScene.add(g);
@@ -3838,37 +3829,39 @@ function bangunMesinModern(jenis, x, zc) { /* jenis 'wm' | 'dr'; badan 0,6 x 0,8
   sh.moveTo(-hw + rr, -hh); sh.lineTo(hw - rr, -hh); sh.quadraticCurveTo(hw, -hh, hw, -hh + rr); sh.lineTo(hw, hh - rr); sh.quadraticCurveTo(hw, hh, hw - rr, hh);
   sh.lineTo(-hw + rr, hh); sh.quadraticCurveTo(-hw, hh, -hw, hh - rr); sh.lineTo(-hw, -hh + rr); sh.quadraticCurveTo(-hw, -hh, -hw + rr, -hh);
   var lub = new THREE.Path(); lub.absarc(0, yp - yc, rp, 0, Math.PI * 2, true); sh.holes.push(lub);
-  K.tambah(P.baja, new THREE.ExtrudeGeometry(sh, { depth: 0.012, bevelEnabled: true, bevelThickness: 0.004, bevelSize: 0.004, bevelSegments: 1, curveSegments: 28 }), 0, yc, 0.284);
+  K.tambah(P.baja, new THREE.ExtrudeGeometry(sh, { depth: 0.02, bevelEnabled: false, curveSegments: 10 }), 0, yc, 0.28); /* tanpa bevel 4 mm (tak terlihat di jarak main; segitiga ~setengah) */
   /* panel kaca hitam: laci deterjen, kenop program berbingkai krom, layar, LED, 2 tombol */
-  K.tambah(P.kaca, new THREE.BoxGeometry(W - 0.04, 0.13, 0.01), 0, 0.79, 0.305);
+  K.cat(0x16181b); K.tambah(P.gelap, new THREE.BoxGeometry(W - 0.04, 0.13, 0.01), 0, 0.79, 0.305); /* panel kaca hitam (warna verteks: satu mesh dengan detail gelap) */
   K.cat(0x2c3035); K.tambah(P.gelap, new THREE.BoxGeometry(0.15, 0.08, 0.006), -0.19, 0.79, 0.313);
   K.cat(0x0b0c0e); K.tambah(P.gelap, new THREE.BoxGeometry(0.08, 0.012, 0.004), -0.19, 0.765, 0.3175);
-  K.tambah(P.krom, new THREE.TorusGeometry(0.034, 0.007, 8, 28), -0.02, 0.79, 0.312);
-  K.cat(0x1a1c1f); K.tambah(P.gelap, new THREE.CylinderGeometry(0.027, 0.027, 0.016, 24), -0.02, 0.79, 0.314, Math.PI / 2, 0, 0);
+  K.cat(0xc4c9ce); K.tambah(P.gelap, new THREE.TorusGeometry(0.034, 0.007, 5, 14), -0.02, 0.79, 0.312); /* bingkai krom kenop */
+  K.cat(0x1a1c1f); K.tambah(P.gelap, new THREE.CylinderGeometry(0.027, 0.027, 0.016, 16), -0.02, 0.79, 0.314, Math.PI / 2, 0, 0);
   K.cat(0xe8ecef); K.tambah(P.gelap, new THREE.BoxGeometry(0.004, 0.016, 0.002), -0.02, 0.805, 0.3225);
-  [0.205, 0.245].forEach(function (bx) { K.cat(0xc9ced2); K.tambah(P.gelap, geoEmpuk(0.026, 0.012, 0.004, 0.002), bx, 0.762, 0.3115); });
+  [0.205, 0.245].forEach(function (bx) { K.cat(0xc9ced2); K.tambah(P.gelap, new THREE.BoxGeometry(0.026, 0.012, 0.004), bx, 0.762, 0.3115); });
   /* pintu: bingkai krom + karet hitam + gagang; drum berlubang + dinding belakang */
-  K.tambah(P.krom, new THREE.TorusGeometry(rp + 0.012, 0.022, 10, 44), 0, yp, 0.312);
-  K.cat(0x15171a); K.tambah(P.gelap, new THREE.TorusGeometry(rp - 0.004, 0.012, 8, 40), 0, yp, 0.297);
-  K.tambah(P.krom, geoEmpuk(0.022, 0.1, 0.02, 0.008), rp + 0.03, yp, 0.33);
-  K.tambah(P.drum, new THREE.CylinderGeometry(rp - 0.003, rp - 0.003, 0.33, 36, 1, true), 0, yp, 0.125, Math.PI / 2, 0, 0);
-  K.tambah(P.drumBelakang, new THREE.CircleGeometry(rp - 0.003, 36), 0, yp, -0.04);
+  K.cat(0xc4c9ce); K.tambah(P.gelap, new THREE.TorusGeometry(rp + 0.012, 0.022, 6, 26), 0, yp, 0.312); /* bingkai krom pintu */
+  K.cat(0x15171a); K.tambah(P.gelap, new THREE.TorusGeometry(rp - 0.004, 0.012, 5, 24), 0, yp, 0.297);
+  K.cat(0xc4c9ce); K.tambah(P.gelap, geoEmpuk(0.022, 0.1, 0.02, 0.008), rp + 0.03, yp, 0.33);
+  K.tambah(P.drum, new THREE.CylinderGeometry(rp - 0.003, rp - 0.003, 0.33, 20, 1, true), 0, yp, 0.125, Math.PI / 2, 0, 0);
+  var belakang = new THREE.CircleGeometry(rp - 0.003, 20); belakang.rotateY(Math.PI); /* menghadap -z: material BackSide drum menampilkannya dari depan -> satu mesh dengan dinding drum */
+  var ub = belakang.attributes.uv; for (var q = 0; q < ub.count; q++) ub.setXY(q, ub.getX(q) * 2 / 7, ub.getY(q) * 0.5); /* ulang lubang [2,1] di bawah tekstur [7,2] */
+  K.tambah(P.drum, belakang, 0, yp, -0.04);
   /* kaki + pelat bawah gelap; pengering: kisi kondensor di pelat bawah */
-  [[-0.25, -0.25], [0.25, -0.25], [-0.25, 0.25], [0.25, 0.25]].forEach(function (f) { K.cat(0x1d1f22); K.tambah(P.gelap, new THREE.CylinderGeometry(0.025, 0.028, 0.03, 12), f[0], 0.015, f[1]); });
+  [[-0.25, -0.25], [0.25, -0.25], [-0.25, 0.25], [0.25, 0.25]].forEach(function (f) { K.cat(0x1d1f22); K.tambah(P.gelap, new THREE.CylinderGeometry(0.025, 0.028, 0.03, 8), f[0], 0.015, f[1]); });
   K.cat(0x2a2d31); K.tambah(P.gelap, new THREE.BoxGeometry(W - 0.03, 0.06, 0.006), 0, 0.075, 0.302);
   if (!cuci) for (var vi = 0; vi < 3; vi++) { K.cat(0x15171a); K.tambah(P.gelap, new THREE.BoxGeometry(0.3, 0.008, 0.004), 0, 0.06 + vi * 0.015, 0.306); }
   /* di atas: handuk lipat (mesin cuci) / botol deterjen (pengering) — isi lama */
   if (cuci) {
-    K.tambah(P.handukTeal, geoEmpuk(0.32, 0.06, 0.26, 0.025), 0, 0.93, -0.03);
-    K.tambah(P.handukKrem, geoEmpuk(0.3, 0.05, 0.24, 0.022), 0, 0.985, -0.03);
-  } else {
-    K.tambah(P.botol, geoEmpuk(0.11, 0.2, 0.075, 0.025), 0.06, 1.0, -0.06);
-    K.tambah(P.botolLabel, geoEmpuk(0.112, 0.08, 0.077, 0.01), 0.06, 0.99, -0.06);
-    K.tambah(P.botolLabel, new THREE.CylinderGeometry(0.022, 0.024, 0.04, 14), 0.06, 1.12, -0.06);
+    K.cat(0x3aa597); K.tambah(P.gelap, geoEmpuk(0.32, 0.06, 0.26, 0.025), 0, 0.93, -0.03); /* handuk lipat: ikut mesh warna verteks */
+    K.cat(0xf1e8d8); K.tambah(P.gelap, geoEmpuk(0.3, 0.05, 0.24, 0.022), 0, 0.985, -0.03);
+  } else { /* botol deterjen: ikut mesh warna verteks (P.gelap) */
+    K.cat(0xf4f6f7); K.tambah(P.gelap, geoEmpuk(0.11, 0.2, 0.075, 0.025), 0.06, 1.0, -0.06);
+    K.cat(0x2e7fd6); K.tambah(P.gelap, geoEmpuk(0.112, 0.08, 0.077, 0.01), 0.06, 0.99, -0.06);
+    K.cat(0x2e7fd6); K.tambah(P.gelap, new THREE.CylinderGeometry(0.022, 0.024, 0.04, 10), 0.06, 1.12, -0.06);
   }
   var hasil = K.selesai(false), klik = [];
   for (var km in hasil) klik.push(hasil[km]);
-  var kaca = new THREE.Mesh(new THREE.CircleGeometry(rp + 0.002, 40), cuci ? P.kacaPintu : P.kacaPintuDr);
+  var kaca = new THREE.Mesh(new THREE.CircleGeometry(rp + 0.002, 26), cuci ? P.kacaPintu : P.kacaPintuDr);
   kaca.position.set(0, yp, 0.318); g.add(kaca); klik.push(kaca);
   /* layar hitung mundur (kanvas kecil, dilukis ulang tiap detik saat jalan) + LED */
   var cv = document.createElement('canvas'); cv.width = 128; cv.height = 56;
@@ -3883,9 +3876,10 @@ function bangunMesinModern(jenis, x, zc) { /* jenis 'wm' | 'dr'; badan 0,6 x 0,8
   /* cucian di drum (berputar saat jalan) + air bersabun (mesin cuci): tepat di balik kaca
      pintu = garis air + busa di bagian bawah jendela seperti mesin asli; cucian terlihat di atasnya */
   var baju = new THREE.Group(); baju.position.set(0, yp, 0.13); g.add(baju);
-  [[0.07, -0.08, cuci ? M.clothesTeal : M.clothesYellow, 0.062], [-0.075, -0.07, cuci ? M.clothesYellow : M.clothesTeal, 0.058], [0.0, -0.115, M.white, 0.055]].forEach(function (b) {
-    var m = ball(b[2], b[3], b[0], b[1], 0, baju, 1.25, 0.8, 1); m.castShadow = false; m.userData.sy0 = m.scale.y;
-  });
+  /* 3 gumpal cucian = SATU mesh warna verteks (bola 9x6; dulu 3 mesh GEO.sphere 20x14 = 520 segitiga per gumpal) */
+  var gumpal = [[0.07, -0.08, cuci ? 0x2a9d8f : 0xffd11a, 0.062], [-0.075, -0.07, cuci ? 0xffd11a : 0x2a9d8f, 0.058], [0.0, -0.115, 0xf4f4f0, 0.055]];
+  var mb = krPasangV(gumpal.map(function (b) { return { geo: geoBajuDrum(), x: b[0], y: b[1], z: 0, sx: b[3] * 1.25, sy: b[3] * 0.8, sz: b[3], warna: b[2] }; }), baju);
+  mb.castShadow = false; mb.userData.sy0 = 1;
   var airCuci = null;
   if (cuci) {
     var ra = rp - 0.012, c = -0.045, t1 = Math.asin(c / ra), t2 = Math.PI - t1, seg = new THREE.Shape();
@@ -5503,7 +5497,15 @@ function krGeoBadan() { /* badan atasan (koordinat avatar): kelim y 0,825 -> bah
    celana pendek/panjang (terlihat seperti baju terusan); kini kaus jatuh di atas celana. */
   var pr = [[0.266, 0.825], [0.27, 0.86], [0.27, 1.18]];
   for (var i = 1; i <= 6; i++) { var a = i / 6 * Math.PI / 2; pr.push([Math.max(0.0001, 0.27 * Math.cos(a)), 1.18 + 0.27 * Math.sin(a)]); }
-  return new THREE.LatheGeometry(pr.map(function (q) { return new THREE.Vector2(q[0], q[1]); }), 14);
+  var geo = new THREE.LatheGeometry(pr.map(function (q) { return new THREE.Vector2(q[0], q[1]); }), 14);
+  /* v = v kapsul lama (CapsuleGeometry(0.27, 0.36, 4, 14) di y 1,0: 18 titik profil, v = j/17; lurus 0,82..1,18 = j 8..9,
+     kubah atas = j 9..17 rata per sudut) -> motif batik Ibu Kos tetap persis seperti dulu (u sama: 14 segmen) */
+  var P = geo.attributes.position, U = geo.attributes.uv;
+  for (var k = 0; k < P.count; k++) {
+    var y = P.getY(k);
+    U.setY(k, y <= 1.18 ? (8 + (y - 0.82) / 0.36) / 17 : (9 + 8 * Math.asin(Math.min(1, (y - 1.18) / 0.27)) / (Math.PI / 2)) / 17);
+  }
+  return geo;
 }
 function krUVTinggi(geo) { /* v = tinggi relatif (kapsul: v bawaan per titik profil, bagian lurus cuma ~6% -> garis kaus menumpuk) */
   geo.computeBoundingBox();
@@ -5809,14 +5811,15 @@ function makeKosanAvatar(gender, rupa, opt) {
     rambut.push(krBagian(new THREE.SphereGeometry(0.135, 14, 10), 0, 1.745, -0.315));
     jepit = 'cepol'; /* ikat cepol berwarna (cepol hitam di rambut hitam tetap terbaca) */
     [-1, 1].forEach(function (sx) { rambut.push(krBagian(new THREE.CapsuleGeometry(0.028, 0.14, 3, 6), sx * 0.272, 1.5, 0.08, 0.1, 0, sx * 0.12)); });
-  } else { /* keriting: 30-an ikal kecil di permukaan (spiral emas), dahi + wajah terbuka */
+  } else { /* keriting: ~28 ikal kecil di permukaan (spiral emas), dahi + wajah terbuka */
     rambut.push(cangkang(0.285, 0.6, 1.555));
-    for (var ci = 0; ci < 36; ci++) {
-      var tt = (ci + 0.5) / 36, th = Math.acos(1 - tt * 1.25), ph = ci * 2.39996;
+    var ikal = new THREE.SphereGeometry(1, 7, 5); /* satu geometri dipakai ulang (krGabung meng-clone); 7x5 cukup untuk ikal sekecil ini */
+    for (var ci = 0; ci < 32; ci++) {
+      var tt = (ci + 0.5) / 32, th = Math.acos(1 - tt * 1.25), ph = ci * 2.39996;
       var sxk = -Math.cos(ph) * Math.sin(th), syk = Math.cos(th), szk = Math.sin(ph) * Math.sin(th);
       if (szk > 0.5 && syk < 0.62) continue; /* wajah */
-      var rk = 0.068 + 0.012 * Math.sin(ci * 1.7);
-      rambut.push(krBagian(new THREE.SphereGeometry(1, 8, 6), sxk * 0.272, 1.555 + syk * 0.272, szk * 0.272 - 0.015, 0, ph, 0, rk, rk * 0.92, rk));
+      var rk = 0.072 + 0.012 * Math.sin(ci * 1.7);
+      rambut.push(krBagian(ikal, sxk * 0.272, 1.555 + syk * 0.272, szk * 0.272 - 0.015, 0, ph, 0, rk, rk * 0.92, rk));
     }
   }
   pasang(rambut, rambutMat);
