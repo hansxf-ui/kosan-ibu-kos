@@ -926,6 +926,8 @@
         <button id="homeBtn" type="button" title="Masuk ke kamarmu sendiri"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 10v10h14V10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> KAMAR KAMU</button>
         <button id="livingBtn" type="button" title="Masuk ke ruang tamu"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 21h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> RUANG TAMU</button>
         <button id="dapurBtn" type="button" title="Masuk ke dapur (mesin cuci + pengering)"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="13" r="5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="7" y="6" width="10" height="2" fill="currentColor"/></svg> DAPUR</button>
+        <!-- Tahap 3a — alam baru di luar gerbang (boleh untuk tamu: luar ruangan) -->
+        <button id="jalanBtn" type="button" title="Keluar gerbang ke Jalan Kampung (warung, pos ronda, si Oyen)"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3L4 21M16 3l4 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 4v3M12 10.5v3M12 17v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> JALAN KAMPUNG</button>
       </div>
     </div>
     <!-- Tahap 2 — emote: daftar TETAP 8 (tanpa teks bebas). Isi menu dibangun JS (ikon kanvas). -->
@@ -1553,6 +1555,7 @@ function mpAmbilToken(ember, now) { /* ember: { token, t } -> { ok, ember } */
 
 function mpRealmDikenal(realm) {
   if (realm === 'yard' || realm === 'living' || realm === 'dapur') return realm; /* Tahap 1 Tugas 0: dapur dikenal (dulu jatuh ke yard) */
+  if (realm === 'jalan') return realm; /* Tahap 3a: Jalan Kampung di luar gerbang (klien lama memetakannya ke yard sampai dimuat ulang) */
   if (typeof realm === 'string' && /^room-(?:[1-9]|[1-3][0-9]|40)$/.test(realm)) return realm; /* Gedung C & D: room-1..40 (dulu ..20 — pemain di K21-40 akan tampak di halaman) */
   return 'yard'; /* realm tak dikenal -> perlakukan sebagai yard (§2.7) */
 }
@@ -1618,11 +1621,16 @@ function mpBangunPresence(id, nama, gender, realm, ts, baju, rambut) {
 function mpPesanPergi(id) { /* keluar bersih (§4.4): presence '' retained */
   return { topic: MP_TOPICS.presence + id, payload: '', retain: true };
 }
+/* Tahap 3a — batas koordinat pesan dari alam 'jalan': Jalan Kampung lebih
+   panjang ke barat dari halaman (x -25,9 < YARD.minX -19 - 1). Kotak ketat di
+   sekitar JALAN (+ dudukan bale-bale z 7,25); dites tests/jalan.test.js. */
+var MP_BATAS_JALAN = { minX: -27, maxX: 21, minZ: -8, maxZ: 8 };
 function mpValidasiPos(m, selfId) {
   if (!m || typeof m !== 'object') return null;
   if (!mpIdSah(m.id) || m.id === selfId) return null;
-  if (typeof m.x !== 'number' || !isFinite(m.x) || m.x < YARD.minX - 1 || m.x > YARD.maxX + 1) return null;
-  if (typeof m.z !== 'number' || !isFinite(m.z) || m.z < YARD.minZ - 1 || m.z > YARD.maxZ + 1) return null;
+  var bt = mpRealmDikenal(typeof m.realm === 'string' ? m.realm : 'yard') === 'jalan' ? MP_BATAS_JALAN : YARD;
+  if (typeof m.x !== 'number' || !isFinite(m.x) || m.x < bt.minX - 1 || m.x > bt.maxX + 1) return null;
+  if (typeof m.z !== 'number' || !isFinite(m.z) || m.z < bt.minZ - 1 || m.z > bt.maxZ + 1) return null;
   if (typeof m.rot !== 'number' || !isFinite(m.rot)) return null;
   if (typeof m.gerak !== 'number' || !isFinite(m.gerak) || m.gerak < 0 || m.gerak > 1) return null;
   if (m.gender !== 'cewek' && m.gender !== 'cowok') return null;
@@ -2047,8 +2055,8 @@ function buildWorld() {
   fenceRun(47, -18, 47, 29);
   fenceRun(-20, 29, 13.4, 29);
   fenceRun(16.6, 29, 47, 29);
-  box(M.fence, 0.3, 1.5, 0.3, 13.4, 0.75, 29);
-  box(M.fence, 0.3, 1.5, 0.3, 16.6, 0.75, 29);
+  /* (Tahap 3a — 2 tiang pagar putih di celah gerbang diganti gerbang batu +
+     papan "JALAN KAMPUNG": bangunGerbangHalaman() di blok Jalan Kampung.) */
   /* jalan setapak gerbang -> alun-alun lewat celah C-D (menyambung ke perkerasan plaza z 14; dulu berhenti di pagar tanaman parkiran z 17,25 — parkir pindah 15 Nov, jalur kini tembus sampai plaza) */
   box(M.path, 2.4, 0.06, 15, 15, 0.03, 21.5).receiveShadow = true;
 
@@ -2929,6 +2937,7 @@ function enterLiving() {
   if (!ktaIsResident()) { toastKosan('Tamu belum bisa masuk ruang tamu — daftar dulu jadi penghuni ya!'); return; }
   if (roomPose) bangunDariKasur(true); /* Tahap 1 — duduk di gazebo lalu pindah alam: bangun dulu (sebelum savedYard) */
   if (myRealm === 'dapur') exitDapur(); /* Ronde 43 — tidak bisa langsung dapur -> ruang tamu; keluar dulu */
+  if (myRealm === 'jalan') exitJalan(); /* Tahap 3a — dari Jalan Kampung: balik ke halaman dulu (savedYard = depan gerbang, bukan koordinat jalan) */
   savedYard = { x: avatarPos.x, z: avatarPos.z, rot: avatar.rotation.y, camDist: camDist, camYaw: camYaw, camPitch: camPitch, camTarget: { x: camTarget.x, y: camTarget.y, z: camTarget.z } }; /* Ronde 10c: framing ikut disimpan; Ronde 10e: camTarget ASLI ikut disimpan (bukan posisi avatar) — camTarget tertinggal di belakang avatar saat jalan */
   myRealm = 'living';
   if (avatar && avatar.parent) avatar.parent.remove(avatar);
@@ -3186,6 +3195,7 @@ function enterDapur() {
   if (roomPose) bangunDariKasur(true); /* Tahap 1 — duduk di gazebo lalu pindah alam: bangun dulu (sebelum savedYard) */
   if (myRealm === 'living') exitLiving(); /* tidak bisa langsung living -> dapur; keluar dulu */
   if (myRealm.indexOf('room-') === 0) exitRoom(); /* tidak bisa langsung kamar -> dapur; keluar dulu */
+  if (myRealm === 'jalan') exitJalan(); /* Tahap 3a — dari Jalan Kampung: balik ke halaman dulu */
   savedYard = { x: avatarPos.x, z: avatarPos.z, rot: avatar.rotation.y, camDist: camDist, camYaw: camYaw, camPitch: camPitch, camTarget: { x: camTarget.x, y: camTarget.y, z: camTarget.z } };
   myRealm = 'dapur';
   if (avatar && avatar.parent) avatar.parent.remove(avatar);
@@ -3233,6 +3243,7 @@ function exitDapur() {
 function sceneUntukRealm(realm) { /* scene THREE untuk satu alam (dipakai avatar lokal + pemain remote) */
   if (realm === 'living') return livingScene;
   if (realm === 'dapur') return dapurScene; /* Tahap 1 Tugas 0: pemain remote di dapur tinggal di dapurScene (dulu ikut scene halaman) */
+  if (realm === 'jalan') return jalanScene; /* Tahap 3a: Jalan Kampung (scene dibuat sebelum avatar/pemain remote pertama dipasang) */
   if (typeof realm === 'string' && realm.indexOf('room-') === 0) return roomScene;
   return scene;
 }
@@ -3558,6 +3569,7 @@ function enterRoom(n) {
   if (roomPose) bangunDariKasur(true); /* Ronde 13b — jaga-jaga: pose tidak boleh nyangkut saat masuk kamar */
   if (myRealm === 'living') exitLiving(); /* tidak bisa langsung living -> room; keluar dulu */
   if (myRealm === 'dapur') exitDapur(); /* Ronde 43 — tidak bisa langsung dapur -> room; keluar dulu */
+  if (myRealm === 'jalan') exitJalan(); /* Tahap 3a — dari Jalan Kampung: balik ke halaman dulu */
   savedYard = { x: avatarPos.x, z: avatarPos.z, rot: avatar.rotation.y, camDist: camDist, camYaw: camYaw, camPitch: camPitch, camTarget: { x: camTarget.x, y: camTarget.y, z: camTarget.z }, level: avatarLevel }; /* Fix Bug Tangga/Balkon: level ikut disimpan — keluar kamar dari balkon harus kembali ke balkon (bukan jatuh ke tanah) */
   myRealm = 'room-' + n;
   if (avatar && avatar.parent) avatar.parent.remove(avatar);
@@ -3925,6 +3937,7 @@ function bangunDariKasur(diam) {
   poseJangkar = null;
   poseDiGazebo = false;
   poseTempat = null;
+  jalanDiPosRonda = false; /* Tahap 3a — bale-bale pos ronda */
   avatar.rotation.x = 0;
   avatarPos.x = w.x; avatarPos.z = w.z;
   avatar.rotation.y = w.rotY;
@@ -4434,6 +4447,7 @@ function buildVisitorAvatar() {
      Ronde 11b — sama untuk kamar ('room-N' -> roomScene). */
   sceneUntukRealm(myRealm).add(avatar);
   if (avatarLabel && location.search.indexOf('debug=nolabel') === -1) avatar.add(avatarLabel.sprite);
+  jajanPasang(); /* Tahap 3a — jajan warung ikut pindah ke tangan avatar baru (ganti gender / tampilan) */
 }
 buildWorld();
 
@@ -4465,6 +4479,850 @@ ibuAvatar.position.set(10.5, 0, -2.5);
 ibuAvatar.rotation.y = 0; /* menghadap halaman (+z), tempat pengunjung jalan */
 ibuAvatar.traverse(function (o) { o.userData.card = 'ibu'; clickables.push(o); });
 scene.add(ibuAvatar);
+
+/* ==== JALAN-START ==== */
+/* Tahap 3a — JALAN KAMPUNG (perintah Ryan 15 Nov: "gas langsung bangun, yang
+   bagus ya"). Alam baru 'jalan' di luar gerbang kos (gerbang halaman x 15,
+   pagar selatan z 29), pola "beda alam" ruang tamu/dapur: scene sendiri,
+   halaman kos tidak bertambah berat. Jalan kampung 46 m (x -26..20) dengan
+   trotoar, rumah tetangga, warung, pos ronda, kucing kampung, dan palang
+   "SEGERA DIBUKA" di dua ujung (dibuka per episode lewat komen penonton).
+   Koordinat lokal: utara (-z) = tembok + gerbang kos; selatan (+z) = deretan
+   rumah. Cermin halaman: x_halaman = x_jalan + 27, z_halaman = z_jalan + 36,25
+   (gerbang x -12 = gerbang halaman x 15; tembok z -7,25 = pagar z 29).
+   Helper MURNI di blok ini — dites node (tests/jalan.test.js). */
+var JALAN = { minX: -25.9, maxX: 19.9, minZ: -6.6, maxZ: 6.4 }; /* batas jalan avatar (jalan + 2 trotoar): badan r 0,4 berhenti di muka pilaster tembok (z -7,04) / pagar rumah (z 6,98) / alas kerucut palang */
+var JALAN_GERBANG_X = -12; /* gerbang kos di tembok utara (z -7,2) */
+var JALAN_SPAWN = { x: -12, z: -5.0, rot: Math.PI / 2 }; /* baru keluar gerbang, menghadap timur */
+var HALAMAN_DARI_JALAN = { x: 15, z: 26.6, rot: Math.PI }; /* balik ke halaman: depan gerbang, menghadap utara */
+/* tiang listrik + lampu (trotoar selatan; trotoar utara bebas tiang: lampu
+   menempel di tembok kos) + tong sampah (AABB padat) */
+var JALAN_TIANG_X = [-22, -10, 2, 14];
+var JALAN_SOLIDS = JALAN_TIANG_X.map(function (x) { return { minX: x - 0.15, maxX: x + 0.15, minZ: 6.15, maxZ: 6.45 }; }).concat([
+  { minX: -18.6, maxX: -18.0, minZ: -6.8, maxZ: -6.2 } /* tong sampah dekat ujung barat */
+]);
+var WARUNG_KOTAK = { minX: -7.6, maxX: -1.4, minZ: 6.8, maxZ: 9.6 }; /* etalase + meja warung */
+var POS_RONDA_KOTAK = { minX: 8.5, maxX: 11.5, minZ: 7.2, maxZ: 9.0 }; /* bale-bale pos ronda */
+var PALANG_TIMUR = { minX: 20.8, maxX: 21.6, minZ: -6.8, maxZ: 6.8 };
+var PALANG_BARAT = { minX: -27.6, maxX: -26.8, minZ: -6.8, maxZ: 6.8 };
+var JALAN_JARAK = 3; /* m: jarak maksimal ke warung / pos ronda / palang (pola gazebo) */
+var JALAN_JARAK_KUCING = 2.5;
+/* 3 dudukan di tepi depan bale-bale, menghadap jalan (utara, rotY PI) */
+var POS_RONDA_KURSI = [{ x: 9.1, z: 7.25 }, { x: 10.0, z: 7.25 }, { x: 10.9, z: 7.25 }];
+var WARUNG_MENU = [
+  { id: 'esteh', nama: 'Es teh manis', harga: 2 },
+  { id: 'gorengan', nama: 'Gorengan', harga: 1 },
+  { id: 'eskrim', nama: 'Es krim', harga: 3 }
+];
+var JAJAN_DURASI_MS = 90000; /* jajan dipegang 90 dtk lalu habis */
+function jalanZonaGerbangHalaman(x, z) {
+  /* halaman: masuk celah gerbang (x 13,9..16,1) sampai batas selatan -> ke jalan */
+  return x >= 13.9 && x <= 16.1 && z >= 27.7;
+}
+function jalanZonaGerbangKos(x, z) {
+  /* jalan: masuk celah gerbang kos di tembok utara (batas JALAN.minZ -6,6) -> balik ke halaman */
+  return x >= JALAN_GERBANG_X - 1.1 && x <= JALAN_GERBANG_X + 1.1 && z <= -6.59;
+}
+function jalanKursiPilih(ax, az, pemain) {
+  /* kursi kosong terdekat di bale-bale (pola dudukPilih); null = penuh */
+  var pilih = null, terdekat = Infinity;
+  for (var i = 0; i < POS_RONDA_KURSI.length; i++) {
+    var k = POS_RONDA_KURSI[i], terisi = false;
+    for (var j = 0; j < (pemain || []).length; j++) if (Math.hypot(pemain[j].x - k.x, pemain[j].z - k.z) <= 0.35) terisi = true;
+    if (terisi) continue;
+    var d = Math.hypot(k.x - ax, k.z - az);
+    if (d < terdekat) { terdekat = d; pilih = k; }
+  }
+  if (!pilih) return null;
+  return { x: pilih.x, z: pilih.z, y: -0.31, rotX: 0, rotY: Math.PI, leg: -0.92, bangun: { x: pilih.x, z: 6.2, rotY: Math.PI } };
+}
+function warungBeli(bintang, id) {
+  /* -> { ok, sisa, item } ; ok false + alasan kalau id asing / Bintang kurang */
+  var item = null;
+  for (var i = 0; i < WARUNG_MENU.length; i++) if (WARUNG_MENU[i].id === id) item = WARUNG_MENU[i];
+  if (!item) return { ok: false, alasan: 'asing', sisa: bintang };
+  if (!(bintang >= item.harga)) return { ok: false, alasan: 'kurang', sisa: bintang, item: item };
+  return { ok: true, sisa: bintang - item.harga, item: item };
+}
+/* Kucing kampung "Oyen": jalur keliling tetap (trotoar utara -> menyeberang ->
+   trotoar selatan -> menyeberang), posisi = fungsi JAM (detik epoch), jadi
+   semua pemain melihat Oyen di tempat yang sama TANPA pesan jaringan. Berhenti
+   duduk 8 dtk di tiap sudut. */
+var KUCING_JALUR = [[-15.5, -5.8], [9.5, -5.8], [9.5, 5.8], [-15.5, 5.8]];
+var KUCING_LAJU = 0.45; /* m/dtk */
+var KUCING_DUDUK = 8; /* dtk duduk di tiap sudut */
+function kucingSiklus() {
+  var total = 0;
+  for (var i = 0; i < KUCING_JALUR.length; i++) {
+    var a = KUCING_JALUR[i], b = KUCING_JALUR[(i + 1) % KUCING_JALUR.length];
+    total += Math.hypot(b[0] - a[0], b[1] - a[1]) / KUCING_LAJU + KUCING_DUDUK;
+  }
+  return total;
+}
+function kucingPosisi(tDetik) {
+  /* -> { x, z, rot, jalan } (rot = arah hadap, jalan = sedang melangkah) */
+  var siklus = kucingSiklus();
+  var t = ((tDetik % siklus) + siklus) % siklus;
+  for (var i = 0; i < KUCING_JALUR.length; i++) {
+    var a = KUCING_JALUR[i], b = KUCING_JALUR[(i + 1) % KUCING_JALUR.length];
+    var dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz), dur = L / KUCING_LAJU;
+    var rot = Math.atan2(dx, dz);
+    if (t < KUCING_DUDUK) return { x: a[0], z: a[1], rot: rot, jalan: false };
+    t -= KUCING_DUDUK;
+    if (t < dur) { var f = t / dur; return { x: a[0] + dx * f, z: a[1] + dz * f, rot: rot, jalan: true }; }
+    t -= dur;
+  }
+  return { x: KUCING_JALUR[0][0], z: KUCING_JALUR[0][1], rot: 0, jalan: false };
+}
+/* ==== JALAN-END ==== */
+
+/* ---------- Tahap 3a — bangun Jalan Kampung (aset hero: tekstur lukis + geometri digabung) ---------- */
+var jalanScene = new THREE.Scene();
+jalanScene.background = new THREE.Color(0x8ec9ee);
+jalanScene.fog = new THREE.Fog(0x8ec9ee, 30, 75);
+var jalanClickables = [];
+var jalanKucing = null, jalanKentongan = null, jalanKentonganAyun = 0;
+/* Penggabung geometri statis per material: satu draw call per material. UV
+   kotak dihitung dari ukuran dunia (petak tekstur berulang = kerapatan
+   tekstur seragam, tidak melar di kotak panjang). cat(hex) = warna bagian
+   berikutnya, ditulis sebagai warna verteks: di material vertexColors
+   puluhan warna polos (cat besi, tong, pot, toples...) tetap SATU draw call. */
+var JALAN_PUTIH_V = new THREE.Color(1, 1, 1);
+function JalanKumpul(scn) { this.scn = scn; this.isi = {}; this.mat = {}; this.warna = null; }
+JalanKumpul.prototype.cat = function (hex) { this.warna = (hex === null || hex === undefined) ? null : new THREE.Color(hex); return this; };
+JalanKumpul.prototype.tambah = function (mat, geo, x, y, z, rx, ry, rz, sx, sy, sz) {
+  var k = mat.uuid;
+  if (!this.isi[k]) { this.isi[k] = []; this.mat[k] = mat; }
+  var bagian = krBagian(geo, x, y, z, rx, ry, rz, sx, sy, sz);
+  bagian.warna = this.warna;
+  this.isi[k].push(bagian);
+};
+JalanKumpul.prototype.kotak = function (mat, w, h, d, x, y, z, ry, petak) {
+  var geo = new THREE.BoxGeometry(w, h, d);
+  if (petak) { /* UV dunia: u/v per meter / petak */
+    var uv = geo.attributes.uv, dims = [[d, h], [d, h], [w, d], [w, d], [w, h], [w, h]];
+    for (var f = 0; f < 6; f++) for (var v = 0; v < 4; v++) {
+      var q = f * 4 + v; uv.setXY(q, uv.getX(q) * dims[f][0] / petak, uv.getY(q) * dims[f][1] / petak);
+    }
+  }
+  this.tambah(mat, geo, x, y, z, 0, ry || 0, 0);
+};
+JalanKumpul.prototype.selesai = function (bayangan) { /* -> { uuid material: mesh gabungan }; bayangan false = tidak melempar bayangan */
+  var hasil = {};
+  for (var k in this.isi) {
+    var list = this.isi[k], geo = krGabung(list);
+    if (this.mat[k].vertexColors) { /* urutan verteks krGabung = urutan bagian */
+      var w = [];
+      list.forEach(function (bg) { var c = bg.warna || JALAN_PUTIH_V, n = bg.geo.attributes.position.count; for (var i = 0; i < n; i++) w.push(c.r, c.g, c.b); });
+      geo.setAttribute('color', new THREE.Float32BufferAttribute(w, 3));
+    }
+    var m = new THREE.Mesh(geo, this.mat[k]);
+    m.castShadow = bayangan !== false; m.receiveShadow = true;
+    this.scn.add(m); hasil[k] = m;
+  }
+  return hasil;
+};
+function jalanTekstur(kunci, w, h, lukis) {
+  return krMat('tex:' + kunci, function () { return teksturLukis(w, h, lukis, [1, 1]); });
+}
+function jalanMat(kunci, opsi) { return krMat('jm:' + kunci, function () { return new THREE.MeshLambertMaterial(opsi); }); }
+function jalanMatV(kunci, opsi) { /* Lambert + warna verteks (warna dari K.cat) */
+  return krMat('jmv:' + kunci, function () { var o = opsi || {}; o.vertexColors = true; return new THREE.MeshLambertMaterial(o); });
+}
+function jalanNyalaV() { /* lampu + jendela menyala: Basic (tidak kena cahaya), satu bidang, warna verteks */
+  return krMat('jmv:nyala', function () { return new THREE.MeshBasicMaterial({ vertexColors: true }); });
+}
+function lukisAspal(ctx, w, h) {
+  ctx.fillStyle = '#44474d'; ctx.fillRect(0, 0, w, h);
+  var r = acak(21);
+  for (var i = 0; i < 2600; i++) { var c = 40 + Math.floor(r() * 50); ctx.fillStyle = 'rgba(' + c + ',' + c + ',' + (c + 4) + ',' + (0.35 + r() * 0.5) + ')'; ctx.fillRect(r() * w, r() * h, 1 + r() * 2, 1 + r() * 2); }
+  ctx.strokeStyle = 'rgba(25,26,30,0.35)'; ctx.lineWidth = 1.5; /* retak halus */
+  for (var k = 0; k < 4; k++) { ctx.beginPath(); var x = r() * w, y = r() * h; ctx.moveTo(x, y); for (var s = 0; s < 6; s++) { x += (r() - 0.5) * 40; y += r() * 22; ctx.lineTo(x, y); } ctx.stroke(); }
+}
+function lukisPaving(ctx, w, h) { /* conblock persegi panjang selang-seling */
+  ctx.fillStyle = '#9a958c'; ctx.fillRect(0, 0, w, h);
+  var r = acak(9), bw = w / 4, bh = h / 8;
+  for (var j = 0; j < 8; j++) for (var i = -1; i < 4; i++) {
+    var x = i * bw + (j % 2 ? bw / 2 : 0), c = 165 + Math.floor(r() * 28);
+    ctx.fillStyle = 'rgb(' + c + ',' + (c - 4) + ',' + (c - 12) + ')'; ctx.fillRect(x + 2, j * bh + 2, bw - 4, bh - 4);
+  }
+}
+function lukisPlester(ctx, w, h) { /* plester dinding putih bertekstur (diberi warna lewat material.color) */
+  ctx.fillStyle = '#f3f1ec'; ctx.fillRect(0, 0, w, h);
+  var r = acak(31);
+  for (var i = 0; i < 1800; i++) { ctx.fillStyle = 'rgba(120,110,95,' + (r() * 0.07) + ')'; ctx.fillRect(r() * w, r() * h, 2, 2); }
+  ctx.fillStyle = 'rgba(90,80,70,0.10)'; ctx.fillRect(0, h - 10, w, 10); /* noda bawah */
+}
+function lukisGenteng(ctx, w, h) { /* genteng tanah liat: baris bergelombang */
+  ctx.fillStyle = '#a4472c'; ctx.fillRect(0, 0, w, h);
+  var baris = 6, kol = 6;
+  for (var j = 0; j < baris; j++) for (var i = 0; i < kol; i++) {
+    var x = i * w / kol, y = j * h / baris, gw = w / kol, gh = h / baris;
+    var gr = ctx.createLinearGradient(x, 0, x + gw, 0);
+    gr.addColorStop(0, '#8e3b24'); gr.addColorStop(0.5, '#c25a37'); gr.addColorStop(1, '#8e3b24');
+    ctx.fillStyle = gr; ctx.fillRect(x, y, gw, gh - 4);
+    ctx.fillStyle = 'rgba(40,12,6,0.45)'; ctx.fillRect(x, y + gh - 5, gw, 5);
+  }
+}
+function lukisSeng(ctx, w, h) { /* seng gelombang */
+  for (var x = 0; x < w; x++) { var c = 150 + Math.round(40 * Math.sin(x / w * Math.PI * 16)); ctx.fillStyle = 'rgb(' + (c - 10) + ',' + c + ',' + (c + 8) + ')'; ctx.fillRect(x, 0, 1, h); }
+  var r = acak(4); ctx.fillStyle = 'rgba(140,80,40,0.25)';
+  for (var i = 0; i < 40; i++) ctx.fillRect(r() * w, r() * h, 3 + r() * 6, 2 + r() * 10); /* karat */
+}
+function lukisBelang(ctx, w, h) { /* palang merah-putih diagonal 45°: SATU periode per petak (petak persegi, mulus berulang) */
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = '#d62f2f';
+  for (var k = -1; k <= 2; k++) { ctx.beginPath(); ctx.moveTo(k * w, 0); ctx.lineTo(k * w + w / 2, 0); ctx.lineTo(k * w + w / 2 - h, h); ctx.lineTo(k * w - h, h); ctx.closePath(); ctx.fill(); }
+}
+function lukisPapanKayu(ctx, w, h) { /* papan kayu jati muda horizontal, 5 papan per petak 1 m (warung + bale-bale); serat periodik = mulus berulang */
+  var r = acak(17), n = 5, ph = h / n;
+  for (var j = 0; j < n; j++) {
+    var c = r();
+    ctx.fillStyle = 'rgb(' + (170 + Math.floor(c * 26)) + ',' + (118 + Math.floor(c * 20)) + ',' + (70 + Math.floor(c * 14)) + ')';
+    ctx.fillRect(0, j * ph, w, ph);
+    for (var g = 0; g < 9; g++) {
+      var y = j * ph + 3 + r() * (ph - 7), a = 0.06 + r() * 0.12, fase = r() * 6.28, amp = 0.8 + r() * 1.4;
+      ctx.strokeStyle = (r() < 0.6 ? 'rgba(92,52,22,' : 'rgba(236,196,146,') + a + ')';
+      ctx.lineWidth = 0.8 + r() * 1.3;
+      ctx.beginPath(); ctx.moveTo(0, y + Math.sin(fase) * amp);
+      for (var x = 8; x <= w; x += 8) ctx.lineTo(x, y + Math.sin(x / w * Math.PI * 4 + fase) * amp);
+      ctx.stroke();
+    }
+    if (r() < 0.7) { /* mata kayu */
+      var kx = 16 + r() * (w - 32), ky = j * ph + ph * (0.35 + r() * 0.3);
+      ctx.fillStyle = 'rgba(84,46,18,0.42)'; ctx.beginPath(); ctx.ellipse(kx, ky, 5 + r() * 4, 2.4, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(255,232,196,0.20)'; ctx.fillRect(0, j * ph, w, 2); /* tepi atas papan terkena cahaya */
+    ctx.fillStyle = 'rgba(42,22,8,0.6)'; ctx.fillRect(0, j * ph + ph - 3, w, 3); /* celah antar papan */
+  }
+}
+function lukisEtalase(ctx, w, h) { /* muka etalase kaca warung: bingkai aluminium, 2 rak jajanan berwarna, pantulan kaca */
+  var gr = ctx.createLinearGradient(0, 0, 0, h);
+  gr.addColorStop(0, '#cfe6ee'); gr.addColorStop(1, '#9fc3cf');
+  ctx.fillStyle = gr; ctx.fillRect(0, 0, w, h);
+  var r = acak(5), warna = ['#e8483c', '#f2c230', '#3b8de0', '#48a868', '#ef7fb0', '#f08a24', '#7a4fc0', '#ffffff'];
+  [[10, 52], [66, 52]].forEach(function (rak) { /* rak: y atas, tinggi */
+    for (var x = 14; x < w - 24;) {
+      var bw = 18 + Math.floor(r() * 26), bh = 22 + Math.floor(r() * (rak[1] - 26));
+      ctx.fillStyle = warna[Math.floor(r() * warna.length)];
+      ctx.fillRect(x, rak[0] + rak[1] - bh, bw, bh);
+      ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.fillRect(x + 4, rak[0] + rak[1] - bh + 6, bw - 8, 5); /* label */
+      x += bw + 3 + Math.floor(r() * 5);
+    }
+    ctx.fillStyle = '#d9dee2'; ctx.fillRect(0, rak[0] + rak[1], w, 4); /* rak kaca */
+  });
+  ctx.fillStyle = 'rgba(255,255,255,0.22)'; /* pantulan kaca miring */
+  for (var k = 0; k < 6; k++) { var px = 60 + k * 170; ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px + 40, 0); ctx.lineTo(px - 20, h); ctx.lineTo(px - 60, h); ctx.fill(); }
+  ctx.strokeStyle = '#b9c0c6'; ctx.lineWidth = 8; ctx.strokeRect(4, 4, w - 8, h - 8); /* bingkai aluminium */
+  for (var s = 1; s < 4; s++) { ctx.fillStyle = '#b9c0c6'; ctx.fillRect(s * w / 4 - 3, 0, 6, h); }
+}
+function lukisBulu(ctx, w, h) { /* bulu kucing oranye belang */
+  ctx.fillStyle = '#e8913a'; ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = 'rgba(160,82,24,0.75)';
+  for (var i = 0; i < 9; i++) { var x = i * w / 9; ctx.beginPath(); ctx.moveTo(x, 0); ctx.quadraticCurveTo(x + 8, h / 2, x, h); ctx.lineTo(x + 7, h); ctx.quadraticCurveTo(x + 15, h / 2, x + 7, 0); ctx.fill(); }
+}
+function jalanPapan(teks, sub, warnaBg, lebar) { /* papan nama bertekstur (menyala = Basic) */
+  var tex = teksturLukis(512, 160, function (ctx, w, h) {
+    ctx.fillStyle = warnaBg; ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 6; ctx.strokeRect(8, 8, w - 16, h - 16);
+    ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    var fs = sub ? 62 : 74; /* font menyusut sampai muat di dalam bingkai */
+    do { ctx.font = '800 ' + fs + 'px "Baloo 2", "Nunito", sans-serif'; fs -= 2; } while (fs > 20 && ctx.measureText(teks).width > w - 44);
+    ctx.fillText(teks, w / 2, sub ? h * 0.4 : h / 2);
+    if (sub) { ctx.font = '700 26px "Nunito", sans-serif'; ctx.fillText(sub, w / 2, h * 0.76); }
+  });
+  lukisUlangSetelahFont(tex);
+  return new THREE.Mesh(new THREE.PlaneGeometry(lebar, lebar * 160 / 512), new THREE.MeshBasicMaterial({ map: tex }));
+}
+function lukisCatur(ctx, w, h) { /* papan catur 8x8 di bale-bale pos ronda */
+  var n = 8, s = w / n;
+  for (var j = 0; j < n; j++) for (var i = 0; i < n; i++) { ctx.fillStyle = (i + j) % 2 ? '#3b2a1c' : '#e9d9b8'; ctx.fillRect(i * s, j * s, s, s); }
+  ctx.strokeStyle = '#2a1c10'; ctx.lineWidth = 3; ctx.strokeRect(1.5, 1.5, w - 3, h - 3);
+}
+function jalanPohon(Kp, polos, x, z, s) { /* pohon gaya halaman (tree() buildWorld): batang + 3 bola daun */
+  s = s || 1;
+  Kp.cat(0x8a5a33); Kp.tambah(polos, new THREE.CylinderGeometry(0.22 * s, 0.3 * s, 2.2 * s, 10), x, 1.1 * s, z);
+  Kp.cat(0x3f9e4d); Kp.tambah(polos, new THREE.SphereGeometry(1.5 * s, 16, 10), x, 3.1 * s, z);
+  Kp.cat(0x57b368); Kp.tambah(polos, new THREE.SphereGeometry(1.0 * s, 12, 8), x + 0.8 * s, 2.5 * s, z + 0.3 * s);
+  Kp.tambah(polos, new THREE.SphereGeometry(0.9 * s, 12, 8), x - 0.7 * s, 2.6 * s, z - 0.4 * s);
+}
+var jalanUtara = null; /* grup sisi utara (tembok kos, gerbang, punggung C/D): disembunyikan saat kamera di balik tembok */
+var jalanLatarHalaman = null; /* salinan jalan + sisi selatan di halaman (latar di balik pagar selatan) */
+function buildJalan() {
+  var S = jalanScene, B = bahanTahap2();
+  /* Penggabung: K = jalan + sisi selatan (rumah, warung, pos ronda, tiang, palang) —
+     JUGA dipasang di halaman sebagai latar di balik pagar (geometri dipakai bersama);
+     KD = detail kecil khusus jalan; KT = rumput + awan; KU/KC = sisi utara di grup
+     jalanUtara (KC = punggung Gedung C/D, tanpa bayangan: bayangan gedung 10 m
+     tidak menutup trotoar). */
+  var K = new JalanKumpul(S), KD = new JalanKumpul(S), KT = new JalanKumpul(S);
+  jalanUtara = new THREE.Group(); S.add(jalanUtara);
+  var KU = new JalanKumpul(jalanUtara), KC = new JalanKumpul(jalanUtara);
+  var sunJ = new THREE.DirectionalLight(0xfff2d9, 2.0);
+  /* matahari tinggi dari timur laut (di balik tembok kos): muka rumah, warung,
+     pos ronda yang menghadap jalan (utara) kena sinar langsung */
+  sunJ.position.set(12, 34, -18); sunJ.castShadow = true; sunJ.shadow.mapSize.set(1024, 1024);
+  sunJ.shadow.camera.left = -34; sunJ.shadow.camera.right = 34; sunJ.shadow.camera.top = 26; sunJ.shadow.camera.bottom = -26;
+  sunJ.shadow.camera.far = 100; sunJ.shadow.bias = -0.0005;
+  S.add(sunJ); S.add(new THREE.HemisphereLight(0xbfe3ff, 0x9a8f7a, 1.1));
+  var isiJ = new THREE.DirectionalLight(0xeaf2ff, 0.6); /* cahaya pantul langit dari selatan (tanpa bayangan): tembok kos + punggung C/D tidak abu-abu gelap */
+  isiJ.position.set(-10, 18, 30); S.add(isiJ);
+  var polos = jalanMatV('polos'), nyala = jalanNyalaV();
+  var aspal = jalanMat('aspal', { map: jalanTekstur('aspal', 256, 256, lukisAspal) });
+  var paving = jalanMat('paving', { map: jalanTekstur('paving', 256, 256, lukisPaving) });
+  var plester = jalanMatV('plester', { map: jalanTekstur('plester', 256, 256, lukisPlester) }); /* tekstur plester x warna verteks */
+  var genteng = jalanMat('genteng', { map: jalanTekstur('genteng', 256, 256, lukisGenteng) });
+  var seng = jalanMat('seng', { map: jalanTekstur('seng', 256, 128, lukisSeng) });
+  var belang = jalanMat('belang', { map: jalanTekstur('belang', 64, 64, lukisBelang) });
+  var kayu = jalanMatV('kayu', { map: jalanTekstur('papanKayu', 256, 256, lukisPapanKayu) }); /* RepeatWrapping (B.kayu tidak berulang); kayu tua = warna verteks gelap */
+  var C = {
+    putih: 0xf4f4f0, kuning: 0xf2c230, hitam: 0x23252a, beton: 0xbab5ab, besi: 0x2f3336, selokan: 0x50545a,
+    tong: 0x2f7d4a, tongTutup: 0x255f39, plint: 0x6f6a63, bubungan: 0x7e3420, keramik: 0xd8cfc2, pot: 0xa45a33,
+    daun: 0x3f9e4d, halaman: 0x76a95a, rumput: 0x5aa956, kerucut: 0xf07a20, kayu: 0xffffff, kayuTua: 0x8a7468,
+    bilah: 0x6b4a2e, toples: 0xf0e2c0, kulkasPanel: 0x2f6fc0, kuningan: 0xc9a227, tembok: 0xe8e1d0, temboKaki: 0x7d7a74,
+    batu: 0xf5f1e8, setapak: 0xd8d3c8, plaza: 0xe8e2d4, lampu: 0xffe9b0
+  };
+  var CERIA = [0xe8483c, 0xf2c230, 0x3b8de0, 0x48a868, 0xef7fb0];
+  function cat(Kp, mat, hex) { Kp.cat(hex); return mat; }
+  function uvMeter(geo, su, sv) { var uv = geo.attributes.uv; for (var q = 0; q < uv.count; q++) uv.setXY(q, uv.getX(q) * su, uv.getY(q) * sv); return geo; }
+  /* --- tanah: aspal + kanstin + trotoar + marka + selokan (K), rumput + awan (KT) --- */
+  K.kotak(aspal, 120, 0.06, 9.2, 0, -0.03, 0, 0, 2.5);
+  [-4.62, 4.62].forEach(function (z) { K.kotak(cat(K, polos, C.beton), 120, 0.12, 0.18, 0, 0.06, z); }); /* kanstin */
+  K.kotak(paving, 120, 0.1, 2.4, 0, 0.05, -5.85, 0, 1); /* trotoar utara z -7,05..-4,65 */
+  K.kotak(paving, 120, 0.1, 2.15, 0, 0.05, 5.72, 0, 1); /* trotoar selatan z 4,65..6,8 */
+  for (var x = -58; x < 58; x += 4) K.kotak(cat(K, polos, C.putih), 2, 0.012, 0.14, x, 0.006, 0); /* garis tengah putus-putus */
+  [-4.2, 4.2].forEach(function (z) { K.kotak(cat(K, polos, C.putih), 120, 0.012, 0.12, 0, 0.006, z); }); /* garis tepi */
+  K.kotak(cat(K, polos, C.selokan), 120, 0.02, 0.26, 0, 0.101, -4.86); /* tutup selokan beton di tepi trotoar utara */
+  for (var gx = -58; gx < 58; gx += 6) for (var b = 0; b < 6; b++) KD.kotak(cat(KD, polos, C.besi), 0.04, 0.02, 0.24, gx + b * 0.12, 0.112, -4.86); /* jeruji (KD: detail, tidak disalin ke latar halaman) */
+  KT.kotak(cat(KT, polos, C.rumput), 120, 0.04, 30, 0, -0.04, 21.8); KT.kotak(polos, 120, 0.04, 30, 0, -0.04, -22);
+  [[-25, 21, -6, 1.0], [10, 22, 22, 1.3], [32, 24, -16, 1.5], [-40, 23, 18, 1.2]].forEach(function (a) { /* awan (pola cloud() halaman) */
+    KT.cat(0xffffff);
+    KT.tambah(polos, new THREE.SphereGeometry(1.6 * a[3], 14, 9), a[0], a[1], a[2]);
+    KT.tambah(polos, new THREE.SphereGeometry(1.1 * a[3], 12, 8), a[0] + 1.6 * a[3], a[1] - 0.2 * a[3], a[2] + 0.3 * a[3]);
+    KT.tambah(polos, new THREE.SphereGeometry(1.0 * a[3], 12, 8), a[0] - 1.5 * a[3], a[1] - 0.25 * a[3], a[2] - 0.2 * a[3]);
+  });
+  /* polisi tidur kuning-hitam di depan warung (silinder tertanam: menonjol 8 cm) */
+  K.tambah(cat(K, polos, C.kuning), new THREE.CylinderGeometry(0.25, 0.25, 8.4, 16), -4.5, -0.17, 0, Math.PI / 2);
+  for (var p = -3.6; p <= 3.7; p += 0.8) K.tambah(cat(K, polos, C.hitam), new THREE.CylinderGeometry(0.255, 0.255, 0.3, 16), -4.5, -0.17, p, Math.PI / 2);
+  /* --- tiang listrik + lampu jalan + kabel: trotoar SELATAN saja (trotoar utara bebas) --- */
+  var tiangX = JALAN_TIANG_X.concat([26]);
+  tiangX.forEach(function (tx) {
+    K.tambah(cat(K, polos, C.beton), new THREE.CylinderGeometry(0.11, 0.15, 7.2, 10), tx, 3.6, 6.3);
+    K.kotak(cat(K, polos, C.besi), 1.4, 0.1, 0.1, tx, 6.8, 6.3); /* palang kabel */
+    K.kotak(polos, 0.08, 0.08, 1.4, tx, 5.2, 5.6); /* lengan lampu ke arah jalan */
+    K.kotak(polos, 0.36, 0.1, 0.22, tx, 5.15, 4.95);
+    K.kotak(cat(K, nyala, C.lampu), 0.3, 0.04, 0.18, tx, 5.09, 4.95);
+  });
+  [-0.6, 0.6].forEach(function (dx) { /* kabel kendur antar tiang (2 ruas per bentang) */
+    for (var i = 0; i < tiangX.length - 1; i++) {
+      var a = tiangX[i], bx = tiangX[i + 1], m = (a + bx) / 2, L = (bx - a) / 2, h = Math.hypot(L, 0.35), t = Math.atan2(0.35, L);
+      K.tambah(cat(K, polos, C.hitam), new THREE.CylinderGeometry(0.012, 0.012, h, 4), (a + m) / 2, 6.625, 6.3 + dx, 0, 0, Math.PI / 2 - t);
+      K.tambah(polos, new THREE.CylinderGeometry(0.012, 0.012, h, 4), (m + bx) / 2, 6.625, 6.3 + dx, 0, 0, Math.PI / 2 + t);
+    }
+  });
+  K.tambah(cat(K, polos, C.tong), new THREE.CylinderGeometry(0.28, 0.24, 0.85, 14), -18.3, 0.52, -6.5); /* tong sampah */
+  K.tambah(cat(K, polos, C.tongTutup), new THREE.CylinderGeometry(0.3, 0.3, 0.06, 14), -18.3, 0.97, -6.5);
+  /* --- rumah tetangga (selatan): plester berwarna + genteng + jendela menyala + teras + pagar --- */
+  var rumah = [[-24, -16, 0xf4c7c3], [-16, -8, 0xc9e7d3], [-1, 7, 0xf3e3b5], [12, 20, 0xc7dcf2], [20, 28, 0xe6d3ef],
+    [-32, -24, 0xf0d9b5], [28, 36, 0xd6e8c0], [-40, -32, 0xd3e3ef], [36, 44, 0xf4d2c0]];
+  rumah.forEach(function (rm) {
+    var x0 = rm[0] + 0.5, x1 = rm[1] - 0.5, w = x1 - x0, cx = (x0 + x1) / 2;
+    K.kotak(cat(K, plester, rm[2]), w, 3.2, 5, cx, 1.6, 11.9, 0, 2); /* badan rumah */
+    [x0, x1].forEach(function (ex) { /* dinding segitiga (gable) di dua sisi */
+      var sh = new THREE.Shape(); sh.moveTo(-2.5, 0); sh.lineTo(2.5, 0); sh.lineTo(0, 1.42); sh.closePath();
+      var gg = new THREE.ExtrudeGeometry(sh, { depth: 0.1, bevelEnabled: false }); gg.translate(0, 0, -0.05);
+      K.tambah(plester, gg, ex + (ex === x0 ? 0.05 : -0.05), 3.2, 11.9, 0, Math.PI / 2);
+    });
+    K.kotak(cat(K, polos, C.plint), w + 0.04, 0.4, 5.04, cx, 0.2, 11.9);
+    [-1, 1].forEach(function (s) { K.tambah(genteng, uvMeter(new THREE.BoxGeometry(w + 0.8, 0.12, 3.2), w + 0.8, 3.2), cx, 3.92, 11.9 + s * 1.38, s * 0.5); }); /* atap pelana */
+    K.tambah(cat(K, polos, C.bubungan), new THREE.CylinderGeometry(0.11, 0.11, w + 0.8, 8), cx, 4.62, 11.9, 0, 0, Math.PI / 2);
+    K.kotak(cat(K, polos, C.keramik), w, 0.12, 1.6, cx, 0.06, 8.6); /* teras keramik */
+    [x0 + 0.3, x1 - 0.3].forEach(function (tx) { K.kotak(cat(K, polos, C.putih), 0.16, 2.6, 0.16, tx, 1.3, 7.95); });
+    K.kotak(genteng, w + 0.3, 0.1, 1.9, cx, 2.68, 8.55, 0, 1); /* kanopi teras */
+    var pintuX = cx - w * 0.18;
+    K.kotak(B.rusuk, 0.95, 2.1, 0.06, pintuX, 1.05, 9.37);
+    KD.kotak(cat(KD, polos, C.kuningan), 0.05, 0.22, 0.04, pintuX + 0.33, 1.05, 9.33); /* gagang pintu */
+    [cx + w * 0.16, cx + w * 0.36].forEach(function (jx) { /* jendela menyala (Basic, satu bidang) + kusen */
+      K.kotak(cat(K, polos, C.putih), 1.15, 1.25, 0.08, jx, 1.6, 9.38);
+      K.kotak(cat(K, nyala, C.lampu), 0.98, 1.08, 0.02, jx, 1.6, 9.33);
+      K.kotak(cat(K, polos, C.putih), 0.05, 1.08, 0.03, jx, 1.6, 9.31);
+    });
+    /* pagar besi rendah di batas trotoar (celah di depan pintu) + pot bunga + halaman kecil */
+    for (var fx = x0; fx <= x1 + 0.01; fx += 0.25) if (Math.abs(fx - pintuX) > 0.7) KD.kotak(cat(KD, polos, C.besi), 0.035, 0.9, 0.035, fx, 0.45, 7.0);
+    [[x0, pintuX - 0.7], [pintuX + 0.7, x1]].forEach(function (r) {
+      [0.2, 0.85].forEach(function (y) { KD.kotak(cat(KD, polos, C.besi), r[1] - r[0], 0.05, 0.05, (r[0] + r[1]) / 2, y, 7.0); });
+    });
+    [x0 + 0.5, x1 - 0.5].forEach(function (px) {
+      KD.tambah(cat(KD, polos, C.pot), new THREE.CylinderGeometry(0.2, 0.15, 0.32, 10), px, 0.16, 7.6);
+      KD.tambah(cat(KD, polos, C.daun), new THREE.SphereGeometry(0.28, 10, 8), px, 0.5, 7.6);
+    });
+    K.kotak(cat(K, polos, C.halaman), w, 0.03, 2.0, cx, 0.015, 7.8);
+  });
+  /* --- WARUNG (x -8..-1): kios papan kayu, atap seng, etalase, toples, renceng, kulkas --- */
+  var wx = -4.5;
+  K.kotak(cat(K, kayu, C.kayu), 6.6, 3.4, 0.15, wx, 1.7, 11.0, 0, 1); /* dinding belakang */
+  [-1, 1].forEach(function (s) { /* dinding samping trapesium: atas mengikuti kemiringan atap seng (tanpa celah segitiga) */
+    var sh = new THREE.Shape(); sh.moveTo(-2.1, 0); sh.lineTo(2.1, 0); sh.lineTo(2.1, 3.42); sh.lineTo(-2.1, 2.92); sh.closePath();
+    var gs = new THREE.ExtrudeGeometry(sh, { depth: 0.15, bevelEnabled: false }); gs.translate(0, 0, -0.075);
+    K.tambah(cat(K, kayu, C.kayu), gs, wx + s * 3.25, 0, 8.95, 0, -Math.PI / 2);
+  });
+  [-3.2, 3.2].forEach(function (dx) { K.kotak(cat(K, kayu, C.kayuTua), 0.18, 2.95, 0.18, wx + dx, 1.475, 7.0); }); /* tiang depan (puncak masuk ke atap) */
+  K.kotak(cat(K, kayu, C.kayuTua), 6.4, 0.08, 0.08, wx, 2.8, 7.02); /* balok gantungan renceng */
+  K.tambah(seng, uvMeter(new THREE.BoxGeometry(7.4, 0.06, 5.2), 7.4, 5.2), wx, 3.15, 8.7, -0.12);
+  K.kotak(cat(K, kayu, C.kayu), 6.4, 0.95, 0.9, wx, 0.48, 7.45, 0, 1); /* meja etalase */
+  K.kotak(cat(K, kayu, C.kayuTua), 6.5, 0.06, 1.0, wx, 0.96, 7.45, 0, 1); /* daun meja */
+  var etalase = new THREE.Mesh(new THREE.PlaneGeometry(6.2, 0.74), jalanMat('etalase', { map: jalanTekstur('etalase', 1024, 128, lukisEtalase) }));
+  etalase.position.set(wx, 0.5, 6.99); etalase.rotation.y = Math.PI; etalase.receiveShadow = true; S.add(etalase); /* muka etalase kaca berisi jajanan (satu bidang opak, 1 cm di depan meja) */
+  for (var tj = 0; tj < 7; tj++) { /* toples kerupuk di meja */
+    var tpx = wx - 2.7 + tj * 0.9;
+    KD.tambah(cat(KD, polos, C.toples), new THREE.CylinderGeometry(0.17, 0.17, 0.42, 14), tpx, 1.2, 7.4);
+    KD.tambah(cat(KD, polos, CERIA[tj % 5]), new THREE.CylinderGeometry(0.18, 0.18, 0.07, 14), tpx, 1.45, 7.4);
+  }
+  for (var rk = 0; rk < 3; rk++) { /* rak barang di dinding belakang */
+    KD.kotak(cat(KD, kayu, C.kayuTua), 5.6, 0.06, 0.45, wx, 1.1 + rk * 0.62, 10.7, 0, 1);
+    for (var bb = 0; bb < 10; bb++) KD.kotak(cat(KD, polos, CERIA[(bb + rk) % 5]), 0.32, 0.4, 0.28, wx - 2.5 + bb * 0.55, 1.33 + rk * 0.62, 10.68);
+  }
+  for (var rc = 0; rc < 12; rc++) { /* renceng sachet: panjang berbeda-beda, digantung tali dari balok */
+    var rx = wx - 2.9 + rc * 0.52, nS = 2 + ((rc * 5 + 3) % 7) % 3;
+    KD.kotak(cat(KD, polos, C.hitam), 0.012, 0.1, 0.012, rx, 2.71, 7.08);
+    for (var sc = 0; sc < nS; sc++) KD.kotak(cat(KD, polos, CERIA[(rc + sc) % 5]), 0.16, 0.2, 0.01, rx, 2.56 - sc * 0.22, 7.08);
+  }
+  KD.kotak(cat(KD, polos, C.putih), 0.75, 1.75, 0.7, wx + 2.6, 0.88, 9.9); /* kulkas es */
+  KD.kotak(cat(KD, polos, C.kulkasPanel), 0.6, 0.35, 0.02, wx + 2.6, 1.45, 9.54);
+  var papanW = jalanPapan('WARUNG', 'jajan pakai Bintang Kosan', '#c0392b', 3.4); /* papan nama berdiri DI ATAS tepi depan atap seng */
+  papanW.position.set(wx, 3.52, 6.9); papanW.rotation.y = Math.PI; S.add(papanW);
+  K.kotak(cat(K, kayu, C.kayuTua), 3.5, 1.1, 0.05, wx, 3.52, 6.94); /* punggung papan */
+  [-1.4, 1.4].forEach(function (dx) { K.kotak(cat(K, kayu, C.kayuTua), 0.07, 1.2, 0.07, wx + dx, 3.4, 7.0); }); /* tiang papan */
+  /* --- POS RONDA (x 8..12): bale-bale + atap genteng + kentongan + papan catur + kopi --- */
+  K.kotak(cat(K, kayu, C.kayu), 3.0, 0.1, 1.8, 10, 0.42, 8.1, 0, 1); /* papan bale */
+  for (var bl = 0; bl < 6; bl++) KD.kotak(cat(KD, polos, C.bilah), 3.0, 0.02, 0.04, 10, 0.475, 7.3 + bl * 0.32);
+  [[8.6, 7.3], [11.4, 7.3], [8.6, 8.9], [11.4, 8.9]].forEach(function (t) { K.kotak(cat(K, kayu, C.kayuTua), 0.12, 2.8, 0.12, t[0], 1.4, t[1]); });
+  [-1, 1].forEach(function (s) { K.tambah(genteng, uvMeter(new THREE.BoxGeometry(3.6, 0.1, 1.4), 3.6, 1.4), 10, 2.95, 8.1 + s * 0.6, s * 0.45); });
+  K.kotak(cat(K, kayu, C.kayu), 3.0, 0.9, 0.06, 10, 0.95, 8.95, 0, 1); /* sandaran belakang */
+  K.kotak(cat(K, kayu, C.kayuTua), 2.92, 0.08, 0.08, 10, 2.72, 7.3); /* balok depan (gantungan papan) */
+  var papanR = jalanPapan('POS RONDA', null, '#2f5d8a', 1.9);
+  papanR.position.set(10, 2.38, 7.2); papanR.rotation.y = Math.PI; S.add(papanR);
+  var catur = new THREE.Mesh(new THREE.PlaneGeometry(0.44, 0.44), jalanMat('catur', { map: jalanTekstur('catur', 64, 64, lukisCatur) }));
+  catur.rotation.set(-Math.PI / 2, 0, 0.35); catur.position.set(10.75, 0.489, 8.3); catur.receiveShadow = true; S.add(catur);
+  [[0.1, 0.05, 0xf4f4f0], [-0.08, 0.12, 0x23252a], [0.15, -0.1, 0x23252a], [-0.12, -0.06, 0xf4f4f0], [0.02, -0.16, 0xf4f4f0]].forEach(function (b) { /* bidak */
+    KD.tambah(cat(KD, polos, b[2]), new THREE.CylinderGeometry(0.016, 0.022, 0.045, 10), 10.75 + b[0], 0.512, 8.3 + b[1]);
+  });
+  KD.tambah(cat(KD, polos, 0xd23b3b), new THREE.CylinderGeometry(0.07, 0.07, 0.32, 14), 9.05, 0.65, 8.65); /* termos kopi */
+  KD.tambah(cat(KD, polos, C.putih), new THREE.CylinderGeometry(0.055, 0.07, 0.06, 14), 9.05, 0.84, 8.65);
+  [[9.35, 8.45], [9.5, 8.62]].forEach(function (g) { KD.tambah(cat(KD, polos, 0x6b3e1f), new THREE.CylinderGeometry(0.035, 0.03, 0.08, 10), g[0], 0.53, g[1]); }); /* gelas kopi */
+  KD.kotak(cat(KD, polos, C.hitam), 0.012, 0.5, 0.012, 10, 2.93, 8.1); /* kabel bohlam */
+  KD.tambah(cat(KD, nyala, C.lampu), new THREE.SphereGeometry(0.075, 12, 8), 10, 2.62, 8.1); /* bohlam (Basic) */
+  jalanKentongan = new THREE.Group(); /* kentongan bambu menggantung di tiang depan timur */
+  jalanKentongan.position.set(11.4, 2.25, 7.15);
+  var kTali = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.3, 4), M.steelDark); kTali.position.y = -0.15; jalanKentongan.add(kTali);
+  var kBambu = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.55, 12), jalanMat('bambu', { color: 0xc9a85b })); kBambu.position.y = -0.55; jalanKentongan.add(kBambu);
+  var kCelah = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.34, 0.02), jalanMat('celahKentongan', { color: 0x23252a })); kCelah.position.set(0, -0.55, 0.075); jalanKentongan.add(kCelah);
+  jalanKentongan.traverse(function (o) { if (o.isMesh) { o.castShadow = true; o.userData = { interact: 'kentongan' }; jalanClickables.push(o); } });
+  S.add(jalanKentongan);
+  jalanPohon(K, polos, 10, 10.9, 0.85); /* pohon mangga di belakang pos ronda */
+  /* --- PALANG "SEGERA DIBUKA" di dua ujung --- */
+  [PALANG_TIMUR, PALANG_BARAT].forEach(function (pk, ix) {
+    var px = (pk.minX + pk.maxX) / 2, s = ix === 0 ? 1 : -1; /* s: arah luar */
+    [-5.9, 0, 5.9].forEach(function (pz) { /* kaki */
+      KD.kotak(cat(KD, polos, C.besi), 0.08, 1.1, 0.08, px - 0.25, 0.55, pz); KD.kotak(polos, 0.08, 1.1, 0.08, px + 0.25, 0.55, pz);
+    });
+    KD.kotak(belang, 0.12, 0.32, 13.6, px, 1.05, 0, 0, 0.32); /* palang belang (petak = tinggi palang: pita 16 cm) */
+    KD.kotak(belang, 0.12, 0.26, 13.6, px, 0.45, 0, 0, 0.26);
+    var papanP = jalanPapan('SEGERA DIBUKA', 'komen di video @ibu__kos', '#e67e22', 2.6);
+    papanP.position.set(px - s * 0.031, 1.75, 0); papanP.rotation.y = -s * Math.PI / 2; S.add(papanP);
+    papanP.userData = { interact: 'palang' }; jalanClickables.push(papanP);
+    KD.kotak(cat(KD, polos, C.hitam), 0.05, 0.9, 2.7, px, 1.75, 0); /* punggung papan */
+    [-1.0, 1.0].forEach(function (pz) { KD.kotak(cat(KD, polos, C.besi), 0.06, 1.25, 0.06, px + s * 0.055, 1.55, pz); }); /* tiang papan, dibaut ke palang */
+    [-3.2, -1.6, 1.6, 3.2].forEach(function (cz) { /* kerucut: alas mulai 0,45 m dari palang = di luar badan avatar di batas (r 0,4) */
+      KD.tambah(cat(KD, polos, C.kerucut), new THREE.ConeGeometry(0.22, 0.7, 14), px - s * 0.6, 0.39, cz);
+      KD.tambah(cat(KD, polos, C.putih), new THREE.CylinderGeometry(0.13, 0.155, 0.1, 14), px - s * 0.6, 0.46, cz);
+      KD.kotak(cat(KD, polos, C.hitam), 0.5, 0.04, 0.5, px - s * 0.6, 0.02, cz);
+    });
+  });
+  /* --- SISI UTARA (grup jalanUtara): tembok kos z -7,25 + gerbang x -12 + punggung C/D --- */
+  [[-60, JALAN_GERBANG_X - 1.6], [JALAN_GERBANG_X + 1.6, 60]].forEach(function (sg) {
+    var w = sg[1] - sg[0], cx = (sg[0] + sg[1]) / 2;
+    KU.kotak(cat(KU, plester, C.tembok), w, 2.3, 0.3, cx, 1.15, -7.25, 0, 2); /* tembok */
+    KU.kotak(cat(KU, polos, C.beton), w, 0.12, 0.42, cx, 2.36, -7.25); /* lis atas */
+    KT.kotak(cat(KT, polos, C.temboKaki), w, 0.35, 0.34, cx, 0.17, -7.25); /* plint (KT: tetap tampil saat tembok disembunyikan = batas kos tetap terbaca) */
+    for (var px = sg[0] + 2, n = 0; px < sg[1] - 0.5; px += 4, n++) {
+      KU.kotak(cat(KU, plester, C.tembok), 0.42, 2.5, 0.42, px, 1.25, -7.25, 0, 2); /* pilaster */
+      if (n % 2 === 1 && Math.abs(px) < 40) { /* lampu pagar di puncak pilaster tiap 8 m (Basic; di atas kepala, tidak menonjol ke trotoar) */
+        KU.kotak(cat(KU, polos, C.besi), 0.22, 0.06, 0.22, px, 2.53, -7.25);
+        KU.kotak(cat(KU, nyala, C.lampu), 0.14, 0.16, 0.14, px, 2.64, -7.25);
+        KU.kotak(cat(KU, polos, C.besi), 0.2, 0.04, 0.2, px, 2.74, -7.25);
+      }
+    }
+  });
+  [JALAN_GERBANG_X - 1.75, JALAN_GERBANG_X + 1.75].forEach(function (gpx) {
+    KU.kotak(M.slate, 0.6, 2.9, 0.6, gpx, 1.45, -7.25); /* pilar gerbang batu */
+    KU.kotak(cat(KU, polos, C.beton), 0.74, 0.14, 0.74, gpx, 2.97, -7.25);
+    KU.tambah(cat(KU, nyala, C.lampu), new THREE.SphereGeometry(0.17, 14, 10), gpx, 3.2, -7.25); /* lampu pilar */
+  });
+  KU.kotak(M.slate, 2.9, 0.62, 0.14, JALAN_GERBANG_X, 2.62, -7.25); /* balok papan (gapura) */
+  var papanKos = jalanPapan('KOSAN IBU KOS', 'kos putra · putri', '#1b4f8a', 1.82); /* tinggi 0,57 m (rasio 512:160) di balok 0,62 */
+  papanKos.position.set(JALAN_GERBANG_X, 2.62, -7.175); jalanUtara.add(papanKos);
+  for (var gb = 0; gb < 13; gb++) KU.kotak(cat(KU, polos, C.besi), 0.05, 1.9, 0.05, JALAN_GERBANG_X + 2.0 + gb * 0.22, 1.05, -7.55); /* daun gerbang besi geser (terbuka, di balik tembok) */
+  [0.2, 1.0, 1.95].forEach(function (y) { KU.kotak(cat(KU, polos, C.besi), 2.8, 0.07, 0.07, JALAN_GERBANG_X + 3.3, y, -7.55); });
+  KT.kotak(paving, 3.2, 0.11, 2.2, JALAN_GERBANG_X, 0.055, -8.3, 0, 1); /* ambang gerbang (rendah: selalu tampil) */
+  /* pemandangan lewat celah gerbang: jalan setapak ke alun-alun (cermin jalur gerbang halaman z 14..29) + 2 pohon pembingkai */
+  KT.kotak(cat(KT, polos, C.setapak), 2.4, 0.06, 13, JALAN_GERBANG_X, 0.0, -15.9);
+  KT.kotak(cat(KT, polos, C.plaza), 30, 0.04, 20, JALAN_GERBANG_X, 0.0, -32.4);
+  jalanPohon(KC, polos, -20.5, -23.25); jalanPohon(KC, polos, -3.5, -23.25);
+  /* punggung Gedung C/D di balik tembok (cermin halaman: x_jalan = x_halaman - 27); di
+     halaman punggung ini selalu tersembunyi (gedungCdPerbarui), jadi rupa belakang bebas */
+  [[-41.4, -14.6], [-9.4, 17.4]].forEach(function (sg) {
+    var w = sg[1] - sg[0], cx = (sg[0] + sg[1]) / 2;
+    KC.kotak(cat(KC, plester, C.batu), w, 10, 8.4, cx, 4.5, -13.4, 0, 2);
+    KC.kotak(cat(KC, polos, C.besi), w + 0.4, 0.2, 8.8, cx, 4.2, -13.4); /* lis lantai */
+    KC.kotak(polos, w + 0.4, 0.8, 0.25, cx, 9.5, -9.32); KC.kotak(polos, w + 0.4, 0.8, 0.25, cx, 9.5, -17.48); /* parapet keliling */
+    KC.kotak(polos, 0.25, 0.8, 8.4, sg[0] - 0.08, 9.5, -13.4); KC.kotak(polos, 0.25, 0.8, 8.4, sg[1] + 0.08, 9.5, -13.4);
+    for (var j = 0; j < 5; j++) { /* per kamar: jendela kecil menyala + unit luar AC (kamar ber-AC sejak Tahap 2) */
+      var jx = sg[0] + w / 10 + j * w / 5;
+      [[6.9, 1.5, 1.1], [2.95, 1.1, 0.55]].forEach(function (jd) { /* lantai 2 + jendela atas lantai 1 (terlihat di atas tembok) */
+        KC.kotak(cat(KC, polos, C.besi), jd[1] + 0.2, jd[2] + 0.2, 0.08, jx, jd[0], -9.18);
+        KC.kotak(cat(KC, nyala, C.lampu), jd[1], jd[2], 0.02, jx, jd[0], -9.13);
+      });
+      KC.kotak(cat(KC, polos, 0xeef0f2), 0.9, 0.6, 0.32, jx + 1.25, 5.25, -9.04); /* unit luar AC */
+      KC.kotak(cat(KC, polos, 0x3a3f45), 0.44, 0.44, 0.02, jx + 1.1, 5.25, -8.875); /* kisi kipas */
+    }
+  });
+  var gK = K.selesai(); KD.selesai(); KT.selesai(false);
+  var gU = KU.selesai(); KC.selesai(false);
+  /* gerbang kos: pilar + balok batu (M.slate = khusus gerbang) + papan nama bisa diketuk;
+     celahnya TIDAK (ketukan lewat celah tidak tertahan kotak tak terlihat) */
+  [gU[M.slate.uuid], papanKos].forEach(function (m) { m.userData = { interact: 'gerbangKos' }; jalanClickables.push(m); });
+  /* kotak ketuk tak terlihat: warung, pos ronda, palang (raycast ke kotak, bukan ke ratusan bagian gabungan) */
+  var tak = new THREE.MeshBasicMaterial({ visible: false });
+  [[WARUNG_KOTAK, 'warung', 2.4], [POS_RONDA_KOTAK, 'posronda', 1.2], [PALANG_TIMUR, 'palang', 1.5], [PALANG_BARAT, 'palang', 1.5]].forEach(function (d) {
+    var k = d[0], m = new THREE.Mesh(new THREE.BoxGeometry(k.maxX - k.minX, d[2], k.maxZ - k.minZ), tak);
+    m.position.set((k.minX + k.maxX) / 2, d[2] / 2, (k.minZ + k.maxZ) / 2);
+    m.userData = { interact: d[1] }; S.add(m); jalanClickables.push(m);
+  });
+  /* --- kucing Oyen --- */
+  jalanKucing = buatKucing();
+  S.add(jalanKucing.g);
+  jalanKucing.g.traverse(function (o) { if (o.isMesh) { o.userData = { interact: 'kucing' }; jalanClickables.push(o); } });
+  /* --- latar di halaman: salinan K (bentuk besar: jalan, rumah, warung, pos ronda, tiang) + papan warung + etalase --- */
+  var latar = [];
+  for (var uid in gK) latar.push(gK[uid]);
+  jalanLatarHalaman = jalanPasangLatar(latar.concat([papanW, etalase]));
+}
+/* Latar halaman: mesh BARU yang memakai geometri + material yang SAMA (tanpa
+   memori GPU baru) di koordinat cermin halaman (x + 27, z + 36,25), naik 1,5 cm
+   (aspal tidak z-fight dengan tanah halaman y 0). Tanpa bayangan: di luar kotak
+   bayangan matahari halaman. Tidak bisa diketuk (bukan anggota clickables). */
+/* Latar hanya digambar kalau MUNGKIN terlihat: kotaknya (koordinat halaman)
+   masuk frustum kamera DAN (kamera di selatan muka utara C/D, atau celah C-D
+   di gerbang masuk bingkai, atau kamera lebih tinggi dari atap C/D). Bola
+   batas mesh gabungan 120 m selalu memuat kamera, jadi culling bawaan THREE
+   tidak pernah membuangnya — tanpa ini latar ikut digambar di spawn yang
+   memandang ke utara. */
+var JALAN_LATAR_KOTAK = new THREE.Box3(new THREE.Vector3(-34, -0.1, 28.8), new THREE.Vector3(88, 9, 52));
+var JALAN_CELAH_CD = new THREE.Box3(new THREE.Vector3(12.4, 0, 18.6), new THREE.Vector3(17.6, 10, 29));
+var jalanFrustum = new THREE.Frustum(), jalanM4 = new THREE.Matrix4();
+function jalanLatarPerbarui() {
+  if (!jalanLatarHalaman) return;
+  camera.updateMatrixWorld();
+  jalanM4.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+  jalanFrustum.setFromProjectionMatrix(jalanM4);
+  jalanLatarHalaman.visible = jalanFrustum.intersectsBox(JALAN_LATAR_KOTAK)
+    && (camera.position.z > 18.4 || camera.position.y > 10.5 || jalanFrustum.intersectsBox(JALAN_CELAH_CD));
+}
+function jalanPasangLatar(daftar) {
+  var g = new THREE.Group();
+  g.position.set(27, 0.015, 36.25);
+  daftar.forEach(function (m) {
+    var c = new THREE.Mesh(m.geometry, m.material);
+    c.position.copy(m.position); c.rotation.copy(m.rotation); c.scale.copy(m.scale);
+    c.castShadow = false; c.receiveShadow = false;
+    c.renderOrder = 1; /* digambar SESUDAH halaman: bagian yang tertutup Gedung C/D ditolak uji kedalaman (tidak diwarnai dua kali) */
+    c.matrixAutoUpdate = false; c.updateMatrix();
+    g.add(c);
+  });
+  scene.add(g);
+  return g;
+}
+function buatKucing() {
+  var g = new THREE.Group(), bulu = jalanMat('bulu', { map: jalanTekstur('bulu', 128, 64, lukisBulu) });
+  var putihK = jalanMat('putihKucing', { color: 0xfff6ea }), pink = jalanMat('pinkKucing', { color: 0xf3a3a8 });
+  var badan = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.3, 6, 14), bulu); badan.rotation.x = Math.PI / 2; badan.position.set(0, 0.27, 0); g.add(badan);
+  var dada = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 10), putihK); dada.position.set(0, 0.25, 0.17); dada.scale.set(1, 1.1, 0.8); g.add(dada);
+  var kepala = new THREE.Group(); kepala.position.set(0, 0.42, 0.25); g.add(kepala);
+  var kp = new THREE.Mesh(new THREE.SphereGeometry(0.12, 18, 14), bulu); kp.scale.set(1.05, 0.92, 0.95); kepala.add(kp);
+  var moncong = new THREE.Mesh(new THREE.SphereGeometry(0.055, 12, 10), putihK); moncong.position.set(0, -0.03, 0.095); moncong.scale.set(1.3, 0.8, 0.8); kepala.add(moncong);
+  var hidung = new THREE.Mesh(new THREE.SphereGeometry(0.014, 8, 6), pink); hidung.position.set(0, -0.005, 0.14); kepala.add(hidung);
+  [-1, 1].forEach(function (s) {
+    var telinga = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.09, 4), bulu); telinga.position.set(s * 0.07, 0.11, -0.01); telinga.rotation.z = -s * 0.25; kepala.add(telinga);
+    var tDalam = new THREE.Mesh(new THREE.ConeGeometry(0.025, 0.05, 4), pink); tDalam.position.set(s * 0.068, 0.105, 0.012); tDalam.rotation.z = -s * 0.25; kepala.add(tDalam);
+    var mata = new THREE.Mesh(new THREE.SphereGeometry(0.02, 10, 8), new THREE.MeshBasicMaterial({ color: 0x2a1d10 })); mata.position.set(s * 0.048, 0.025, 0.103); mata.scale.set(1, 1.3, 0.6); kepala.add(mata);
+    var kilau = new THREE.Mesh(new THREE.SphereGeometry(0.006, 6, 4), new THREE.MeshBasicMaterial({ color: 0xffffff })); kilau.position.set(s * 0.043, 0.035, 0.115); kepala.add(kilau);
+  });
+  var kaki = [];
+  [[-0.07, 0.17], [0.07, 0.17], [-0.07, -0.17], [0.07, -0.17]].forEach(function (p) {
+    var piv = new THREE.Group(); piv.position.set(p[0], 0.2, p[1]); g.add(piv);
+    var kk = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.027, 0.2, 8), bulu); kk.position.y = -0.1; piv.add(kk);
+    var tapak = new THREE.Mesh(new THREE.SphereGeometry(0.033, 8, 6), putihK); tapak.position.set(0, -0.2, 0.01); tapak.scale.set(1, 0.6, 1.2); piv.add(tapak);
+    kaki.push(piv);
+  });
+  var ekorKurva = new THREE.CatmullRomCurve3([new THREE.Vector3(0, 0.3, -0.25), new THREE.Vector3(0, 0.36, -0.38), new THREE.Vector3(0, 0.52, -0.44), new THREE.Vector3(0.02, 0.64, -0.36)]);
+  var ekor = new THREE.Mesh(new THREE.TubeGeometry(ekorKurva, 16, 0.028, 8, false), bulu); g.add(ekor);
+  g.traverse(function (o) { if (o.isMesh) o.castShadow = true; });
+  return { g: g, kepala: kepala, kaki: kaki, ekor: ekor, hati: null };
+}
+/* Gerbang halaman (pagar selatan z 29, celah x 13,4..16,6): pilar batu + lampu
+   + papan "JALAN KAMPUNG" menghadap halaman + daun gerbang besi terbuka (cermin
+   gerbang di sisi jalan: x_halaman = x_jalan + 27). Digabung per material:
+   5 draw call tambahan di halaman (dulu 2 tiang pagar). Pilar/lampu/papan bisa
+   diketuk; celahnya tidak (ketukan ke alun-alun lewat celah tidak tertahan). */
+function bangunGerbangHalaman() {
+  var K = new JalanKumpul(scene), polos = jalanMatV('polos'), nyala = jalanNyalaV();
+  [13.25, 16.75].forEach(function (gx) {
+    K.kotak(M.slate, 0.6, 2.9, 0.6, gx, 1.45, 29); /* pilar batu (menutup ujung pagar 13,4 / 16,6) */
+    K.cat(0xbab5ab); K.kotak(polos, 0.74, 0.14, 0.74, gx, 2.97, 29);
+    K.cat(0xffe9b0); K.tambah(nyala, new THREE.SphereGeometry(0.17, 14, 10), gx, 3.2, 29); /* lampu pilar (Basic, satu bola) */
+  });
+  K.kotak(M.slate, 2.9, 0.62, 0.14, 15, 2.62, 29); /* balok papan (gapura) */
+  K.cat(0x2f3336);
+  for (var gb = 0; gb < 13; gb++) K.kotak(polos, 0.05, 1.9, 0.05, 17.0 + gb * 0.22, 1.05, 28.7); /* daun gerbang besi, digeser ke timur (cermin sisi jalan) */
+  [0.2, 1.0, 1.95].forEach(function (y) { K.kotak(polos, 2.8, 0.07, 0.07, 18.3, y, 28.7); });
+  var g = K.selesai();
+  var papan = jalanPapan('JALAN KAMPUNG', 'warung · pos ronda · si Oyen', '#1b4f8a', 1.82);
+  papan.position.set(15, 2.62, 28.925); papan.rotation.y = Math.PI; scene.add(papan); /* menghadap halaman (utara) */
+  [g[M.slate.uuid], g[nyala.uuid], papan].forEach(function (m) { m.userData = { interact: 'gerbangHalaman' }; clickables.push(m); });
+}
+buildJalan();
+bangunGerbangHalaman();
+
+/* ---------- Tahap 3a — pindah alam Jalan Kampung ---------- */
+/* lewat = true: avatar MELANGKAH lewat celah gerbang (animate) — posisi x
+   ikut tergeser (x_jalan = x_halaman - 27), arah hadap + kamera DIBAWA apa
+   adanya (joystick yang masih ditahan tetap ke arah yang sama, tidak
+   membingungkan). Tanpa lewat (menu / kartu gerbang): titik spawn + framing
+   bawaan: kamera di barat memandang jalan ke timur (landscape sedikit ke
+   selatan supaya warung masuk bingkai; tetap di depan tembok). */
+function enterJalan(lewat) {
+  if (myRealm === 'jalan') return;
+  if (roomPose) bangunDariKasur(true);
+  if (myRealm === 'living') exitLiving(); else if (myRealm === 'dapur') exitDapur(); else if (myRealm.indexOf('room-') === 0) exitRoom();
+  var geser = lewat ? Math.max(-1.1, Math.min(1.1, avatarPos.x - HALAMAN_DARI_JALAN.x)) : 0;
+  myRealm = 'jalan';
+  avatarLevel = 0;
+  if (avatar && avatar.parent) avatar.parent.remove(avatar);
+  jalanScene.add(avatar);
+  avatarPos.x = JALAN_SPAWN.x + geser; avatarPos.z = JALAN_SPAWN.z;
+  if (!lewat) avatar.rotation.y = JALAN_SPAWN.rot;
+  avatar.position.set(avatarPos.x, 0, avatarPos.z);
+  camTarget.set(avatarPos.x, 0, avatarPos.z);
+  if (!lewat) { camYaw = isPortrait() ? -Math.PI / 2 : -1.62; camPitch = 0.28; camDist = isPortrait() ? 13 : 8.5; } /* landscape -1,62: warung masuk bingkai, kamera 1,6 m dari muka pilaster */
+  flyTarget = null; flyKeep = false;
+  document.getElementById('exitBtn').style.display = 'inline-block';
+  closeCard();
+  mpSaatPindahAlam();
+  toastKosan('🛣️ Jalan Kampung — ada warung, pos ronda, dan si Oyen');
+}
+function exitJalan(lewat) {
+  if (myRealm !== 'jalan') return;
+  if (roomPose) bangunDariKasur(true);
+  var geser = lewat ? Math.max(-1.1, Math.min(1.1, avatarPos.x - JALAN_SPAWN.x)) : 0;
+  myRealm = 'yard';
+  if (avatar && avatar.parent) avatar.parent.remove(avatar);
+  scene.add(avatar);
+  avatarPos.x = HALAMAN_DARI_JALAN.x + geser; avatarPos.z = HALAMAN_DARI_JALAN.z;
+  if (!lewat) avatar.rotation.y = HALAMAN_DARI_JALAN.rot;
+  avatar.position.set(avatarPos.x, 0, avatarPos.z);
+  camTarget.set(avatarPos.x, 0, avatarPos.z);
+  if (!lewat) { camYaw = 0; camPitch = 0.25; camDist = camDistAwalHalaman(); } /* framing halaman bawaan: kamera di belakang, memandang ke alun-alun lewat celah C-D */
+  flyTarget = null; flyKeep = false;
+  document.getElementById('exitBtn').style.display = 'none';
+  closeCard();
+  mpSaatPindahAlam();
+}
+function jalanPemainDuduk() {
+  var out = [];
+  for (var id in remotePlayers) { var e = remotePlayers[id]; if (e && e.realm === 'jalan' && e.pose === 'sit') out.push({ x: e.tx, z: e.tz }); }
+  return out;
+}
+var jalanDiPosRonda = false;
+function showPosRondaCard() {
+  cardTitle.innerHTML = iconSvg('chair') + ' Pos Ronda';
+  cardActions.innerHTML = '';
+  var html = '<p>Pos ronda kampung — tempat bapak-bapak jaga malam sambil ngopi. Duduk di bale-bale, ketuk kentongannya juga boleh. 🪵</p>';
+  if (roomPose && jalanDiPosRonda) {
+    html += '<p style="margin-top:4px">Kamu lagi <b>duduk</b> di pos ronda.</p>';
+    var bw = document.createElement('button'); bw.id = 'rondaBangunBtn'; bw.innerHTML = iconSvg('stand') + ' Bangun';
+    bw.addEventListener('click', function () { bangunDariKasur(); closeCard(); }); cardActions.appendChild(bw);
+  } else if (jarakKeKotak(avatarPos.x, avatarPos.z, POS_RONDA_KOTAK) > JALAN_JARAK) {
+    html += '<p style="margin-top:4px">Jalan ke pos ronda dulu ya. 🚶</p>';
+  } else {
+    var bd = document.createElement('button'); bd.id = 'rondaDudukBtn'; bd.innerHTML = iconSvg('chair') + ' Duduk di bale-bale';
+    bd.addEventListener('click', function () { posRondaDuduk(); }); cardActions.appendChild(bd);
+  }
+  if (jarakKeKotak(avatarPos.x, avatarPos.z, POS_RONDA_KOTAK) <= JALAN_JARAK) {
+    var bk = document.createElement('button'); bk.id = 'kentonganBtn'; bk.innerHTML = iconSvg('kentongan') + ' Pukul kentongan';
+    bk.addEventListener('click', function () { pukulKentongan(); }); cardActions.appendChild(bk);
+  }
+  cardBody.innerHTML = html;
+  openCard();
+}
+function posRondaDuduk() {
+  if (myRealm !== 'jalan' || roomPose) return;
+  if (jarakKeKotak(avatarPos.x, avatarPos.z, POS_RONDA_KOTAK) > JALAN_JARAK) { toastKosan('Jalan ke pos ronda dulu ya 🚶'); return; }
+  var j = jalanKursiPilih(avatarPos.x, avatarPos.z, jalanPemainDuduk());
+  if (!j) { toastKosan('Bale-balenya penuh 🙂'); return; }
+  roomPose = 'sit'; poseJangkar = j; jalanDiPosRonda = true;
+  terapkanPoseKamar(); mpKirimPos(); closeCard();
+  document.getElementById('wakeBtn').style.display = 'inline-block';
+  toastKosan('🪵 Nongkrong di pos ronda — ketuk Bangun buat berdiri');
+  misiSelesai('ronda');
+}
+function pukulKentongan() {
+  if (myRealm !== 'jalan') return;
+  if (jarakKeKotak(avatarPos.x, avatarPos.z, POS_RONDA_KOTAK) > JALAN_JARAK) { toastKosan('Jalan ke pos ronda dulu ya 🚶'); return; }
+  jalanKentonganAyun = 1;
+  toastKosan('🪘 Tong… tong… tong! Siskamling aman terkendali');
+}
+function warungRender() {
+  cardTitle.innerHTML = iconSvg('warung') + ' Warung Kampung';
+  cardActions.innerHTML = '';
+  var bintang = misiBintang();
+  var html = '<p>Jajan pakai <b>Bintang Kosan</b> — dapatnya dari Misi Harian. Bintangmu: <b>' + bintang + '</b> ' + iconSvg('bintang') + '</p>';
+  var dekat = jarakKeKotak(avatarPos.x, avatarPos.z, WARUNG_KOTAK) <= JALAN_JARAK;
+  if (!dekat) html += '<p style="margin-top:4px">Jalan ke depan warung dulu ya. 🚶</p>';
+  if (jajanSaya) html += '<p style="margin-top:4px">Kamu lagi pegang <b>' + jajanSaya.item.nama.toLowerCase() + '</b>. 😋</p>';
+  cardBody.innerHTML = html + '<p class="kartu-catatan" style="margin-top:4px;font-size:12px;opacity:.75">Jajan cuma kelihatan di HP-mu. Bintang lokal di HP ini.</p>';
+  if (dekat) WARUNG_MENU.forEach(function (it) {
+    var b = document.createElement('button'); b.id = 'beli-' + it.id;
+    b.innerHTML = it.nama + ' · ' + it.harga + ' ' + iconSvg('bintang'); /* nama menu dari WARUNG_MENU (konstanta, bukan masukan pemain) */
+    if (bintang < it.harga) b.disabled = true;
+    b.addEventListener('click', function () { warungBeliKlik(it.id); });
+    cardActions.appendChild(b);
+  });
+}
+function showWarungCard() { warungRender(); openCard(); }
+function warungBeliKlik(id) {
+  if (jarakKeKotak(avatarPos.x, avatarPos.z, WARUNG_KOTAK) > JALAN_JARAK) { toastKosan('Jalan ke depan warung dulu ya 🚶'); return; }
+  var r = warungBeli(misiBintang(), id);
+  if (!r.ok) { toastKosan(r.alasan === 'kurang' ? 'Bintangmu kurang — selesaikan Misi Harian dulu ya' : 'Menu tidak ada'); return; }
+  try { localStorage.setItem('kosan3d-bintang', String(r.sisa)); } catch (e) { /* abaikan */ }
+  jajanPegang(r.item);
+  toastKosan('😋 Beli ' + r.item.nama.toLowerCase() + ' (−' + r.item.harga + ' Bintang)');
+  misiSelesai('warung');
+  warungRender();
+}
+/* jajan di tangan kanan avatar (lokal, 90 dtk) */
+var jajanSaya = null; /* { item, mulai, grup } */
+function jajanBuatGrup(id) {
+  /* gaya chibi: jajan dibesarkan 1,5x supaya terbaca dari kamera 8 m; dipegang
+     di depan kepalan (bagian bawah jajan masuk ke kepalan = tergenggam) */
+  var g = new THREE.Group(), naik = 0;
+  if (id === 'esteh') { /* es teh plastik: gelas teh + segel tutup putih + sedotan merah + pita label */
+    var gelas = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.04, 0.14, 16), jalanMat('teh', { color: 0xc8742f })); g.add(gelas);
+    var pita = new THREE.Mesh(new THREE.CylinderGeometry(0.0485, 0.0455, 0.03, 16), jalanMat('pitaGelas', { color: 0xf6f1e4 })); pita.position.y = 0.01; g.add(pita);
+    var tutup = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.012, 16), jalanMat('tutupGelas', { color: 0xf2f2f2 })); tutup.position.y = 0.074; g.add(tutup);
+    var sedotan = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.14, 6), jalanMat('sedotan', { color: 0xe8483c })); sedotan.position.set(0.012, 0.13, 0); sedotan.rotation.z = -0.12; g.add(sedotan);
+  } else if (id === 'gorengan') { /* bungkus kertas cokelat + 3 gorengan */
+    var kertas = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.15, 12, 1, true), jalanMat('kertas', { color: 0xe9dcc0, side: THREE.DoubleSide })); kertas.rotation.x = Math.PI; g.add(kertas);
+    [[0, 0.06, 0], [0.025, 0.05, 0.02], [-0.022, 0.052, -0.015]].forEach(function (q) {
+      var gr = new THREE.Mesh(new THREE.SphereGeometry(0.035, 10, 8), jalanMat('goreng', { color: 0xc98a3a })); gr.position.set(q[0], q[1], q[2]); gr.scale.set(1, 0.7, 1.3); g.add(gr);
+    });
+    naik = 0.04;
+  } else { /* es krim cone: wafer + 2 bola (stroberi + vanila) */
+    var cone = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.13, 12), jalanMat('wafer', { color: 0xd9a35a })); cone.rotation.x = Math.PI; g.add(cone);
+    var es = new THREE.Mesh(new THREE.SphereGeometry(0.048, 14, 10), jalanMat('eskrim', { color: 0xf7b3c8 })); es.position.y = 0.075; g.add(es);
+    var es2 = new THREE.Mesh(new THREE.SphereGeometry(0.04, 14, 10), jalanMat('eskrimVanila', { color: 0xfff3d6 })); es2.position.y = 0.135; g.add(es2);
+    naik = 0.05;
+  }
+  g.traverse(function (o) { if (o.isMesh) o.castShadow = true; });
+  g.scale.setScalar(1.5);
+  g.rotation.z = -0.2; /* lawan kemiringan sendi lengan kanan (pivot rz 0,2): jajan tegak saat lengan diam */
+  g.position.set(-0.012, -0.52 + naik, 0.085); /* lokal lengan kanan: di depan kepalan (kepalan pusat y -0,522) */
+  return g;
+}
+function jajanPegang(item) {
+  jajanLepas();
+  jajanSaya = { item: item, mulai: Date.now(), grup: jajanBuatGrup(item.id) };
+  jajanPasang();
+}
+function jajanPasang() { if (jajanSaya && avArmR && jajanSaya.grup.parent !== avArmR) avArmR.add(jajanSaya.grup); }
+function jajanLepas() {
+  if (!jajanSaya) return;
+  if (jajanSaya.grup.parent) jajanSaya.grup.parent.remove(jajanSaya.grup);
+  jajanSaya.grup.traverse(function (o) { if (o.isMesh) o.geometry.dispose(); });
+  jajanSaya = null;
+}
+function showKucingCard() {
+  cardTitle.innerHTML = iconSvg('kucing') + ' Oyen';
+  cardActions.innerHTML = '';
+  var k = kucingPosisi(Date.now() / 1000);
+  var dekat = Math.hypot(avatarPos.x - k.x, avatarPos.z - k.z) <= JALAN_JARAK_KUCING;
+  cardBody.innerHTML = '<p>Kucing kampung oranye yang suka keliling. Semua penghuni kenal si Oyen. 🐈</p>'
+    + (dekat ? '' : '<p style="margin-top:4px">Dekati Oyen dulu ya, baru dielus.</p>');
+  if (dekat) {
+    var b = document.createElement('button'); b.id = 'elusBtn'; b.innerHTML = iconSvg('kucing') + ' Elus Oyen';
+    b.addEventListener('click', function () { elusKucing(); }); cardActions.appendChild(b);
+  }
+  openCard();
+}
+function elusKucing() {
+  var k = kucingPosisi(Date.now() / 1000);
+  if (Math.hypot(avatarPos.x - k.x, avatarPos.z - k.z) > JALAN_JARAK_KUCING) { toastKosan('Oyen sudah jalan, kejar dulu 😸'); return; }
+  jalanKucing.hati = emoteMulai(jalanKucing.hati || {}, 'sayang', Date.now(), Date.now());
+  jalanKucing.hati.aktif = true;
+  closeCard();
+  toastKosan('😺 Oyen mendengkur… prrr');
+  misiSelesai('kucing');
+}
+function showPalangCard() {
+  cardTitle.innerHTML = iconSvg('palang') + ' Segera Dibuka';
+  cardActions.innerHTML = '';
+  cardBody.innerHTML = '<p>Jalan ini masih ditutup. Mau dibuka jadi apa — lapangan, taman, minimarket, kolam renang? Komen di video terbaru Ibu, like terbanyak Ibu buka! 🚧</p>'
+    + '<p style="margin-top:6px"><a class="igbtn" href="https://www.instagram.com/ibu__kos/" target="_blank" rel="noopener">' + iconSvg('ig') + ' Profil @ibu__kos</a></p>';
+  openCard();
+}
+function showGerbangCard(keluar) {
+  cardTitle.innerHTML = iconSvg('door') + (keluar ? ' Gerbang Kos' : ' Gerbang Kosan');
+  cardActions.innerHTML = '';
+  cardBody.innerHTML = keluar ? '<p>Gerbang depan kos. Di luar ada Jalan Kampung: warung, pos ronda, dan si Oyen. 🛣️</p>'
+    : '<p>Gerbang Kosan Ibu Kos. Masuk lagi ke halaman kos? 🏠</p>';
+  var b = document.createElement('button'); b.id = keluar ? 'keJalanBtn' : 'keKosBtn';
+  b.innerHTML = iconSvg(keluar ? 'jalan' : 'home') + (keluar ? ' Keluar ke Jalan Kampung' : ' Masuk ke halaman kos');
+  b.addEventListener('click', function () { if (keluar) enterJalan(); else exitJalan(); });
+  cardActions.appendChild(b);
+  openCard();
+}
+function jalanTick(dt, now) {
+  /* kamera di balik tembok kos (diputar ke utara): tembok + gerbang + punggung C/D
+     disembunyikan supaya tidak menutupi avatar (pola gedungCdPerbarui di halaman) */
+  if (jalanUtara) jalanUtara.visible = camera.position.z > -7.45;
+  /* kucing: posisi dari jam (sama di semua HP) + langkah kaki + ekor */
+  if (jalanKucing) {
+    var k = kucingPosisi(now / 1000), G = jalanKucing.g;
+    G.position.set(k.x, Math.abs(k.z) > 4.65 ? 0.12 : 0.02, k.z); /* di trotoar (0,1 m) / di aspal */
+    G.rotation.y = turnToward(G.rotation.y, k.rot, 1 - Math.exp(-8 * dt));
+    var fase = now / 1000 * 7;
+    jalanKucing.kaki.forEach(function (p, i) { p.rotation.x = k.jalan ? Math.sin(fase + (i === 0 || i === 3 ? 0 : Math.PI)) * 0.45 : 0; });
+    jalanKucing.ekor.rotation.y = Math.sin(now / 1000 * 2.2) * 0.35;
+    jalanKucing.kepala.rotation.y = k.jalan ? 0 : Math.sin(now / 1000 * 0.8) * 0.4;
+    var H = jalanKucing.hati; /* hati di atas kepala Oyen (pola emote; sprite dipakai ulang tiap elus) */
+    if (H && H.spr && H.aktif) {
+      var a = emoteAnimasi((now - H.mulai) / 1000);
+      if (!a) { if (H.spr.parent) H.spr.parent.remove(H.spr); H.aktif = false; }
+      else {
+        if (H.spr.parent !== jalanScene) jalanScene.add(H.spr);
+        H.spr.position.set(G.position.x, G.position.y + 0.95 + a.naik, G.position.z);
+        H.spr.scale.set(0.5 * a.skala, 0.5 * a.skala, 1); H.spr.material.opacity = a.alpha; H.spr.material.rotation = a.putar;
+      }
+    }
+  }
+  if (jalanKentonganAyun > 0) { /* kentongan berayun setelah dipukul */
+    jalanKentonganAyun = Math.max(0, jalanKentonganAyun - dt * 0.6);
+    jalanKentongan.rotation.z = Math.sin(now / 1000 * 14) * 0.35 * jalanKentonganAyun;
+  }
+}
+function jajanTick(now) { /* dipanggil tiap frame di SEMUA alam: jajan dibawa pulang ke kos tetap habis 90 dtk */
+  if (jajanSaya && now - jajanSaya.mulai > JAJAN_DURASI_MS) { toastKosan('😋 ' + jajanSaya.item.nama + ' habis'); jajanLepas(); }
+}
 
 /* ---------- kartu ---------- */
 var cardEl = document.getElementById('roomCard');
@@ -4929,6 +5787,8 @@ document.getElementById('dapurBtn').addEventListener('click', function () {
   else if (myRealm === 'living') exitLiving(); /* dari ruang tamu: keluar dulu */
   enterDapur();
 });
+/* Tahap 3a — Jalan Kampung (enterJalan sendiri keluar dari kamar / ruang tamu / dapur dulu) */
+document.getElementById('jalanBtn').addEventListener('click', function () { enterJalan(); });
 /* Ronde 44 — dropdown "Masuk ke": pemicu buka/tutup menu; pilih opsi
    menutup menu; ketuk di luar menu menutup menu. */
 var masukMenu = document.getElementById('masukMenu');
@@ -5438,7 +6298,15 @@ var UICONS = {
   /* Ronde 28 — ikon kaca pembesar untuk tombol cari namebar (ikon saja, tanpa teks); gaya sama. */
   simpan: '<path d="M12 4v11M7.5 10.5L12 15l4.5-4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 19h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
   bagikan: '<circle cx="6" cy="12" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="6" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="18" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8.2 10.8l7.6-3.6M8.2 13.2l7.6 3.6" fill="none" stroke="currentColor" stroke-width="2"/>',
-  search: '<circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16.5 16.5L21 21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'
+  search: '<circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16.5 16.5L21 21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  /* Tahap 3a — Jalan Kampung: jalan, warung (atap berumbai), kucing, kentongan; gaya sama (stroke currentColor) */
+  jalan: '<path d="M8 3L4 21M16 3l4 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 4v3M12 10.5v3M12 17v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  warung: '<path d="M4 9l1.6-5h12.8L20 9" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M4 9a2.7 2.7 0 0 0 5.3 0a2.7 2.7 0 0 0 5.4 0a2.7 2.7 0 0 0 5.3 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M5.5 12v8h13v-8M10 20v-4.5h4V20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+  kucing: '<path d="M4.6 4.5l3.9 3.3a8 8 0 0 1 7 0l3.9-3.3.6 7.4A7.6 7.6 0 0 1 12 20a7.6 7.6 0 0 1-8-8.1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="9.3" cy="12.7" r="1.1" fill="currentColor"/><circle cx="14.7" cy="12.7" r="1.1" fill="currentColor"/><path d="M11 15.4h2l-1 1.1z" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/>',
+  kentongan: '<path d="M11 2v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="7.5" y="5" width="7" height="15" rx="3.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M11 9v7M17.5 15.5l3.5-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  palang: '<path d="M3 8h18v5H3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 8l-3 5M13 8l-3 5M18 8l-3 5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 13v7M18 13v7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  /* bintang emas (bukan currentColor): harga jajan / saldo Bintang di kartu warung */
+  bintang: '<path d="M12 3.2l2.7 5.5 6 .9-4.35 4.25 1.03 6L12 17l-5.38 2.85 1.03-6L3.3 9.6l6-.9z" fill="#f2b21b" stroke="#c98a0b" stroke-width="1" stroke-linejoin="round"/>'
 };
 function iconSvg(n) {
   return '<svg class="uicon" viewBox="0 0 24 24" aria-hidden="true">' + (UICONS[n] || '') + '</svg>';
@@ -5889,7 +6757,7 @@ if (entryKeluarAkun) entryKeluarAkun.addEventListener('click', function () {
    adalah halaman utama, tidak ada lagi yang dituju "Web Utama".)
    Ronde 55 — listener "Ganti karakter" dihapus bersama tombolnya. */
 /* Ronde 11b — pil "Keluar" keluar dari alam dalam mana pun (ruang tamu / kamar). */
-document.getElementById('exitBtn').addEventListener('click', function () { if (myRealm === 'living') exitLiving(); else if (myRealm === 'dapur') exitDapur(); else if (myRealm.indexOf('room-') === 0) exitRoom(); });
+document.getElementById('exitBtn').addEventListener('click', function () { if (myRealm === 'living') exitLiving(); else if (myRealm === 'dapur') exitDapur(); else if (myRealm.indexOf('room-') === 0) exitRoom(); else if (myRealm === 'jalan') exitJalan(); /* Tahap 3a */ });
 /* Ronde 13b — tombol HUD "Bangun" (muncul saat tidur/duduk di kasur). */
 document.getElementById('wakeBtn').addEventListener('click', function () { bangunDariKasur(); });
 /* Ronde 15c — menu garis tiga / dropdown header: ketuk ☰ buka/tutup;
@@ -5936,7 +6804,11 @@ var MISI_LIST = [
   /* Tahap 1 (docs/TAHAP-1-AKTIVITAS-SPEC.md §6) — 7 -> 10 misi */
   { id: 'gazebo', nama: 'Nongkrong di Gazebo', ket: 'Duduk di bangku gazebo', ikon: 'chair', target: 1 },
   { id: 'jemur', nama: 'Jemur Cucian', ket: 'Angkat cucian kering dari jemuran', ikon: 'baju', target: 1 },
-  { id: 'ibu', nama: 'Ngobrol sama Ibu Kos', ket: 'Ketuk Ibu Kos lalu ngobrol', ikon: 'obrol', target: 1 }
+  { id: 'ibu', nama: 'Ngobrol sama Ibu Kos', ket: 'Ketuk Ibu Kos lalu ngobrol', ikon: 'obrol', target: 1 },
+  /* Tahap 3a — Jalan Kampung: 10 -> 13 misi (boleh untuk tamu: luar ruangan) */
+  { id: 'warung', nama: 'Jajan di Warung', ket: 'Beli jajan di warung Jalan Kampung pakai Bintang', ikon: 'warung', target: 1 },
+  { id: 'kucing', nama: 'Elus Oyen', ket: 'Elus si Oyen, kucing Jalan Kampung', ikon: 'kucing', target: 1 },
+  { id: 'ronda', nama: 'Nongkrong di Pos Ronda', ket: 'Duduk di bale-bale pos ronda', ikon: 'kentongan', target: 1 }
 ];
 var MISI_JALAN_TARGET = 300; /* meter kumulatif per hari; jalan 4 m/dtk, lari 7 m/dtk */
 var MISI_HARI = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
@@ -6602,6 +7474,7 @@ function flyToDoor(n) {
      dalam ruang tamu, keluar dulu ke halaman baru terbang.
      Ronde 11b — sama untuk kamar (keluar dari 'room-N' dulu). */
   if (myRealm === 'living') exitLiving(); else if (myRealm === 'dapur') exitDapur(); else if (myRealm.indexOf('room-') === 0) exitRoom();
+  else if (myRealm === 'jalan') exitJalan(); /* Tahap 3a — pintu kamar ada di halaman */
   var p = ROOM_DOORS[n].pos;
   var flyDist = Math.hypot(6, 1.9);
   flyTarget = {
@@ -6842,7 +7715,7 @@ function canvasTap(e, wasPinch) {
   raycaster.setFromCamera(pointerNDC, camera);
   /* Ronde 10b — ketuk hanya ke target alam aktif (halaman / ruang tamu).
      Ronde 11b — sama untuk kamar ('room-N' -> roomClickables). */
-  var targets = myRealm === 'living' ? livingClickables : (myRealm === 'dapur' ? dapurClickables : (myRealm.indexOf('room-') === 0 ? roomClickables : clickables));
+  var targets = myRealm === 'living' ? livingClickables : (myRealm === 'dapur' ? dapurClickables : (myRealm.indexOf('room-') === 0 ? roomClickables : (myRealm === 'jalan' ? jalanClickables : clickables)));
   var hits = raycaster.intersectObjects(targets, false);
   hits = hits.filter(function (h) { return gedungCdTerlihat(h.object); }); /* Gedung C & D: grup yang disembunyikan tidak bisa diketuk */
   if (!hits.length) {
@@ -6860,6 +7733,14 @@ function canvasTap(e, wasPinch) {
   if (ud.interact === 'bangku') { showGazeboCard(ud.bangku); return; } /* Tahap 1 — gazebo */
   if (ud.interact === 'duduk') { showDudukCard(ud.kursi); return; } /* Tahap 2 — bantal + sofa ruang tamu */
   if (ud.interact === 'jemuran') { showJemuranCard(); return; } /* Tahap 1 — jemuran */
+  /* Tahap 3a — Jalan Kampung + gerbang halaman */
+  if (ud.interact === 'warung') { showWarungCard(); return; }
+  if (ud.interact === 'posronda') { showPosRondaCard(); return; }
+  if (ud.interact === 'kentongan') { pukulKentongan(); return; }
+  if (ud.interact === 'kucing') { showKucingCard(); return; }
+  if (ud.interact === 'palang') { showPalangCard(); return; }
+  if (ud.interact === 'gerbangKos') { showGerbangCard(false); return; }
+  if (ud.interact === 'gerbangHalaman') { showGerbangCard(true); return; }
   /* Ronde 48 — interaksi dapur (dicek sebelum 'card', pola bed/lamp). */
   if (ud.interact === 'stove') { toggleDapurStove(); return; }
   if (ud.interact === 'faucet') { toggleDapurFaucet(); return; }
@@ -7507,10 +8388,15 @@ function animate() {
        ruang tamu dalam.
        Ronde 13b — pose tidur/duduk: blok ini DILEWATI total, jadi tabrakan
        AABB kasur tidak mendorong avatar yang sengaja di dalam footprint. */
-    var bounds = myRealm === 'living' ? LIVING : (myRealm === 'dapur' ? DAPUR : (myRealm.indexOf('room-') === 0 ? ROOM : YARD));
+    var bounds = myRealm === 'living' ? LIVING : (myRealm === 'dapur' ? DAPUR : (myRealm.indexOf('room-') === 0 ? ROOM : (myRealm === 'jalan' ? JALAN : YARD)));
     var nx = Math.max(bounds.minX, Math.min(bounds.maxX, avatarPos.x + dir.x * move * dt));
     var nz = Math.max(bounds.minZ, Math.min(bounds.maxZ, avatarPos.z + dir.z * move * dt));
-    if (myRealm === 'dapur') {
+    if (myRealm === 'jalan') {
+      /* Tahap 3a — tiang listrik + tong sampah di trotoar: AABB padat (pola
+         meja/bedeng). Warung, pos ronda, pagar rumah, palang ada di LUAR
+         batas JALAN, jadi batas sudah menahan avatar di depannya. */
+      for (var ji = 0; ji < JALAN_SOLIDS.length; ji++) { var cj = resolveAABB(nx, nz, JALAN_SOLIDS[ji], 0.4, JALAN); nx = cj.x; nz = cj.z; }
+    } else if (myRealm === 'dapur') {
       /* Ronde 43 — dapur: laundry (dinding utara) + meja dapur (barat),
          AABB padat (pola yang sama seperti meja ruang tamu). */
       var cd1 = resolveAABB(nx, nz, DAPUR_LAUNDRY, 0.4, DAPUR);
@@ -7573,6 +8459,10 @@ function animate() {
     misiCatatJalan(Math.hypot(nx - avatarPos.x, nz - avatarPos.z)); /* Ronde 20 — misi jalan: jarak tempuh nyata (sesudah tabrakan, sebelum posisi ditimpa) */
     avatarPos.x = nx; avatarPos.z = nz;
     avatar.rotation.y = turnToward(avatar.rotation.y, Math.atan2(dir.x, dir.z), Math.min(1, dt * 12));
+    /* Tahap 3a — melangkah lewat celah gerbang = pindah alam (hanya saat
+       melangkah: titik spawn / balik sengaja di luar zona, jadi tidak memantul). */
+    if (myRealm === 'yard' && avatarLevel === 0 && jalanZonaGerbangHalaman(avatarPos.x, avatarPos.z)) enterJalan(true);
+    else if (myRealm === 'jalan' && jalanZonaGerbangKos(avatarPos.x, avatarPos.z)) exitJalan(true);
   }
   /* Tangga lantai 2 — y mengikuti lantai (0 tanah, ramp di tangga, 4,225
      balkon); di alam lain (living/dapur/room) y tetap 0. TIDAK ADA bobbing:
@@ -7624,7 +8514,7 @@ function animate() {
      24 m tidak muat di FOV 55 walau camDist sudah 16 (pintu 1/6 kepotong).
      Hanya di halaman (myRealm 'yard') — kamera ruangan TIDAK berubah
      (masuk ruangan = FOV kembali 55 seketika, ikut transisi kamera). */
-  var fovTarget = (isPortrait() && myRealm === 'yard') ? 68 : 55;
+  var fovTarget = (isPortrait() && (myRealm === 'yard' || myRealm === 'jalan')) ? 68 : 55; /* Tahap 3a: Jalan Kampung = luar ruangan, pola halaman */
   if (camera.fov !== fovTarget) { camera.fov = fovTarget; camera.updateProjectionMatrix(); }
   var cp = cameraPos(camTarget, camYaw, camPitch, camDist);
   /* Ronde 12d — jepit kamera 12a DICABUT (vonis Ryan 09:07: view nyekik,
@@ -7632,6 +8522,7 @@ function animate() {
   camera.position.set(cp.x, cp.y, cp.z);
   if (myRealm === 'yard') gedungCdPerbarui(cp, avatarPos.x, avatarPos.z, avatarLevel); /* Gedung C & D: sembunyi saat kamera di dalam/belakang */
   camera.lookAt(camTarget.x, camTarget.y + 1.5, camTarget.z);
+  if (myRealm === 'yard') jalanLatarPerbarui(); /* Tahap 3a: latar jalan di balik pagar selatan hanya saat mungkin terlihat */
   /* Ronde 10a — label nama 3D diskalakan berdasar jarak kamera: sprite
      berukuran dunia tetap (2,4) membesar menutupi gedung/langit saat zoom
      dekat. Skala ∝ camDist (acuan 9,5 = jarak default), dijepit 0,35–1,3
@@ -7701,7 +8592,10 @@ function animate() {
   if (myRealm === 'yard' && jemuranCucian && jemuranCucian[0].visible) {
     for (var jc = 0; jc < jemuranCucian.length; jc++) jemuranCucian[jc].rotation.z = Math.sin(walkT * 1.6 + jc * 1.3) * 0.05;
   }
-  renderer.render(myRealm === 'living' ? livingScene : (myRealm === 'dapur' ? dapurScene : (myRealm.indexOf('room-') === 0 ? roomScene : scene)), camera);
+  /* Tahap 3a — Jalan Kampung: Oyen (posisi dari jam) + kentongan; jajan habis 90 dtk di alam mana pun */
+  if (myRealm === 'jalan') jalanTick(dt, Date.now());
+  jajanTick(Date.now());
+  renderer.render(myRealm === 'living' ? livingScene : (myRealm === 'dapur' ? dapurScene : (myRealm.indexOf('room-') === 0 ? roomScene : (myRealm === 'jalan' ? jalanScene : scene))), camera);
 }
 animate();
 </script>
