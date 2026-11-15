@@ -56,8 +56,9 @@ test('karakter: pesan klien lama / tampilan rusak tetap diterima, tampilan = baw
 
 test('karakter: kabel — avatar sendiri, pemain lain, Ibu Kos, panel Tampilan', () => {
   assert.match(fungsi('buildVisitorAvatar'), /makeKosanAvatar\(visitorGender, rupaSaya\(\)\)/);
-  assert.match(fungsi('mpBuatRemote'), /makeKosanAvatar\(gender, \{ baju: baju, rambut: rambut \}\)/);
-  assert.match(fungsi('mpBangunUlangRemote'), /makeKosanAvatar\(entri\.gender, \{ baju: entri\.baju, rambut: entri\.rambut \}\)/);
+  /* Perabot modern: pemain lain dibangun dengan warna + GAYA mereka (field opsional potong/atasan/bawahan/alas) */
+  assert.match(fungsi('mpBuatRemote'), /makeKosanAvatar\(gender, mpPasangGaya\(\{ baju: baju, rambut: rambut \}, gaya\)\)/);
+  assert.match(fungsi('mpBangunUlangRemote'), /makeKosanAvatar\(entri\.gender, mpPasangGaya\(\{ baju: entri\.baju, rambut: entri\.rambut \}, entri\.gaya\)\)/);
   assert.equal((HTML.match(/m\.gender !== entri\.gender \|\| m\.baju !== entri\.baju \|\| m\.rambut !== entri\.rambut/g) || []).length, 2, 'pos + presence membangun ulang saat tampilan berubah');
   assert.match(HTML, /ibuAvatar = makeKosanAvatar\('cewek', null, \{ ibu: true \}\)\.g;/);
   assert.ok(!/function makeChibi\(/.test(HTML), 'model Ibu Kos lama dicabut');

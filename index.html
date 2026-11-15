@@ -193,12 +193,27 @@
   #exitBtn { background: #fff; color: #1B5FA8; }
   /* Ronde 13b — tombol "Bangun" (muncul saat tidur/duduk di kasur) */
   #wakeBtn { background: #FFD11A; color: #4a3400; }
-  /* Ronde 13b — toast kecil (umpan balik lampu tidur / bangun) */
+  /* Ronde 13b — toast kecil (umpan balik lampu tidur / bangun).
+     Perabot modern (Ryan: "toast juga"): #toast = TUMPUKAN (maks 3, terbaru di
+     bawah) — dua toast beruntun (mis. lampu mati + misi selesai) dua-duanya
+     terbaca. Teks panjang membungkus (dulu nowrap = terpotong di HP sempit). */
   #toast { left: 50%; transform: translateX(-50%); bottom: calc(90px + env(safe-area-inset-bottom, 0px));
-    background: rgba(20,40,70,.92); color: #fff; font-size: 13px; font-weight: 800;
-    padding: 8px 16px; border-radius: 999px; box-shadow: 0 4px 14px rgba(0,0,0,.35);
-    display: none; pointer-events: none; white-space: nowrap; z-index: 30; }
-  #toast.show { display: block; }
+    width: max-content; max-width: min(440px, calc(100vw - 32px)); display: flex; flex-direction: column;
+    align-items: center; gap: 6px; pointer-events: none; z-index: 30; }
+  .toast-item { position: relative; display: flex; align-items: center; gap: 9px; max-width: 100%; box-sizing: border-box;
+    padding: 7px 15px 8px 7px; border-radius: 16px; overflow: hidden; color: #fff; font-size: 13px; font-weight: 800; line-height: 1.32;
+    background: rgba(14,36,66,.9); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.13), 0 10px 28px rgba(8,28,58,.34);
+    animation: kbToastMasuk .34s cubic-bezier(.2,.9,.25,1.25) both; }
+  .toast-ikon { flex: none; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(180deg, #ffe066, #ffc21a); color: #5a3d00; font-size: 14px; line-height: 1;
+    box-shadow: 0 2px 6px rgba(255,194,26,.35), inset 0 -2px 0 rgba(0,0,0,.08); }
+  .toast-ikon .uicon { width: 16px; height: 16px; display: block; }
+  .toast-teks { min-width: 0; overflow-wrap: anywhere; text-align: left; }
+  .toast-sisa { position: absolute; left: 14px; right: 14px; bottom: 2px; height: 2px; border-radius: 2px;
+    background: rgba(255,255,255,.34); transform-origin: left center; animation: kbToastSisa 2400ms linear forwards; } /* sisa waktu tampil */
+  .toast-item.denyut { animation: kbToastDenyut .3s ease-out; }
+  .toast-item.keluar { animation: kbToastKeluar .24s ease-in forwards; }
   /* Multiplayer v1 — pil status (§1.3): 🟢/🟡/⚪, ketuk = coba lagi. */
   #mpPill { background: rgba(255,255,255,.9); color: #1B5FA8; }
 
@@ -641,8 +656,7 @@
   #menuDrop .pillbtn:hover, #menuDrop .pillbtn:active, #masukMenu button:hover, #masukMenu button:active { background: var(--kb-biru-muda); color: var(--kb-biru); }
   #menuDrop .uicon, #masukMenu .uicon { color: var(--kb-biru-2); }
   #hint, #hintToggle { background: rgba(14,36,66,.62); box-shadow: inset 0 0 0 1px rgba(255,255,255,.18), var(--kb-bayang-1); }
-  #toast { background: rgba(14,36,66,.92); box-shadow: inset 0 0 0 1px rgba(255,255,255,.12), 0 10px 28px rgba(8,28,58,.35); }
-  #toast.show { animation: kbToast .22s ease-out; }
+
   #joy { background: rgba(255,255,255,.18); border-color: rgba(255,255,255,.65); }
 
   /* ---- overlay + kartu modal ---- */
@@ -745,7 +759,10 @@
   @keyframes kbMuncul { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
   @keyframes kbPudar { from { opacity: 0; } to { opacity: 1; } }
   @keyframes kbTurun { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
-  @keyframes kbToast { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+  @keyframes kbToastMasuk { from { opacity: 0; transform: translateY(14px) scale(.9); } to { opacity: 1; transform: none; } }
+  @keyframes kbToastKeluar { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(6px) scale(.94); } }
+  @keyframes kbToastDenyut { 0% { transform: scale(1); } 40% { transform: scale(1.05); } 100% { transform: scale(1); } }
+  @keyframes kbToastSisa { from { transform: scaleX(1); } to { transform: scaleX(0); } }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important;
       transition-duration: .001ms !important; }
@@ -824,6 +841,25 @@
   #rupaSelesai { width: 100%; padding: 10px; border: none; border-radius: 14px; cursor: pointer;
     font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 15px; font-weight: 800; color: #fff;
     background: linear-gradient(180deg, #3a8de6, #1f6fc9); }
+  /* Perabot modern — tab + tombol MODEL (piktogram + nama) */
+  .rupa-tab { display: flex; gap: 3px; padding: 3px; margin: 4px 0 2px; border-radius: 12px; background: var(--kb-isi); }
+  .rupa-tab button { flex: 1; min-width: 0; padding: 7px 2px; border: none; border-radius: 9px; background: transparent; cursor: pointer;
+    font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 800; color: var(--kb-teks-2); white-space: nowrap;
+    transition: background .15s, color .15s, box-shadow .15s; }
+  .rupa-tab button[aria-selected="true"] { background: #fff; color: var(--kb-biru); box-shadow: 0 2px 8px rgba(13,38,76,.12); }
+  .rupa-isi { animation: kbPudar .18s ease-out; }
+  .rupa-model { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; }
+  .rupa-model button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 58px;
+    padding: 6px 4px 5px; border: none; border-radius: 12px; cursor: pointer; background: var(--kb-isi); color: var(--kb-teks-2);
+    font-family: 'Nunito', sans-serif; font-size: 11.5px; font-weight: 800; line-height: 1.15; text-align: center;
+    box-shadow: inset 0 0 0 1px rgba(19,37,58,.06); transition: transform .08s, background .15s, color .15s, box-shadow .15s; }
+  .rupa-model svg { width: 30px; height: 30px; display: block; }
+  .rupa-model button:active { transform: scale(.95); }
+  .rupa-model button[aria-checked="true"] { background: var(--kb-biru-muda); color: var(--kb-biru); box-shadow: inset 0 0 0 2px var(--kb-biru-2); }
+  /* layar lebar (laptop/tablet mendatar): panel di kanan supaya avatar (di tengah) terlihat utuh */
+  @media (orientation: landscape) and (min-width: 900px) and (min-height: 501px) {
+    #rupaPanel { left: auto; right: 16px; top: 72px; bottom: auto; width: 360px; margin: 0; max-height: calc(100dvh - 88px); overflow-y: auto; }
+  }
   @media (max-height: 500px) and (orientation: landscape) {
     #rupaPanel { left: auto; right: 12px; top: 56px; bottom: auto; width: 300px; max-height: calc(100dvh - 68px); overflow-y: auto; padding: 10px 14px; }
     #rupaPanel h2 { font-size: 17px; }
@@ -831,6 +867,10 @@
     .rupa-baris button { width: 32px; height: 32px; }
     .rupa-note { margin: 6px 0; }
     #rupaSelesai { padding: 7px; }
+    .rupa-tab button { padding: 5px 1px; font-size: 11px; }
+    .rupa-model { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+    .rupa-model button { min-height: 46px; padding: 4px 2px; font-size: 10.5px; }
+    .rupa-model svg { width: 22px; height: 22px; }
   }
   /* =================== AKHIR UI REFRESH =================== */
 </style>
@@ -944,7 +984,7 @@
 
 <div class="hud" id="hint" title="Ketuk untuk menyembunyikan">Sentuh kiri layar buat jalan · seret kanan putar kamera · cubit buat zoom · ketuk pintu kamar</div>
 <button id="hintToggle" class="hud" type="button" aria-label="Tampilkan petunjuk" title="Tampilkan petunjuk"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9.5 9.3a2.5 2.5 0 1 1 3.4 2.4c-.8.3-.9 1-.9 1.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 17h.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
-<div class="hud" id="toast"></div>
+<div class="hud" id="toast" role="status" aria-live="polite"></div>
 
 <div id="roomCard">
   <div id="cardHead">
@@ -992,10 +1032,33 @@
 <div id="rupaPanel" role="dialog" aria-modal="false" aria-labelledby="rupaJudul">
   <button id="rupaClose" type="button" aria-label="Tutup"><svg class="kb-x" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button>
   <h2 id="rupaJudul">Tampilan</h2>
-  <p class="rupa-label">Warna kaus</p>
-  <div id="rupaBaju" class="rupa-baris" role="radiogroup" aria-label="Warna kaus"></div>
-  <p class="rupa-label">Warna rambut</p>
-  <div id="rupaRambut" class="rupa-baris" role="radiogroup" aria-label="Warna rambut"></div>
+  <!-- Perabot modern: 4 tab (model + warna); isi tombol model di-render rupaRender() -->
+  <div class="rupa-tab" role="tablist" aria-label="Bagian tampilan">
+    <button type="button" role="tab" id="rupaTab-rambut" data-tab="rambut" aria-controls="rupaIsi-rambut" aria-selected="true">Rambut</button>
+    <button type="button" role="tab" id="rupaTab-atasan" data-tab="atasan" aria-controls="rupaIsi-atasan" aria-selected="false">Atasan</button>
+    <button type="button" role="tab" id="rupaTab-bawahan" data-tab="bawahan" aria-controls="rupaIsi-bawahan" aria-selected="false">Bawahan</button>
+    <button type="button" role="tab" id="rupaTab-alas" data-tab="alas" aria-controls="rupaIsi-alas" aria-selected="false">Alas kaki</button>
+  </div>
+  <div class="rupa-isi" id="rupaIsi-rambut" role="tabpanel" aria-labelledby="rupaTab-rambut">
+    <p class="rupa-label">Model rambut</p>
+    <div id="rupaPotong" class="rupa-model" role="radiogroup" aria-label="Model rambut"></div>
+    <p class="rupa-label">Warna rambut</p>
+    <div id="rupaRambut" class="rupa-baris" role="radiogroup" aria-label="Warna rambut"></div>
+  </div>
+  <div class="rupa-isi" id="rupaIsi-atasan" role="tabpanel" aria-labelledby="rupaTab-atasan" hidden>
+    <p class="rupa-label">Model atasan</p>
+    <div id="rupaAtasan" class="rupa-model" role="radiogroup" aria-label="Model atasan"></div>
+    <p class="rupa-label">Warna atasan</p>
+    <div id="rupaBaju" class="rupa-baris" role="radiogroup" aria-label="Warna atasan"></div>
+  </div>
+  <div class="rupa-isi" id="rupaIsi-bawahan" role="tabpanel" aria-labelledby="rupaTab-bawahan" hidden>
+    <p class="rupa-label">Model bawahan</p>
+    <div id="rupaBawahan" class="rupa-model" role="radiogroup" aria-label="Model bawahan"></div>
+  </div>
+  <div class="rupa-isi" id="rupaIsi-alas" role="tabpanel" aria-labelledby="rupaTab-alas" hidden>
+    <p class="rupa-label">Alas kaki</p>
+    <div id="rupaAlas" class="rupa-model" role="radiogroup" aria-label="Alas kaki"></div>
+  </div>
   <p class="rupa-note">Tersimpan di HP ini. Pemain lain langsung melihat tampilan barumu.</p>
   <button id="rupaSelesai" type="button">Selesai</button>
 </div>
@@ -1326,6 +1389,10 @@ var PLAZA_SOLIDS = [
   { minX: 38, maxX: 42, minZ: 0.75, maxZ: 1.25 },
   { minX: 38, maxX: 42, minZ: 12.75, maxZ: 13.25 },
   { minX: 41.75, maxX: 42.25, minZ: 1, maxZ: 13 },
+  /* Perabot modern — 3 motor matic parkir (PARKIR_MOTOR z 2,8 / 5,2 / 10,0; badan x 39,35..41,1) */
+  { minX: 39.35, maxX: 41.1, minZ: 2.4, maxZ: 3.2 },
+  { minX: 39.35, maxX: 41.1, minZ: 4.8, maxZ: 5.6 },
+  { minX: 39.35, maxX: 41.1, minZ: 9.6, maxZ: 10.4 },
   /* Jemuran (Fase 0, Task 4) — 4 tiang + layar + 4 pakaian + 2 pot
      (Fix Preview Check: pot di tengah antara 2 baris tiang, AABB sendiri). */
   { minX: -16.6, maxX: -16.4, minZ: 0.9, maxZ: 1.1 },
@@ -1613,13 +1680,47 @@ function rupaEfektif(gender, simpan) {
   var r = simpan ? mpRupaDikenal(simpan.rambut, RUPA_RAMBUT.length) : -1;
   return { baju: b >= 0 ? b : (gender === 'cowok' ? 1 : 0), rambut: r >= 0 ? r : 0 };
 }
-function mpBangunPos(id, nama, gender, realm, x, z, rot, gerak, ts, pose, emote, emoteTs, baju, rambut) {
+/* Perabot modern (Ryan 15 Nov: "buat agar ada pilihan beberapa rambut, baju, celana,
+   sepatu/sendal, bukan cuman hanya ada pilihan warna saja") — GAYA tampilan: model rambut,
+   atasan, bawahan, alas kaki (warna kaus + rambut tetap RUPA_*). Indeks ikut pos + presence
+   sebagai field OPSIONAL potong/atasan/bawahan/alas (hanya yang pernah dipilih); klien lama
+   mengabaikannya, dan pesan tanpa field = bawaan menurut gender (= tampilan lama persis). */
+var GAYA_RAMBUT = [{ nama: 'Panjang' }, { nama: 'Pendek' }, { nama: 'Bob' }, { nama: 'Kuncir' }, { nama: 'Cepol' }, { nama: 'Keriting' }];
+var GAYA_ATASAN = [{ nama: 'Kaus' }, { nama: 'Kemeja' }, { nama: 'Hoodie' }, { nama: 'Kaus belang' }, { nama: 'Jaket' }];
+var GAYA_BAWAHAN = [{ nama: 'Rok' }, { nama: 'Celana pendek' }, { nama: 'Celana panjang' }, { nama: 'Rok plisket' }, { nama: 'Jogger' }];
+var GAYA_ALAS = [{ nama: 'Sneakers' }, { nama: 'Kanvas' }, { nama: 'Sandal' }, { nama: 'Boots' }];
+var GAYA_KUNCI = [['potong', GAYA_RAMBUT], ['atasan', GAYA_ATASAN], ['bawahan', GAYA_BAWAHAN], ['alas', GAYA_ALAS]];
+function mpBacaGaya(m) { /* -> { potong, atasan, bawahan, alas }: indeks sah, selain itu -1 */
+  var o = {};
+  GAYA_KUNCI.forEach(function (k) { o[k[0]] = (m && typeof m === 'object') ? mpRupaDikenal(m[k[0]], k[1].length) : -1; });
+  return o;
+}
+function mpPasangGaya(o, gaya) { /* field gaya yang sah saja ikut (nilai asing tidak dikirim) */
+  var g = mpBacaGaya(gaya);
+  GAYA_KUNCI.forEach(function (k) { if (g[k[0]] >= 0) o[k[0]] = g[k[0]]; });
+  return o;
+}
+function mpGayaSama(a, b) {
+  var x = mpBacaGaya(a), y = mpBacaGaya(b);
+  return x.potong === y.potong && x.atasan === y.atasan && x.bawahan === y.bawahan && x.alas === y.alas;
+}
+function gayaEfektif(gender, simpan) {
+  /* bawaan = tampilan lama: cewek rambut panjang + rok, cowok rambut pendek + celana pendek; kaus + sneakers */
+  var o = mpBacaGaya(simpan), cowok = gender === 'cowok';
+  if (o.potong < 0) o.potong = cowok ? 1 : 0;
+  if (o.atasan < 0) o.atasan = 0;
+  if (o.bawahan < 0) o.bawahan = cowok ? 1 : 0;
+  if (o.alas < 0) o.alas = 0;
+  return o;
+}
+function mpBangunPos(id, nama, gender, realm, x, z, rot, gerak, ts, pose, emote, emoteTs, baju, rambut, gaya) {
   var o = { id: id, nama: (nama || '').trim().slice(0, 40) || 'Pemain', gender: gender,
     realm: mpRealmDikenal(realm), x: x, z: z,
     rot: Math.atan2(Math.sin(rot), Math.cos(rot)),
     gerak: Math.max(0, Math.min(1, gerak)), ts: ts, pose: mpPoseDikenal(pose) };
   if (mpEmoteDikenal(emote) && mpEmoteTsSah(emoteTs)) { o.emote = emote; o.emoteTs = emoteTs; } /* Tahap 2 */
   mpPasangRupa(o, baju, rambut); /* Karakter v2 */
+  mpPasangGaya(o, gaya); /* Perabot modern — gaya (opsional) */
   return o;
 }
 function mpPasangRupa(o, baju, rambut) {
@@ -1628,9 +1729,9 @@ function mpPasangRupa(o, baju, rambut) {
   if (r >= 0) o.rambut = r;
   return o;
 }
-function mpBangunPresence(id, nama, gender, realm, ts, baju, rambut) {
-  return mpPasangRupa({ id: id, nama: (nama || '').trim().slice(0, 40) || 'Pemain', gender: gender,
-    realm: mpRealmDikenal(realm), ts: ts }, baju, rambut);
+function mpBangunPresence(id, nama, gender, realm, ts, baju, rambut, gaya) {
+  return mpPasangGaya(mpPasangRupa({ id: id, nama: (nama || '').trim().slice(0, 40) || 'Pemain', gender: gender,
+    realm: mpRealmDikenal(realm), ts: ts }, baju, rambut), gaya);
 }
 function mpPesanPergi(id) { /* keluar bersih (§4.4): presence '' retained */
   return { topic: MP_TOPICS.presence + id, payload: '', retain: true };
@@ -1656,7 +1757,9 @@ function mpValidasiPos(m, selfId) {
     /* Tahap 2 — emote: id dari daftar tetap + ts sah, selain itu null (pesan TETAP diterima) */
     emote: (mpEmoteDikenal(m.emote) && mpEmoteTsSah(m.emoteTs)) ? m.emote : null,
     emoteTs: (mpEmoteDikenal(m.emote) && mpEmoteTsSah(m.emoteTs)) ? m.emoteTs : 0,
-    baju: mpRupaDikenal(m.baju, RUPA_BAJU.length), rambut: mpRupaDikenal(m.rambut, RUPA_RAMBUT.length) }; /* Karakter v2 */
+    baju: mpRupaDikenal(m.baju, RUPA_BAJU.length), rambut: mpRupaDikenal(m.rambut, RUPA_RAMBUT.length), /* Karakter v2 */
+    potong: mpRupaDikenal(m.potong, GAYA_RAMBUT.length), atasan: mpRupaDikenal(m.atasan, GAYA_ATASAN.length),
+    bawahan: mpRupaDikenal(m.bawahan, GAYA_BAWAHAN.length), alas: mpRupaDikenal(m.alas, GAYA_ALAS.length) }; /* Perabot modern — gaya (-1 = bawaan) */
 }
 function mpValidasiPresence(m, selfId) {
   if (!m || typeof m !== 'object') return null;
@@ -1666,7 +1769,9 @@ function mpValidasiPresence(m, selfId) {
   return { id: m.id, nama: nama, gender: m.gender,
     realm: mpRealmDikenal(typeof m.realm === 'string' ? m.realm : 'yard'),
     ts: (typeof m.ts === 'number' ? m.ts : 0),
-    baju: mpRupaDikenal(m.baju, RUPA_BAJU.length), rambut: mpRupaDikenal(m.rambut, RUPA_RAMBUT.length) }; /* Karakter v2 */
+    baju: mpRupaDikenal(m.baju, RUPA_BAJU.length), rambut: mpRupaDikenal(m.rambut, RUPA_RAMBUT.length), /* Karakter v2 */
+    potong: mpRupaDikenal(m.potong, GAYA_RAMBUT.length), atasan: mpRupaDikenal(m.atasan, GAYA_ATASAN.length),
+    bawahan: mpRupaDikenal(m.bawahan, GAYA_BAWAHAN.length), alas: mpRupaDikenal(m.alas, GAYA_ALAS.length) }; /* Perabot modern — gaya (-1 = bawaan) */
 }
 function mpProsesPesan(topik, teks, selfId) {
   if (typeof topik !== 'string') return null;
@@ -1925,7 +2030,7 @@ var M = {
   steelDark: new THREE.MeshLambertMaterial({ color: 0x2f3336 }),
   soil: new THREE.MeshLambertMaterial({ color: 0x6b4a2f }),
   lampWarm: new THREE.MeshBasicMaterial({ color: 0xffe9b0 }),
-  parkRoof: new THREE.MeshBasicMaterial({ color: 0xfff3c4, transparent: true, opacity: 0.65 }),
+  parkRoof: new THREE.MeshLambertMaterial({ color: 0x4a5057, map: teksturLukis(64, 64, lukisAtapSeng, [1, 30]) }), /* Perabot modern: dek atap carport gelap ber-rusuk 0,4 m (dulu panel kuning tembus Basic 0,65) */
   /* --- rework gazebo Task 2 (Ruling 12/13) --- */
   woodCeil: new THREE.MeshLambertMaterial({ color: 0x8a6a4a }),
   glassRail: new THREE.MeshBasicMaterial({ color: 0xd5e5e0, transparent: true, opacity: 0.25 }),
@@ -2405,6 +2510,243 @@ function bangunHalamanModern() {
   });
   K.selesai(true); Kk.selesai(false);
 }
+/* ================= Parkiran + jemuran modern (Ryan 15 Nov: "parkirannya masih yang lama ya?, plakat PARKIR juga buat lebih bagus, jemuran juga" + "Animasi juga") =================
+   Tempat, sisi terbuka, dan kotak tabrakan lama TETAP: parkir x 38..42, z 1..13
+   (barat terbuka, 6 tiang + 3 pagar tanaman), jemuran 4 tiang x -16,5/-14,5, z 1/7
+   + layar tanaman x -13 + 2 pot. Bentuknya mengikuti halaman modern (beton
+   HL, hitam kusen, kayu kisi, lampu Basic):
+   - Parkir: tiang baja hitam ramping di atas umpak beton (umpak = kotak tabrakan
+     0,3 m), balok keliling, dek atap gelap + plafon kisi kayu + 4 downlight, lis
+     LED hangat di tepi depan, lantai beton gelap + garis slot putih + stopper
+     roda kuning, planter beton + pagar tanaman, 3 motor matic parkir (kotak
+     tabrakan baru), papan PARKIR modern (ikon P biru + teks + motor).
+   - Jemuran: rangka gawang baja hitam (2 tiang + palang) di umpak beton, tali
+     stainless tipis, cucian berbentuk (kaus, handuk bergaris, celana, kemeja di
+     hanger) dengan jepitan warna-warni, semua bergoyang pelan tertiup angin
+     (poros = tali); planter beton + pagar tanaman untuk layar, pot beton bundar.
+   Bagian diam digabung per material (JalanKumpul). */
+var PARKIR_MOTOR = [[2.8, 0xc8372d], [5.2, 0xefe9de], [10.0, 0x2f6d8c]]; /* z pusat slot + warna bodi; moncong ke timur (stopper) */
+var JEMURAN_HELAI = []; /* poros cucian tetap (bergoyang di jemuranTick) */
+function lukisAtapSeng(ctx, w, h) { /* dek atap logam: satu rusuk tegak per petak (v), kilap tipis di sisinya */
+  ctx.fillStyle = '#b9bdc2'; ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = '#e6e9ec'; ctx.fillRect(0, h * 0.44, w, h * 0.07);
+  ctx.fillStyle = '#7d8288'; ctx.fillRect(0, h * 0.51, w, h * 0.05);
+}
+function lukisPapanParkir(ctx, w, h) { /* papan PARKIR 1024x256: panel arang, kotak P biru, teks putih, ikon motor */
+  var g = ctx.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, '#262c33'); g.addColorStop(1, '#1a1f25');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  ctx.strokeStyle = 'rgba(255,255,255,0.10)'; ctx.lineWidth = 4; ctx.strokeRect(10, 10, w - 20, h - 20);
+  var bx = 34, by = 30, bs = h - 60, r = 30; /* kotak P biru membulat */
+  ctx.fillStyle = '#1f6fd1'; ctx.beginPath(); ctx.moveTo(bx + r, by);
+  ctx.arcTo(bx + bs, by, bx + bs, by + bs, r); ctx.arcTo(bx + bs, by + bs, bx, by + bs, r);
+  ctx.arcTo(bx, by + bs, bx, by, r); ctx.arcTo(bx, by, bx + bs, by, r); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = '800 150px "Baloo 2", "Nunito", sans-serif'; ctx.fillText('P', bx + bs / 2, by + bs / 2 + 10);
+  ctx.textAlign = 'left';
+  ctx.font = '800 112px "Baloo 2", "Nunito", sans-serif'; ctx.fillText('PARKIR', 262, 112);
+  ctx.fillStyle = '#c9d3dd'; ctx.font = '700 38px "Nunito", sans-serif'; ctx.fillText('Motor penghuni', 266, 196);
+  /* ikon motor matic (garis putih) di kanan */
+  ctx.save(); ctx.translate(840, 132); ctx.strokeStyle = '#ffffff'; ctx.fillStyle = '#ffffff'; ctx.lineWidth = 11; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath(); ctx.arc(-78, 44, 30, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(84, 44, 30, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-108, 6); ctx.quadraticCurveTo(-70, -26, -22, -10); ctx.lineTo(28, -10); ctx.lineTo(48, 30); ctx.lineTo(-40, 30); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(48, 30); ctx.lineTo(70, -40); ctx.lineTo(96, -52); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(84, -62); ctx.lineTo(112, -46); ctx.stroke();
+  ctx.restore();
+}
+function lukisAtlasJemuran(ctx, w, h) { /* 256x256 abu-abu (diwarnai warna verteks): kiri atas katun + lipatan, kanan atas handuk bergaris, kiri bawah denim, kanan bawah putih polos */
+  var r = acak(311), s = w / 2;
+  ctx.fillStyle = '#f4f4f4'; ctx.fillRect(0, 0, s, s);
+  for (var i = 0; i < 900; i++) { var t = 200 + Math.floor(r() * 50); ctx.fillStyle = 'rgba(' + t + ',' + t + ',' + t + ',0.35)'; ctx.fillRect(r() * s, r() * s, 1, 1); }
+  [0.2, 0.47, 0.76].forEach(function (f, k) { /* lipatan tegak lembut */
+    var x = s * f, gr = ctx.createLinearGradient(x - 12, 0, x + 12, 0);
+    gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.5, 'rgba(0,0,0,' + (0.07 + k * 0.015) + ')'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = gr; ctx.fillRect(x - 12, 0, 24, s);
+  });
+  ctx.fillStyle = '#f2f2f2'; ctx.fillRect(s, 0, s, s); /* handuk */
+  for (var j = 0; j < 1400; j++) { ctx.fillStyle = 'rgba(255,255,255,' + (0.4 + r() * 0.5) + ')'; ctx.fillRect(s + r() * s, r() * s, 1.4, 1.4); }
+  [[0.12, 0.07], [0.22, 0.03], [0.78, 0.03], [0.85, 0.07]].forEach(function (b) { ctx.fillStyle = 'rgba(70,70,70,0.42)'; ctx.fillRect(s, s * b[0], s, s * b[1]); });
+  ctx.fillStyle = '#d9d9d9'; ctx.fillRect(0, s, s, s); /* denim: kepar miring + jahitan */
+  ctx.strokeStyle = 'rgba(255,255,255,0.16)'; ctx.lineWidth = 1;
+  for (var d = -s; d < s; d += 4) { ctx.beginPath(); ctx.moveTo(d, s); ctx.lineTo(d + s, 2 * s); ctx.stroke(); }
+  ctx.strokeStyle = 'rgba(230,170,70,0.55)'; ctx.setLineDash([4, 3]); ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(0, s + 14); ctx.lineTo(s, s + 14); ctx.moveTo(s / 2, s + 14); ctx.lineTo(s / 2, s + s * 0.3); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(s, s, s, s); /* polos: jepitan, hanger */
+}
+/* geometri satu helai: bentuk 2D (x = lebar sepanjang tali, y = turun dari tali, 0 = tali),
+   diekstrusi 1 cm, diputar menghadap +-x; UV = petak atlas (kolom/baris 0..1). */
+function jemuranGeoHelai(jenis, w, h, petak) {
+  var s = new THREE.Shape(), hw = w / 2;
+  if (jenis === 'kaus' || jenis === 'kemeja') { /* digantung di bahu: lengan pendek + leher */
+    var bw = hw * 0.78, lg = jenis === 'kemeja' ? 0.24 : 0.2;
+    s.moveTo(-bw * 0.36, 0); s.lineTo(-hw * 0.98, -0.03); s.lineTo(-hw, -lg); s.lineTo(-bw, -lg + 0.035); s.lineTo(-bw, -h);
+    s.lineTo(bw, -h); s.lineTo(bw, -lg + 0.035); s.lineTo(hw, -lg); s.lineTo(hw * 0.98, -0.03); s.lineTo(bw * 0.36, 0);
+    s.quadraticCurveTo(0, -0.07, -bw * 0.36, 0);
+  } else if (jenis === 'celana') { /* digantung di pinggang: dua kaki */
+    s.moveTo(-hw, 0); s.lineTo(hw, 0); s.lineTo(hw * 1.04, -h); s.lineTo(hw * 0.14, -h); s.lineTo(0, -h * 0.3); s.lineTo(-hw * 0.14, -h); s.lineTo(-hw * 1.04, -h); s.lineTo(-hw, 0);
+  } else { /* handuk / kain persegi */
+    s.moveTo(-hw, 0); s.lineTo(hw, 0); s.lineTo(hw, -h); s.lineTo(-hw, -h); s.lineTo(-hw, 0);
+  }
+  var geo = new THREE.ExtrudeGeometry(s, { depth: 0.01, bevelEnabled: false, curveSegments: 4 });
+  geo.translate(0, 0, -0.005);
+  var P = geo.attributes.position, U = geo.attributes.uv;
+  for (var i = 0; i < P.count; i++) U.setXY(i, petak[0] * 0.5 + 0.01 + (P.getX(i) + hw * 1.05) / (w * 1.05) * 0.48, petak[1] * 0.5 + 0.01 + (P.getY(i) + h) / h * 0.48);
+  geo.rotateY(Math.PI / 2); /* bentuk x -> dunia z, tebal -> dunia x */
+  return geo;
+}
+/* satu helai di tali: poros di tali (y 1,72), isi = kain + 2 jepitan (+ hanger untuk kemeja), SATU mesh */
+function jemuranHelai(x, z, jenis, warna, w, h, warnaJepit) {
+  var mat = krMat('jemuran:kain', function () { return new THREE.MeshLambertMaterial({ map: teksturLukis(256, 256, lukisAtlasJemuran), vertexColors: true, side: THREE.DoubleSide }); });
+  var petak = jenis === 'handuk' ? [1, 1] : (jenis === 'celana' ? [0, 0] : [0, 1]);
+  var turun = jenis === 'kemeja' ? 0.115 : 0; /* kemeja di hanger: bahu kain tepat di bawah bahu hanger */
+  var bag = [], wr = [];
+  function tambah(geo, x0, y0, z0, rx, ry, rz, c) { bag.push(krBagian(geo, x0, y0, z0, rx, ry, rz)); wr.push(new THREE.Color().setRGB(c[0], c[1], c[2])); }
+  tambah(jemuranGeoHelai(jenis, w, h, petak), 0, -turun, 0, 0, 0, 0, warna);
+  var putihUV = function (g) { var U = g.attributes.uv; for (var i = 0; i < U.count; i++) U.setXY(i, 0.75, 0.25); return g; };
+  if (jenis === 'kemeja') { /* hanger: kait di tali + bahu kawat + palang bawah */
+    var kawat = [1.25, 1.25, 1.28];
+    tambah(putihUV(new THREE.TorusGeometry(0.024, 0.0045, 4, 10, Math.PI * 1.3)), 0, 0.012, 0, 0, Math.PI / 2, -0.3, kawat);
+    [-1, 1].forEach(function (sz) {
+      var L = Math.hypot(w * 0.42, 0.1), a = Math.atan2(0.1, w * 0.42);
+      tambah(putihUV(new THREE.CylinderGeometry(0.005, 0.005, L, 5)), 0, -0.075, sz * w * 0.21, -sz * (Math.PI / 2 - a), 0, 0, kawat);
+    });
+    tambah(putihUV(new THREE.CylinderGeometry(0.004, 0.004, w * 0.84, 5)), 0, -0.125, 0, Math.PI / 2, 0, 0, kawat);
+  } else {
+    [-1, 1].forEach(function (sz) { tambah(putihUV(new THREE.BoxGeometry(0.024, 0.06, 0.022)), 0, -0.012, sz * (w / 2 - 0.045), 0, 0, 0, warnaJepit); });
+  }
+  var geo = krGabung(bag), n = 0, cw = [];
+  bag.forEach(function (b, k) { var c = b.geo.attributes.position.count; for (var i = 0; i < c; i++) cw.push(wr[k].r, wr[k].g, wr[k].b); n += c; });
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(cw, 3));
+  var mesh = new THREE.Mesh(geo, mat); mesh.castShadow = true;
+  var poros = new THREE.Group(); poros.position.set(x, 1.72, z); poros.add(mesh); scene.add(poros);
+  poros.userData.fase = x * 1.7 + z * 0.9; poros.userData.mesh = mesh;
+  return poros;
+}
+function jemuranTick(t) { /* angin: tiap helai berayun di tali (poros), fase + kuat beda, sesekali hembusan */
+  var hembus = 0.55 + 0.45 * Math.max(0, Math.sin(t * 0.37)) * Math.max(0, Math.sin(t * 0.23 + 1));
+  function ayun(p) { var f = p.userData.fase; p.rotation.z = (Math.sin(t * 1.7 + f) * 0.06 + Math.sin(t * 3.1 + f * 1.3) * 0.02) * hembus + 0.025 * hembus; }
+  JEMURAN_HELAI.forEach(ayun);
+  if (jemuranCucian && jemuranCucian[0].visible) jemuranCucian.forEach(ayun);
+}
+function bangunJemuranModern() {
+  var G = bahanGedung(), H = bahanHalaman();
+  var K = new JalanKumpul(scene), Kk = new JalanKumpul(scene);
+  function kt(Kp, mat, hex, w, h, d, x, y, z, petak) { Kp.cat(hex); Kp.kotak(mat, w, h, d, x, y, z, 0, petak); }
+  var BETON = 0xc9c4ba, HITAM = 0x25282c, BAJA = 0xd7dbe0;
+  /* rangka gawang: umpak beton (= kotak tabrakan 0,2 m) + tiang 8 cm + palang atas, di z 1 dan 7 */
+  [1, 7].forEach(function (z) {
+    [-16.5, -14.5].forEach(function (x) {
+      kt(K, G.beton, BETON, 0.2, 0.08, 0.2, x, 0.04, z, 0.5);
+      kt(K, G.polos, HITAM, 0.08, 1.92, 0.08, x, 1.04, z);
+      kt(K, G.polos, HITAM, 0.1, 0.03, 0.1, x, 2.015, z);
+    });
+    kt(K, G.polos, HITAM, 2.08, 0.06, 0.06, -15.5, 1.97, z);
+  });
+  /* tali stainless tipis (dulu balok putih 4 cm) */
+  [-16.5, -14.5].forEach(function (x) { Kk.cat(BAJA); Kk.tambah(G.polos, new THREE.CylinderGeometry(0.011, 0.011, 6, 6), x, 1.72, 4, Math.PI / 2, 0, 0); });
+  /* layar tanaman sisi timur: planter beton + pagar tanaman (atas tetap 1,1) */
+  kt(K, G.beton, BETON, 0.6, 0.45, 8, -13, 0.225, 4, 2);
+  kt(K, H.pagar, 0xffffff, 0.52, 0.65, 7.92, -13, 0.775, 4, 0.5);
+  /* 2 pot beton bundar + perdu (kotak tabrakan pot lama 0,35 m) */
+  [1, 7].forEach(function (z) {
+    K.cat(BETON); K.tambah(G.beton, new THREE.CylinderGeometry(0.17, 0.14, 0.34, 18), -15.5, 0.17, z);
+    K.cat(0x3f7a3a); K.tambah(G.polos, new THREE.SphereGeometry(0.19, 12, 8), -15.5, 0.5, z, 0, 0, 0, 1, 0.82, 1);
+    K.cat(0x4f8c42); K.tambah(G.polos, new THREE.SphereGeometry(0.12, 10, 7), -15.42, 0.64, z - 0.05);
+  });
+  var hasil = Object.assign({}, K.selesai(true), Kk.selesai(false)), ketuk = [];
+  for (var k in hasil) ketuk.push(hasil[k]);
+  /* 4 cucian tetap (tempat + kotak tabrakan lama): kaus putih, handuk sage, celana denim, kemeja krem di hanger */
+  JEMURAN_HELAI = [
+    jemuranHelai(-16.5, 2.5, 'kaus', [1.32, 1.32, 1.3], 0.52, 0.6, [1.4, 0.45, 0.4]),
+    jemuranHelai(-16.5, 5.5, 'handuk', [0.74, 1.06, 0.8], 0.5, 0.7, [1.3, 1.05, 0.25]),
+    jemuranHelai(-14.5, 3.5, 'celana', [0.6, 0.8, 1.25], 0.42, 0.72, [0.35, 0.75, 1.35]),
+    jemuranHelai(-14.5, 6.5, 'kemeja', [1.3, 1.2, 1.02], 0.5, 0.56, [1, 1, 1])
+  ];
+  JEMURAN_HELAI.forEach(function (p) { ketuk.push(p.userData.mesh); });
+  /* Tahap 1 — 3 helai cucian PEMAIN di slot tali yang kosong; tersembunyi
+     kecuali status dijemur/kering. Lokal (hanya di layar pemain ini), TANPA
+     AABB. Perabot modern: bentuk kaus/handuk + jepitan, poros di tali (1,72). */
+  jemuranCucian = [
+    jemuranHelai(-16.5, 4.0, 'kaus', [0.3, 1.0, 0.92], 0.48, 0.56, [1.35, 1.1, 0.3]),
+    jemuranHelai(-14.5, 2.0, 'handuk', [1.4, 1.12, 0.32], 0.46, 0.62, [1.3, 0.5, 0.45]),
+    jemuranHelai(-14.5, 5.0, 'kaus', [1.3, 0.48, 0.42], 0.48, 0.56, [0.4, 0.8, 1.35])
+  ];
+  jemuranCucian.forEach(function (p) { p.visible = false; ketuk.push(p.userData.mesh); });
+  ketuk.forEach(function (m) { m.userData = { interact: 'jemuran' }; clickables.push(m); });
+}
+/* motor matic (moncong +x), dirakit ke JalanKumpul K (bodi, warna verteks) + Kn (lampu, Basic) */
+function parkirMotor(K, Kn, G, x, z, warna) {
+  var HITAM = 0x1d2024, BAN = 0x18191b, VELG = 0x9aa1a8, KROM = 0xc4c9ce, JOK = 0x2a2522;
+  function t(hex, geo, dx, dy, dz, rx, ry, rz) { K.cat(hex); K.tambah(G.polos, geo, x + dx, dy, z + (dz || 0), rx, ry, rz); }
+  [-0.62, 0.62].forEach(function (wx) { /* roda: ban + velg */
+    t(BAN, new THREE.TorusGeometry(0.17, 0.055, 8, 18), wx, 0.225, 0);
+    t(VELG, new THREE.CylinderGeometry(0.125, 0.125, 0.07, 14), wx, 0.225, 0, Math.PI / 2, 0, 0);
+  });
+  [-1, 1].forEach(function (s) { t(HITAM, new THREE.BoxGeometry(0.05, 0.6, 0.04), 0.56, 0.52, s * 0.07, 0, 0, 0.2); }); /* shock depan */
+  t(warna, geoEmpuk(0.36, 0.11, 0.2, 0.04), 0.62, 0.5, 0); /* spakbor depan */
+  t(0x3a3d42, geoEmpuk(0.56, 0.07, 0.34, 0.03), -0.04, 0.33, 0); /* dek pijakan */
+  t(warna, geoEmpuk(0.16, 0.66, 0.42, 0.06), 0.36, 0.7, 0, 0, 0, 0.3); /* tameng depan (miring ke belakang) */
+  t(warna, geoEmpuk(0.8, 0.36, 0.4, 0.15), -0.42, 0.6, 0); /* bodi belakang membulat */
+  t(JOK, geoEmpuk(0.66, 0.1, 0.34, 0.05), -0.38, 0.81, 0); /* jok */
+  t(HITAM, new THREE.BoxGeometry(0.05, 0.03, 0.34), -0.77, 0.83, 0); /* behel */
+  t(KROM, new THREE.CylinderGeometry(0.035, 0.04, 0.42, 10), -0.5, 0.3, 0.2, 0, 0, Math.PI / 2); /* knalpot */
+  t(HITAM, new THREE.CylinderGeometry(0.025, 0.025, 0.27, 8), 0.475, 0.95, 0, 0, 0, 0.2); /* batang setang */
+  t(warna, geoEmpuk(0.24, 0.17, 0.48, 0.07), 0.47, 1.12, 0); /* batok setang + lampu (lebar, khas matic) */
+  t(HITAM, new THREE.BoxGeometry(0.05, 0.04, 0.62), 0.45, 1.17, 0); /* setang */
+  [-1, 1].forEach(function (s) {
+    t(HITAM, new THREE.CylinderGeometry(0.025, 0.025, 0.12, 8), 0.45, 1.17, s * 0.36, Math.PI / 2, 0, 0); /* handel */
+    t(HITAM, new THREE.CylinderGeometry(0.008, 0.008, 0.13, 5), 0.44, 1.245, s * 0.25, s * 0.3, 0, 0); /* tangkai spion */
+    t(HITAM, geoEmpuk(0.02, 0.065, 0.12, 0.01), 0.44, 1.32, s * 0.27); /* spion */
+  });
+  Kn.cat(0xfff6dc); Kn.tambah(G.nyala, geoEmpuk(0.03, 0.08, 0.2, 0.015), x + 0.595, 1.12, z); /* lampu depan */
+  Kn.cat(0xe0301e); Kn.tambah(G.nyala, geoEmpuk(0.03, 0.06, 0.2, 0.015), x - 0.815, 0.64, z); /* lampu rem */
+}
+function bangunParkirModern() {
+  var G = bahanGedung(), H = bahanHalaman();
+  var K = new JalanKumpul(scene), Kk = new JalanKumpul(scene), Kn = new JalanKumpul(scene);
+  function kt(Kp, mat, hex, w, h, d, x, y, z, petak) { Kp.cat(hex); Kp.kotak(mat, w, h, d, x, y, z, 0, petak); }
+  var BETON = 0xc9c4ba, HITAM = 0x25282c, LANTAI = 0x8b8e92, CAT = 0xf4f2ec, LAMPU = 0xffe9b0, KUNING = 0xe9b72a;
+  /* 6 tiang baja ramping di umpak beton 0,3 m (= kotak tabrakan lama) */
+  [1.5, 7, 12.5].forEach(function (z) {
+    [38.5, 41.5].forEach(function (x) {
+      kt(K, G.beton, BETON, 0.3, 0.12, 0.3, x, 0.06, z, 0.5);
+      kt(K, G.polos, HITAM, 0.14, 2.83, 0.14, x, 1.535, z);
+    });
+    kt(K, G.polos, HITAM, 3.0, 0.14, 0.12, 40, 2.98, z); /* balok melintang */
+  });
+  [38.5, 41.5].forEach(function (x) { kt(K, G.polos, HITAM, 0.16, 0.18, 12, x, 2.96, 7); }); /* balok memanjang */
+  /* dek atap gelap (M.parkRoof: dulu panel kuning tembus Basic) — bawah atap y 3,05 */
+  box(M.parkRoof, 4, 0.08, 12, 40, 3.09, 7);
+  /* plafon kisi kayu di bawah dek + 4 downlight + lis tepi hitam keliling + lis LED hangat di tepi depan */
+  kt(Kk, G.kayuA, 0xffffff, 3.84, 0.02, 11.84, 40, 3.04, 7, 1);
+  [[39.25, 4.25], [40.75, 4.25], [39.25, 9.75], [40.75, 9.75]].forEach(function (p) { Kn.cat(LAMPU); Kn.tambah(G.nyala, new THREE.CylinderGeometry(0.075, 0.075, 0.012, 16), p[0], 3.024, p[1]); });
+  kt(K, G.polos, HITAM, 0.08, 0.22, 12.08, 37.96, 3.09, 7);
+  kt(K, G.polos, HITAM, 0.08, 0.22, 12.08, 42.04, 3.09, 7);
+  kt(K, G.polos, HITAM, 4.0, 0.22, 0.08, 40, 3.09, 0.96);
+  kt(K, G.polos, HITAM, 4.0, 0.22, 0.08, 40, 3.09, 13.04);
+  kt(Kn, G.nyala, LAMPU, 0.03, 0.018, 11.7, 38.03, 2.972, 7);
+  /* lantai beton gelap + 9 garis slot (z lama) + garis ujung + stopper roda kuning per slot */
+  kt(Kk, G.beton, LANTAI, 3.75, 0.012, 11.5, 39.875, 0.032, 7, 1);
+  [2.2, 3.4, 4.6, 5.8, 7.0, 8.2, 9.4, 10.6, 11.8].forEach(function (z) { kt(Kk, G.polos, CAT, 2.7, 0.004, 0.07, 39.75, 0.039, z); });
+  kt(Kk, G.polos, CAT, 0.07, 0.004, 11.5, 41.1, 0.039, 7);
+  [1.725, 2.8, 4.0, 5.2, 6.4, 7.6, 8.8, 10.0, 11.2, 12.275].forEach(function (z) { kt(K, G.polos, KUNING, 0.12, 0.08, 0.5, 41.26, 0.078, z); }); /* pusat slot (slot ujung 0,95 m) */
+  /* planter beton + pagar tanaman 3 sisi (barat TERBUKA; kotak tabrakan lama 0,5 m) */
+  [1, 13].forEach(function (z) { kt(K, G.beton, BETON, 4.25, 0.3, 0.5, 40.125, 0.15, z, 2); kt(K, H.pagar, 0xffffff, 4.17, 0.32, 0.42, 40.125, 0.46, z, 0.5); }); /* utara + selatan (sudut timur ditutup sampai x 42,25) */
+  kt(K, G.beton, BETON, 0.5, 0.3, 11.5, 42, 0.15, 7, 2); kt(K, H.pagar, 0xffffff, 0.42, 0.32, 11.58, 42, 0.46, 7, 0.5); /* timur, di antara keduanya */
+  /* 3 motor matic parkir menghadap stopper */
+  PARKIR_MOTOR.forEach(function (m) { parkirMotor(K, Kn, G, 40.2, m[0], m[1]); });
+  /* papan PARKIR — sisi barat menghadap jemuran/lapangan, menggantung di balok depan
+     (2 batang) di bawah tepi atap; muka = Basic satu bidang di depan panel hitam */
+  kt(K, G.polos, HITAM, 0.06, 0.5, 1.84, 37.97, 2.55, 7);
+  [6.35, 7.65].forEach(function (z) { kt(K, G.polos, HITAM, 0.03, 0.2, 0.03, 37.98, 2.89, z); });
+  var parkTex = teksturLukis(1024, 256, lukisPapanParkir); lukisUlangSetelahFont(parkTex);
+  var parkSign = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.425), new THREE.MeshBasicMaterial({ map: parkTex }));
+  parkSign.position.set(37.93, 2.55, 7);
+  parkSign.rotation.y = -Math.PI / 2; /* hadap barat (-x) ke jemuran */
+  scene.add(parkSign);
+  K.selesai(true); Kk.selesai(false); Kn.selesai(false);
+}
 /* ================= Gedung C & D (perintah Ryan 15 Nov 00:41) =================
    20 kamar baru K21-K40 di baris SELATAN, sejajar A & B, menghadap UTARA ke
    alun-alun (gazebo). C = cermin A, D = cermin B terhadap z = 6,3
@@ -2561,41 +2903,9 @@ function buildWorld() {
      atas y=1,1 — rendah, tidak menutup pandangan dari spawn ke
      Gedung A. 15 mesh (cap +16). */
   /* Tahap 1 — tiang, tali, layar, dan pakaian bisa diketuk (interact
-     'jemuran') -> kartu Jemuran (spek §3). */
-  var jemuranKetuk = [
-    /* 4 tiang baja ramping (puncak y=2,0) */
-    cyl(M.steelDark, 0.08, 0.08, 2.0, -16.5, 1.0, 1),
-    cyl(M.steelDark, 0.08, 0.08, 2.0, -16.5, 1.0, 7),
-    cyl(M.steelDark, 0.08, 0.08, 2.0, -14.5, 1.0, 1),
-    cyl(M.steelDark, 0.08, 0.08, 2.0, -14.5, 1.0, 7),
-    /* 2 tali lurus z 1..7 di ketinggian 1,7 m */
-    box(M.white, 0.04, 0.04, 6, -16.5, 1.7, 4),
-    box(M.white, 0.04, 0.04, 6, -14.5, 1.7, 4),
-    /* layar tanaman rendah di sisi timur (atas y=1,1) */
-    box(M.leaf, 0.6, 1.1, 8, -13, 0.55, 4),
-    /* 4 pakaian di tali (tengah y=1,35, atas menyentuh tali y=1,7) */
-    box(M.white, 0.06, 0.7, 0.5, -16.5, 1.35, 2.5),
-    box(M.leaf, 0.06, 0.7, 0.5, -16.5, 1.35, 5.5),
-    box(M.stoneLight, 0.06, 0.7, 0.5, -14.5, 1.35, 3.5),
-    box(M.white, 0.06, 0.7, 0.5, -14.5, 1.35, 6.5)
-  ];
-  /* Tahap 1 — 3 helai cucian PEMAIN di slot tali yang kosong; tersembunyi
-     kecuali status dijemur/kering. Lokal (hanya di layar pemain ini), TANPA
-     AABB. Material dipakai ulang (tanpa material baru). Atas 1,7 = tali. */
-  jemuranCucian = [
-    box(M.clothesTeal, 0.06, 0.6, 0.45, -16.5, 1.4, 4.0),
-    box(M.clothesYellow, 0.06, 0.6, 0.45, -14.5, 1.4, 2.0),
-    box(M.shirtRed, 0.06, 0.6, 0.45, -14.5, 1.4, 5.0)
-  ];
-  jemuranCucian.forEach(function (m) { m.visible = false; jemuranKetuk.push(m); });
-  jemuranKetuk.forEach(function (m) { m.userData = { interact: 'jemuran' }; clickables.push(m); });
-  /* 2 pot tanaman di tengah antara 2 baris tiang (box soil + bola leaf)
-     — Fix Preview Check (Ryan 15:28): dulu menempel tiang (x -14,5),
-     tiang menembus bola -> kelihatan nyatu. */
-  box(M.soil, 0.35, 0.3, 0.35, -15.5, 0.15, 1);
-  ball(M.leaf, 0.25, -15.5, 0.55, 1);
-  box(M.soil, 0.35, 0.3, 0.35, -15.5, 0.15, 7);
-  ball(M.leaf, 0.25, -15.5, 0.55, 7);
+     'jemuran') -> kartu Jemuran (spek §3). Perabot modern: rangka gawang,
+     tali stainless, cucian berbentuk + jepitan, bergoyang (bangunJemuranModern). */
+  bangunJemuranModern();
 
   /* ---- GAZEBO modern luxury (Fase 0, Task 2 rework) — paviliun 7×6,
      pusat (12,0, 6,5), x 8,5..15,5, z 3,5..9,5. Posisi digeser 0,2 m ke
@@ -2693,50 +3003,10 @@ function buildWorld() {
      Gedung D (jarak ke dinding D 10,6 m), sumbu gerbang->gazebo BEBAS.
      Ruling 5: fascia + 2 lampu gantung hangat + papan PARKIR (upgrade
      ringan standar modern luxury; total Task 3 = 29 mesh, cap +30). */
-  /* 6 tiang baja (puncak y=3,05) */
-  box(M.steelDark, 0.3, 3.05, 0.3, 38.5, 1.525, 1.5);
-  box(M.steelDark, 0.3, 3.05, 0.3, 38.5, 1.525, 7);
-  box(M.steelDark, 0.3, 3.05, 0.3, 38.5, 1.525, 12.5);
-  box(M.steelDark, 0.3, 3.05, 0.3, 41.5, 1.525, 1.5);
-  box(M.steelDark, 0.3, 3.05, 0.3, 41.5, 1.525, 7);
-  box(M.steelDark, 0.3, 3.05, 0.3, 41.5, 1.525, 12.5);
-  /* atap panel tembus cahaya — SATU lapis Basic transparan (opacity
-     0,65), TANPA lapisan Lambert di belakangnya; bawah atap y=3,05 */
-  box(M.parkRoof, 4, 0.08, 12, 40, 3.09, 7);
-  /* fascia baja gelap keliling tepi atap (Ruling 5, tanpa AABB) */
-  box(M.steelDark, 4, 0.25, 0.08, 40, 3.0, 1);
-  box(M.steelDark, 4, 0.25, 0.08, 40, 3.0, 13);
-  box(M.steelDark, 0.08, 0.25, 12, 38, 3.0, 7);
-  box(M.steelDark, 0.08, 0.25, 12, 42, 3.0, 7);
-  /* 2 lampu gantung hangat di bawah atap (Ruling 5 — SATU lapis glow
-     Basic, tanpa AABB) */
-  cyl(M.steelDark, 0.02, 0.02, 0.3, 40, 2.9, 4);
-  ball(M.lampWarm, 0.13, 40, 2.73, 4);
-  cyl(M.steelDark, 0.02, 0.02, 0.3, 40, 2.9, 10);
-  ball(M.lampWarm, 0.13, 40, 2.73, 10);
-  /* papan nama PARKIR — sisi barat menghadap jemuran/lapangan, di bawah
-     tepi atap (Ruling 5, tanpa AABB; pola papan RUANG TAMU) */
-  box(M.steelDark, 0.06, 0.6, 1.95, 37.97, 2.55, 7); /* backing papan */
-  var parkTex = textTexture('PARKIR', { w: 512, h: 128, bg: '#7c5227', color: '#ffffff', size: 62 });
-  var parkSign = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.42),
-    new THREE.MeshBasicMaterial({ map: parkTex }));
-  parkSign.position.set(37.93, 2.55, 7);
-  parkSign.rotation.y = -Math.PI / 2; /* hadap barat (-x) ke jemuran */
-  scene.add(parkSign);
-  /* 9 garis slot (10 slot @1,2 m; atas y=0,04 — di atas ubin 0,03) */
-  box(M.white, 2.5, 0.01, 0.12, 40, 0.035, 2.2);
-  box(M.white, 2.5, 0.01, 0.12, 40, 0.035, 3.4);
-  box(M.white, 2.5, 0.01, 0.12, 40, 0.035, 4.6);
-  box(M.white, 2.5, 0.01, 0.12, 40, 0.035, 5.8);
-  box(M.white, 2.5, 0.01, 0.12, 40, 0.035, 7.0);
-  box(M.white, 2.5, 0.01, 0.12, 40, 0.035, 8.2);
-  box(M.white, 2.5, 0.01, 0.12, 40, 0.035, 9.4);
-  box(M.white, 2.5, 0.01, 0.12, 40, 0.035, 10.6);
-  box(M.white, 2.5, 0.01, 0.12, 40, 0.035, 11.8);
-  /* pagar tanaman rendah 3 sisi (barat TERBUKA, atas y=0,53) */
-  box(M.leaf, 4, 0.5, 0.5, 40, 0.28, 1);
-  box(M.leaf, 0.5, 0.5, 12, 42, 0.28, 7);
-  box(M.leaf, 4, 0.5, 0.5, 40, 0.28, 13);
+  /* Perabot modern (Ryan: "parkirannya masih yang lama ya?"): carport modern +
+     papan PARKIR baru + 3 motor matic — bangunParkirModern(); kotak tabrakan sama
+     (+ 3 motor). */
+  bangunParkirModern();
 
   /* ---- Ronde 14 — pintu utama + porch Ruang Tamu DICABUT (vonis Ryan
      09:25: porch + pintu utama "gak rapih"). Gedung adalah kotak PADAT
@@ -4771,7 +5041,7 @@ function emoteMulaiBaru(lama, emote, emoteTs, sisaMs, now) {
   if (lama && now - lama.mulai < EMOTE_JEDA_MS) return false;
   return true;
 }
-function emoteAnimasi(t) {
+function emoteAnimasi(t, id) {
   /* t detik sejak mulai -> { skala, naik, putar, alpha } (null = selesai).
      Muncul: membal 0,25 dtk; lalu lompat-lompat kecil + goyang; pudar
      0,35 dtk terakhir. Hanya IKON yang bergerak, badan avatar tidak. */
@@ -4780,20 +5050,82 @@ function emoteAnimasi(t) {
   var skala;
   if (t < 0.25) { var u = t / 0.25 - 1; skala = 1 + 2.2 * u * u * u + 1.2 * u * u; } /* easeOutBack 0 -> 1 */
   else skala = 1;
-  var naik = Math.abs(Math.sin(t * Math.PI * 1.6)) * 0.14 * (1 - t / dur);
-  var putar = Math.sin(t * 8) * 0.14 * (1 - t / dur);
+  var redam = 1 - t / dur;
+  var naik = Math.abs(Math.sin(t * Math.PI * 1.6)) * 0.14 * redam;
+  var putar = Math.sin(t * 8) * 0.14 * redam;
   var alpha = t > dur - 0.35 ? (dur - t) / 0.35 : 1;
+  if (id && t >= 0.25) { /* Perabot modern ("emote juga" + "Animasi juga"): gerak khas per emote
+    sesudah membal masuk, dicampur halus 0,15 dtk; skala tetap < 1,2 */
+    var k = Math.min(1, (t - 0.25) / 0.15), s2 = skala, n2 = naik, p2 = putar;
+    if (id === 'lambai') p2 = Math.sin(t * 11) * 0.3 * redam; /* melambai */
+    else if (id === 'tawa') { p2 = Math.sin(t * 24) * 0.07 * redam; n2 = Math.abs(Math.sin(t * Math.PI * 3)) * 0.1 * redam; } /* terkekeh */
+    else if (id === 'sedih') { p2 = Math.sin(t * 2) * 0.05 - 0.1 * Math.min(1, (t - 0.25) * 2); n2 = 0.02; } /* tertunduk */
+    else if (id === 'sayang') { var d = (t * 1.25) % 1; s2 = 1 + 0.13 * Math.max(Math.exp(-Math.pow((d - 0.12) / 0.06, 2)), 0.7 * Math.exp(-Math.pow((d - 0.34) / 0.06, 2))); p2 = 0; n2 = 0.04 * redam; } /* detak jantung */
+    else if (id === 'marah') { p2 = Math.sin(t * 38) * 0.09 * redam; n2 = 0; } /* gemetar */
+    else if (id === 'ngantuk') { p2 = Math.sin(t * 2.4) * 0.2; n2 = (Math.sin(t * 2.4 - 1) + 1) * 0.04; } /* terkantuk-kantuk */
+    else if (id === 'hore') { n2 = Math.abs(Math.sin(t * Math.PI * 2.4)) * 0.24 * redam; p2 = Math.sin(t * 9) * 0.18 * redam; } /* lompat girang */
+    else if (id === 'mantap') { var q = Math.max(0, 1 - Math.abs(t - 0.55) / 0.2); s2 = 1 + 0.14 * q * q; p2 = 0.14 * Math.sin(Math.min(1, (t - 0.25) / 0.6) * Math.PI); n2 = naik * 0.6; } /* jempol "tek!" */
+    skala += (s2 - skala) * k; naik += (n2 - naik) * k; putar += (p2 - putar) * k;
+  }
   return { skala: Math.max(0, skala), naik: naik, putar: putar, alpha: alpha };
 }
 /* ==== TAHAP2-END ==== */
-var toastTimer = null;
+/* Toast (Perabot modern, Ryan: "toast juga"): tumpukan maks 3 (terbaru di bawah),
+   ikon bulat di kiri, teks membungkus, garis sisa waktu, masuk membal + keluar pudar.
+   Emoji pembuka pesan diganti ikon SVG (tampil sama di semua HP, pola ikon emote);
+   emoji lain tetap di teks. Teks pesan TIDAK berubah. Pesan sama beruntun = tidak
+   dobel, cukup diperpanjang + berdenyut. Lama tampil ikut panjang teks. */
+var TOAST_MAKS = 3;
+var TOAST_EMOJI_IKON = { '💡': 'lamp', '🌙': 'bulan', '💧': 'tetes', '🔥': 'api', '👕': 'baju', '🪑': 'chair', '🛋': 'chair',
+  '🧍': 'stand', '😴': 'bed', '🛣': 'jalan', '😺': 'kucing', '🪘': 'kentongan', '🪵': 'palang', '✅': 'cek', '⏳': 'tunggu', '😋': 'warung' };
+function toastPecah(msg) { /* -> { ikon: nama UICONS | null, emoji: glyph | null, teks } */
+  var t = String(msg == null ? '' : msg).trim(), c = t ? Array.from(t)[0] : '';
+  if (c && (TOAST_EMOJI_IKON[c] || /^[\u2300-\u27bf]|^[\ud83c-\ud83e]/.test(c))) {
+    var sisa = t.slice(c.length).replace(/^\ufe0f/, '').trim();
+    return { ikon: TOAST_EMOJI_IKON[c] || null, emoji: TOAST_EMOJI_IKON[c] ? null : c, teks: sisa };
+  }
+  var ikon = /^Misi selesai|^Selamat|Bintang/.test(t) ? 'bintang' : /^Kunci Kamar/.test(t) ? 'key' : /^Jalan ke/.test(t) ? 'stand'
+    : /^Tamu |^Kamu belum|penghuni/.test(t) ? 'person' : /^Link/.test(t) ? 'bagikan' : /^Kartu|^Ups/.test(t) ? 'simpan'
+    : /^Masuk Kosan/.test(t) ? 'door' : /^Cucian/.test(t) ? 'baju' : /Oyen/.test(t) ? 'kucing' : 'info';
+  return { ikon: ikon, emoji: null, teks: t };
+}
+function toastJadwal(el, ms) { /* (ulang) hitung mundur tampil + garis sisa waktu baru */
+  clearTimeout(el._t);
+  var lama = el.querySelector('.toast-sisa'); if (lama) el.removeChild(lama);
+  var bar = document.createElement('span'); bar.className = 'toast-sisa'; bar.style.animationDuration = ms + 'ms';
+  el.appendChild(bar);
+  el._t = setTimeout(function () { toastTutup(el); }, ms);
+}
+function toastTutup(el) {
+  if (el.classList.contains('keluar')) return;
+  clearTimeout(el._t); el.classList.add('keluar');
+  setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 260);
+}
 function toastKosan(msg) {
-  var t = document.getElementById('toast');
-  if (!t) return;
-  t.textContent = msg;
-  t.classList.add('show');
-  if (toastTimer) clearTimeout(toastTimer);
-  toastTimer = setTimeout(function () { t.classList.remove('show'); }, 1800);
+  var wadah = document.getElementById('toast');
+  if (!wadah) return;
+  var p = toastPecah(msg), kunci = String(msg);
+  if (!p.teks && !p.emoji) return;
+  var ms = Math.min(5200, 2200 + Math.max(0, p.teks.length - 28) * 45);
+  var akhir = wadah.lastElementChild;
+  if (akhir && !akhir.classList.contains('keluar') && akhir.dataset.pesan === kunci) {
+    akhir.classList.remove('denyut'); void akhir.offsetWidth; akhir.classList.add('denyut');
+    toastJadwal(akhir, ms);
+    return;
+  }
+  var el = document.createElement('div');
+  el.className = 'toast-item'; el.dataset.pesan = kunci;
+  var ik = document.createElement('span');
+  ik.className = 'toast-ikon'; ik.setAttribute('aria-hidden', 'true');
+  if (p.ikon && typeof UICONS !== 'undefined' && UICONS[p.ikon]) ik.innerHTML = iconSvg(p.ikon);
+  else ik.textContent = p.emoji || 'i';
+  var tx = document.createElement('span');
+  tx.className = 'toast-teks'; tx.textContent = p.teks;
+  el.appendChild(ik); el.appendChild(tx);
+  wadah.appendChild(el);
+  var hidup = [].filter.call(wadah.children, function (c) { return !c.classList.contains('keluar'); });
+  while (hidup.length > TOAST_MAKS) toastTutup(hidup.shift());
+  toastJadwal(el, ms);
 }
 function terapkanPoseKamar() {
   /* dipanggil tiap frame di animate saat roomPose aktif — menimpa
@@ -5096,6 +5428,98 @@ function krCelemek() {
   });
 }
 function krPolos(kunci, hex) { return krMat(kunci, function () { return new THREE.MeshLambertMaterial({ color: hex }); }); }
+/* ---- Perabot modern — bahan GAYA tampilan (semua di-cache krMat: dipakai bersama, tidak di-dispose) ---- */
+function krWarnaV() { return krMat('warnaV', function () { return new THREE.MeshLambertMaterial({ vertexColors: true }); }); } /* detail kecil berwarna verteks: sandal, boots, kancing */
+function krBelang(i) { /* kaus belang: warna palet + garis (gelap di warna muda, putih di warna tua) */
+  return krMat('belang:' + i, function () {
+    var c = new THREE.Color(RUPA_BAJU[i].warna), muda = c.r * 0.3 + c.g * 0.59 + c.b * 0.11 > 0.55;
+    return new THREE.MeshLambertMaterial({ map: teksturLukis(8, 128, function (ctx, w, h) {
+      ctx.fillStyle = '#' + c.getHexString(); ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = muda ? '#2f4466' : '#f4f1ea';
+      for (var k = 0; k < 9; k++) ctx.fillRect(0, h * (0.17 + k * 0.077), w, h * 0.03); /* garis di badan saja (atas-bawah polos) */
+    }) });
+  });
+}
+function krDenim() { /* jins: biru denim berkepar + jahitan oranye + lipatan keliman (v 0 = pergelangan) */
+  return krMat('denim', function () {
+    return new THREE.MeshLambertMaterial({ map: teksturLukis(64, 256, function (ctx, w, h) {
+      ctx.fillStyle = '#3f6597'; ctx.fillRect(0, 0, w, h);
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1;
+      for (var d = -h; d < h; d += 3) { ctx.beginPath(); ctx.moveTo(0, d); ctx.lineTo(w, d + w); ctx.stroke(); }
+      ctx.fillStyle = 'rgba(255,255,255,0.10)'; ctx.fillRect(w * 0.3, 0, w * 0.4, h); /* pudar di tengah depan */
+      ctx.fillStyle = '#35587f'; ctx.fillRect(0, h * 0.94, w, h * 0.06); /* keliman */
+      ctx.strokeStyle = 'rgba(222,150,60,0.75)'; ctx.setLineDash([3, 2]); ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(0, h * 0.935); ctx.lineTo(w, h * 0.935); ctx.moveTo(w * 0.02, 0); ctx.lineTo(w * 0.02, h); ctx.stroke();
+    }) });
+  });
+}
+function krJogger() { /* jogger: abu kaus bertekstur + manset rib di pergelangan (v 0 = bawah) */
+  return krMat('jogger', function () {
+    return new THREE.MeshLambertMaterial({ map: teksturLukis(64, 256, function (ctx, w, h) {
+      ctx.fillStyle = '#8b9097'; ctx.fillRect(0, 0, w, h);
+      var r = acak(77);
+      for (var i = 0; i < 600; i++) { var t = 120 + Math.floor(r() * 60); ctx.fillStyle = 'rgba(' + t + ',' + t + ',' + (t + 6) + ',0.5)'; ctx.fillRect(r() * w, r() * h, 1, 1); }
+      ctx.fillStyle = '#6f747b'; ctx.fillRect(0, h * 0.9, w, h * 0.1);
+      ctx.fillStyle = 'rgba(255,255,255,0.12)'; for (var x = 0; x < w; x += 4) ctx.fillRect(x, h * 0.9, 1.5, h * 0.1); /* rib manset */
+      ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(w * 0.47, 0, w * 0.06, h * 0.9); /* garis samping */
+    }) });
+  });
+}
+function krPlisket() { /* rok plisket midi mocca: 28 lipit tajam terang-gelap */
+  return krMat('plisket', function () {
+    return new THREE.MeshLambertMaterial({ map: teksturLukis(256, 32, function (ctx, w, h) {
+      ctx.fillStyle = '#a98467'; ctx.fillRect(0, 0, w, h);
+      for (var i = 0; i < 28; i++) {
+        var x = i * w / 28, gr = ctx.createLinearGradient(x, 0, x + w / 28, 0);
+        gr.addColorStop(0, 'rgba(60,35,20,0.32)'); gr.addColorStop(0.55, 'rgba(255,240,225,0.16)'); gr.addColorStop(1, 'rgba(60,35,20,0.06)');
+        ctx.fillStyle = gr; ctx.fillRect(x, 0, w / 28, h);
+      }
+    }) });
+  });
+}
+function krKanvas() { /* sepatu kanvas: kain hitam + garis putih + sol karet putih (v 0 = bawah) */
+  return krMat('kanvas', function () {
+    return new THREE.MeshLambertMaterial({ map: teksturLukis(128, 64, function (ctx, w, h) {
+      ctx.fillStyle = '#25282d'; ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = 'rgba(255,255,255,0.06)'; for (var y = 0; y < h * 0.6; y += 3) ctx.fillRect(0, y, w, 1);
+      ctx.fillStyle = '#f4f2ec'; ctx.fillRect(0, h * 0.64, w, h * 0.36);
+      ctx.fillStyle = '#c94a3a'; ctx.fillRect(0, h * 0.66, w, h * 0.035); /* garis merah tipis di sol */
+      ctx.fillStyle = '#b9bcc0'; ctx.fillRect(0, h * 0.93, w, h * 0.07);
+    }) });
+  });
+}
+/* kaki celana panjang: tabung lurus sedikit longgar di atas kaki (pinggul y 0 lokal pivot) */
+function krGeoCelana(sampai, jogger) {
+  var pr = jogger
+    ? [[0.062, sampai], [0.064, sampai + 0.05], [0.07, sampai + 0.07], [0.078, -0.42], [0.088, -0.22], [0.098, -0.05], [0.102, 0.03]]
+    : [[0.08, sampai], [0.08, sampai + 0.04], [0.082, -0.45], [0.087, -0.28], [0.094, -0.12], [0.1, -0.02], [0.103, 0.03]];
+  var kurva = new THREE.SplineCurve(pr.map(function (q) { return new THREE.Vector2(q[0], q[1]); }));
+  var geo = new THREE.LatheGeometry(kurva.getPoints(12), 12);
+  geo.computeVertexNormals();
+  return geo;
+}
+function krGeoBadan() { /* badan atasan (koordinat avatar): kelim y 0,825 -> bahu -> leher 1,45, BAWAH TERBUKA.
+   Perabot modern: dulu kapsul penuh — setengah bola bawahnya menyembul di bawah kelim, di depan
+   celana pendek/panjang (terlihat seperti baju terusan); kini kaus jatuh di atas celana. */
+  var pr = [[0.266, 0.825], [0.27, 0.86], [0.27, 1.18]];
+  for (var i = 1; i <= 6; i++) { var a = i / 6 * Math.PI / 2; pr.push([Math.max(0.0001, 0.27 * Math.cos(a)), 1.18 + 0.27 * Math.sin(a)]); }
+  return new THREE.LatheGeometry(pr.map(function (q) { return new THREE.Vector2(q[0], q[1]); }), 14);
+}
+function krUVTinggi(geo) { /* v = tinggi relatif (kapsul: v bawaan per titik profil, bagian lurus cuma ~6% -> garis kaus menumpuk) */
+  geo.computeBoundingBox();
+  var P = geo.attributes.position, U = geo.attributes.uv, y0 = geo.boundingBox.min.y, hy = geo.boundingBox.max.y - y0;
+  for (var i = 0; i < P.count; i++) U.setY(i, (P.getY(i) - y0) / hy);
+  return geo;
+}
+/* bagian berwarna verteks: list [{ geo, x, y, z, rx, ry, rz, sx, sy, sz, warna }] -> SATU mesh krWarnaV */
+function krPasangV(list, parent) {
+  var bag = list.map(function (q) { return krBagian(q.geo, q.x, q.y, q.z, q.rx, q.ry, q.rz, q.sx, q.sy, q.sz); });
+  var geo = krGabung(bag), w = [];
+  list.forEach(function (q) { var c = new THREE.Color(q.warna), n = q.geo.attributes.position.count; for (var i = 0; i < n; i++) w.push(c.r, c.g, c.b); });
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(w, 3));
+  var m = new THREE.Mesh(geo, krWarnaV()); m.castShadow = true; parent.add(m);
+  return m;
+}
 /* Gabungkan beberapa geometri (sudah diposisikan) jadi SATU geometri — satu
    draw call per bagian diam ber-material sama. */
 function krGabung(list) {
@@ -5171,16 +5595,21 @@ JalanKumpul.prototype.selesai = function (bayangan) { /* -> { uuid material: mes
   return hasil;
 };
 /* gender: 'cewek' | 'cowok'; rupa: { baju, rambut } (indeks palet, lihat
-   rupaEfektif); opt.ibu = Ibu Kos (daster batik + celemek + sanggul + kacamata). */
+   rupaEfektif) + gaya opsional { potong, atasan, bawahan, alas } (indeks GAYA_*, lihat
+   gayaEfektif; tanpa gaya = tampilan lama persis); opt.ibu = Ibu Kos (daster batik +
+   celemek + sanggul + kacamata). Perabot modern: tiap model dibangun dari potongan yang
+   digabung per bahan (jumlah mesh tetap ~17-19 per avatar; Kuncir +2 di poros ekor yang
+   berayun saat jalan). Sendi, proporsi, dan tinggi TIDAK berubah. */
 function makeKosanAvatar(gender, rupa, opt) {
   opt = opt || {};
   var ibu = !!opt.ibu;
   var isF = ibu || gender !== 'cowok'; /* default cewek */
+  var gaya = gayaEfektif(isF ? 'cewek' : 'cowok', rupa); /* Perabot modern — model rambut/atasan/bawahan/alas kaki */
   rupa = rupaEfektif(isF ? 'cewek' : 'cowok', rupa);
   var g = new THREE.Group();
   var tubuh = new THREE.Group();
   g.add(tubuh);
-  var parts = { g: g, tubuh: tubuh, legL: null, legR: null, armL: null, armR: null };
+  var parts = { g: g, tubuh: tubuh, legL: null, legR: null, armL: null, armR: null, ekor: null };
   function pivot(x, y, z, rz) {
     var p = new THREE.Group();
     p.position.set(x, y, z);
@@ -5194,21 +5623,44 @@ function makeKosanAvatar(gender, rupa, opt) {
     (parent || tubuh).add(m);
     return m;
   }
+  function vb(warna, geo, x, y, z, rx, ry, rz, sx, sy, sz) { return { geo: geo, x: x, y: y, z: z, rx: rx, ry: ry, rz: rz, sx: sx, sy: sy, sz: sz, warna: warna }; }
   var kulit = krKulit();
+  var potong = ibu ? -1 : gaya.potong, atasan = ibu ? -1 : gaya.atasan, bawahan = ibu ? -1 : gaya.bawahan, alas = ibu ? -1 : gaya.alas;
   var bajuMat = ibu ? krBatik() : krBaju(rupa.baju);
   var bajuGelap = ibu ? krPolos('ibuGelap', 0x1f4466) : krBajuGelap(rupa.baju);
   var rambutMat = ibu ? krPolos('ibuRambut', 0x3a2a1e) : krRambut(rupa.rambut);
+  var lenganPanjang = atasan === 2 || atasan === 4; /* hoodie, jaket */
+  var celanaPanjang = bawahan === 2 || bawahan === 4; /* jins, jogger */
+  var PUTIH = 0xf3f0e8;
 
-  /* kaki: pivot pinggul (+-0,12, 0,72, 0) — kaki + sepatu (ibu: sandal) */
+  /* kaki: pivot pinggul (+-0,12, 0,72, 0) — kaki (atau kaki celana panjang) + alas kaki (ibu: sandal) */
   [-1, 1].forEach(function (sx, k) {
     var leg = pivot(sx * 0.12, 0.72, 0);
-    pasang([{ geo: krGeoKaki(ibu ? -0.69 : -0.63, isF), m: new THREE.Matrix4() }], ibu ? kulit : krKakiMat(), leg); /* kaki berlekuk (revisi Ryan) */
     if (ibu) {
+      pasang([{ geo: krGeoKaki(-0.69, isF), m: new THREE.Matrix4() }], kulit, leg);
       pasang([krBagian(new THREE.BoxGeometry(0.17, 0.035, 0.3), 0, -0.705, 0.04), krBagian(new THREE.BoxGeometry(0.15, 0.02, 0.04), 0, -0.68, 0.1)], krPolos('sandal', 0x7c5227), leg);
     } else {
-      var sepatu = new THREE.Mesh(geoEmpukBaru(0.18, 0.12, 0.32, 0.045), krSepatu()); /* sneakers bertekstur */
-      sepatu.position.set(0, -0.66, 0.045); sepatu.castShadow = true; leg.add(sepatu);
-      if (!isF) pasang([krBagian(new THREE.CylinderGeometry(0.125, 0.12, 0.2, 8), 0, -0.1, 0)], krPolos('celana', 0xd9c08a), leg); /* manset celana pendek */
+      var sandal = alas === 2;
+      if (celanaPanjang) pasang([{ geo: krGeoCelana(sandal ? -0.64 : (alas === 1 ? -0.63 : -0.6), bawahan === 4), m: new THREE.Matrix4() }], bawahan === 4 ? krJogger() : krDenim(), leg); /* kaki celana panjang menggantikan kaki */
+      else pasang([{ geo: krGeoKaki(sandal ? -0.69 : -0.63, isF), m: new THREE.Matrix4() }], (sandal || alas === 3) ? kulit : krKakiMat(), leg); /* kaki berlekuk (revisi Ryan); sandal/boots tanpa kaus kaki */
+      if (alas === 0) { /* sneakers bertekstur (tampilan lama) */
+        var sepatu = new THREE.Mesh(geoEmpukBaru(0.18, 0.12, 0.32, 0.045), krSepatu());
+        sepatu.position.set(0, -0.66, 0.045); sepatu.castShadow = true; leg.add(sepatu);
+      } else if (alas === 1) { /* sepatu kanvas rendah: hitam + sol karet putih */
+        var kanvas = new THREE.Mesh(geoEmpukBaru(0.17, 0.1, 0.31, 0.04), krKanvas());
+        kanvas.position.set(0, -0.67, 0.045); kanvas.castShadow = true; leg.add(kanvas);
+      } else if (sandal) { /* sandal jepit: telapak kulit + sol + tali V */
+        krPasangV([vb(KR_SKIN, geoEmpukBaru(0.1, 0.05, 0.22, 0.02), 0, -0.67, 0.06),
+          vb(0x2e4a6e, geoEmpukBaru(0.13, 0.025, 0.29, 0.01), 0, -0.7075, 0.05),
+          vb(PUTIH, new THREE.BoxGeometry(0.016, 0.018, 0.114), 0.0275, -0.643, 0.08, 0, -0.5, 0),
+          vb(PUTIH, new THREE.BoxGeometry(0.016, 0.018, 0.114), -0.0275, -0.643, 0.08, 0, 0.5, 0)], leg);
+      } else { /* boots kulit cokelat: batang + bibir + kaki + sol gelap */
+        krPasangV([vb(0x6b4429, new THREE.CylinderGeometry(0.074, 0.077, 0.21, 12), 0, -0.555, 0),
+          vb(0x4f3020, new THREE.TorusGeometry(0.074, 0.012, 4, 12), 0, -0.45, 0, Math.PI / 2),
+          vb(0x6b4429, geoEmpukBaru(0.175, 0.1, 0.3, 0.045), 0, -0.655, 0.045),
+          vb(0x2a2420, geoEmpukBaru(0.185, 0.025, 0.315, 0.01), 0, -0.7075, 0.045)], leg);
+      }
+      if (bawahan === 1) pasang([krBagian(new THREE.CylinderGeometry(0.125, 0.12, 0.2, 8), 0, -0.1, 0)], krPolos('celana', 0xd9c08a), leg); /* manset celana pendek */
     }
     if (k === 0) parts.legL = leg; else parts.legR = leg;
   });
@@ -5217,12 +5669,20 @@ function makeKosanAvatar(gender, rupa, opt) {
     pasang([krBagian(new THREE.CylinderGeometry(0.31, 0.5, 0.92, 16, 1, false, Math.PI, Math.PI * 2), 0, 0.6, 0)], bajuMat); /* daster panjang */
     pasang([krBagian(geoEmpukBaru(0.42, 0.5, 0.03, 0.012), 0, 0.62, 0.395, -0.17)], krCelemek()); /* celemek */
     pasang([krBagian(new THREE.BoxGeometry(0.05, 0.36, 0.02), -0.13, 1.06, 0.255, 0.1, 0, 0.2), krBagian(new THREE.BoxGeometry(0.05, 0.36, 0.02), 0.13, 1.06, 0.255, 0.1, 0, -0.2)], krCelemek()); /* tali celemek */
-  } else if (isF) {
+  } else if (bawahan === 0) { /* rok biru lipit (tampilan lama cewek) */
     pasang([krBagian(new THREE.CylinderGeometry(0.30, 0.46, 0.52, 16, 1, false, Math.PI, Math.PI * 2), 0, 0.6, 0)], krRok());
     pasang([krBagian(new THREE.TorusGeometry(0.29, 0.03, 4, 20), 0, 0.85, 0, Math.PI / 2)], krPolos('rokPinggang', 0x1f5fa8));
-  } else {
-    pasang([krBagian(geoEmpukBaru(0.46, 0.26, 0.31, 0.06), 0, 0.7, 0)], krPolos('celana', 0xd9c08a));
-    pasang([krBagian(geoEmpukBaru(0.47, 0.045, 0.32, 0.02), 0, 0.82, 0)], krPolos('sabuk', 0x5a3a22));
+  } else if (bawahan === 3) { /* rok plisket midi (0,2..0,86): kaki berayun tetap di dalam rok */
+    pasang([krBagian(new THREE.CylinderGeometry(0.29, 0.45, 0.66, 28, 1, false, Math.PI, Math.PI * 2), 0, 0.53, 0)], krPlisket());
+    pasang([krBagian(new THREE.TorusGeometry(0.285, 0.028, 4, 20), 0, 0.85, 0, Math.PI / 2)], krPolos('plisketPinggang', 0x7d5f48));
+  } else { /* celana: pendek khaki (tampilan lama cowok), jins, jogger — panggul + sabuk / pinggang karet */
+    var panggul = geoEmpukBaru(0.46, 0.26, 0.31, 0.06);
+    pasang([krBagian(panggul, 0, 0.7, 0)], bawahan === 2 ? krPolos('jinsPanggul', 0x3f6597) : (bawahan === 4 ? krPolos('joggerPanggul', 0x8b9097) : krPolos('celana', 0xd9c08a)));
+    if (bawahan === 4) {
+      krPasangV([vb(0x6f747b, geoEmpukBaru(0.47, 0.055, 0.32, 0.022), 0, 0.82, 0),
+        vb(PUTIH, new THREE.CylinderGeometry(0.008, 0.008, 0.11, 5), -0.04, 0.76, 0.163, 0.15, 0, 0.1),
+        vb(PUTIH, new THREE.CylinderGeometry(0.008, 0.008, 0.11, 5), 0.04, 0.76, 0.163, 0.15, 0, -0.1)], tubuh);
+    } else pasang([krBagian(geoEmpukBaru(0.47, 0.045, 0.32, 0.02), 0, 0.82, 0)], krPolos('sabuk', 0x5a3a22));
   }
   /* lengan: lengan baju + manset (1 mesh) + lengan bawah + tangan (1 mesh).
      Revisi tangan (Ryan: "terlihat aneh"): dulu bola bersegi 8x6 yang LEBAR ke
@@ -5231,17 +5691,24 @@ function makeKosanAvatar(gender, rupa, opt) {
      (tipis ke arah badan, lebar depan-belakang), jari = kepalan sarung tangan
      bulat yang menekuk ke dalam, ibu jari kecil menempel di sisi DEPAN. Semua mulus
      (segmen cukup) + digabung jadi 1 mesh per lengan. Ukuran tangan kira-kira
-     sama (sendi + jarak ke rok tidak berubah). */
+     sama (sendi + jarak ke rok tidak berubah). Hoodie/jaket: lengan panjang sampai
+     pergelangan + manset rib (lengan bawah kulit tidak dibuat). */
   [-1, 1].forEach(function (sx, k) {
     var arm = pivot(sx * 0.34, 1.16, 0, sx * 0.2);
     var lenganGeo = new THREE.CapsuleGeometry(0.088, 0.16, 3, 10); lenganGeo.translate(0, -0.08, 0);
-    pasang([{ geo: lenganGeo, m: new THREE.Matrix4() }, krBagian(new THREE.TorusGeometry(0.086, 0.019, 4, 12), 0, -0.2, 0, Math.PI / 2)], bajuMat, arm);
+    var lengan = [{ geo: lenganGeo, m: new THREE.Matrix4() }];
+    if (lenganPanjang) {
+      lengan.push(krBagian(new THREE.CylinderGeometry(0.075, 0.063, 0.27, 10, 1, true), 0, -0.3, 0));
+      lengan.push(krBagian(new THREE.TorusGeometry(0.058, 0.017, 4, 12), 0, -0.43, 0, Math.PI / 2));
+    } else lengan.push(krBagian(new THREE.TorusGeometry(0.086, 0.019, 4, 12), 0, -0.2, 0, Math.PI / 2));
+    pasang(lengan, bajuMat, arm);
     var dalam = -sx; /* arah ke badan (x lokal lengan) */
-    var tangan = [
-      krBagian(new THREE.CylinderGeometry(0.063, 0.05, 0.25, 8, 1, true), 0, -0.31, 0), /* lengan bawah meruncing */
-      krBagian(new THREE.SphereGeometry(1, 8, 5), 0, -0.185, 0, 0, 0, 0, 0.064, 0.05, 0.064), /* siku (tutup atas, di dalam manset) */
-      krBagian(new THREE.SphereGeometry(1, 10, 8), dalam * 0.006, -0.475, 0.004, 0, 0, dalam * 0.08, 0.046, 0.068, 0.062) /* telapak pipih */
-    ];
+    var tangan = [];
+    if (!lenganPanjang) {
+      tangan.push(krBagian(new THREE.CylinderGeometry(0.063, 0.05, 0.25, 8, 1, true), 0, -0.31, 0)); /* lengan bawah meruncing */
+      tangan.push(krBagian(new THREE.SphereGeometry(1, 8, 5), 0, -0.185, 0, 0, 0, 0, 0.064, 0.05, 0.064)); /* siku (tutup atas, di dalam manset) */
+    }
+    tangan.push(krBagian(new THREE.SphereGeometry(1, 10, 8), dalam * 0.006, -0.475, 0.004, 0, 0, dalam * 0.08, 0.046, 0.068, 0.062)); /* telapak pipih */
     /* jari = satu kepalan sarung tangan bulat (gaya chibi: jari terpisah di ukuran
        ini terbaca seperti cakar), menyatu mulus dengan telapak, sedikit menekuk
        ke badan; ibu jari kecil menempel di sisi depan telapak. */
@@ -5250,11 +5717,43 @@ function makeKosanAvatar(gender, rupa, opt) {
     pasang(tangan, kulit, arm);
     if (k === 0) parts.armL = arm; else parts.armR = arm;
   });
-  /* badan: kaus kapsul + kelim bawah (1 mesh), kerah, sablon */
-  pasang([krBagian(new THREE.CapsuleGeometry(0.27, 0.36, 4, 14), 0, 1.0, 0),
-    krBagian(new THREE.TorusGeometry(0.27, 0.022, 4, 18), 0, 0.84, 0, Math.PI / 2)], bajuMat);
-  pasang([krBagian(new THREE.TorusGeometry(0.17, 0.032, 5, 18), 0, 1.355, 0.01, Math.PI / 2 - 0.12)], bajuGelap);
-  if (!ibu) {
+  /* badan per model atasan: kapsul (+ kelim) + detail gelap (kerah/rib/saku) + detail terang (kancing/tali/kaus dalam) */
+  var badanGeo = krGeoBadan(), badan = [], gelap = [], terang = [];
+  if (atasan === 3) krUVTinggi(badanGeo); /* garis belang rata sepanjang tinggi badan */
+  badan.push(krBagian(badanGeo, 0, 0, 0));
+  var kelim = krBagian(new THREE.TorusGeometry(0.27, 0.022, 4, 18), 0, 0.84, 0, Math.PI / 2);
+  var kerahKaus = krBagian(new THREE.TorusGeometry(0.17, 0.032, 5, 18), 0, 1.355, 0.01, Math.PI / 2 - 0.12);
+  if (atasan === 1) { /* kemeja: kerah berdiri + 2 ujung kerah, plaket + 4 kancing, saku dada */
+    badan.push(kelim);
+    badan.push(krBagian(new THREE.TorusGeometry(0.168, 0.03, 5, 18), 0, 1.36, 0.01, Math.PI / 2 - 0.12));
+    [-1, 1].forEach(function (s) { badan.push(krBagian(geoEmpukBaru(0.085, 0.07, 0.014, 0.005), s * 0.062, 1.312, 0.212, -0.5, s * 0.35, s * 0.55)); });
+    gelap.push(krBagian(new THREE.CylinderGeometry(0.2765, 0.2765, 0.36, 3, 1, true, -0.055, 0.11), 0, 1.02, 0));
+    gelap.push(krBagian(new THREE.CylinderGeometry(0.2775, 0.2775, 0.1, 6, 1, false, 0.3, 0.42), 0, 1.1, 0));
+    [1.16, 1.06, 0.96, 0.87].forEach(function (y) { terang.push(vb(PUTIH, new THREE.SphereGeometry(0.0125, 6, 4), 0, y, 0.283)); });
+  } else if (atasan === 2) { /* hoodie: tudung di punggung + saku kanguru + rib bawah + tali */
+    badan.push(krBagian(new THREE.TorusGeometry(0.19, 0.055, 6, 18, Math.PI), 0, 1.36, -0.02, Math.PI / 2, 0, Math.PI));
+    badan.push(krBagian(new THREE.SphereGeometry(0.2, 14, 10), 0, 1.25, -0.24, 0, 0, 0, 1.05, 0.72, 0.5));
+    gelap.push(krBagian(new THREE.TorusGeometry(0.272, 0.032, 5, 20), 0, 0.84, 0, Math.PI / 2));
+    gelap.push(krBagian(new THREE.CylinderGeometry(0.282, 0.282, 0.15, 8, 1, false, -0.6, 1.2), 0, 0.93, 0));
+    [-1, 1].forEach(function (s) {
+      terang.push(vb(PUTIH, new THREE.CylinderGeometry(0.008, 0.008, 0.15, 5), s * 0.045, 1.22, 0.27, -0.12, 0, 0));
+      terang.push(vb(PUTIH, new THREE.CylinderGeometry(0.012, 0.012, 0.03, 6), s * 0.045, 1.135, 0.28));
+    });
+  } else if (atasan === 4) { /* jaket bomber terbuka: kaus dalam putih + tepi ritsleting + rib kerah/bawah */
+    terang.push(vb(PUTIH, new THREE.CylinderGeometry(0.2735, 0.2735, 0.36, 6, 1, true, -0.2, 0.4), 0, 1.0, 0));
+    terang.push(vb(PUTIH, new THREE.SphereGeometry(0.2735, 6, 3, Math.PI / 2 - 0.2, 0.4, Math.PI * 0.42, Math.PI * 0.08), 0, 1.18, 0));
+    [[0.2, 0.06], [-0.26, 0.06]].forEach(function (t) { gelap.push(krBagian(new THREE.CylinderGeometry(0.2765, 0.2765, 0.36, 2, 1, true, t[0], t[1]), 0, 1.0, 0)); });
+    gelap.push(krBagian(new THREE.TorusGeometry(0.175, 0.04, 5, 18), 0, 1.35, 0.01, Math.PI / 2 - 0.12));
+    gelap.push(krBagian(new THREE.TorusGeometry(0.272, 0.034, 5, 20), 0, 0.84, 0, Math.PI / 2));
+  } else if (atasan === 3) { /* kaus belang: kelim + kerah gelap (badan bergaris, lengan polos) */
+    gelap.push(kelim); gelap.push(kerahKaus);
+  } else { /* kaus polos + sablon logo kos (tampilan lama) */
+    badan.push(kelim); gelap.push(kerahKaus);
+  }
+  pasang(badan, atasan === 3 ? krBelang(rupa.baju) : bajuMat);
+  if (gelap.length) pasang(gelap, bajuGelap);
+  if (terang.length) krPasangV(terang, tubuh);
+  if (!ibu && atasan === 0) {
     var sab = new THREE.Mesh(new THREE.PlaneGeometry(0.15, 0.15), krSablon());
     sab.position.set(0, 1.07, 0.274); sab.castShadow = false; tubuh.add(sab);
   }
@@ -5264,10 +5763,19 @@ function makeKosanAvatar(gender, rupa, opt) {
     krBagian(new THREE.SphereGeometry(1, 6, 5), 0.265, 1.55, -0.01, 0, 0, 0, 0.045, 0.07, 0.04)], kulit);
   var kepala = new THREE.Mesh(new THREE.SphereGeometry(0.27, 28, 18), krTeksturWajah(ibu ? 'ibu' : (isF ? 'cewek' : 'cowok')));
   kepala.position.set(0, 1.55, 0); kepala.castShadow = true; tubuh.add(kepala);
-  /* rambut (1 mesh) */
-  var rambut = [];
-  rambut.push(krBagian(new THREE.SphereGeometry(0.29, 16, 6, 0, Math.PI * 2, 0, Math.PI * 0.45), 0, 1.57, -0.02));
-  if (isF) {
+  /* rambut (1 mesh) per model; puncak tetap <= ~1,9 (di bawah label nama 2,05) */
+  var rambut = [], jepit = null;
+  var ubun = krBagian(new THREE.SphereGeometry(0.29, 16, 6, 0, Math.PI * 2, 0, Math.PI * 0.45), 0, 1.57, -0.02);
+  function poni3() { /* poni: 3 sapuan di dahi (di atas alis y ~1,64) */
+    [[-0.13, 1.73, 0.19, 0.35], [0, 1.745, 0.215, 0], [0.13, 1.73, 0.19, -0.35]].forEach(function (b) {
+      rambut.push(krBagian(new THREE.SphereGeometry(1, 10, 6), b[0], b[1], b[2], 0.25, b[3], 0, 0.12, 0.065, 0.075));
+    });
+  }
+  function cangkang(r, ujung, y) { /* kulit rambut belakang + samping (muka terbuka 1,8 rad) */
+    return krBagian(new THREE.SphereGeometry(r, 16, 10, Math.PI / 2 + 0.9, Math.PI * 2 - 1.8, 0, Math.PI * ujung), 0, y, -0.015);
+  }
+  rambut.push(ubun);
+  if (ibu || potong === 0) { /* panjang (tampilan lama cewek; Ibu: + sanggul) */
     rambut.push(krBagian(new THREE.SphereGeometry(0.30, 16, 10, Math.PI / 2 + 0.9, Math.PI * 2 - 1.8, 0, Math.PI * (ibu ? 0.7 : 0.62)), 0, 1.55, -0.03, 0, 0, 0, 1.03, 1.06, 0.98));
     if (ibu) {
       rambut.push(krBagian(new THREE.SphereGeometry(0.13, 10, 8), 0, 1.79, -0.2)); /* sanggul */
@@ -5276,14 +5784,40 @@ function makeKosanAvatar(gender, rupa, opt) {
       rambut.push(krBagian(new THREE.CapsuleGeometry(0.19, 0.22, 3, 10), 0, 1.38, -0.21, 0, 0, 0, 1.55, 1, 0.62));
       [-1, 1].forEach(function (sx) { rambut.push(krBagian(new THREE.CapsuleGeometry(0.065, 0.28, 3, 6), sx * 0.26, 1.28, 0.02, 0, 0, -sx * 0.08)); });
     }
-    /* poni: 3 sapuan di dahi (di atas alis y ~1,64) */
-    [[-0.13, 1.73, 0.19, 0.35], [0, 1.745, 0.215, 0], [0.13, 1.73, 0.19, -0.35]].forEach(function (b) {
-      rambut.push(krBagian(new THREE.SphereGeometry(1, 10, 6), b[0], b[1], b[2], 0.25, b[3], 0, 0.12, 0.065, 0.075));
-    });
-  } else {
+    poni3();
+    if (!ibu && isF) jepit = [0.2, 1.71, 0.15];
+  } else if (potong === 1) { /* pendek (tampilan lama cowok): jambul + sapuan samping */
     rambut.push(krBagian(new THREE.SphereGeometry(0.30, 16, 10, Math.PI / 2 + 0.9, Math.PI * 2 - 1.8, 0, Math.PI * 0.66), 0, 1.55, -0.02, 0, 0, 0, 1.0, 1.0, 0.97));
     rambut.push(krBagian(new THREE.SphereGeometry(1, 10, 6), 0.02, 1.765, 0.12, -0.35, 0, -0.1, 0.19, 0.08, 0.13)); /* jambul */
     rambut.push(krBagian(new THREE.SphereGeometry(1, 8, 5), -0.14, 1.75, 0.15, -0.3, 0.4, 0.3, 0.1, 0.06, 0.08));
+  } else if (potong === 2) { /* bob sebahu-dagu: cangkang membulat + ujung mengembang + poni rata melengkung */
+    rambut.push(krBagian(new THREE.SphereGeometry(0.31, 18, 10, Math.PI / 2 + 0.95, Math.PI * 2 - 1.9, 0, Math.PI * 0.68), 0, 1.55, -0.02, 0, 0, 0, 1.07, 1.0, 1.02));
+    rambut.push(krBagian(new THREE.TorusGeometry(0.248, 0.042, 6, 22, Math.PI * 2 - 1.9), 0, 1.395, -0.02, Math.PI / 2, 0, Math.PI / 2 + 0.95, 1.07, 1.02, 1)); /* ujung melengkung ke dalam (tipis, bukan pinggiran helm) */
+    [-0.62, -0.31, 0, 0.31, 0.62].forEach(function (a) { rambut.push(krBagian(new THREE.SphereGeometry(1, 10, 6), Math.sin(a) * 0.245, 1.71, Math.cos(a) * 0.245 - 0.01, 0.15, a, 0, 0.088, 0.06, 0.06)); });
+    if (isF) jepit = [0.245, 1.7, 0.165];
+  } else if (potong === 3) { /* kuncir kuda: rambut ditarik ke belakang + poni samping; ekor di poros sendiri (berayun) */
+    rambut.push(cangkang(0.296, 0.57, 1.555));
+    rambut.push(krBagian(new THREE.SphereGeometry(1, 10, 6), -0.1, 1.737, 0.2, 0.25, 0.3, 0.2, 0.13, 0.06, 0.075));
+    rambut.push(krBagian(new THREE.SphereGeometry(1, 10, 6), 0.09, 1.752, 0.205, 0.25, -0.25, -0.1, 0.11, 0.055, 0.07));
+    var ekor = new THREE.Group(); ekor.position.set(0, 1.74, -0.25); ekor.rotation.x = 0.3; tubuh.add(ekor);
+    pasang([krBagian(new THREE.CapsuleGeometry(0.07, 0.24, 3, 10), 0, -0.19, -0.06, 0, 0, 0, 1.15, 1, 0.9), krBagian(new THREE.SphereGeometry(0.075, 10, 6), 0, -0.035, -0.035)], rambutMat, ekor);
+    pasang([krBagian(new THREE.TorusGeometry(0.058, 0.022, 6, 14), 0, -0.035, -0.035, Math.PI / 2)], krPolos('jepit', 0xff7a9a), ekor); /* ikat rambut */
+    parts.ekor = ekor;
+  } else if (potong === 4) { /* cepol di belakang kepala + ikat berwarna + 2 helai pembingkai wajah */
+    rambut.push(cangkang(0.296, 0.6, 1.555));
+    poni3();
+    rambut.push(krBagian(new THREE.SphereGeometry(0.135, 14, 10), 0, 1.745, -0.315));
+    jepit = 'cepol'; /* ikat cepol berwarna (cepol hitam di rambut hitam tetap terbaca) */
+    [-1, 1].forEach(function (sx) { rambut.push(krBagian(new THREE.CapsuleGeometry(0.028, 0.14, 3, 6), sx * 0.272, 1.5, 0.08, 0.1, 0, sx * 0.12)); });
+  } else { /* keriting: 30-an ikal kecil di permukaan (spiral emas), dahi + wajah terbuka */
+    rambut.push(cangkang(0.285, 0.6, 1.555));
+    for (var ci = 0; ci < 36; ci++) {
+      var tt = (ci + 0.5) / 36, th = Math.acos(1 - tt * 1.25), ph = ci * 2.39996;
+      var sxk = -Math.cos(ph) * Math.sin(th), syk = Math.cos(th), szk = Math.sin(ph) * Math.sin(th);
+      if (szk > 0.5 && syk < 0.62) continue; /* wajah */
+      var rk = 0.068 + 0.012 * Math.sin(ci * 1.7);
+      rambut.push(krBagian(new THREE.SphereGeometry(1, 8, 6), sxk * 0.272, 1.555 + syk * 0.272, szk * 0.272 - 0.015, 0, ph, 0, rk, rk * 0.92, rk));
+    }
   }
   pasang(rambut, rambutMat);
   if (ibu) {
@@ -5296,8 +5830,10 @@ function makeKosanAvatar(gender, rupa, opt) {
     });
     kc.push(krBagian(new THREE.BoxGeometry(0.05, 0.007, 0.007), 0, 1.6, 0.285));
     pasang(kc, krPolos('kacamata', 0x3a2a1e), tubuh, false);
-  } else if (isF) {
-    pasang([krBagian(new THREE.SphereGeometry(1, 6, 5), 0.2, 1.71, 0.15, 0, 0, 0.5, 0.05, 0.03, 0.035), krBagian(new THREE.SphereGeometry(1, 5, 4), 0.235, 1.69, 0.12, 0, 0, 0, 0.025, 0.025, 0.025)], krPolos('jepit', 0xff7a9a)); /* jepit rambut */
+  } else if (jepit === 'cepol') {
+    pasang([krBagian(new THREE.TorusGeometry(0.107, 0.026, 6, 18), 0, 1.745, -0.245)], krPolos('jepit', 0xff7a9a)); /* ikat cepol di pangkal cepol */
+  } else if (jepit) {
+    pasang([krBagian(new THREE.SphereGeometry(1, 6, 5), jepit[0], jepit[1], jepit[2], 0, 0, 0.5, 0.05, 0.03, 0.035), krBagian(new THREE.SphereGeometry(1, 5, 4), jepit[0] + 0.035, jepit[1] - 0.02, jepit[2] - 0.03, 0, 0, 0, 0.025, 0.025, 0.025)], krPolos('jepit', 0xff7a9a)); /* jepit rambut */
   }
   g.scale.setScalar(ibu ? 1.0 : 1.1); /* tinggi ~2,06 m (Ibu ~1,87 m) */
   return parts;
@@ -5344,6 +5880,7 @@ function setLabel(label, text) {
 /* ---------- avatar pengunjung + Ibu Kos ---------- */
 var avatar, avatarLabel, avatarPos = { x: 0, z: 12 };
 var avTubuh, avLegL, avLegR, avArmL, avArmR; /* pivot anggota gerak avatar */
+var avEkor = null; /* Perabot modern — poros ekor rambut Kuncir (berayun saat jalan) */
 var ibuAvatar;
 var visitorRoom = 0, visitorId = '', visitorName = 'kamu';
 /* gender pengunjung (Ronde 8): 'cewek' default — audiens IG 77,4% wanita,
@@ -5369,15 +5906,35 @@ function rupaBaca() {
     return { baju: mpRupaDikenal(p.baju, RUPA_BAJU.length), rambut: mpRupaDikenal(p.rambut, RUPA_RAMBUT.length) };
   } catch (e) { return null; }
 }
-function rupaSaya() { return rupaEfektif(visitorGender, rupaBaca()); }
+function rupaMentah() { /* Perabot modern — isi 'kosan3d-rupa' yang PERNAH dipilih (field sah saja); gaya yang belum dipilih ikut bawaan gender */
+  try {
+    var p = JSON.parse(localStorage.getItem('kosan3d-rupa') || 'null');
+    if (!p || typeof p !== 'object') return {};
+    var o = {}, b = mpRupaDikenal(p.baju, RUPA_BAJU.length), r = mpRupaDikenal(p.rambut, RUPA_RAMBUT.length);
+    if (b >= 0) o.baju = b;
+    if (r >= 0) o.rambut = r;
+    return mpPasangGaya(o, p);
+  } catch (e) { return {}; }
+}
+function rupaSaya() { return mpPasangGaya(rupaEfektif(visitorGender, rupaBaca()), gayaEfektif(visitorGender, rupaMentah())); } /* warna + gaya efektif */
 function rupaSet(bagian, i) {
   var n = bagian === 'baju' ? RUPA_BAJU.length : RUPA_RAMBUT.length;
   if (mpRupaDikenal(i, n) < 0) return;
-  var r = rupaSaya();
+  var r = rupaEfektif(visitorGender, rupaBaca());
   r[bagian] = i;
+  mpPasangGaya(r, rupaMentah()); /* gaya yang sudah dipilih tetap tersimpan */
   try { localStorage.setItem('kosan3d-rupa', JSON.stringify(r)); } catch (e) { /* abaikan */ }
   buildVisitorAvatar();
   if (typeof mpKirimPresence === 'function') { mpKirimPresence(); mpKirimPos(); } /* pemain lain langsung melihat */
+}
+function gayaSet(bagian, i) { /* Perabot modern — pilih model rambut/atasan/bawahan/alas kaki */
+  var k = GAYA_KUNCI.filter(function (q) { return q[0] === bagian; })[0];
+  if (!k || mpRupaDikenal(i, k[1].length) < 0) return;
+  var r = rupaMentah();
+  r[bagian] = i;
+  try { localStorage.setItem('kosan3d-rupa', JSON.stringify(r)); } catch (e) { /* abaikan */ }
+  buildVisitorAvatar();
+  if (typeof mpKirimPresence === 'function') { mpKirimPresence(); mpKirimPos(); }
 }
 function buildVisitorAvatar() {
   var rotY = avatar ? avatar.rotation.y : Math.PI;
@@ -5386,6 +5943,7 @@ function buildVisitorAvatar() {
   avatar = avParts.g;
   avTubuh = avParts.tubuh; avLegL = avParts.legL; avLegR = avParts.legR;
   avArmL = avParts.armL; avArmR = avParts.armR;
+  avEkor = avParts.ekor; /* Perabot modern — poros kuncir (null bila model lain) */
   avatar.rotation.y = rotY;
   avatar.position.set(avatarPos.x, 0, avatarPos.z);
   /* Ronde 10b — avatar tinggal di scene alam aktif (halaman / ruang tamu).
@@ -5393,6 +5951,7 @@ function buildVisitorAvatar() {
   sceneUntukRealm(myRealm).add(avatar);
   if (avatarLabel && location.search.indexOf('debug=nolabel') === -1) avatar.add(avatarLabel.sprite);
   jajanPasang(); /* Tahap 3a — jajan warung ikut pindah ke tangan avatar baru (ganti gender / tampilan) */
+  if (jemuranKeranjang) jemuranTerapkanVisual(); /* Perabot modern — keranjang cucian langsung pindah ke badan baru (tanpa jeda 1 dtk) */
 }
 /* Interior modern (15 Nov): ketiga ruangan dibangun DI SINI (dulu tepat di bawah
    definisinya) — kulit ruangan baru (bangunKulit*) memakai JalanKumpul/krGabung
@@ -6212,7 +6771,7 @@ function jalanTick(dt, now) {
     jalanKucing.kepala.rotation.y = k.jalan ? 0 : Math.sin(now / 1000 * 0.8) * 0.4;
     var H = jalanKucing.hati; /* hati di atas kepala Oyen (pola emote; sprite dipakai ulang tiap elus) */
     if (H && H.spr && H.aktif) {
-      var a = emoteAnimasi((now - H.mulai) / 1000);
+      var a = emoteAnimasi((now - H.mulai) / 1000, 'sayang'); /* hati berdetak */
       if (!a) { if (H.spr.parent) H.spr.parent.remove(H.spr); H.aktif = false; }
       else {
         if (H.spr.parent !== jalanScene) jalanScene.add(H.spr);
@@ -6591,13 +7150,57 @@ function jemuranStatusSekarang() {
   if (!ktaIsResident()) return 'kosong';
   return jemuranStatus(jemuranBaca(), Date.now(), JEMUR_DUR);
 }
+function lukisAnyaman(ctx, w, h) { /* anyaman pandan krem: pita mendatar/tegak berselang (u = keliling, v = tinggi) */
+  ctx.fillStyle = '#c9a676'; ctx.fillRect(0, 0, w, h);
+  var n = 16, m = 4, cw = w / n, ch = h / m;
+  for (var j = 0; j < m; j++) for (var i = 0; i < n; i++) {
+    var x = i * cw, y = j * ch, a = (i + j) % 2 === 0;
+    var g = a ? ctx.createLinearGradient(x, y, x + cw, y) : ctx.createLinearGradient(x, y, x, y + ch);
+    g.addColorStop(0, a ? '#b48c58' : '#dcc092'); g.addColorStop(0.5, a ? '#d2ae7c' : '#f1ddb5'); g.addColorStop(1, a ? '#ad8552' : '#d6b986');
+    ctx.fillStyle = g; ctx.fillRect(x + 1, y + 1, cw - 2, ch - 2);
+  }
+}
+/* Perabot modern (Ryan: "pas dia bawa/pegang cucian itu buat lebih bagus, karena sekarang aneh
+   nempel di perut"): keranjang anyaman bertepi + tumpukan cucian basah bergumpal, menempel ke
+   BADAN (avTubuh, ikut goyang badan) di depan perut dengan celah, dua tangan memegang sisinya
+   (jemuranPoseBawa: lengan maju -0,92 + merapat; kaki tetap melangkah). 2 mesh. */
 function jemuranBuatKeranjang() {
-  var k = new THREE.Group();
-  box(M.wood, 0.44, 0.22, 0.3, 0, 0, 0, k); /* badan keranjang anyaman (bukan biru: dressBlue = capBlue, tenggelam di baju) */
-  box(M.clothesTeal, 0.38, 0.07, 0.24, 0, 0.13, 0, k); /* tumpukan cucian basah */
-  box(M.woodDark, 0.46, 0.04, 0.32, 0, 0.11, 0, k); /* bibir keranjang */
-  k.position.set(0, 0.8, 0.42); /* di depan perut, di antara dua tangan (lokal grup avatar) */
+  var k = new THREE.Group(), W = 0.5, Hk = 0.2, D = 0.28;
+  var dinding = krMat('keranjang:anyaman', function () { return new THREE.MeshLambertMaterial({ map: teksturLukis(256, 64, lukisAnyaman, [1, 1]), vertexColors: true, side: THREE.DoubleSide }); });
+  var isi = krMat('keranjang:isi', function () { return new THREE.MeshLambertMaterial({ vertexColors: true }); });
+  var Kb = new JalanKumpul(k);
+  Kb.cat(0xffffff); Kb.tambah(dinding, geoKotakSisi(W, Hk, D, ['px', 'nx', 'pz', 'nz', 'ny']), 0, 0, 0); /* badan terbuka di atas */
+  Kb.cat(0x8a6a44); /* bibir keranjang: 4 rusuk membulat */
+  [[W + 0.02, 0, D / 2], [W + 0.02, 0, -D / 2], [0, D + 0.02, W / 2], [0, D + 0.02, -W / 2]].forEach(function (r) {
+    if (r[0]) Kb.tambah(dinding, new THREE.CylinderGeometry(0.014, 0.014, r[0], 8), 0, Hk / 2, r[2], 0, 0, Math.PI / 2);
+    else Kb.tambah(dinding, new THREE.CylinderGeometry(0.014, 0.014, r[1], 8), r[2], Hk / 2, 0, Math.PI / 2, 0, 0);
+  });
+  /* cucian basah: gumpalan kaus + handuk (warna sedikit gelap = basah) menyembul di atas bibir */
+  [[0x23877a, -0.11, 0.075, 0.02, 0.13, 0.06, 0.1], [0xd9a21a, 0.1, 0.07, -0.03, 0.13, 0.055, 0.1], [0xd66a5a, 0.0, 0.09, 0.04, 0.12, 0.06, 0.09], [0xe8e2d6, 0.02, 0.06, -0.05, 0.16, 0.05, 0.08]].forEach(function (c) {
+    Kb.cat(c[0]); Kb.tambah(isi, new THREE.SphereGeometry(1, 12, 8), c[1], c[2], c[3], 0.2, c[1] * 3, 0, c[4], c[5], c[6]);
+  });
+  var hasil = Kb.selesai(false);
+  for (var km in hasil) hasil[km].castShadow = true;
+  k.position.set(0, 0.8, 0.42); /* lokal badan: belakang keranjang z 0,28 = 1 cm di depan perut (r 0,27), atas bibir y 0,9 */
   return k;
+}
+var bawaK = 0; /* 0 = lengan bebas .. 1 = memegang keranjang (memudar ~0,25 dtk) */
+function jemuranPoseBawa(dt) { /* dipanggil animate SETELAH ayunan jalan + pose kamar */
+  var mau = (jemuranKeranjang && avTubuh && jemuranKeranjang.parent === avTubuh) ? 1 : 0;
+  if (!mau && bawaK === 0) return;
+  bawaK += (mau - bawaK) * (1 - Math.exp(-14 * dt));
+  if (!mau && bawaK < 0.01) bawaK = 0;
+  if (mau && bawaK > 0.995) bawaK = 1;
+  [[avArmL, -1], [avArmR, 1]].forEach(function (a) { /* tangan di sisi keranjang: x +-0,27, y 0,86, z 0,39 (lokal badan) */
+    var arm = a[0], sx = a[1], rz0 = sx * 0.2;
+    if (!arm) return;
+    arm.rotation.x += (-0.92 - arm.rotation.x) * bawaK;
+    arm.rotation.z = rz0 + (-sx * 0.14 - rz0) * bawaK;
+  });
+  if (mau) {
+    jemuranKeranjang.visible = roomPose !== 'sleep'; /* rebah: keranjang disembunyikan */
+    jemuranKeranjang.scale.setScalar(0.6 + 0.4 * bawaK); /* muncul membesar mengikuti tangan */
+  }
 }
 function jemuranTerapkanVisual() {
   var status = jemuranStatusSekarang();
@@ -6606,7 +7209,7 @@ function jemuranTerapkanVisual() {
   var bawa = status === 'basah';
   if (bawa && !jemuranKeranjang) jemuranKeranjang = jemuranBuatKeranjang();
   if (jemuranKeranjang) {
-    if (bawa && avatar && jemuranKeranjang.parent !== avatar) avatar.add(jemuranKeranjang); /* juga setelah avatar dibangun ulang (ganti gender) */
+    if (bawa && avTubuh && jemuranKeranjang.parent !== avTubuh) avTubuh.add(jemuranKeranjang); /* juga setelah avatar dibangun ulang (ganti gender/tampilan); Perabot modern: anak BADAN, bukan grup avatar */
     if (!bawa && jemuranKeranjang.parent) jemuranKeranjang.parent.remove(jemuranKeranjang);
   }
 }
@@ -6729,6 +7332,12 @@ function emoteGaris(ctx, pts, lebar, warna, garis) { /* garis bulat ber-outline 
     ctx.stroke();
   });
 }
+function emoteKotak(ctx, x, y, w, h, r) { /* jalur kotak sudut bulat (tanpa bergantung ctx.roundRect) */
+  r = Math.min(r, w / 2, h / 2);
+  ctx.beginPath(); ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
 function emoteWajah(ctx, a, b) { /* wajah bulat bergradasi (a = terang, b = gelap) */
   var gr = ctx.createRadialGradient(42, 36, 6, 50, 52, 42);
   gr.addColorStop(0, a); gr.addColorStop(1, b);
@@ -6822,14 +7431,22 @@ function emoteLukisIkon(ctx, id) { /* ikon di kotak 100x100 */
     ctx.lineWidth = 3; ctx.lineCap = 'round';
     ctx.strokeStyle = '#3bc6a3'; ctx.beginPath(); ctx.moveTo(44, 48); ctx.bezierCurveTo(54, 30, 64, 46, 74, 26); ctx.stroke();
     ctx.strokeStyle = '#ff5d73'; ctx.beginPath(); ctx.moveTo(46, 58); ctx.bezierCurveTo(62, 54, 66, 70, 86, 58); ctx.stroke();
-  } else if (id === 'mantap') {
-    ctx.fillStyle = '#4a8be0'; ctx.strokeStyle = '#2d63ad'; ctx.lineWidth = 2.5;
-    ctx.beginPath(); ctx.roundRect ? ctx.roundRect(14, 50, 16, 36, 4) : ctx.rect(14, 50, 16, 36); ctx.fill(); ctx.stroke();
-    emoteGaris(ctx, [[46, 52], [50, 18]], 15, KULIT, TEPI);
-    ctx.fillStyle = KULIT; ctx.strokeStyle = TEPI; ctx.lineWidth = 2.5;
-    ctx.beginPath(); ctx.roundRect ? ctx.roundRect(30, 46, 46, 42, 12) : ctx.rect(30, 46, 46, 42); ctx.fill(); ctx.stroke();
-    ctx.strokeStyle = TEPI; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
-    [58, 68, 78].forEach(function (y) { ctx.beginPath(); ctx.moveTo(56, y); ctx.lineTo(74, y); ctx.stroke(); });
+  } else if (id === 'mantap') { /* Perabot modern (Ryan: "jempolnya panjang banget"): ibu jari PENDEK
+    gemuk (24 px di atas kepalan, dulu ±38 px garis tipis) + 4 jari menggulung + manset */
+    ctx.lineWidth = 2.5; ctx.lineJoin = 'round';
+    ctx.fillStyle = '#4a8be0'; ctx.strokeStyle = '#2d63ad';
+    emoteKotak(ctx, 14, 52, 17, 36, 5); ctx.fill(); ctx.stroke(); /* manset */
+    ctx.fillStyle = 'rgba(255,255,255,0.28)'; ctx.fillRect(17, 56, 4, 28);
+    ctx.save(); ctx.translate(46, 40); ctx.rotate(0.1); /* ibu jari: kapsul gemuk sedikit miring */
+    ctx.fillStyle = KULIT; ctx.strokeStyle = TEPI;
+    emoteKotak(ctx, -11, -18, 22, 34, 11); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.beginPath(); ctx.ellipse(-2, -9, 4.5, 6, 0, 0, Math.PI * 2); ctx.fill(); /* kilap */
+    ctx.restore();
+    ctx.fillStyle = KULIT; ctx.strokeStyle = TEPI;
+    emoteKotak(ctx, 29, 45, 44, 45, 13); ctx.fill(); ctx.stroke(); /* kepalan */
+    for (var jr = 0; jr < 4; jr++) { emoteKotak(ctx, 52, 46.5 + jr * 10.6, 30 - jr * 2.2, 11.2, 5.6); ctx.fill(); ctx.stroke(); } /* jari menggulung */
+    ctx.strokeStyle = TEPI; ctx.lineCap = 'round'; ctx.lineWidth = 2.2;
+    ctx.beginPath(); ctx.moveTo(36, 54); ctx.quadraticCurveTo(43, 58, 50, 55); ctx.stroke(); /* lipatan pangkal ibu jari */
   }
   ctx.restore();
 }
@@ -6880,7 +7497,7 @@ function emoteTick(st, grup, tidur, now, ls) {
   /* posisi + animasi gelembung di atas kepala (di scene, bukan anak grup:
      saat tidur grup diputar rebah, anak grup ikut miring). */
   if (!st || !st.spr) return;
-  var a = emoteAnimasi((now - st.mulai) / 1000);
+  var a = emoteAnimasi((now - st.mulai) / 1000, st.id);
   if (!a || !grup || !grup.parent) { if (st.spr.parent) st.spr.parent.remove(st.spr); st.id = null; return; }
   if (st.spr.parent !== grup.parent) grup.parent.add(st.spr);
   var ukuran = 0.95 * Math.max(0.5, ls);
@@ -7211,6 +7828,13 @@ var UICONS = {
   kucing: '<path d="M4.6 4.5l3.9 3.3a8 8 0 0 1 7 0l3.9-3.3.6 7.4A7.6 7.6 0 0 1 12 20a7.6 7.6 0 0 1-8-8.1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="9.3" cy="12.7" r="1.1" fill="currentColor"/><circle cx="14.7" cy="12.7" r="1.1" fill="currentColor"/><path d="M11 15.4h2l-1 1.1z" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/>',
   kentongan: '<path d="M11 2v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="7.5" y="5" width="7" height="15" rx="3.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M11 9v7M17.5 15.5l3.5-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
   palang: '<path d="M3 8h18v5H3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 8l-3 5M13 8l-3 5M18 8l-3 5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 13v7M18 13v7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  /* Perabot modern — ikon bulat toast (pengganti emoji pembuka pesan); gaya sama (stroke currentColor) */
+  bulan: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
+  tetes: '<path d="M12 3.5c3.3 4.2 6 7.4 6 10.6a6 6 0 0 1-12 0c0-3.2 2.7-6.4 6-10.6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9.3 14.6a2.8 2.8 0 0 0 2.4 2.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
+  api: '<path d="M12 21a6.5 6.5 0 0 1-6.5-6.5c0-3.4 2.6-5.6 3.6-8.8 1.6 1.4 2.3 3 2.3 4.6 1.1-.7 1.8-2 1.9-3.6 2.8 2.2 5.2 4.9 5.2 7.8A6.5 6.5 0 0 1 12 21z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 21a2.6 2.6 0 0 1-2.6-2.6c0-1.6 1.4-2.5 2.6-4.1 1.2 1.6 2.6 2.5 2.6 4.1A2.6 2.6 0 0 1 12 21z" fill="currentColor"/>',
+  cek: '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7.8 12.4l2.8 2.8 5.6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>',
+  tunggu: '<path d="M7 3h10M7 21h10M8 3c0 4.5 8 4.5 8 9s-8 4.5-8 9M16 3c0 4.5-8 4.5-8 9s8 4.5 8 9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+  info: '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11v6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="7.6" r="1.3" fill="currentColor"/>',
   /* bintang emas (bukan currentColor): harga jajan / saldo Bintang di kartu warung */
   bintang: '<path d="M12 3.2l2.7 5.5 6 .9-4.35 4.25 1.03 6L12 17l-5.38 2.85 1.03-6L3.3 9.6l6-.9z" fill="#f2b21b" stroke="#c98a0b" stroke-width="1" stroke-linejoin="round"/>'
 };
@@ -8289,7 +8913,48 @@ function ktaTutup() {
    avatar dibangun ulang + presence/pos dikirim (pemain lain ikut melihat). */
 var rupaPanel = document.getElementById('rupaPanel');
 var rupaKameraAsal = null;
+var rupaTabAktif = 'rambut'; /* Perabot modern: rambut | atasan | bawahan | alas */
+var rupaGeserY = 0, rupaTitik = new THREE.Vector3(); /* geser titik pandang selama panel terbuka (0 = kamera biasa) */
 function rupaHex(n) { return '#' + ('00000' + n.toString(16)).slice(-6); }
+/* piktogram model (viewBox 24): rambut = siluet terisi + wajah putih; atasan/bawahan/alas = garis */
+var GAYA_IKON = (function () {
+  var W = '<circle cx="12" cy="14" r="4.4" fill="#fff" stroke="currentColor" stroke-width="1.5"/>';
+  function isi(d) { return '<path d="' + d + '" fill="currentColor"/>'; }
+  function garis(d) { return '<path d="' + d + '" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>'; }
+  var kaus = 'M8.5 4.5 4 7l1.8 4 2.2-1V20h8V10l2.2 1L20 7l-4.5-2.5a3.5 3.5 0 0 1-7 0z';
+  var panjang = 'M8 5 4.5 7.5 3.5 18h3L8 11v9h8v-9l1.5 7h3L19.5 7.5 16 5';
+  return {
+    potong: [
+      isi('M6.4 21V13a5.6 5.6 0 0 1 11.2 0v8z') + W + isi('M7.6 13c.4-3.2 2.2-4.6 4.4-4.6s4 1.4 4.4 4.6c-1.4-1-2.8-1.4-4.4-1.4s-3 .4-4.4 1.4z'),
+      W + isi('M7.3 13.2C7 9.3 9.1 7.2 12 7.2s5 2.1 4.7 6c-.9-1.6-2.5-2.4-4.7-2.4s-3.8.8-4.7 2.4z'),
+      isi('M5.9 17.8V13a6.1 6.1 0 0 1 12.2 0v4.8z') + W + isi('M7.6 12.8c.3-3 2-4.6 4.4-4.6s4.1 1.6 4.4 4.6z'),
+      isi('M15.4 8c3.3-.5 5 1.7 4.6 4.9-.3 2.5-1.6 4.2-3.2 5.4.4-2.2.2-4.4-1-6.4z') + W + isi('M7.2 13.3c-.2-3.8 1.9-6 4.6-6s4.8 2.2 4.6 6c-1-1.6-2.7-2.5-4.6-2.5s-3.6.9-4.6 2.5z') + '<circle cx="16.3" cy="8.6" r="1.2" fill="#fff" stroke="currentColor" stroke-width="1.2"/>',
+      '<circle cx="12" cy="5.6" r="2.7" fill="currentColor"/>' + W + isi('M7.4 13.6c-.2-3.8 1.9-5.8 4.6-5.8s4.8 2 4.6 5.8c-1-1.6-2.6-2.4-4.6-2.4s-3.6.8-4.6 2.4z'),
+      [[7.4, 10.6, 2.5], [9.9, 7.7, 2.7], [14.1, 7.7, 2.7], [16.6, 10.6, 2.5], [6.6, 14.4, 2.2], [17.4, 14.4, 2.2]].map(function (c) { return '<circle cx="' + c[0] + '" cy="' + c[1] + '" r="' + c[2] + '" fill="currentColor"/>'; }).join('')
+        + W + '<circle cx="10.1" cy="10.3" r="1.7" fill="currentColor"/><circle cx="13.9" cy="10.3" r="1.7" fill="currentColor"/>'
+    ],
+    atasan: [
+      garis(kaus),
+      garis('M8.5 4.5 4 7l1.8 4 2.2-1V20h8V10l2.2 1L20 7l-4.5-2.5') + garis('M8.5 4.5 12 8l3.5-3.5M12 8v12') + '<circle cx="12" cy="11.5" r=".8" fill="currentColor"/><circle cx="12" cy="14.6" r=".8" fill="currentColor"/><circle cx="12" cy="17.7" r=".8" fill="currentColor"/>',
+      garis(panjang) + garis('M8 5c0 3.6 8 3.6 8 0a4 4 0 0 0-8 0zM9.6 15h4.8l.8 3H8.8zM10.8 8.4v2.4M13.2 8.4v2.4'),
+      garis(kaus) + garis('M8 12.6h8M8 15.6h8'),
+      garis(panjang) + garis('M8 5c1 1.6 2.2 2.3 4 2.3s3-.7 4-2.3M11 7.3V20M13 7.3V20M8 18.4h3M13 18.4h3')
+    ],
+    bawahan: [
+      garis('M8 5h8l3 14H5zM7.7 7.4h8.6'),
+      garis('M6.5 5h11l.8 9.5h-5L12 9.5l-1.3 5h-5zM6.4 7.3h11.2'),
+      garis('M7.5 4.5h9l1 15.5h-3.8L12 9.5 10.3 20H6.5zM7.4 6.8h9.2'),
+      garis('M8 4.5h8l2.6 15.5H5.4zM10 7.4 9.2 20M12 7.4V20M14 7.4l.8 12.6M7.7 7h8.6'),
+      garis('M7.5 4.5h9l.4 13.5h-3.4L12 9.5l-1.5 8.5H7.1zM7.1 18h3.4v2H7.1zM13.5 18h3.4v2h-3.4zM7.4 6.8h9.2M11.3 6.8v2M12.7 6.8v2')
+    ],
+    alas: [
+      garis('M3.5 17.5v-3.2C3.5 11 5 8.5 6.5 8.5h1.8l1 2.4c.6 1.4 1.9 2.4 3.4 2.7l5.3 1c1.4.3 2.5 1.5 2.5 3v1.9zM3.5 17.5h17M8.4 11.2l1.8-.6M9.4 13l1.8-.6'),
+      garis('M3.5 18v-2.8c0-1.7 1.2-3.1 2.8-3.1h3.6l2.2 1.4c.6.4 1.3.6 2 .6h3.5c1.8 0 3 1.4 3 3.2V18zM3.5 16.2h17'),
+      garis('M12 3.5c3 0 4.5 2.5 4.5 6.5 0 5-1 10.5-4.5 10.5S7.5 15 7.5 10c0-4 1.5-6.5 4.5-6.5zM12 7.6 8.6 12.2M12 7.6l3.4 4.6'),
+      garis('M7.5 3.5h5v9l5 1.8c1.5.5 2.5 1.8 2.5 3.3v1.9H5.5v-7.2c0-.9.3-1.7.8-2.4l1.2-1.6zM5.5 17.6h15M7.5 6h5')
+    ]
+  };
+})();
 function rupaRender() {
   var r = rupaSaya();
   [['baju', RUPA_BAJU, 'rupaBaju'], ['rambut', RUPA_RAMBUT, 'rupaRambut']].forEach(function (d) {
@@ -8306,6 +8971,40 @@ function rupaRender() {
       wadah.appendChild(b);
     });
   });
+  /* Perabot modern — tombol model per bagian */
+  [['potong', GAYA_RAMBUT, 'rupaPotong'], ['atasan', GAYA_ATASAN, 'rupaAtasan'], ['bawahan', GAYA_BAWAHAN, 'rupaBawahan'], ['alas', GAYA_ALAS, 'rupaAlas']].forEach(function (d) {
+    var wadah = document.getElementById(d[2]);
+    if (!wadah) return;
+    wadah.innerHTML = '';
+    d[1].forEach(function (gy, i) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.setAttribute('role', 'radio');
+      b.setAttribute('aria-checked', r[d[0]] === i ? 'true' : 'false');
+      b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' + GAYA_IKON[d[0]][i] + '</svg>';
+      var t = document.createElement('span'); t.textContent = gy.nama; b.appendChild(t);
+      b.addEventListener('click', function () { gayaSet(d[0], i); rupaRender(); });
+      wadah.appendChild(b);
+    });
+  });
+  [].forEach.call(rupaPanel.querySelectorAll('.rupa-tab [role="tab"]'), function (b) {
+    var aktif = b.dataset.tab === rupaTabAktif;
+    b.setAttribute('aria-selected', aktif ? 'true' : 'false');
+    b.tabIndex = aktif ? 0 : -1;
+    var isi = document.getElementById('rupaIsi-' + b.dataset.tab);
+    if (isi) isi.hidden = !aktif;
+  });
+}
+function rupaFokus() { /* Perabot modern — kamera pratinjau per tab: rambut/atasan = badan atas,
+   bawahan/alas kaki = seluruh badan sampai kaki di atas panel (HP tegak) / di kiri panel (mendatar) */
+  var depan = avatar.rotation.y, portrait = isPortrait(), bawah = rupaTabAktif === 'bawahan' || rupaTabAktif === 'alas';
+  var fov68 = portrait && (myRealm === 'yard' || myRealm === 'jalan'); /* FOV portrait halaman 68, lainnya 55 */
+  var dy, dist, pitch; /* titik pandang = kaki + 1,5 + dy (dihitung dari FOV: avatar di separuh atas layar HP tegak) */
+  if (portrait) { dy = bawah ? -1.67 : -0.99; dist = bawah ? (fov68 ? 5.4 : 6.2) : (fov68 ? 3.6 : 4.3); pitch = bawah ? 0.25 : 0.2; }
+  else { dy = bawah ? -0.45 : -0.15; dist = bawah ? 3.2 : 2.6; pitch = bawah ? 0.14 : 0.12; }
+  rupaGeserY = dy;
+  flyTarget = { camTarget: new THREE.Vector3(avatarPos.x, avatar.position.y + dy, avatarPos.z),
+    camYaw: depan + (portrait ? 0 : 0.35), camPitch: pitch, camDist: dist };
+  flyKeep = true;
 }
 function rupaBuka() {
   if (!entered) { toastKosan('Masuk Kosan dulu untuk ganti tampilan.'); return; }
@@ -8313,15 +9012,22 @@ function rupaBuka() {
   rupaPanel.classList.add('open');
   closeCard();
   rupaKameraAsal = { camYaw: camYaw, camPitch: camPitch, camDist: camDist };
-  var depan = avatar.rotation.y; /* kamera di depan avatar: yaw = arah hadap */
-  var portrait = isPortrait();
-  flyTarget = { camTarget: new THREE.Vector3(avatarPos.x, avatar.position.y + (portrait ? -0.35 : 0), avatarPos.z),
-    camYaw: depan + (portrait ? 0 : 0.35), camPitch: 0.12, camDist: portrait ? 3.6 : 3.0 };
-  flyKeep = true;
+  rupaFokus(); /* kamera terbang pelan ke depan avatar (pratinjau langsung) */
 }
+[].forEach.call(document.querySelectorAll('#rupaPanel .rupa-tab [role="tab"]'), function (b) {
+  b.addEventListener('click', function () { rupaTabAktif = b.dataset.tab; rupaRender(); if (rupaPanel.classList.contains('open')) rupaFokus(); });
+  b.addEventListener('keydown', function (e) { /* panah kiri/kanan pindah tab (pola tablist) */
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    var tab = ['rambut', 'atasan', 'bawahan', 'alas'], i = tab.indexOf(rupaTabAktif);
+    rupaTabAktif = tab[(i + (e.key === 'ArrowRight' ? 1 : 3)) % 4]; rupaRender(); rupaFokus();
+    var baru = document.getElementById('rupaTab-' + rupaTabAktif); if (baru) baru.focus();
+    e.preventDefault(); e.stopPropagation(); /* panah di tab tidak ikut menggerakkan avatar */
+  });
+});
 function rupaTutup() {
   if (!rupaPanel.classList.contains('open')) return;
   rupaPanel.classList.remove('open');
+  rupaGeserY = 0; /* kamera kembali mengikuti avatar biasa */
   if (rupaKameraAsal) {
     flyTarget = { camTarget: new THREE.Vector3(avatarPos.x, avatar.position.y, avatarPos.z),
       camYaw: rupaKameraAsal.camYaw, camPitch: rupaKameraAsal.camPitch, camDist: rupaKameraAsal.camDist };
@@ -8947,8 +9653,8 @@ function mpPasangPenangan(c) {
     else if (aksi.kind === 'presence') mpTerimaPresence(aksi.msg);
   });
 }
-function mpBuatRemote(id, nama, gender, realm, x, z, rot, baju, rambut) {
-  var parts = makeKosanAvatar(gender, { baju: baju, rambut: rambut }); /* Karakter v2 */
+function mpBuatRemote(id, nama, gender, realm, x, z, rot, baju, rambut, gaya) {
+  var parts = makeKosanAvatar(gender, mpPasangGaya({ baju: baju, rambut: rambut }, gaya)); /* Karakter v2 + gaya (Perabot modern) */
   var label = makeLabel('@' + nama); /* Ronde 54 — label pemain remote = @username */
   parts.g.add(label.sprite);
   parts.g.position.set(x, 0, z);
@@ -8958,6 +9664,7 @@ function mpBuatRemote(id, nama, gender, realm, x, z, rot, baju, rambut) {
     group: parts.g, parts: parts, label: label, labelTeks: '@' + nama,
     tx: x, tz: z, trot: rot, gerak: 0, pose: 'stand', walkPhase: mpHashFase(id),
     baju: typeof baju === 'number' ? baju : -1, rambut: typeof rambut === 'number' ? rambut : -1, /* Karakter v2 */
+    gaya: mpBacaGaya(gaya), /* Perabot modern — model rambut/atasan/bawahan/alas (-1 = bawaan) */
     lastSeen: Date.now(), snapped: true, punyaPos: true, bot: false };
   remotePlayers[id] = entri;
   perbaruiLabelDuplikat();
@@ -8966,7 +9673,7 @@ function mpBuatRemote(id, nama, gender, realm, x, z, rot, baju, rambut) {
 }
 function mpBangunUlangRemote(entri) { /* gender berubah: rebuild avatar, label tetap */
   var lama = entri.group;
-  var parts = makeKosanAvatar(entri.gender, { baju: entri.baju, rambut: entri.rambut }); /* Karakter v2 */
+  var parts = makeKosanAvatar(entri.gender, mpPasangGaya({ baju: entri.baju, rambut: entri.rambut }, entri.gaya)); /* Karakter v2 + gaya */
   var g = parts.g;
   g.add(entri.label.sprite); /* add() melepas sprite dari grup lama */
   g.position.copy(lama.position);
@@ -9021,7 +9728,8 @@ function mpTerapkanPoseRemote(entri) { /* Ronde 15a — pose pemain lain di posi
     p.legR.rotation.x = -rsw * 0.55 * entri.gerak;
     p.armL.rotation.x = -rsw * 0.6 * entri.gerak;
     p.armR.rotation.x = rsw * 0.6 * entri.gerak;
-    p.tubuh.rotation.y = Math.sin(walkT * 1.3) * (1 - entri.gerak);
+    p.tubuh.rotation.y = Math.sin(walkT * 1.3) * 0.25 * (1 - entri.gerak); /* Perabot modern: x0,25 seperti avatar sendiri (dulu tanpa: badan pemain lain berputar +-57 derajat saat diam) */
+    if (p.ekor) p.ekor.rotation.z = rsw * 0.16 * entri.gerak; /* kuncir berayun */
     entri.label.sprite.visible = true;
   }
 }
@@ -9031,7 +9739,7 @@ function mpTerimaPos(m) {
     if (!mpBolehBuatBaru()) return;
     var buang = mpPilihBuang(remotePlayers, MP_MAX_ROSTER);
     if (buang.length) mpHapusRemote(buang[0]);
-    entri = mpBuatRemote(m.id, m.nama, m.gender, m.realm, m.x, m.z, m.rot, m.baju, m.rambut);
+    entri = mpBuatRemote(m.id, m.nama, m.gender, m.realm, m.x, m.z, m.rot, m.baju, m.rambut, m);
     entri.punyaPos = true;
   }
   mpPindahRealmRemote(entri, m.realm, m.ts);
@@ -9040,8 +9748,8 @@ function mpTerimaPos(m) {
   emoteTerimaRemote(entri, m, Date.now()); /* Tahap 2 — emote (sudah divalidasi: id dari daftar tetap) */
   if (!entri.punyaPos) { entri.snapped = false; entri.punyaPos = true; }
   if (m.nama !== entri.nama) { entri.nama = m.nama; perbaruiLabelDuplikat(); }
-  if (m.gender !== entri.gender || m.baju !== entri.baju || m.rambut !== entri.rambut) { /* gender / tampilan berubah (Karakter v2) */
-    entri.gender = m.gender; entri.baju = m.baju; entri.rambut = m.rambut; mpBangunUlangRemote(entri);
+  if (m.gender !== entri.gender || m.baju !== entri.baju || m.rambut !== entri.rambut || !mpGayaSama(m, entri.gaya)) { /* gender / tampilan / gaya berubah (Karakter v2 + Perabot modern) */
+    entri.gender = m.gender; entri.baju = m.baju; entri.rambut = m.rambut; entri.gaya = mpBacaGaya(m); mpBangunUlangRemote(entri);
   }
   entri.lastSeen = Date.now();
 }
@@ -9051,13 +9759,13 @@ function mpTerimaPresence(m) {
     if (!mpBolehBuatBaru()) return;
     var buang = mpPilihBuang(remotePlayers, MP_MAX_ROSTER);
     if (buang.length) mpHapusRemote(buang[0]);
-    entri = mpBuatRemote(m.id, m.nama, m.gender, m.realm, 0, 12, Math.PI, m.baju, m.rambut);
+    entri = mpBuatRemote(m.id, m.nama, m.gender, m.realm, 0, 12, Math.PI, m.baju, m.rambut, m);
     entri.punyaPos = false; /* posisi belum diketahui — pos pertama nanti snap */
   }
   mpPindahRealmRemote(entri, m.realm, m.ts);
   if (m.nama !== entri.nama) { entri.nama = m.nama; perbaruiLabelDuplikat(); }
-  if (m.gender !== entri.gender || m.baju !== entri.baju || m.rambut !== entri.rambut) { /* gender / tampilan berubah (Karakter v2) */
-    entri.gender = m.gender; entri.baju = m.baju; entri.rambut = m.rambut; mpBangunUlangRemote(entri);
+  if (m.gender !== entri.gender || m.baju !== entri.baju || m.rambut !== entri.rambut || !mpGayaSama(m, entri.gaya)) { /* gender / tampilan / gaya berubah (Karakter v2 + Perabot modern) */
+    entri.gender = m.gender; entri.baju = m.baju; entri.rambut = m.rambut; entri.gaya = mpBacaGaya(m); mpBangunUlangRemote(entri);
   }
   entri.lastSeen = Date.now();
 }
@@ -9099,7 +9807,7 @@ function mpKirimPos() {
     avatarPos.x, avatarPos.z, avatar.rotation.y, mpMag, Date.now(),
     roomPose || 'stand', /* Ronde 15a — pose ikut dipublish (update reguler + saat berubah) */
     emoteAktifSaya(Date.now()) ? emoteSaya.id : null, emoteAktifSaya(Date.now()) ? emoteSaya.emoteTs : 0, /* Tahap 2 — emote aktif ikut */
-    rupaSaya().baju, rupaSaya().rambut); /* Karakter v2 — tampilan */
+    rupaSaya().baju, rupaSaya().rambut, rupaMentah()); /* Karakter v2 — tampilan; Perabot modern — gaya yang dipilih (opsional) */
   try { klien.publish(MP_TOPICS.pos, JSON.stringify(msg)); } catch (e) {}
   lastPosSent = Date.now();
 }
@@ -9107,6 +9815,7 @@ function mpKirimPresence() {
   if (!entered || !klien || mpStatus !== 'on') return;
   var r = rupaSaya();
   var msg = mpBangunPresence(playerId, visitorName, visitorGender, myRealm, Date.now(), r.baju, r.rambut); /* Karakter v2 */
+  mpPasangGaya(msg, rupaMentah()); /* Perabot modern — gaya yang dipilih (field opsional) */
   try { klien.publish(MP_TOPICS.presence + playerId, JSON.stringify(msg), { retain: true }); } catch (e) {}
   lastPresenceSent = Date.now();
 }
@@ -9154,7 +9863,8 @@ setInterval(function () { /* sweeper 500 ms (§2.5) + jalanin bot tes ?bot=N */
   for (var i = 0; i < n; i++) {
     var e = mpBuatRemote('bot-' + i, 'Bot ' + (i + 1), (i % 2 === 0) ? 'cewek' : 'cowok',
       'yard', Math.random() * 20 - 10, Math.random() * 20 - 10, Math.random() * Math.PI * 2,
-      i % RUPA_BAJU.length, (i * 3) % RUPA_RAMBUT.length); /* Karakter v2: bot pakai tampilan beragam */
+      i % RUPA_BAJU.length, (i * 3) % RUPA_RAMBUT.length, /* Karakter v2: bot pakai tampilan beragam */
+      { potong: i % GAYA_RAMBUT.length, atasan: (i * 2) % GAYA_ATASAN.length, bawahan: (i * 3) % GAYA_BAWAHAN.length, alas: (i * 5) % GAYA_ALAS.length }); /* Perabot modern: + gaya beragam */
     e.bot = true; e.gerak = 0.6; e.punyaPos = true;
   }
 })();
@@ -9387,11 +10097,14 @@ function animate() {
   avArmL.rotation.x = -sw * 0.6 * gerak;
   avArmR.rotation.x = sw * 0.6 * gerak;
   avTubuh.rotation.y = Math.sin(walkT * 1.3) * 0.25 * (1 - gerak);
+  if (avEkor) { avEkor.rotation.z = sw * 0.16 * gerak + Math.sin(walkT * 1.3 + 0.6) * 0.06 * (1 - gerak); avEkor.rotation.x = 0.3 + Math.abs(sw) * 0.08 * gerak; } /* Perabot modern — kuncir berayun ikut langkah */
   avatar.position.y = groundY; /* Tangga: y = lantai (0 tanah / ramp /
     4,225 balkon) — BUKAN bobbing (y tidak berayun, hanya = lantai). */
   /* Ronde 13b — pose tidur/duduk: timpa posisi/rotasi/anggota gerak
      SETELAH animasi jalan (ayunan idle tidak menggerakkan badan rebah/duduk). */
   if (roomPose) terapkanPoseKamar();
+  /* Perabot modern — bawa keranjang cucian: dua tangan memegang keranjang (lengan tidak berayun) */
+  jemuranPoseBawa(dt);
 
   /* kamera orbit fantasy: follow dengan lerp 0,15; fly "Lihat kamarku"
      me-lerp camTarget/camYaw/camPitch/camDist ke tampilan pintu. */
@@ -9410,6 +10123,9 @@ function animate() {
       camYaw = flyTarget.camYaw; camPitch = flyTarget.camPitch; camDist = flyTarget.camDist;
       flyTarget = null; flyKeep = false;
     }
+  } else if (rupaGeserY) { /* Perabot modern — HANYA saat panel Tampilan terbuka: titik pandang turun supaya avatar
+      utuh terlihat di atas/samping panel (dulu geseran hilang begitu terbang selesai); kamera main tidak berubah */
+    camTarget.lerp(rupaTitik.set(avatar.position.x, avatar.position.y + rupaGeserY, avatar.position.z), 0.15);
   } else {
     camTarget.lerp(avatar.position, 0.15);
   }
@@ -9473,10 +10189,9 @@ function animate() {
     var ibuArah = (ibuBicara && Math.hypot(ibuDx, ibuDz) <= IBU_JARAK_MENOLEH) ? Math.atan2(ibuDx, ibuDz) : 0;
     ibuAvatar.rotation.y = turnToward(ibuAvatar.rotation.y, ibuArah, 1 - Math.exp(-6 * dt));
   }
-  /* Tahap 1 — cucian pemain di jemuran bergoyang pelan (hanya di halaman, hanya saat tampil) */
-  if (myRealm === 'yard' && jemuranCucian && jemuranCucian[0].visible) {
-    for (var jc = 0; jc < jemuranCucian.length; jc++) jemuranCucian[jc].rotation.z = Math.sin(walkT * 1.6 + jc * 1.3) * 0.05;
-  }
+  /* Tahap 1 — cucian di jemuran bergoyang pelan (hanya di halaman). Perabot modern: SEMUA
+     helai (tetap + milik pemain saat tampil) berayun di poros tali, tertiup angin. */
+  if (myRealm === 'yard') jemuranTick(walkT);
   /* Tahap 3a — Jalan Kampung: Oyen (posisi dari jam) + kentongan; jajan habis 90 dtk di alam mana pun */
   if (myRealm === 'jalan') jalanTick(dt, Date.now());
   jajanTick(Date.now());
