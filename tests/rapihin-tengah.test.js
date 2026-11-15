@@ -61,8 +61,11 @@ test('rapihin: parkir TIDAK menutup pintu C/D (koridor z 13,25..16,7 lega)', () 
 });
 
 test('rapihin: jalur gerbang x 15 tembus gerbang (z 29) sampai plaza (z 14)', () => {
-  /* mesh setapak: panjang 15 (z 14..29), pusat z 21,5 */
-  assert.match(HTML, /box\(M\.path, 2\.4, 0\.06, 15, 15, 0\.03, 21\.5\)\.receiveShadow = true;/);
+  /* Halaman modern (15 Nov): setapak = selasar andesit — selasar selatan lebar
+     penuh z 14..18,6 (pusat 16,3) + jalur gerbang 2,4 m z 18,6..29 (pusat 23,8) */
+  assert.match(HTML, /kt\(Kk, H\.selasar, 0xffffff, 61\.2, 0\.05, 4\.6, 15, 0\.025, 16\.3, 1\.2\);/);
+  assert.match(HTML, /kt\(Kk, H\.selasar, 0xffffff, 2\.4, 0\.05, 10\.4, 15, 0\.025, 23\.8, 1\.2\);/);
+  assert.ok(!HTML.includes('box(M.path, 2.4, 0.06, 15, 15, 0.03, 21.5)'), 'setapak abu lama masih ada');
   assert.ok(!HTML.includes('box(M.path, 2.4, 0.06, 11.7, 15, 0.03, 23.15)'), 'setapak lama masih ada');
   /* koridor setapak (x 13,8..16,2, z 14..29) bebas dari semua AABB (kanopi C/D di x 11,85..12,15 + 17,85..18,15 tidak masuk) */
   const kor = { minX: 13.8, maxX: 16.2, minZ: 14, maxZ: 29 };
@@ -100,7 +103,9 @@ test('rapihin: teras luar DIHAPUS (alas merah + meja + bantal), ruang tamu dalam
   assert.ok(!HTML.includes('var c1 = cyl(M.cushion, 0.42, 0.42, 0.18, 14.3, 0.09, -3.2);'), 'bantal c1 masih ada');
   assert.ok(!HTML.includes('var c2 = cyl(M.cushion2, 0.42, 0.42, 0.18, 17.7, 0.09, -0.9);'), 'bantal c2 masih ada');
   assert.match(HTML, /teras luar DIHAPUS \(vonis Ryan 15 Nov 06:16/);
-  /* ruang tamu DALAM tidak ikut terhapus (rugIn + tableIn di livingScene tetap) */
-  assert.match(HTML, /var rugIn = box\(M\.rugModern, 4, 0\.05, 3, 0, 0\.03, -2\.6, livingScene\);/);
+  /* ruang tamu DALAM tidak ikut terhapus (rugIn + tableIn di livingScene tetap).
+     Interior modern (15 Nov): karpet dalam dirapikan 4 x 3 @ z -2,6 -> 4,8 x 2,5 @ z -2,7
+     (kedua bantal di dalam karpet) + bahan bertekstur — tetap ada di livingScene. */
+  assert.match(HTML, /var rugIn = box\(bahanInterior\(\)\.karpet, 4\.8, 0\.05, 2\.5, 0, 0\.03, -2\.7, livingScene\);/);
   assert.match(HTML, /var tableIn = box\(M\.walnutA, 1\.6, 0\.12, 0\.9, 0, 0\.45, -3\.1, livingScene\);/);
 });
