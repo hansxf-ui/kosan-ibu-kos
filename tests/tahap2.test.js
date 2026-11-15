@@ -160,5 +160,6 @@ test('TV + AC kamar dibangun SEKALI di roomScene (dipakai room-1..20), layar = B
   assert.equal((HTML.match(/bangunAcKamar\(\);/g) || []).length, 1);
   assert.match(HTML, /layar: new THREE\.MeshBasicMaterial\(\{ map: layar \}\)/);
   assert.match(fungsi('bangunAcKamar'), /roomScene\.add\(R\)/);
-  assert.match(fungsi('bangunTvDindingKamar'), /buatTv\(1\.1, 0\.62, roomScene\)/);
+  /* Perabot modern (15 Nov, Ryan: TV kecil): TV kamar 1,1 -> 1,45 m (16:9) */
+  assert.match(fungsi('bangunTvDindingKamar'), /buatTv\(1\.45, 0\.816, roomScene\)/);
 });
