@@ -1966,6 +1966,291 @@ function cyl(mat, rt, rb, h, x, y, z, parent) {
 /* ---------- dunia ---------- */
 var ROOM_DOORS = {};   /* n -> { mesh, pos } */
 var clickables = [];   /* mesh dengan userData.card */
+/* ================= Gedung modern tropis A-D (Ryan 15 Nov: "upgrade jadi lebih bagus modern", opsi 1) =================
+   Putih hangat + kisi kayu + kusen aluminium hitam. A/B dibangun oleh
+   bangunGedungModern(); C/D tetap KLON CERMIN A/B (bangunGedungCD), jadi
+   fasad C/D selalu sama dengan A/B (keputusan Vesper). A/C kayu jati muda,
+   B/D kayu walnut gelap (A dan B tetap beda).
+   - Bagian diam DIGABUNG per material lewat JalanKumpul (satu draw call per
+     material per bagian; warna polos = warna verteks). Mesh gabungan diberi
+     userData { gedung: 'A'|'B', bagian: 'badan'|'depan' } untuk klon C/D.
+   - TIDAK berubah: kotak tabrakan (BUILDING*, STAIR_SOLIDS, PLAZA_SOLIDS,
+     clampBalcony, lantaiY), 10 pintu per gedung (posisi + ukuran +
+     ROOM_DOORS, material sendiri per pintu untuk pulseDoor), lantai balkon
+     27,6 x 0,25 x 1,8 (permukaan 4,225), pagar kaca (mesh, ukuran, posisi
+     sama persis: kaca duduk di atas lantai Ryan 19:01, tanpa tiang Ryan
+     18:52, penghalang ujung luar Ryan 18:25), tangga terbuka (16 anak tangga
+     beton Ryan 17:29/17:37, 2 stringer, handrail, 3 tiang), kolom kanopi
+     (AABB lama 0,3 x 0,3), 2 pot ujung fasad (ukuran + posisi sama).
+   - Di bawah 2,1 m detail menonjol paling jauh 0,25 m dari dinding (kusen
+     pintu, setebal daun pintu lama); lampu dinding + unit AC di atas kepala.
+   - Menyala = MeshBasicMaterial satu bidang (kaca jendela, lampu); tidak ada
+     bidang transparan baru. Tanpa plakat nomor + papan nama (vonis Ryan). */
+var GD_W = { /* warna polos (warna verteks) */
+  putih: 0xf3efe7, hitam: 0x25282c, celah: 0x33373c, besi: 0x2f3336, beton: 0x8a8f96,
+  lampu: 0xffe9b0, buram: 0xf0e4c8, baja: 0xc3c7cb, pot: 0x45494e, daun: 0x3f9e4d
+};
+var GD_VARIAN = { /* bahan kayu per gedung (C ikut A, D ikut B) + tint verteks plafon/dek + sirip (linear) */
+  A: { kayu: 'kayuA', plafon: 0xffc8ff, dek: 0xd8d0c8, sirip: new THREE.Color().setRGB(0.78, 0.36, 0.13) }, /* jati muda */
+  B: { kayu: 'kayuB', plafon: 0xffc8ff, dek: 0xffffff, sirip: new THREE.Color().setRGB(0.3, 0.15, 0.065) } /* walnut */
+};
+var GD_KACA_ATAS = [0.64, 0.985], GD_KACA_BAWAH = [0.015, 0.615]; /* pita v tekstur kaca: kaca mati atas / jendela */
+function lukisKisiKayu(ctx, w, h) { /* kisi kayu horizontal: 6 bilah per petak 1 m + celah gelap; serat periodik = mulus berulang */
+  var r = acak(41), n = 6;
+  for (var j = 0; j < n; j++) {
+    var c = r(), y0 = Math.round(j * h / n), y1 = Math.round((j + 1) * h / n);
+    ctx.fillStyle = 'rgb(' + (184 + Math.floor(c * 22)) + ',' + (128 + Math.floor(c * 18)) + ',' + (80 + Math.floor(c * 12)) + ')';
+    ctx.fillRect(0, y0, w, y1 - y0);
+    for (var g = 0; g < 6; g++) {
+      var y = y0 + 4 + r() * (y1 - y0 - 14), a = 0.06 + r() * 0.1, fase = r() * 6.28, amp = 0.6 + r() * 1.1, per = 1 + Math.floor(r() * 3);
+      ctx.strokeStyle = (r() < 0.65 ? 'rgba(96,54,22,' : 'rgba(240,204,156,') + a + ')';
+      ctx.lineWidth = 0.8 + r() * 1.2;
+      ctx.beginPath(); ctx.moveTo(0, y + Math.sin(fase) * amp);
+      for (var x = 8; x <= w; x += 8) ctx.lineTo(x, y + Math.sin(x / w * Math.PI * 2 * per + fase) * amp);
+      ctx.stroke();
+    }
+    ctx.fillStyle = 'rgba(255,238,206,0.25)'; ctx.fillRect(0, y0, w, 2); /* tepi atas bilah kena cahaya */
+    ctx.fillStyle = 'rgba(60,34,14,0.30)'; ctx.fillRect(0, y1 - 9, w, 3); /* bayangan bawah bilah */
+    ctx.fillStyle = 'rgba(30,18,8,0.88)'; ctx.fillRect(0, y1 - 6, w, 6); /* celah antar bilah */
+  }
+}
+function lukisBatuAlam(ctx, w, h) { /* batu alam andesit potong: 4 baris per petak 1 m, nat gelap; batu yang lewat tepi kanan disambung di kiri (mulus berulang) */
+  ctx.fillStyle = '#56534f'; ctx.fillRect(0, 0, w, h);
+  var r = acak(23), baris = 4, bh = h / baris;
+  function batu(x, y, bw, c) {
+    [x, x - w].forEach(function (xx) {
+      if (xx + bw <= 0 || xx >= w) return;
+      ctx.fillStyle = 'rgb(' + c + ',' + (c - 3) + ',' + (c - 8) + ')'; ctx.fillRect(xx + 2, y + 2, bw - 4, bh - 4);
+      ctx.fillStyle = 'rgba(255,255,255,0.10)'; ctx.fillRect(xx + 2, y + 2, bw - 4, 2);
+      ctx.fillStyle = 'rgba(0,0,0,0.12)'; ctx.fillRect(xx + 2, y + bh - 5, bw - 4, 3);
+    });
+  }
+  for (var j = 0; j < baris; j++) {
+    var x = Math.floor(r() * 60), akhir = x + w;
+    while (x < akhir - 1) {
+      var bw = 44 + Math.floor(r() * 60);
+      if (akhir - x - bw < 36) bw = akhir - x;
+      batu(x, j * bh, bw, 112 + Math.floor(r() * 44));
+      x += bw;
+    }
+  }
+  for (var k = 0; k < 900; k++) { var t = 60 + Math.floor(r() * 120); ctx.fillStyle = 'rgba(' + t + ',' + t + ',' + t + ',0.22)'; ctx.fillRect(r() * w, r() * h, 2, 2); }
+}
+function lukisKacaJendela(ctx, w, h) {
+  /* kaca (Basic, satu bidang): pita ATAS 0..96 px = kaca mati di atas pintu/jendela
+     (pantulan langit); BAWAH 96..256 = kaca jendela: gorden krem kiri-kanan + ruang
+     dalam redup + lampu kamar samar + pantulan langit miring */
+  var A = 96;
+  var g1 = ctx.createLinearGradient(0, 0, 0, A);
+  g1.addColorStop(0, '#e4eef3'); g1.addColorStop(1, '#a3bccb');
+  ctx.fillStyle = g1; ctx.fillRect(0, 0, w, A);
+  var g2 = ctx.createLinearGradient(0, A, 0, h);
+  g2.addColorStop(0, '#9ab2c0'); g2.addColorStop(0.55, '#6c8593'); g2.addColorStop(1, '#576b77');
+  ctx.fillStyle = g2; ctx.fillRect(0, A, w, h - A);
+  var gl = ctx.createRadialGradient(w / 2, A + 34, 4, w / 2, A + 34, 64);
+  gl.addColorStop(0, 'rgba(255,224,168,0.6)'); gl.addColorStop(1, 'rgba(255,224,168,0)');
+  ctx.fillStyle = gl; ctx.fillRect(0, A, w, h - A);
+  [[0, 66], [w - 66, w]].forEach(function (g) { /* gorden + lipatan */
+    for (var x = g[0]; x < g[1]; x++) {
+      var t = 0.8 + 0.2 * Math.cos((x - g[0]) / 11 * Math.PI);
+      ctx.fillStyle = 'rgb(' + Math.round(238 * t) + ',' + Math.round(228 * t) + ',' + Math.round(210 * t) + ')';
+      ctx.fillRect(x, A + 4, 1, h - A - 4);
+    }
+  });
+  ctx.fillStyle = '#4a4d52'; ctx.fillRect(0, A, w, 5); /* rel gorden */
+  ctx.fillStyle = 'rgba(255,255,255,0.18)'; /* pantulan langit miring */
+  [[24, 44], [150, 22]].forEach(function (p) { ctx.beginPath(); ctx.moveTo(p[0], 0); ctx.lineTo(p[0] + p[1], 0); ctx.lineTo(p[0] + p[1] - 96, h); ctx.lineTo(p[0] - 96, h); ctx.closePath(); ctx.fill(); });
+}
+function lukisPintu(kayu) { /* daun pintu kamar: kayu serat vertikal + strip kaca buram di sisi engsel + 3 alur halus di sisi gagang */
+  return function (ctx, w, h) {
+    ctx.fillStyle = kayu; ctx.fillRect(0, 0, w, h);
+    var r = acak(57);
+    for (var i = 0; i < 30; i++) {
+      var x = r() * w, a = 0.05 + r() * 0.1, fase = r() * 6.28;
+      ctx.strokeStyle = (r() < 0.6 ? 'rgba(70,40,16,' : 'rgba(244,214,170,') + a + ')';
+      ctx.lineWidth = 0.8 + r() * 1.5;
+      ctx.beginPath(); ctx.moveTo(x, 0);
+      for (var y = 8; y <= h; y += 8) ctx.lineTo(x + Math.sin(y / h * Math.PI * 3 + fase) * 1.6, y);
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#2a2d31'; ctx.fillRect(22, 26, 16, h - 52); /* bingkai strip kaca */
+    var gk = ctx.createLinearGradient(0, 29, 0, h - 29);
+    gk.addColorStop(0, '#e2eaee'); gk.addColorStop(1, '#b4c3cb');
+    ctx.fillStyle = gk; ctx.fillRect(25, 29, 10, h - 58);
+    ctx.fillStyle = 'rgba(40,22,8,0.5)';
+    [0.32, 0.5, 0.68].forEach(function (f) { ctx.fillRect(54, Math.round(h * f), w - 66, 2); });
+    ctx.strokeStyle = 'rgba(30,18,6,0.45)'; ctx.lineWidth = 3; ctx.strokeRect(1.5, 1.5, w - 3, h - 3);
+  };
+}
+function lukisBetonAtap(ctx, w, h) { /* dak beton atap (lapisan kedap air): abu terang berbintik halus + nat tipis per petak (2 m) */
+  ctx.fillStyle = '#d2cec6'; ctx.fillRect(0, 0, w, h);
+  var r = acak(61);
+  for (var i = 0; i < 2400; i++) { var c = 168 + Math.floor(r() * 60); ctx.fillStyle = 'rgba(' + c + ',' + c + ',' + (c - 5) + ',0.25)'; ctx.fillRect(r() * w, r() * h, 1 + r() * 2, 1 + r() * 2); }
+  ctx.fillStyle = 'rgba(96,90,82,0.35)'; ctx.fillRect(0, 0, w, 2); ctx.fillRect(0, 0, 2, h);
+}
+function lukisAcLuar(ctx, w, h) { /* muka unit luar AC: badan putih, kisi kipas bulat, sirip samping */
+  ctx.fillStyle = '#eceef0'; ctx.fillRect(0, 0, w, h);
+  var cx = w * 0.4, cy = h / 2, R = h * 0.36;
+  ctx.fillStyle = '#3a3f45'; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = 'rgba(214,220,226,0.6)'; ctx.lineWidth = 2;
+  for (var k = 1; k <= 4; k++) { ctx.beginPath(); ctx.arc(cx, cy, R * k / 4.3, 0, Math.PI * 2); ctx.stroke(); }
+  ctx.beginPath(); ctx.moveTo(cx - R, cy); ctx.lineTo(cx + R, cy); ctx.moveTo(cx, cy - R); ctx.lineTo(cx, cy + R); ctx.stroke();
+  ctx.fillStyle = 'rgba(70,76,82,0.35)';
+  for (var y = 16; y < h - 12; y += 8) ctx.fillRect(w * 0.76, y, w * 0.17, 3);
+  ctx.strokeStyle = 'rgba(130,136,142,0.7)'; ctx.lineWidth = 3; ctx.strokeRect(1.5, 1.5, w - 3, h - 3);
+}
+var GD = null; /* bahan gedung modern: dibuat sekali, dipakai A-D + latar punggung C/D di Jalan Kampung */
+function bahanGedung() {
+  if (GD) return GD;
+  function tek(kunci, w, h, lukis, ulang) { return krMat('gdtex:' + kunci, function () { return teksturLukis(w, h, lukis, ulang ? [1, 1] : null); }); }
+  function lam(kunci, opsi) { return krMat('gd:' + kunci, function () { return new THREE.MeshLambertMaterial(opsi); }); }
+  /* Cahaya halaman (matahari 2,0 + hemisfer 1,0 bertanah hijau, tanpa tone
+     mapping) membuat muka vertikal gelap + kehijauan: putih biasa 0xf3efe7 di
+     teduh tampil abu-sage (126,148,138), kayu jati tampil cokelat tua. Putih +
+     kayu gedung diberi warna linear > 1 + emissive hangat kecil (diukur dari
+     screenshot): putih teduh ~(176,174,169), putih kena matahari ~(232,228,219);
+     jati kena matahari ~(169,118,66), walnut ~(118,81,44). Bahan lain tidak berubah. */
+  var kisi = tek('kisiKayu', 256, 256, lukisKisiKayu, true);
+  function kayu(kunci, kuat, hangat) { /* emissive datar (tanpa emissiveMap: satu sampel tekstur per piksel); hangat x 0,45 = rata-rata tekstur kisi */
+    return lam(kunci, { vertexColors: true, map: kisi, color: new THREE.Color().setRGB(kuat, kuat, kuat), emissive: new THREE.Color().setRGB(hangat[0] * 0.45, hangat[1] * 0.2, hangat[2] * 0.08) });
+  }
+  GD = {
+    polos: lam('polos', { vertexColors: true }),
+    nyala: krMat('gd:nyala', function () { return new THREE.MeshBasicMaterial({ vertexColors: true }); }),
+    putih: lam('putih', { color: new THREE.Color().setRGB(1.594, 1.691, 1.919), emissive: new THREE.Color().setRGB(0.233, 0.075, 0.045) }),
+    kayuA: kayu('kayuA', 1.5, [0.3, 0.22, 0.16]), /* jati muda */
+    kayuB: kayu('kayuB', 0.75, [0.12, 0.08, 0.06]), /* walnut */
+    batu: lam('batu', { vertexColors: true, map: tek('batu', 256, 256, lukisBatuAlam, true) }),
+    beton: lam('beton', { vertexColors: true, map: tek('beton', 256, 256, lukisBetonAtap, true) }),
+    kaca: krMat('gd:kaca', function () { return new THREE.MeshBasicMaterial({ color: 0xeeeeee, map: tek('kaca', 256, 256, lukisKacaJendela) }); }),
+    ac: lam('ac', { map: tek('ac', 128, 88, lukisAcLuar), emissiveMap: tek('ac', 128, 88, lukisAcLuar), color: new THREE.Color().setRGB(1.594, 1.691, 1.919), emissive: new THREE.Color().setRGB(0.233, 0.075, 0.045) }),
+    acPolos: lam('acPolos', { map: tek('ac', 128, 88, lukisAcLuar) }), /* latar Jalan Kampung: cahaya jalan lain, kalibrasi halaman jadi ungu */
+    /* pintu: TANPA emissive (pulseDoor memakai emissive per pintu); warna > 1 sedikit
+       merah supaya di teduh balkon tidak cokelat-zaitun */
+    pintuA: lam('pintuA', { map: tek('pintuA', 128, 256, lukisPintu('#8d6440')), color: new THREE.Color().setRGB(1.3, 1.08, 1.0) }), /* walnut sedang (dulu walnut nyaris hitam) */
+    pintuB: lam('pintuB', { map: tek('pintuB', 128, 256, lukisPintu('#c99c69')), color: new THREE.Color().setRGB(1.2, 1.0, 0.95) }) /* oak muda di dinding walnut */
+  };
+  return GD;
+}
+/* Kulit gedung (koordinat A/B: dinding x cx±13, muka z -6, belakang z -14, atas 9,5):
+   kotak putih, plint batu, atap dak melayang (celah gelap + pelat putih overhang
+   0,6 / depan 0,9 + plafon kayu + permukaan beton), sirip kayu di dinding samping
+   dalam (s = sisi tangga), punggung (jendela kamar mandi + unit luar AC per kamar). denganMuka:
+   + muka depan (kisi kayu lantai 2, kusen + kaca mati, jendela, gagang, lampu).
+   Dipakai bangunGedungModern (A/B) + latar punggung C/D di Jalan Kampung. */
+function gedungKulit(Kb, Kk, cx, s, varian, denganMuka, putihPolos) {
+  var G = bahanGedung(), W = GD_W, x0 = cx - 13, x1 = cx + 13, KY = G[varian.kayu];
+  var PT = putihPolos ? G.polos : G.putih, PH = putihPolos ? W.putih : null; /* putihPolos: latar Jalan Kampung (cahaya isi sendiri; putih terkalibrasi halaman tampil ungu di sana) */
+  function kt(K, mat, hex, w, h, d, x, y, z, petak) { K.cat(hex); K.kotak(mat, w, h, d, x, y, z, 0, petak); }
+  function kaca(w, h, x, y, z, pita) { /* bidang kaca menghadap +z, UV = satu pita tekstur kaca */
+    var g = new THREE.PlaneGeometry(w, h), uv = g.attributes.uv;
+    for (var q = 0; q < uv.count; q++) uv.setXY(q, 0.01 + uv.getX(q) * 0.98, pita[0] + uv.getY(q) * (pita[1] - pita[0]));
+    Kk.cat(null); Kk.tambah(G.kaca, g, x, y, z);
+  }
+  kt(Kb, PT, PH, 26, 10, 8, cx, 4.5, -10); /* kotak utama (sama: y -0,5..9,5) */
+  kt(Kk, G.batu, 0xffffff, 0.06, 0.55, 8.12, x0 - 0.03, 0.225, -10, 1); /* plint samping + belakang */
+  kt(Kk, G.batu, 0xffffff, 0.06, 0.55, 8.12, x1 + 0.03, 0.225, -10, 1);
+  kt(Kk, G.batu, 0xffffff, 26.12, 0.55, 0.06, cx, 0.225, -14.03, 1);
+  kt(Kk, G.polos, W.celah, 25.7, 0.3, 7.7, cx, 9.65, -10); /* celah gelap: atap terlihat melayang */
+  kt(Kb, PT, PH, 27.2, 0.43, 9.5, cx, 10.015, -9.85); /* pelat atap */
+  kt(Kk, G.beton, 0xffffff, 27.2, 0.02, 9.5, cx, 10.24, -9.85, 2);
+  kt(Kk, KY, varian.plafon, 27.2, 0.01, 9.5, cx, 9.795, -9.85, 1); /* plafon kayu di bawah overhang */
+  /* 9 sirip kayu vertikal di dinding samping DALAM (tanpa tangga; A timur / B barat,
+     saling berhadapan di celah A-B, C/D membingkai jalur gerbang): plint -> plafon
+     atap, menonjol 0,22 m (batas tabrakan samping 0,4 m dari dinding) */
+  var xi = cx - s * 13;
+  for (var f = -4; f <= 4; f++) kt(Kk, G.polos, varian.sirip, 0.22, 9.24, 0.06, xi - s * 0.11, 5.17, -10 + f * 0.22);
+  [-10, -5, 0, 5, 10].forEach(function (o) { /* punggung per kamar: jendela kamar mandi (kaca buram) + unit luar AC (bawah 2,45 m) */
+    [0, 4.2].forEach(function (yb) {
+      var xj = cx + o - 1.3, yj = yb + 2.6, xa = cx + o + 1.25, ya = yb + 2.75;
+      kt(Kk, G.polos, W.hitam, 0.78, 0.58, 0.04, xj, yj, -14.02); /* bingkai hitam (satu kotak di belakang kaca) */
+      kt(Kk, G.nyala, W.buram, 0.66, 0.46, 0.02, xj, yj, -14.045); /* kaca buram, lampu kamar mandi menyala (seperti latar lama) */
+      kt(Kk, PT, PH, 0.8, 0.55, 0.28, xa, ya, -14.16);
+      Kk.cat(null); Kk.tambah(putihPolos ? G.acPolos : G.ac, new THREE.PlaneGeometry(0.8, 0.55), xa, ya, -14.302, 0, Math.PI, 0);
+      kt(Kk, G.polos, W.hitam, 0.04, 0.04, 0.34, xa - 0.3, ya - 0.295, -14.17); /* siku */
+      kt(Kk, G.polos, W.hitam, 0.04, 0.04, 0.34, xa + 0.3, ya - 0.295, -14.17);
+    });
+  });
+  if (!denganMuka) return;
+  var xd = [-10, -5, 0, 5, 10].map(function (o) { return cx + o; }); /* pintu (sama dengan doorXA/doorXB) */
+  var xw = [-7.5, -2.5, 2.5, 7.5].map(function (o) { return cx + o; }); /* jendela di tengah antar pintu */
+  var tepi = [x0]; xd.forEach(function (x) { tepi.push(x - 0.73, x + 0.73); }); tepi.push(x1);
+  for (var t = 0; t < tepi.length; t += 2) kt(Kk, G.batu, 0xffffff, tepi[t + 1] - tepi[t], 0.55, 0.06, (tepi[t] + tepi[t + 1]) / 2, 0.225, -5.97, 1); /* plint muka di sela kusen */
+  kt(Kk, KY, 0xffffff, 25.4, 5.275, 0.05, cx, 6.8625, -5.975, 1); /* lantai 2: kisi kayu, sisa putih 0,3 m di sudut = bingkai */
+  [0, 4.2].forEach(function (yb) {
+    xd.forEach(function (x) {
+      kt(Kk, G.polos, W.hitam, 0.08, 3.16, 0.25, x - 0.69, yb + 1.58, -5.875); /* kusen: puncak 3,16 = puncak jendela */
+      kt(Kk, G.polos, W.hitam, 0.08, 3.16, 0.25, x + 0.69, yb + 1.58, -5.875);
+      kt(Kk, G.polos, W.hitam, 1.3, 0.08, 0.25, x, yb + 2.44, -5.875);
+      kt(Kk, G.polos, W.hitam, 1.3, 0.08, 0.25, x, yb + 3.12, -5.875);
+      kaca(1.3, 0.6, x, yb + 2.78, -5.93, GD_KACA_ATAS); /* kaca mati di atas pintu */
+      kt(Kk, G.polos, W.baja, 0.05, 0.16, 0.02, x + 0.5, yb + 1.05, -5.76); /* gagang tuas baja + roset */
+      kt(Kk, G.polos, W.baja, 0.16, 0.03, 0.03, x + 0.44, yb + 1.1, -5.735);
+      kt(Kk, G.polos, W.hitam, 0.1, 0.3, 0.1, x - 1.0, yb + 2.2, -5.95); /* lampu dinding up-down sisi engsel */
+      kt(Kk, G.nyala, W.lampu, 0.07, 0.02, 0.07, x - 1.0, yb + 2.36, -5.95);
+      kt(Kk, G.nyala, W.lampu, 0.07, 0.02, 0.07, x - 1.0, yb + 2.04, -5.95);
+    });
+    xw.forEach(function (x) { /* jendela 2,4 x 2,28: kaca bawah (mullion tengah) + kaca mati atas, ambang putih */
+      kt(Kk, G.polos, W.hitam, 0.08, 2.28, 0.15, x - 1.16, yb + 2.02, -5.925);
+      kt(Kk, G.polos, W.hitam, 0.08, 2.28, 0.15, x + 1.16, yb + 2.02, -5.925);
+      kt(Kk, G.polos, W.hitam, 2.24, 0.08, 0.15, x, yb + 0.92, -5.925);
+      kt(Kk, G.polos, W.hitam, 2.24, 0.08, 0.15, x, yb + 2.44, -5.925);
+      kt(Kk, G.polos, W.hitam, 2.24, 0.08, 0.15, x, yb + 3.12, -5.925);
+      kt(Kk, G.polos, W.hitam, 0.06, 1.44, 0.12, x, yb + 1.68, -5.94);
+      kt(Kk, G.putih, null, 2.56, 0.06, 0.16, x, yb + 0.85, -5.92);
+      kaca(2.24, 1.44, x, yb + 1.68, -5.93, GD_KACA_BAWAH);
+      kaca(2.24, 0.6, x, yb + 2.78, -5.93, GD_KACA_ATAS);
+    });
+  });
+  xd.concat(xw).forEach(function (x) { kt(Kk, G.nyala, W.lampu, 0.16, 0.012, 0.16, x, 9.784, -5.55); }); /* lampu sorot di plafon atap */
+}
+/* Gedung A (nama 'A', cx -1, tangga barat s -1) / B ('B', 31, timur s +1). */
+function bangunGedungModern(nama, cx, s, varian) {
+  var G = bahanGedung(), W = GD_W;
+  var Kb = new JalanKumpul(scene), Kbk = new JalanKumpul(scene), Kd = new JalanKumpul(scene), Kdk = new JalanKumpul(scene);
+  function kt(K, mat, hex, w, h, d, x, y, z, petak) { K.cat(hex); K.kotak(mat, w, h, d, x, y, z, 0, petak); }
+  gedungKulit(Kb, Kbk, cx, s, varian, true);
+  var bx = cx + s * 0.8; /* pusat lantai balkon (ujung luar = pendaratan tangga) */
+  kt(Kd, G[varian.kayu], varian.dek, 27.6, 0.25, 1.8, bx, 4.1, -5.1, 1); /* lantai balkon SAMA (atas 4,225), kini papan kayu */
+  kt(Kd, G.putih, null, 27.6, 0.45, 0.08, bx, 4.0, -4.16); /* pelat balkon tebal: lis putih depan + 2 ujung (y 3,775..4,225) */
+  kt(Kd, G.putih, null, 0.08, 0.45, 1.88, cx - s * 13.04, 4.0, -5.06);
+  kt(Kd, G.putih, null, 0.08, 0.45, 1.88, cx + s * 14.64, 4.0, -5.06);
+  kt(Kdk, G[varian.kayu], varian.plafon, 27.6, 0.01, 1.88, bx, 3.78, -5.06, 1); /* plafon kayu bawah balkon (ganti kanopi masuk + strip glow) */
+  [-10, -7.5, -5, -2.5, 0, 2.5, 5, 7.5, 10].forEach(function (o) { kt(Kdk, G.nyala, W.lampu, 0.16, 0.012, 0.16, cx + o, 3.769, -5.0); }); /* lampu sorot */
+  kt(Kd, G.polos, W.hitam, 0.18, 3.775, 0.18, cx - 13, 1.8875, -4.8); /* kolom baja (AABB lama 0,3 x 0,3) sampai bawah pelat */
+  kt(Kd, G.polos, W.hitam, 0.18, 3.775, 0.18, cx + 13, 1.8875, -4.8);
+  kt(Kd, G.polos, W.besi, 27.6, 0.12, 0.12, bx, 5.15, -4.2); /* rel atas pagar kaca depan + 2 samping (sama) */
+  kt(Kd, G.polos, W.besi, 0.12, 0.12, 1.8, cx - s * 13, 5.15, -5.1);
+  kt(Kd, G.polos, W.besi, 0.12, 0.12, 1.8, cx + s * 14.6, 5.15, -5.1);
+  for (var i = 0; i < 16; i++) kt(Kd, G.polos, W.beton, 1.6, 0.08, 0.5, cx + s * 13.8, (i + 1) * 0.264 - 0.04, -14 + (i + 0.5) * 0.5); /* tangga SAMA */
+  Kd.cat(W.besi);
+  Kd.tambah(G.polos, new THREE.BoxGeometry(0.08, 0.35, 9.05), cx + s * 14.55, 1.87, -10, -0.484, 0, 0); /* stringer luar */
+  Kd.tambah(G.polos, new THREE.BoxGeometry(0.08, 0.35, 9.05), cx + s * 13.05, 1.87, -10, -0.484, 0, 0); /* stringer dalam */
+  Kd.tambah(G.polos, new THREE.BoxGeometry(0.08, 0.08, 9.05), cx + s * 14.6, 3.0, -10, -0.484, 0, 0); /* handrail */
+  [-13, -10, -7].forEach(function (z) { var ry = 0.9 + ((z + 14) / 8) * 4.2; kt(Kd, G.polos, W.besi, 0.08, 1.0, 0.08, cx + s * 14.6, ry - 0.5, z); });
+  var bolaDaun = new THREE.SphereGeometry(0.25, 12, 9); /* 192 segitiga (GEO.sphere 560): mesh gabungan tidak di-cull per pot */
+  [cx - 12.5, cx + 12.5].forEach(function (x) { /* 2 pot ujung fasad: ukuran + posisi sama, kini pot beton abu */
+    kt(Kd, G.polos, W.pot, 0.35, 0.3, 0.35, x, 0.15, -5.2);
+    Kd.cat(W.daun); Kd.tambah(G.polos, bolaDaun, x, 0.55, -5.2);
+  });
+  var rel = []; /* pagar kaca: mesh + ukuran + posisi SAMA PERSIS (transparan, tidak digabung) */
+  [-9.75, -3.25, 3.25, 9.75].forEach(function (o) { rel.push(box(M.glassRail, 6.3, 0.925, 0.03, cx + o, 4.6875, -4.22)); });
+  rel.push(box(M.glassRail, 1.5, 0.925, 0.03, cx + s * 13.85, 4.6875, -4.22)); /* penghalang ujung luar */
+  rel.push(box(M.glassRail, 0.03, 0.925, 1.8, cx - s * 13, 4.6875, -5.1)); /* samping dalam */
+  rel.push(box(M.glassRail, 0.03, 0.925, 1.8, cx + s * 14.6, 4.6875, -5.1)); /* samping luar (pendaratan) */
+  rel.forEach(function (m) { m.userData = { gedung: nama, bagian: 'depan' }; });
+  [[Kb, true, 'badan'], [Kbk, false, 'badan'], [Kd, true, 'depan'], [Kdk, false, 'depan']].forEach(function (p) {
+    var hasil = p[0].selesai(p[1]);
+    for (var u in hasil) {
+      hasil[u].userData = { gedung: nama, bagian: p[2] };
+      /* kotak utama + pelat atap digambar SESUDAH detail fasad (mesh gabungan semua
+         berpusat di 0,0,0 jadi urutan jarak tidak membantu): muka dinding di balik
+         kisi kayu / kusen / jendela / balkon ditolak uji kedalaman, tidak diwarnai dua
+         kali. 0,5 < 1 = latar jalan di halaman (tetap paling akhir). Klon C/D ikut. */
+      if (p[0] === Kb) hasil[u].renderOrder = 0.5;
+    }
+  });
+}
 /* ================= Gedung C & D (perintah Ryan 15 Nov 00:41) =================
    20 kamar baru K21-K40 di baris SELATAN, sejajar A & B, menghadap UTARA ke
    alun-alun (gazebo). C = cermin A, D = cermin B terhadap z = 6,3
@@ -1982,21 +2267,23 @@ var clickables = [];   /* mesh dengan userData.card */
    tetap tampil supaya pijakannya tidak hilang. */
 var GEDUNG_CD = [];
 function bangunGedungCD(meshAB, doorXA, doorXB) {
+  var G = bahanGedung();
   var defs = [
-    { nama: 'C', kotak: BUILDING_C, sumberB: false, awal: 21, doorX: doorXA, mat: M.walnutA },
-    { nama: 'D', kotak: BUILDING_D, sumberB: true, awal: 31, doorX: doorXB, mat: M.walnutB }
+    { nama: 'C', kotak: BUILDING_C, sumberB: false, awal: 21, doorX: doorXA, mat: G.pintuA },
+    { nama: 'D', kotak: BUILDING_D, sumberB: true, awal: 31, doorX: doorXB, mat: G.pintuB }
   ];
   defs.forEach(function (d) {
     var badan = new THREE.Group(), depan = new THREE.Group();
     [badan, depan].forEach(function (gr) { gr.scale.z = -1; gr.position.z = CERMIN_CD_Z; scene.add(gr); });
     badan.name = 'gedung' + d.nama + '-badan'; depan.name = 'gedung' + d.nama + '-depan';
     meshAB.forEach(function (m) {
-      if (!m.isMesh || (m.userData && m.userData.card === 'room')) return; /* pintu A/B tidak diklon */
-      if ((m.position.x >= 15) !== d.sumberB) return;
-      var p = m.position;
-      var tangga = (p.x <= -14.0 && p.x >= -15.7 || p.x >= 44.0 && p.x <= 45.7) && p.y < 6 && p.z < -5.75;
-      var diBadan = !tangga && p.z <= -5.75;
-      (diBadan ? badan : depan).add(m.clone());
+      /* Gedung modern: mesh A/B (gabungan + pagar kaca) berlabel userData.gedung
+         ('A'|'B') + bagian ('badan' = dinding/atap/jendela/kusen, 'depan' =
+         balkon/pagar kaca/kolom/tangga/pot). Pintu A/B tidak diklon. */
+      var u = m.userData || {};
+      if (!m.isMesh || u.card === 'room' || !u.gedung) return;
+      if ((u.gedung === 'B') !== d.sumberB) return;
+      (u.bagian === 'badan' ? badan : depan).add(m.clone());
     });
     for (var n = d.awal; n < d.awal + 10; n++) {
       var k = n - d.awal, floor2 = k >= 5, x = d.doorX[k % 5], yBase = floor2 ? 4.2 : 0;
@@ -2061,260 +2348,42 @@ function buildWorld() {
   box(M.path, 2.4, 0.06, 15, 15, 0.03, 21.5).receiveShadow = true;
 
   var awalGedungAB = scene.children.length; /* Gedung C & D: semua mesh A/B sesudah titik ini dicerminkan */
-  /* ---- gedung kosan: batu terang modern, 2 lantai ---- */
-  /* ---- Fase 1 Task 1 — Gedung A modern (26x10x8, batu terang):
-     REPLACEMENT blok biru lama (24x7x8). Ruling R1: kotak utama dalam 8
-     (bukan 7) — muka gedung TETAP z=-6 (spek §5.6.1: z -14..-6); angka
-     "7 dalam" adalah nomor tinggi kotak lama yang salah label.
-     Pusat x=-1; lantai 4,2 m; TANPA lantai 3; pintu x TETAP. */
-  var bld = box(M.stoneLight, 26, 10, 8, -1, 4.5, -10);
-  bld.castShadow = true;
-  /* lis lantai + lis atap (steelDark, menggantikan lis putih) */
-  box(M.steelDark, 26.4, 0.2, 7.4, -1, 4.2, -10);
-  box(M.steelDark, 26.4, 0.2, 7.4, -1, 9.42, -10);
-  /* pelat atap */
-  box(M.stoneLight, 26.4, 0.1, 7.4, -1, 9.15, -10);
-  /* parapet (steelDark, 0,8 tinggi, y 9,1..9,9) */
-  box(M.steelDark, 26.4, 0.8, 0.25, -1, 9.5, -6.2);
-  box(M.steelDark, 26.4, 0.8, 0.25, -1, 9.5, -13.8);
-  box(M.steelDark, 0.25, 0.8, 7.4, -14.2, 9.5, -10);
-  box(M.steelDark, 0.25, 0.8, 7.4, 12.2, 9.5, -10);
-  /* kanopi atap melayang (overhang di semua sisi parapet) + 4 kolom */
-  box(M.stoneLight, 27, 0.2, 8, -1, 10.4, -10);
-  box(M.steelDark, 0.12, 1.25, 0.12, -13.5, 9.775, -6.5);
-  box(M.steelDark, 0.12, 1.25, 0.12, 11.5, 9.775, -6.5);
-  box(M.steelDark, 0.12, 1.25, 0.12, -13.5, 9.775, -13.5);
-  box(M.steelDark, 0.12, 1.25, 0.12, 11.5, 9.775, -13.5);
-  /* Desain Ulang Fasad Total ref 1 (13 Nov 2026, Ryan: "coba buat") —
-     konsep HORIZONTAL ganti vertikal: cladding slate bawah (y -0,5..4,2)
-     + kayu hangat atas (y 4,2..9,4); bay + panel ramping DICABUT. */
-  box(M.slate, 26, 4.7, 0.1, -1, 1.85, -5.95); /* cladding bawah slate */
-  box(M.woodCeil, 26, 5.2, 0.1, -1, 6.8, -5.95); /* cladding atas kayu */
-
-  /* jendela BESAR ref 1 (bingkai steelDark + kaca hangat SATU lapis) */
-  var winX = [-8.5, -3.5, 1.5, 6.5]; /* Fix Pintu Simetris (13 Nov 2026, vonis Ryan: pintu meleset 1 m dari pusat gedung) — geser -1, tetap di tengah antara pintu */
-  winX.forEach(function (x) {
-    [2.1, 6.3].forEach(function (y) {
-      box(M.steelDark, 2.6, 3.0, 0.08, x, y, -5.83);
-      box(M.glass, 2.3, 2.7, 0.02, x, y, -5.78);
-    });
-  });
-
-  /* balkon lantai 2 (selebar gedung baru 26 m) + pagar kaca + kolom */
-  /* Pagar kaca balkon (depan + samping, A dan B): bawah kaca HARUS di
-     permukaan deck (y=4,225) — tinggi 0,925, pusat y=4,6875, atas tetap
-     5,15 (rel atas). Perbaikan 19:01 atas lingkaran Ryan 18:01 ("kelebihan
-     tuh kacanya, gak pas kayak yang lain"): tadinya kaca 1,0 m (y 4,15..5,15)
-     menumpang 7,5 cm DI BAWAH permukaan deck, menutupi tepi atas fascia kayu
-     — fascia jadi 2 warna (pucat di balik kaca + kayu polos di bawahnya).
-     Kini kaca duduk DI ATAS deck, fascia kayu satu warna bersih. */
-  box(M.floorWood, 27.6, 0.25, 1.8, -1.8, 4.1, -5.1);
-  [-10.75, -4.25, 2.25, 8.75].forEach(function (x) {
-    box(M.glassRail, 6.3, 0.925, 0.03, x, 4.6875, -4.22);
-  });
-  /* Penghalang ujung LUAR (Ryan 18:25): perpanjang kaca depan sampai ujung
-     deck (x=-15,6) — segmen 1,5 m, celah 0,2 m ke segmen lama (sama seperti
-     antar segmen) + rel atas diperpanjang ke x=-15,6. */
-  box(M.glassRail, 1.5, 0.925, 0.03, -14.85, 4.6875, -4.22);
-  box(M.steelDark, 27.6, 0.12, 0.12, -1.8, 5.15, -4.2);
-
-  /* Tangga lantai 2 (Ryan 16:28) — Gedung A barat (x=-14): 16 tread tipis
-     (tangga terbuka, Ryan 17:29 — permukaan atas TETAP (i+1)*0,264, sama
-     seperti balok padat v1) + 2 stringer miring + handrail miring + 3 tiang.
-     Tread BETON M.slateSoft (koreksi Ryan 17:37: "kosan beton kok tangganya
-     papan" — tread kayu floorWood diganti beton abu-abu, sudah di palet).
-     Koridor x -15,6..-14,4, z -14..-6, y 0 -> 4,225 (balkon). */
-  for (var i = 0; i < 16; i++) {
-    box(M.slateSoft, 1.6, 0.08, 0.5, -14.8, (i + 1) * 0.264 - 0.04, -14 + (i + 0.5) * 0.5);
-  }
-  /* Stringer miring (tangga terbuka) — tepi atas menempel di bawah tread.
-     y pusat 1,87 (BUKAN 2,1: 2,1 menembus 0,14 m ke atas tread; 1,87 =
-     tepi atas stringer 0,007 di bawah underside tread di tengah flight,
-     menyatu ke badan tread di tepi depan tiap anak tangga). */
-  var stA1 = box(M.steelDark, 0.08, 0.35, 9.05, -15.55, 1.87, -10);
-  stA1.rotation.x = -0.484;
-  var stA2 = box(M.steelDark, 0.08, 0.35, 9.05, -14.05, 1.87, -10);
-  stA2.rotation.x = -0.484;
-  var hrA = box(M.steelDark, 0.08, 0.08, 9.05, -15.6, 3.0, -10);
-  hrA.rotation.x = -0.484; /* miring mengikuti tangga (naik 4,2 m sepanjang 8 m) */
-  [-13, -10, -7].forEach(function (z) {
-    var ry = 0.9 + ((z + 14) / 8) * 4.2; /* tinggi rel di z */
-    box(M.steelDark, 0.08, 1.0, 0.08, -15.6, ry - 0.5, z);
-  });
-
-  /* Pagar samping balkon (Ryan 16:22) — tutup ujung DALAM (A timur, x=12)
-     supaya orang tidak jatuh. TANPA TIANG SAMA SEKALI (Ryan 18:52 + 18:54:
-     "harus sama semua" — sambungan kaca yang samar; tiang kaca depan DIBUANG,
-     tiang hitam belakang (z=-6,0) DIBUANG juga biar panel dalam = panel
-     luar = sambungan kaca, tidak ada yang beda). */
-  box(M.glassRail, 0.03, 0.925, 1.8, 12, 4.6875, -5.1);
-  box(M.steelDark, 0.12, 0.12, 1.8, 12, 5.15, -5.1);
-  /* Penghalang ujung LUAR (Ryan 18:25) — panel samping kaca di sisi luar
-     pendaratan (x=-15,6, z -6..-4,2, sedalam panel dalam); tepi utara panel
-     (z=-6,0) MENYAMBUNG ujung handrail miring (berakhir z≈-6,0, y≈5,10) —
-     perbaikan 18:52 atas lingkaran Ryan 17:47: tadinya panel cuma
-     z -5,4..-4,2, ada celah 0,6 m tanpa pagar antara ujung handrail dan
-     panel. SUDUT DEPAN TANPA TIANG (Ryan 18:52: "suka yang kayak gue
-     tandain" = sambungan kaca yang samar — tiang kaca di sudut DIBUANG,
-     kaca depan + panel samping ketemu langsung seperti sambungan). */
-  box(M.glassRail, 0.03, 0.925, 1.8, -15.6, 4.6875, -5.1);
-  box(M.steelDark, 0.12, 0.12, 1.8, -15.6, 5.15, -5.1);
-
-  /* kanopi masuk (pelat + strip glow + 2 kolom; AABB di PLAZA_SOLIDS)
-     — Fix Preview Check (Ryan 15:29): naik ke atas jendela lantai 1
-     (puncak 3,6; balkon bawah 3,975) — dulu y 2,9 memotong jendela. */
-  box(M.stoneLight, 26, 0.15, 1.2, -1, 3.7, -5.4);
-  box(M.lampWarm, 26, 0.02, 1.0, -1, 3.62, -5.4);
-  box(M.steelDark, 0.12, 3.7, 0.12, -14, 1.85, -4.8);
-  box(M.steelDark, 0.12, 3.7, 0.12, 12, 1.85, -4.8);
-
-  /* Fix Papan Nama (13 Nov 2026, perintah Ryan: hapus papan nama kos) —
-     board + glow + 2 tiang + hook papan nama dicabut. */
-
-  /* 2 pot tanaman di ujung fasad (TANPA AABB — menempel fasad) */
-  box(M.soil, 0.35, 0.3, 0.35, -13.5, 0.15, -5.2);
-  ball(M.leaf, 0.25, -13.5, 0.55, -5.2);
-  box(M.soil, 0.35, 0.3, 0.35, 11.5, 0.15, -5.2);
-  ball(M.leaf, 0.25, 11.5, 0.55, -5.2);
+  /* ---- Gedung A + B modern tropis (Ryan 15 Nov, opsi 1): kulit, fasad, balkon,
+     pagar kaca, tangga, kolom = bangunGedungModern() (lihat blok Gedung modern di
+     atas). Kotak 26 x 10 x 8, muka z -6, lantai 2 di 4,2 m, pintu x TETAP (Fix
+     Pintu Simetris 13 Nov: pusat pintu tengah = pusat gedung). ---- */
+  bangunGedungModern('A', -1, -1, GD_VARIAN.A);
 
   /* 10 pintu kamar bernomor (STRUKTUR VERBATIM blok lama — hanya yBase +
-     material + gagang + nomor yang berubah) */
+     material + nomor). Gagang tuas + kusen + kaca mati di atas pintu ada di
+     mesh gabungan gedung (gedungKulit). */
   var doorXA = [-11, -6, -1, 4, 9]; /* Fix Pintu Simetris (13 Nov 2026, vonis Ryan: pintu meleset 1 m dari pusat gedung) — pusat -1 = pusat gedung A */
   for (var n = 1; n <= 10; n++) {
     var floor2 = n > 5;
     var x = doorXA[(n - 1) % 5];
     var yBase = floor2 ? 4.2 : 0;
-    var door = box(M.walnutA.clone(), 1.3, 2.4, 0.14, x, yBase + 1.2, -5.84); /* Fix Pintu Nyala (13 Nov 2026, vonis Ryan: ketuk 1 pintu, 10 pintu nyala) — material sendiri per pintu, pulseDoor tidak lagi kena material bersama */
+    var door = box(bahanGedung().pintuA.clone(), 1.3, 2.4, 0.14, x, yBase + 1.2, -5.84); /* Fix Pintu Nyala (13 Nov 2026, vonis Ryan: ketuk 1 pintu, 10 pintu nyala) — material sendiri per pintu, pulseDoor tidak lagi kena material bersama */
     door.userData = { card: 'room', room: n };
     clickables.push(door);
-    /* gagang pintu: strip kuningan vertikal (menggantikan bola kuning) */
-    box(M.brass, 0.05, 0.5, 0.03, x + 0.45, yBase + 1.15, -5.75);
-    /* Fix Fasad (13 Nov 2026, vonis Ryan: plakat nomor kamar DIHAPUS) — cakram + pelat nomor di atas pintu dicabut; nomor kini hanya di kartu kamar + header. */
+    /* Fix Fasad (13 Nov 2026, vonis Ryan: plakat nomor kamar DIHAPUS) — nomor hanya di kartu kamar + header. */
     ROOM_DOORS[n] = {
       mesh: door,
       pos: new THREE.Vector3(x, yBase + 1.2, -4.1)
     };
   }
 
-  /* ---- Fase 1 Task 2 — Gedung B modern (26x10x8, batu terang, aksen slate):
-     REPLACEMENT blok biru lama (24x7x8). Cerminan Task 1 (Gedung A),
-     offset x=+30, pusat x=31; bay aksen SLATE di timur (bukan kayu);
-     pintu walnutB. Ruling R1: kotak utama dalam 8 (bukan 7) — muka
-     gedung TETAP z=-6; R2: cakram nomor rotation.x = PI/2; R3: kaca
-     jendela z=-5,88 (bukan -5,90, hindari koplanar dengan bingkai).
-     Lantai 4,2 m; TANPA lantai 3; pintu x TETAP (20,25,30,35,40). */
-  var bldB = box(M.stoneLight, 26, 10, 8, 31, 4.5, -10);
-  bldB.castShadow = true;
-  /* lis lantai + lis atap (steelDark) */
-  box(M.steelDark, 26.4, 0.2, 7.4, 31, 4.2, -10);
-  box(M.steelDark, 26.4, 0.2, 7.4, 31, 9.42, -10);
-  /* pelat atap */
-  box(M.stoneLight, 26.4, 0.1, 7.4, 31, 9.15, -10);
-  /* parapet (steelDark, 0,8 tinggi, y 9,1..9,9) */
-  box(M.steelDark, 26.4, 0.8, 0.25, 31, 9.5, -6.2);
-  box(M.steelDark, 26.4, 0.8, 0.25, 31, 9.5, -13.8);
-  box(M.steelDark, 0.25, 0.8, 7.4, 17.8, 9.5, -10);
-  box(M.steelDark, 0.25, 0.8, 7.4, 44.2, 9.5, -10);
-  /* kanopi atap melayang (overhang di semua sisi parapet) + 4 kolom */
-  box(M.stoneLight, 27, 0.2, 8, 31, 10.4, -10);
-  box(M.steelDark, 0.12, 1.25, 0.12, 18.5, 9.775, -6.5);
-  box(M.steelDark, 0.12, 1.25, 0.12, 43.5, 9.775, -6.5);
-  box(M.steelDark, 0.12, 1.25, 0.12, 18.5, 9.775, -13.5);
-  box(M.steelDark, 0.12, 1.25, 0.12, 43.5, 9.775, -13.5);
-  /* Desain Ulang Fasad Total ref 1 — konsep HORIZONTAL: cladding slate
-     bawah (y -0,5..4,2) + slate atas (y 4,2..9,4, fasad gelap penuh);
-     bay + panel ramping DICABUT. */
-  box(M.slate, 26, 4.7, 0.1, 31, 1.85, -5.95); /* cladding bawah slate */
-  box(M.slate, 26, 5.2, 0.1, 31, 6.8, -5.95); /* cladding atas slate */
+  /* ---- Gedung B (kembaran A, offset x=+30, tangga di timur; kayu walnut) ---- */
+  bangunGedungModern('B', 31, 1, GD_VARIAN.B);
 
-
-  /* jendela BESAR ref 1 (bingkai steelDark + kaca hangat SATU lapis) */
-  var winXB = [23.5, 28.5, 33.5, 38.5]; /* Fix Pintu Simetris (13 Nov 2026, vonis Ryan: pintu meleset 1 m dari pusat gedung) — geser +1, tetap di tengah antara pintu */
-  winXB.forEach(function (x) {
-    [2.1, 6.3].forEach(function (y) {
-      box(M.steelDark, 2.6, 3.0, 0.08, x, y, -5.83);
-      box(M.glass, 2.3, 2.7, 0.02, x, y, -5.78);
-    });
-  });
-
-  /* balkon lantai 2 (selebar gedung baru 26 m) + pagar kaca + kolom */
-  /* Fix Bug Tangga/Balkon (Masalah C): lantai diperlebar 26 -> 27,6 m ke ujung
-     LUAR (x 18..45,6) supaya menutup celah lantai di sambungan tangga<->balkon
-     (x 44..45,6, z -6,0..-5,6); 0 mesh baru, hanya lebar + geser pusat. */
-  box(M.floorWood, 27.6, 0.25, 1.8, 31.8, 4.1, -5.1);
-  [21.25, 27.75, 34.25, 40.75].forEach(function (x) {
-    box(M.glassRail, 6.3, 0.925, 0.03, x, 4.6875, -4.22);
-  });
-  /* Penghalang ujung LUAR (Ryan 18:25): perpanjang kaca depan sampai ujung
-     deck (x=45,6) — segmen 1,5 m, celah 0,2 m ke segmen lama + rel atas
-     diperpanjang ke x=45,6. */
-  box(M.glassRail, 1.5, 0.925, 0.03, 44.85, 4.6875, -4.22);
-  box(M.steelDark, 27.6, 0.12, 0.12, 31.8, 5.15, -4.2);
-
-  /* Tangga lantai 2 (Ryan 16:28) — Gedung B timur (x=44): cerminan A.
-     16 tread tipis BETON M.slateSoft (koreksi Ryan 17:37) + 2 stringer
-     miring (tangga terbuka, Ryan 17:29).
-     Koridor x 44,4..45,6, z -14..-6, y 0 -> 4,225 (balkon). */
-  for (var i = 0; i < 16; i++) {
-    box(M.slateSoft, 1.6, 0.08, 0.5, 44.8, (i + 1) * 0.264 - 0.04, -14 + (i + 0.5) * 0.5);
-  }
-  var stB1 = box(M.steelDark, 0.08, 0.35, 9.05, 45.55, 1.87, -10);
-  stB1.rotation.x = -0.484;
-  var stB2 = box(M.steelDark, 0.08, 0.35, 9.05, 44.05, 1.87, -10);
-  stB2.rotation.x = -0.484;
-  var hrB = box(M.steelDark, 0.08, 0.08, 9.05, 45.6, 3.0, -10);
-  hrB.rotation.x = -0.484; /* miring mengikuti tangga (naik 4,2 m sepanjang 8 m) */
-  [-13, -10, -7].forEach(function (z) {
-    var ry = 0.9 + ((z + 14) / 8) * 4.2; /* tinggi rel di z */
-    box(M.steelDark, 0.08, 1.0, 0.08, 45.6, ry - 0.5, z);
-  });
-
-  /* Pagar samping balkon (Ryan 16:22) — tutup ujung DALAM (B barat, x=18).
-     TANPA TIANG SAMA SEKALI (Ryan 18:52 + 18:54: "harus sama semua" —
-     tiang kaca depan DIBUANG, tiang hitam belakang (z=-6,0) DIBUANG juga). */
-  box(M.glassRail, 0.03, 0.925, 1.8, 18, 4.6875, -5.1);
-  box(M.steelDark, 0.12, 0.12, 1.8, 18, 5.15, -5.1);
-  /* Penghalang ujung LUAR (Ryan 18:25) — panel samping kaca di sisi luar
-     pendaratan (x=45,6, z -6..-4,2, sedalam panel dalam); tepi utara panel
-     (z=-6,0) MENYAMBUNG ujung handrail miring (berakhir z≈-6,0, y≈5,10) —
-     perbaikan 18:52 atas lingkaran Ryan 17:47: tadinya panel cuma
-     z -5,4..-4,2, ada celah 0,6 m tanpa pagar antara ujung handrail dan
-     panel. SUDUT DEPAN TANPA TIANG (Ryan 18:52: "suka yang kayak gue
-     tandain" = sambungan kaca yang samar — tiang kaca di sudut DIBUANG,
-     kaca depan + panel samping ketemu langsung seperti sambungan). */
-  box(M.glassRail, 0.03, 0.925, 1.8, 45.6, 4.6875, -5.1);
-  box(M.steelDark, 0.12, 0.12, 1.8, 45.6, 5.15, -5.1);
-
-  /* kanopi masuk (pelat + strip glow + 2 kolom; AABB di PLAZA_SOLIDS)
-     — Fix Preview Check (Ryan 15:29): naik ke atas jendela lantai 1
-     (puncak 3,6; balkon bawah 3,975) — dulu y 2,9 memotong jendela. */
-  box(M.stoneLight, 26, 0.15, 1.2, 31, 3.7, -5.4);
-  box(M.lampWarm, 26, 0.02, 1.0, 31, 3.62, -5.4);
-  box(M.steelDark, 0.12, 3.7, 0.12, 18, 1.85, -4.8);
-  box(M.steelDark, 0.12, 3.7, 0.12, 44, 1.85, -4.8);
-
-  /* Fix Papan Nama (13 Nov 2026, perintah Ryan: hapus papan nama kos) —
-     board + glow + 2 tiang dicabut. */
-
-  /* 2 pot tanaman di ujung fasad (TANPA AABB — menempel fasad) */
-  box(M.soil, 0.35, 0.3, 0.35, 18.5, 0.15, -5.2);
-  ball(M.leaf, 0.25, 18.5, 0.55, -5.2);
-  box(M.soil, 0.35, 0.3, 0.35, 43.5, 0.15, -5.2);
-  ball(M.leaf, 0.25, 43.5, 0.55, -5.2);
-
-  /* 10 pintu kamar bernomor (11-20) — STRUKTUR cerminan blok A
-     (hanya walnutB + offset x yang berubah) */
+  /* 10 pintu kamar bernomor (11-20) — STRUKTUR cerminan blok A */
   var doorXB = [21, 26, 31, 36, 41]; /* Fix Pintu Simetris (13 Nov 2026, vonis Ryan: pintu meleset 1 m dari pusat gedung) — pusat 31 = pusat gedung B */
   for (var n = 11; n <= 20; n++) {
     var floor2 = n > 15;
     var x = doorXB[(n - 11) % 5];
     var yBase = floor2 ? 4.2 : 0;
-    var door = box(M.walnutB.clone(), 1.3, 2.4, 0.14, x, yBase + 1.2, -5.84); /* Fix Pintu Nyala (13 Nov 2026, vonis Ryan: ketuk 1 pintu, 10 pintu nyala) — material sendiri per pintu, pulseDoor tidak lagi kena material bersama */
+    var door = box(bahanGedung().pintuB.clone(), 1.3, 2.4, 0.14, x, yBase + 1.2, -5.84); /* Fix Pintu Nyala — material sendiri per pintu */
     door.userData = { card: 'room', room: n };
     clickables.push(door);
-    /* gagang pintu: strip kuningan vertikal */
-    box(M.brass, 0.05, 0.5, 0.03, x + 0.45, yBase + 1.15, -5.75);
-    /* Fix Fasad (13 Nov 2026, vonis Ryan: plakat nomor kamar DIHAPUS) — cakram + pelat nomor di atas pintu dicabut; nomor kini hanya di kartu kamar + header. */
     ROOM_DOORS[n] = {
       mesh: door,
       pos: new THREE.Vector3(x, yBase + 1.2, -4.1)
@@ -4225,6 +4294,48 @@ function krBagian(geo, x, y, z, rx, ry, rz, sx, sy, sz) {
   krV.set(x, y, z); krS.set(sx || 1, sy || 1, sz || 1);
   return { geo: geo, m: new THREE.Matrix4().compose(krV.clone(), krQ.clone(), krS.clone()) };
 }
+/* Penggabung geometri statis per material: satu draw call per material. UV
+   kotak dihitung dari ukuran dunia (petak tekstur berulang = kerapatan
+   tekstur seragam, tidak melar di kotak panjang). cat(hex) = warna bagian
+   berikutnya, ditulis sebagai warna verteks: di material vertexColors
+   puluhan warna polos (cat besi, tong, pot, toples...) tetap SATU draw call.
+   (Asal Tahap 3a Jalan Kampung; di sini supaya sudah siap sebelum
+   buildWorld() jalan — Gedung modern A-D juga memakainya.) */
+var JALAN_PUTIH_V = new THREE.Color(1, 1, 1);
+function JalanKumpul(scn) { this.scn = scn; this.isi = {}; this.mat = {}; this.warna = null; }
+JalanKumpul.prototype.cat = function (hex) { this.warna = (hex === null || hex === undefined) ? null : new THREE.Color(hex); return this; };
+JalanKumpul.prototype.tambah = function (mat, geo, x, y, z, rx, ry, rz, sx, sy, sz) {
+  var k = mat.uuid;
+  if (!this.isi[k]) { this.isi[k] = []; this.mat[k] = mat; }
+  var bagian = krBagian(geo, x, y, z, rx, ry, rz, sx, sy, sz);
+  bagian.warna = this.warna;
+  this.isi[k].push(bagian);
+};
+JalanKumpul.prototype.kotak = function (mat, w, h, d, x, y, z, ry, petak) {
+  var geo = new THREE.BoxGeometry(w, h, d);
+  if (petak) { /* UV dunia: u/v per meter / petak */
+    var uv = geo.attributes.uv, dims = [[d, h], [d, h], [w, d], [w, d], [w, h], [w, h]];
+    for (var f = 0; f < 6; f++) for (var v = 0; v < 4; v++) {
+      var q = f * 4 + v; uv.setXY(q, uv.getX(q) * dims[f][0] / petak, uv.getY(q) * dims[f][1] / petak);
+    }
+  }
+  this.tambah(mat, geo, x, y, z, 0, ry || 0, 0);
+};
+JalanKumpul.prototype.selesai = function (bayangan) { /* -> { uuid material: mesh gabungan }; bayangan false = tidak melempar bayangan */
+  var hasil = {};
+  for (var k in this.isi) {
+    var list = this.isi[k], geo = krGabung(list);
+    if (this.mat[k].vertexColors) { /* urutan verteks krGabung = urutan bagian */
+      var w = [];
+      list.forEach(function (bg) { var c = bg.warna || JALAN_PUTIH_V, n = bg.geo.attributes.position.count; for (var i = 0; i < n; i++) w.push(c.r, c.g, c.b); });
+      geo.setAttribute('color', new THREE.Float32BufferAttribute(w, 3));
+    }
+    var m = new THREE.Mesh(geo, this.mat[k]);
+    m.castShadow = bayangan !== false; m.receiveShadow = true;
+    this.scn.add(m); hasil[k] = m;
+  }
+  return hasil;
+};
 /* gender: 'cewek' | 'cowok'; rupa: { baju, rambut } (indeks palet, lihat
    rupaEfektif); opt.ibu = Ibu Kos (daster batik + celemek + sanggul + kacamata). */
 function makeKosanAvatar(gender, rupa, opt) {
@@ -4582,46 +4693,8 @@ jalanScene.background = new THREE.Color(0x8ec9ee);
 jalanScene.fog = new THREE.Fog(0x8ec9ee, 30, 75);
 var jalanClickables = [];
 var jalanKucing = null, jalanKentongan = null, jalanKentonganAyun = 0;
-/* Penggabung geometri statis per material: satu draw call per material. UV
-   kotak dihitung dari ukuran dunia (petak tekstur berulang = kerapatan
-   tekstur seragam, tidak melar di kotak panjang). cat(hex) = warna bagian
-   berikutnya, ditulis sebagai warna verteks: di material vertexColors
-   puluhan warna polos (cat besi, tong, pot, toples...) tetap SATU draw call. */
-var JALAN_PUTIH_V = new THREE.Color(1, 1, 1);
-function JalanKumpul(scn) { this.scn = scn; this.isi = {}; this.mat = {}; this.warna = null; }
-JalanKumpul.prototype.cat = function (hex) { this.warna = (hex === null || hex === undefined) ? null : new THREE.Color(hex); return this; };
-JalanKumpul.prototype.tambah = function (mat, geo, x, y, z, rx, ry, rz, sx, sy, sz) {
-  var k = mat.uuid;
-  if (!this.isi[k]) { this.isi[k] = []; this.mat[k] = mat; }
-  var bagian = krBagian(geo, x, y, z, rx, ry, rz, sx, sy, sz);
-  bagian.warna = this.warna;
-  this.isi[k].push(bagian);
-};
-JalanKumpul.prototype.kotak = function (mat, w, h, d, x, y, z, ry, petak) {
-  var geo = new THREE.BoxGeometry(w, h, d);
-  if (petak) { /* UV dunia: u/v per meter / petak */
-    var uv = geo.attributes.uv, dims = [[d, h], [d, h], [w, d], [w, d], [w, h], [w, h]];
-    for (var f = 0; f < 6; f++) for (var v = 0; v < 4; v++) {
-      var q = f * 4 + v; uv.setXY(q, uv.getX(q) * dims[f][0] / petak, uv.getY(q) * dims[f][1] / petak);
-    }
-  }
-  this.tambah(mat, geo, x, y, z, 0, ry || 0, 0);
-};
-JalanKumpul.prototype.selesai = function (bayangan) { /* -> { uuid material: mesh gabungan }; bayangan false = tidak melempar bayangan */
-  var hasil = {};
-  for (var k in this.isi) {
-    var list = this.isi[k], geo = krGabung(list);
-    if (this.mat[k].vertexColors) { /* urutan verteks krGabung = urutan bagian */
-      var w = [];
-      list.forEach(function (bg) { var c = bg.warna || JALAN_PUTIH_V, n = bg.geo.attributes.position.count; for (var i = 0; i < n; i++) w.push(c.r, c.g, c.b); });
-      geo.setAttribute('color', new THREE.Float32BufferAttribute(w, 3));
-    }
-    var m = new THREE.Mesh(geo, this.mat[k]);
-    m.castShadow = bayangan !== false; m.receiveShadow = true;
-    this.scn.add(m); hasil[k] = m;
-  }
-  return hasil;
-};
+/* (Penggabung JalanKumpul dipindah ke atas, sesudah krBagian: buildWorld()
+   jalan lebih dulu dan Gedung modern A-D memakainya juga.) */
 function jalanTekstur(kunci, w, h, lukis) {
   return krMat('tex:' + kunci, function () { return teksturLukis(w, h, lukis, [1, 1]); });
 }
@@ -4969,24 +5042,16 @@ function buildJalan() {
   KT.kotak(cat(KT, polos, C.setapak), 2.4, 0.06, 13, JALAN_GERBANG_X, 0.0, -15.9);
   KT.kotak(cat(KT, polos, C.plaza), 30, 0.04, 20, JALAN_GERBANG_X, 0.0, -32.4);
   jalanPohon(KC, polos, -20.5, -23.25); jalanPohon(KC, polos, -3.5, -23.25);
-  /* punggung Gedung C/D di balik tembok (cermin halaman: x_jalan = x_halaman - 27); di
-     halaman punggung ini selalu tersembunyi (gedungCdPerbarui), jadi rupa belakang bebas */
-  [[-41.4, -14.6], [-9.4, 17.4]].forEach(function (sg) {
-    var w = sg[1] - sg[0], cx = (sg[0] + sg[1]) / 2;
-    KC.kotak(cat(KC, plester, C.batu), w, 10, 8.4, cx, 4.5, -13.4, 0, 2);
-    KC.kotak(cat(KC, polos, C.besi), w + 0.4, 0.2, 8.8, cx, 4.2, -13.4); /* lis lantai */
-    KC.kotak(polos, w + 0.4, 0.8, 0.25, cx, 9.5, -9.32); KC.kotak(polos, w + 0.4, 0.8, 0.25, cx, 9.5, -17.48); /* parapet keliling */
-    KC.kotak(polos, 0.25, 0.8, 8.4, sg[0] - 0.08, 9.5, -13.4); KC.kotak(polos, 0.25, 0.8, 8.4, sg[1] + 0.08, 9.5, -13.4);
-    for (var j = 0; j < 5; j++) { /* per kamar: jendela kecil menyala + unit luar AC (kamar ber-AC sejak Tahap 2) */
-      var jx = sg[0] + w / 10 + j * w / 5;
-      [[6.9, 1.5, 1.1], [2.95, 1.1, 0.55]].forEach(function (jd) { /* lantai 2 + jendela atas lantai 1 (terlihat di atas tembok) */
-        KC.kotak(cat(KC, polos, C.besi), jd[1] + 0.2, jd[2] + 0.2, 0.08, jx, jd[0], -9.18);
-        KC.kotak(cat(KC, nyala, C.lampu), jd[1], jd[2], 0.02, jx, jd[0], -9.13);
-      });
-      KC.kotak(cat(KC, polos, 0xeef0f2), 0.9, 0.6, 0.32, jx + 1.25, 5.25, -9.04); /* unit luar AC */
-      KC.kotak(cat(KC, polos, 0x3a3f45), 0.44, 0.44, 0.02, jx + 1.1, 5.25, -8.875); /* kisi kipas */
-    }
-  });
+  /* punggung Gedung C/D di balik tembok = kulit gedung modern yang SAMA dengan di
+     halaman (gedungKulit tanpa muka depan), dicerminkan seperti C/D: grup scale.z -1,
+     x_jalan = x_halaman - 27, z_jalan = -23,65 - z_lokalAB (punggung C/D z_halaman
+     26,6 -> z_jalan -9,65; dulu kotak seukuran AABB). Putih polos: isiJ sudah
+     menerangi punggung. Tanpa bayangan (seperti dulu). */
+  var gpCD = new THREE.Group(); gpCD.scale.z = -1; gpCD.position.set(-27, 0, -23.65); jalanUtara.add(gpCD);
+  var Kcd = new JalanKumpul(gpCD);
+  gedungKulit(Kcd, Kcd, -1, -1, GD_VARIAN.A, false, true); /* C */
+  gedungKulit(Kcd, Kcd, 31, 1, GD_VARIAN.B, false, true); /* D */
+  Kcd.selesai(false);
   var gK = K.selesai(); KD.selesai(); KT.selesai(false);
   var gU = KU.selesai(); KC.selesai(false);
   /* gerbang kos: pilar + balok batu (M.slate = khusus gerbang) + papan nama bisa diketuk;
