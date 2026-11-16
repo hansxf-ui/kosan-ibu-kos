@@ -28,11 +28,22 @@ virtual yang dibangun bareng penonton Instagram.
   tidak ada papan peringkat, tidak ada hadiah server, dan tidak ada musuh.
   Intinya tetap: punya kamar, punya tetangga, dan melihat kosnya makin lama
   makin jadi.
+- **Rupiah (Kerja & Belanja, disetujui Ryan 16 Nov):** penghuni bisa kerja
+  (barista di Kedai Kopi, jaga warung, ronda malam, laundry kiloan) dan
+  dapat Rupiah virtual untuk jajan kopi, aksesori, dekor kamar, dan uang kos
+  sukarela (cap LUNAS di KTA). Rupiah disimpan dan dihitung di **server**
+  (Supabase, hanya penghuni; tamu cuma latihan tanpa gaji); sengaja tidak
+  terlalu mudah (3 shift sehari, jeda 10 menit). **Bintang Kosan tetap
+  lokal** di HP. Rupiah tidak pernah memengaruhi kepemilikan kamar dan tetap
+  tanpa papan peringkat. Aturan + runbook: `docs/KERJA-BELANJA.md`.
 
 ## Aturan menambah isi dunia
 
 - **Fasilitas besar** (misalnya kolam, AC, TV, warung) hanya muncul setelah
   menang di komentar penonton dan dibangun di episode, satu per episode.
+  Pengecualian hanya perintah langsung Ryan (contoh: warung Jalan Kampung,
+  Kedai Kopi untuk kerja 16 Nov). Area palang "SEGERA DIBUKA" tetap
+  dicadangkan untuk voting penonton.
 - **Benda kecil pendukung aktivitas** yang sudah disetujui (misalnya
   keranjang cucian, menu masak, kucing kos) boleh ditambah langsung.
 
