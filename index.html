@@ -12643,16 +12643,23 @@ var SU = { siap: false, lampu: [], latar: [], emisi: [], redup: [], kacaSiang: n
 var SU_WARNA = { /* palet langit (cakrawala / puncak) per keadaan; siang = latar lama persis */
   siangH: new THREE.Color(0x8ec9ee), siangZ: new THREE.Color(0x8ec9ee),
   senjaH: new THREE.Color(0xffa95e), senjaZ: new THREE.Color(0x4f66aa), fajarH: new THREE.Color(0xffc49a), fajarZ: new THREE.Color(0x7e9fd8),
-  malamH: new THREE.Color(0x1d2a48), malamZ: new THREE.Color(0x060b19),
+  malamH: new THREE.Color(0x2a3a60), malamZ: new THREE.Color(0x060b19), /* cakrawala malam = juga warna kabut: 0x1d2a48 -> 0x2a3a60 (cahaya kota tipis, ujung jalan tidak hitam) */
   mendungSiangH: new THREE.Color(0x9ea9b3), mendungSiangZ: new THREE.Color(0x7f8a95), mendungMalamH: new THREE.Color(0x171e2a), mendungMalamZ: new THREE.Color(0x0b1018),
-  cahayaSiang: new THREE.Color(0xfff2d9), cahayaSenja: new THREE.Color(0xffb35c), cahayaBulan: new THREE.Color(0x9fb6ff),
-  hemiLangitSenja: new THREE.Color(0xffcf9a), hemiLangitMalam: new THREE.Color(0x4a5d94), hemiTanahMalam: new THREE.Color(0x232b3b), hemiMendung: new THREE.Color(0xa9b4be),
+  cahayaSiang: new THREE.Color(0xfff2d9), cahayaSenja: new THREE.Color(0xffb35c), cahayaBulan: new THREE.Color(0xbccaf5), /* malam lebih terang (SU_MALAM): bulan 0x9fb6ff -> 0xbccaf5, hemisfer 0x4a5d94/0x232b3b -> 0x8090c0/0x474e60 (biru lebih netral, tidak ungu) */
+  hemiLangitSenja: new THREE.Color(0xffcf9a), hemiLangitMalam: new THREE.Color(0x8090c0), hemiTanahMalam: new THREE.Color(0x474e60), hemiMendung: new THREE.Color(0xa9b4be),
   jendelaSiang: new THREE.Color(0xffe9b0), jendelaSenja: new THREE.Color(0xf6b98c), jendelaMalam: new THREE.Color(0x22324f), jendelaHujan: new THREE.Color(0xa3acb3), jendelaHujanMalam: new THREE.Color(0x161e2b),
   hujanSiang: new THREE.Color(0xb9c6d1), hujanMalam: new THREE.Color(0x45546a), kunang: new THREE.Color(0xd8ff76), haloBulan: new THREE.Color(0x8fa6d8), genang: new THREE.Color(0xffcc8f)
 };
 var suTmp = { a: new THREE.Color(), b: new THREE.Color(), c: new THREE.Color(), d: new THREE.Color(), pita: new THREE.Color(), v: new THREE.Vector3() };
 var SU_GENANG = { aktif: false, peta: { value: null }, kotak: { value: new THREE.Vector4(0, 0, 1, 1) }, warna: { value: new THREE.Color(0, 0, 0) } }; /* uniform bersama semua bahan bersisipan */
-var SU_GENANG_KUAT = 1.5;
+var SU_GENANG_KUAT = 1.8; /* Ryan 16 Nov "kalau malam ... gelap banget": 1,5 -> 1,8 */
+/* tingkat cahaya luar ruangan saat malam penuh (kali intensitas siang). Ryan 16 Nov: "kalau malam
+   halaman tengah dan kampung gelap banget, tolong dibuat agar lebih terang". Dulu hemisfer 0,8 +
+   bulan 0,22 + pantul 0,2 dengan warna malam lebih gelap: luma layar malam 0,27-0,40 x siang.
+   Sekarang 0,49-0,63 x siang (diukur di 5 sudut, HP tegak): masih malam (langit gelap, jendela +
+   genangan lampu menyala), tapi lantai, dinding, dan jalan terbaca. Lampu yang sama (jumlah tetap),
+   hanya intensitas + warnanya. Siang (terang 1) = nilai lama persis. */
+var SU_MALAM = { hemi: 1.25, bulan: 0.45, isi: 0.8 };
 var SU_KUNCI_BAWAAN = THREE.Material.prototype.onBeforeCompile.toString(); /* kunci program bawaan three.js */
 function suGenangKunci() { /* customProgramCacheKey: siang = kunci bawaan (program SAMA dengan bahan tanpa sisipan), malam = varian bersisipan */
   return SU_GENANG.aktif ? 'suGenangMalam' : SU_KUNCI_BAWAAN;
@@ -12922,9 +12929,9 @@ function suasanaSiapkan() {
     gh.push(pd.pos.y > 2 ? [suTmp.v.x - 0.5, suTmp.v.z + arah * 0.74, 1.6, 0.95, 1, 0.75] : [suTmp.v.x - 0.5, suTmp.v.z + arah * 1.0, 1.7, 1.35, 0, 1]);
   }
   var gj = [];
-  JALAN_TIANG_X.forEach(function (x) { gj.push([x, 4.2, 3.0, 3.0, 0, 1]); }); /* lampu jalan di tiang (lengan ke arah jalan) */
+  JALAN_TIANG_X.forEach(function (x) { gj.push([x, 3.2, 4.4, 4.4, 0, 1]); }); /* lampu jalan di tiang: kepala lampu 5 m di atas z 4,95 -> genangan menjangkau badan jalan (dulu z 4,2 r 3: aspal tetap gelap) */
   [[-60, JALAN_GERBANG_X - 1.6], [JALAN_GERBANG_X + 1.6, 60]].forEach(function (sg) { /* lampu pilaster tembok kos (pola buildJalan: tiap 8 m) */
-    for (var px = sg[0] + 2, n = 0; px < sg[1] - 0.5; px += 4, n++) if (n % 2 === 1 && Math.abs(px) < 40) gj.push([px, -6.3, 1.5, 1.5, 0, 0.8]);
+    for (var px = sg[0] + 2, n = 0; px < sg[1] - 0.5; px += 4, n++) if (n % 2 === 1 && Math.abs(px) < 40) gj.push([px, -6.3, 2.2, 2.2, 0, 0.8]);
   });
   gj.push([JALAN_GERBANG_X, -6.2, 1.8, 1.8, 0, 0.9], [-4.5, 5.6, 2.2, 1.4, 0, 0.9], [9.6, 6.0, 1.5, 1.1, 0, 0.8]); /* gerbang, warung, pos ronda */
   gj.push([3.0, 7.4, 3.9, 1.8, 0, 0.85]); /* Kerja & Belanja — Kedai Kopi: lampu untai kanopi + 2 lampu gantung meja bar (teras + trotoar depan) */
@@ -12967,14 +12974,14 @@ function suasanaTerapkan(paksa) {
     if (l.jenis === 'hemi') {
       l.o.color.copy(SU_WARNA.hemiLangitMalam).lerp(l.c, siang).lerp(SU_WARNA.hemiLangitSenja, jg * 0.22 * k.surya).lerp(SU_WARNA.hemiMendung, mendung * 0.45 * siang);
       l.o.groundColor.copy(SU_WARNA.hemiTanahMalam).lerp(l.g, siang);
-      l.o.intensity = l.i * (0.8 + 0.2 * siang) * (1 - 0.2 * mendung);
+      l.o.intensity = l.i * (siang + SU_MALAM.hemi * (1 - siang)) * (1 - 0.2 * mendung); /* siang 1 = l.i persis */
     } else if (l.jenis === 'matahari') {
       /* matahari (cahaya langsung, keemasan saat rendah) -> sesudah terbenam tinggal cahaya bulan biru redup */
       l.o.color.copy(SU_WARNA.cahayaBulan).lerp(l.c, k.surya).lerp(SU_WARNA.cahayaSenja, jg * 0.6 * k.surya);
-      l.o.intensity = l.i * Math.max(k.surya * (1 - 0.4 * jg), 0.22 * (1 - siang)) * redupMendung;
+      l.o.intensity = l.i * Math.max(k.surya * (1 - 0.4 * jg), SU_MALAM.bulan * (1 - siang)) * redupMendung;
     } else {
       l.o.color.copy(SU_WARNA.cahayaBulan).lerp(l.c, siang);
-      l.o.intensity = l.i * (0.2 + 0.8 * siang) * (1 - 0.3 * mendung);
+      l.o.intensity = l.i * (siang + SU_MALAM.isi * (1 - siang)) * (1 - 0.3 * mendung);
     }
   });
   var angkat = siang * siang * (1 - 0.25 * mendung); /* malam = 0: emissive hangat kecil pun (linear 0,02) tampil merah-ungu di gelap */
