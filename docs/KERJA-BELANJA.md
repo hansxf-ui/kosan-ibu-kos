@@ -114,7 +114,18 @@ dibatasi durasi minimum, 3 shift sehari, dan Rp15.000 per shift (CHECK SQL: maks
   tertutup panel. Posisi + aturan kamera tidak berubah.
 - Tidak ada lampu baru, bidang transparan, atau emissive; tidak ada naik-turun badan.
 - Meninggalkan tempat kerja (keluar alam), lewat 20 menit, atau tombol Berhenti =
-  shift dibatalkan tanpa gaji (jatah hari ini tidak berkurang).
+  shift dibatalkan tanpa gaji (jatah hari ini tidak berkurang). **Kecuali** saat "Mencatat
+  gaji…": Berhenti mati dan keluar alam tidak membatalkan; gaji yang dijawab server tetap
+  dicatat (toast gaji kalau sudah pindah tempat).
+- **Gaji belum tercatat** (sinyal putus, timeout 10 dtk, 429, 5xx): layar hasil menampilkan
+  **Coba lagi** (laporan + id shift sama; server membayar shift aktif sampai 20 menit sejak
+  mulai) dan dompet dimuat ulang. Coba lagi dijawab `shift_tidak_aktif` = percobaan pertama
+  mungkin sudah tercatat: pemain diarahkan ke saldo + riwayat. `terlalu_cepat` = satu kiriman
+  ulang sesudah 2,5 dtk.
+- Potret dompet (jeda, jatah, uang kos) dibandingkan dengan jam sekarang: jeda jadi waktu
+  mutlak, jatah dari tanggal WIB lain tidak menolak, lunas bulan lalu = belum lunas. GET
+  dompet yang mulai sebelum beli / bayar / daftar / gaji dibuang lalu dimuat ulang. Beli dan
+  bayar uang kos tidak bisa diketuk dua kali.
 
 ## Urutan deploy
 
@@ -124,6 +135,13 @@ dibatasi durasi minimum, 3 shift sehari, dan Rp15.000 per shift (CHECK SQL: maks
    `select count(*) from kosan_residents;` tidak berubah. Uji di transaksi yang dibatalkan
    (blok `begin; ... rollback;` di akhir file). **Belum pernah dijalankan di Postgres asli
    dari sandbox** — tes server memakai database palsu (`tests/fake-db.js`).
+   Sesudahnya jalankan `supabase/migrations/20261117_kerja_kunci.sql` (audit 16 Nov): isi
+   `kosan_kerja_mulai` / `_selesai` / `_batal` sama persis, ditambah
+   `pg_advisory_xact_lock` per penghuni di baris pertama, supaya "mulai" yang bertumpuk
+   dengan "selesai" tidak bisa melewati jeda 10 menit atau jatah 3 shift. Tidak menyentuh
+   tabel. Cek di akhir file (uji dua tab SQL Editor: tab kedua harus menunggu). Klien +
+   server tetap jalan kalau migrasi ini belum dijalankan (hanya celah balapan itu yang
+   tersisa).
 2. **Daftar file deploy** bertambah 4 berkas baru: `api/dompet.js`, `api/kerja.js`,
    `api/belanja.js`, `api/_lib/kerja.js` (plus `api/_lib/app.js` + `api/_lib/db.js` yang
    berubah, dan `index.html`). Berkas `api/` jadi 14 (9 endpoint + 5 di `api/_lib/`).
@@ -172,6 +190,7 @@ Deploy ulang `index.html` + `api/` versi sebelumnya. Tabel + fungsi baru boleh d
 ```bash
 node --test tests/kerja-server.test.js   # server: upah, jatah, jeda, ronda, belanja, uang kos, CSRF, migrasi
 node --test tests/kerja-klien.test.js    # klien: salinan aturan = server, mini game, tempat, kabel, aturan tetap
+node --test tests/kerja-alur.test.js     # alur klien dengan server palsu: jeda/jatah basi, batal saat mencatat gaji, Coba lagi, GET basi, ketuk dua kali
 node --test tests/*.test.js              # semua
 ```
 

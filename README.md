@@ -46,8 +46,9 @@ dengan daftar file eksplisit (20 file, termasuk `vendor/mqtt/mqtt.min.js` dan
 Sejak rasa aman Fase A, daftar itu wajib ditambah file `api/` (termasuk `api/_lib/`) + env var
 Vercel (lihat `docs/RASA-AMAN-FASE-A.md`). Sejak Kerja & Belanja (16 Nov) ada 14 file `api/`:
 9 endpoint + 5 di `api/_lib/` — baru: `api/dompet.js`, `api/kerja.js`, `api/belanja.js`,
-`api/_lib/kerja.js`. Jalankan dulu `supabase/migrations/20261116_kerja_belanja.sql` di SQL Editor
-(lihat `docs/KERJA-BELANJA.md`).
+`api/_lib/kerja.js`. Jalankan dulu `supabase/migrations/20261116_kerja_belanja.sql` di SQL Editor,
+lalu `supabase/migrations/20261117_kerja_kunci.sql` (kunci per penghuni untuk mulai/selesai
+shift; lihat `docs/KERJA-BELANJA.md`).
 
 Berkas yang benar-benar dipakai game saat runtime (audit Fase A, O1):
 `index.html`, `kosan-3d.html` (redirect), `vercel.json`,

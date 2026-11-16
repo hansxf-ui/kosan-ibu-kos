@@ -323,6 +323,25 @@ test('migrasi kerja_belanja: hanya menambah, RLS + revoke + grant service_role, 
   }
 });
 
+test('migrasi kerja_kunci: 3 fungsi kerja diganti dengan isi SAMA + kunci per penghuni sebagai pernyataan pertama', () => {
+  const baca = (f) => fs.readFileSync(path.join(ROOT, 'supabase', 'migrations', f), 'utf8').replace(/--.*$/gm, '');
+  const lama = baca('20261116_kerja_belanja.sql'), baru = baca('20261117_kerja_kunci.sql');
+  const ambil = (sql, f) => { const m = new RegExp('create or replace function public\\.' + f + '\\([\\s\\S]*?end \\$\\$;').exec(sql); assert.ok(m, f); return m[0]; };
+  const KUNCI = "  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtext('kosan_kerja:' || p_room::text || ':' || p_nama));\n";
+  const fungsi = [...baru.matchAll(/create or replace function public\.(kosan_[a-z_]+)\(/g)].map((m) => m[1]);
+  assert.deepEqual(fungsi, ['kosan_kerja_mulai', 'kosan_kerja_selesai', 'kosan_kerja_batal']);
+  for (const f of fungsi) {
+    const b = ambil(baru, f);
+    assert.ok(b.includes('\nbegin\n' + KUNCI), f + ': kunci = pernyataan pertama');
+    assert.equal(b.replace(KUNCI, ''), ambil(lama, f), f + ': isi lain SAMA PERSIS dengan migrasi 16 Nov');
+    assert.match(baru, new RegExp('revoke all on function public\\.' + f + '\\([^)]*\\) from public, anon, authenticated'), f);
+    assert.match(baru, new RegExp('grant execute on function public\\.' + f + '\\([^)]*\\) to service_role'), f);
+  }
+  assert.equal((baru.match(/security definer set search_path = ''/g) || []).length, 3);
+  assert.doesNotMatch(baru, /create table|alter table|drop |truncate|delete from|create index/i, 'tidak menyentuh tabel / data');
+  assert.match(baru, /^begin;$/m); assert.match(baru, /^commit;$/m);
+});
+
 test('berkas deploy: 3 endpoint baru (dompet GET, kerja POST, belanja POST), total endpoint <= 12 (batas Vercel Hobby), README', () => {
   const isi = (f) => fs.readFileSync(path.join(ROOT, 'api', f), 'utf8');
   assert.match(isi('dompet.js'), /jalankan\('dompet', 'GET'\)/);
