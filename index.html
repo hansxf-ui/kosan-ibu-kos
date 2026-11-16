@@ -12185,12 +12185,14 @@ function clampBalcony(nx, nz) {
 /* ================= Suara (Suasana): musik santai + efek suara + suara alam =================
    Ryan 15 Nov: "tolong tambahkan musik santai/cozy untuk game ini dong, karena sekarang hening
    banget, tambahkan juga suara-suara animasi jika melakukan sesuatu" (+ "tolong buat yang bagus ya").
-   SEMUA bunyi dibuat di browser (Web Audio: osilator + derau + filter + gema buatan): tanpa file
-   audio, tanpa lisensi lagu (aman untuk video IG), tanpa request baru (CSP tetap).
+   Musik = file MP3 loop (dirender dari mesin generatif yang sama, OfflineAudioContext):
+   tanpa lisensi lagu (aman untuk video IG). Efek + suara alam dibuat di browser (Web Audio:
+   osilator + derau + filter + gema buatan), tanpa request baru (CSP tetap).
    - Mulai setelah ketukan pertama (aturan autoplay browser); berhenti saat tab disembunyikan.
    - Menu ☰: Musik / Efek suara nyala-mati, disimpan di HP ('kosan3d-suara').
-   - Musik lo-fi generatif: piano listrik + bas + kalimba + drum lembut (desis piringan hitam dicabut
-     16 Nov: terdengar seperti speaker pecah).
+   - Musik lo-fi: piano listrik + bas + kalimba + drum lembut (desis piringan hitam dicabut
+     16 Nov: terdengar seperti speaker pecah). Dulu disintesis live per nada — 17 Nov diganti
+     file loop karena sintesis live putus-putus di HP lemah (main thread sibuk render 3D).
      Suasana ikut jam + cuaca (suasanaKini): siang ceria, senja hangat, malam pelan tanpa drum,
      hujan redam. Akor + melodi disusun aturan musik (MUSIK-START), bukan rekaman.
    - Suara alam (ikut tombol Efek suara): hujan (di dalam ruangan teredam), guntur sesekali saat
@@ -12461,128 +12463,70 @@ function bunyi(nama, opsi) {
   try { BUNYI[nama](c, S.efek, now + 0.005, opsi || {}); } catch (e) { /* abaikan */ }
 }
 /* ---- musik generatif ---- */
-function musikRangkai(c, tujuan) {
-  /* rantai musik di context mana pun (realtime / offline untuk uji level) -> mesin { jadwalBirama(t, keadaan) } */
-  var masuk = c.createGain(); masuk.gain.value = 1; masuk.connect(tujuan);
-  var gema = c.createConvolver(); gema.buffer = suaraGemaBuffer(c, 2.6);
-  var gemaKirim = c.createGain(); gemaKirim.gain.value = 0.32; gemaKirim.connect(gema);
-  var gemaKeluar = c.createGain(); gemaKeluar.gain.value = 0.55; gema.connect(gemaKeluar); gemaKeluar.connect(tujuan);
-  /* piano listrik: lowpass (gelap/terang ikut suasana) + tremolo pelan */
-  var epLp = c.createBiquadFilter(); epLp.type = 'lowpass'; epLp.frequency.value = 2800; epLp.Q.value = 0.4;
-  var epTrem = c.createGain(); epTrem.gain.value = 0.9;
-  var lfo = c.createOscillator(), lfoG = c.createGain(); lfo.frequency.value = 4.6; lfoG.gain.value = 0.09; lfo.connect(lfoG); lfoG.connect(epTrem.gain); lfo.start();
-  epLp.connect(epTrem); epTrem.connect(masuk); epTrem.connect(gemaKirim);
-  var basLp = c.createBiquadFilter(); basLp.type = 'lowpass'; basLp.frequency.value = 380; basLp.connect(masuk);
-  var drum = c.createBiquadFilter(); drum.type = 'lowpass'; drum.frequency.value = 5200; var drumG = c.createGain(); drumG.gain.value = 0.85; drum.connect(drumG); drumG.connect(masuk);
-  /* filter derau drum BERSAMA (satu per jenis pukulan, dibuat sekali): dulu satu BiquadFilter baru per
-     pukulan = biaya render drum ~2,5x (diukur), alasan utama musik tersendat di HP */
-  function saringDrum(jenis, f, q) { var fl = c.createBiquadFilter(); fl.type = jenis; fl.frequency.value = f; fl.Q.value = q; fl.connect(drum); return fl; }
-  var drumKlik = saringDrum('bandpass', 1400, 1), drumSnare = saringDrum('bandpass', 1900, 0.8), drumHat = saringDrum('highpass', 7200, 0.7);
-  var kal = c.createGain(); kal.gain.value = 1; kal.connect(masuk); var kalGema = c.createGain(); kalGema.gain.value = 0.9; kal.connect(kalGema); kalGema.connect(gemaKirim);
-  /* (Ryan 16 Nov "suara musiknya pecah rusak": desis + klik piringan hitam DICABUT — ~11 letupan/dtk
-     di 2,4 kHz terdengar seperti speaker rusak, paling jelas malam hari saat piano diredam) */
-  var derau = suaraDerau(c, 2, 'putih');
-  var M = { suasana: 'siang', progresi: MUSIK_PROGRESI.siang[0], birama: 0, pusat: 62, motif: null, r: suasanaAcak(Date.now() & 0xffff), tempo: MUSIK_TEMPO.siang };
-  function ep(t, midi, dur, vel) {
-    var f = musikHz(midi) * Math.pow(2, (M.r() - 0.5) * 0.004), car = c.createOscillator(), mod = c.createOscillator(), modG = c.createGain();
-    var tine = c.createOscillator(), tineG = c.createGain(), env = c.createGain();
-    car.frequency.value = f; mod.frequency.value = f; tine.frequency.value = f * 4;
-    modG.gain.setValueAtTime(f * 1.3 * vel, t); modG.gain.exponentialRampToValueAtTime(f * 0.12 + 1, t + 0.9);
-    mod.connect(modG); modG.connect(car.frequency);
-    tineG.gain.setValueAtTime(0.0001, t); tineG.gain.exponentialRampToValueAtTime(0.035 * vel, t + 0.003); tineG.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
-    env.gain.setValueAtTime(0.0001, t); env.gain.exponentialRampToValueAtTime(0.11 * vel, t + 0.008); env.gain.setTargetAtTime(0.045 * vel, t + 0.01, 0.7);
-    env.gain.setTargetAtTime(0.0001, t + dur, 0.28);
-    car.connect(env); tine.connect(tineG); tineG.connect(env); env.connect(epLp);
-    /* berhenti begitu tak terdengar (hemat CPU HP): denting 0,3 dtk -> osilatornya 0,35 dtk (dulu ikut
-       nada penuh); nada 1,1 dtk sesudah dilepas = 4 konstanta waktu (-67 dBFS, dulu 1,6 dtk) */
-    tine.start(t); tine.stop(t + 0.35);
-    [car, mod].forEach(function (o) { o.start(t); o.stop(t + dur + 1.1); });
-  }
-  function bas(t, midi, dur, vel) {
-    var o1 = c.createOscillator(), o2 = c.createOscillator(), g = c.createGain(), f = musikHz(midi);
-    o1.type = 'triangle'; o1.frequency.value = f; o2.type = 'sine'; o2.frequency.value = f / 2;
-    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.16 * vel, t + 0.015); g.gain.setTargetAtTime(0.09 * vel, t + 0.02, 0.35); g.gain.setTargetAtTime(0.0001, t + dur, 0.09);
-    o1.connect(g); o2.connect(g); g.connect(basLp);
-    o1.start(t); o2.start(t); o1.stop(t + dur + 0.6); o2.stop(t + dur + 0.6);
-  }
-  function kalimba(t, midi, vel) {
-    var f = musikHz(midi), p = suaraPan(c, (M.r() - 0.5) * 0.7);
-    suaraNadaKe(t, f, 0.05 * vel, 1.3, p); suaraNadaKe(t, f * 5.95, 0.008 * vel, 0.08, p);
-    p.connect(kal);
-  }
-  function suaraNadaKe(t, f, vol, dur, ke) {
-    var o = c.createOscillator(), g = c.createGain(); o.frequency.value = f;
-    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.003); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(g); g.connect(ke); o.start(t); o.stop(t + dur + 0.05);
-  }
-  function desisKe(t, ke, vol, dur) { /* semburan derau ber-amplop -> filter drum bersama (ke) */
-    var src = c.createBufferSource(), g = c.createGain();
-    src.buffer = derau;
-    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.002); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    src.connect(g); g.connect(ke); src.start(t, M.r() * 1.5); src.stop(t + dur + 0.05);
-  }
-  function kick(t, vel) {
-    var o = c.createOscillator(), g = c.createGain();
-    o.frequency.setValueAtTime(115, t); o.frequency.exponentialRampToValueAtTime(44, t + 0.13);
-    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.42 * vel, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.32);
-    o.connect(g); g.connect(drum); o.start(t); o.stop(t + 0.35);
-    desisKe(t, drumKlik, 0.03 * vel, 0.012); /* klik serang: tetap terasa di speaker HP */
-  }
-  function snare(t, vel) { desisKe(t, drumSnare, 0.12 * vel, 0.14); suaraNadaKe(t, 185, 0.06 * vel, 0.08, drum); }
-  function hat(t, vel) { desisKe(t, drumHat, 0.035 * vel, 0.035); }
-  function jadwalBirama(t, k) {
-    var nama = musikSuasana(k), ketukDur = 60 / M.tempo, swing = ketukDur * 0.14, i;
-    if (M.birama % 4 === 0) { /* frase baru: ganti suasana / progresi / tempo hanya di batas frase */
-      M.suasana = nama; M.tempo = MUSIK_TEMPO[nama]; ketukDur = 60 / M.tempo; swing = ketukDur * 0.14;
-      if (M.birama % 8 === 0 || MUSIK_PROGRESI[nama].indexOf(M.progresi) < 0) { var daftar = MUSIK_PROGRESI[nama]; M.progresi = daftar[Math.floor(M.r() * daftar.length)]; }
-      epLp.frequency.setTargetAtTime({ siang: 3000, senja: 2500, malam: 1700, hujan: 1900 }[nama], t, 1.5);
-    }
-    var s = M.suasana, akor = MUSIK_AKOR[M.progresi[M.birama % 4]], voicing = musikVoicing(akor.nada, M.pusat, 52, 74);
-    M.pusat = Math.round((voicing[0] + voicing[voicing.length - 1]) / 2);
-    var hum = function () { return (M.r() - 0.5) * 0.018; };
-    /* piano listrik: pola iringan per suasana */
-    var pola = { siang: [[0, 1.6, 0.85], [2.5, 1.4, 0.55]], senja: [[0, 2, 0.8], [2, 2, 0.5]], malam: [[0, 3.8, 0.75]], hujan: [[0, 3.8, 0.7]] }[s];
-    pola.forEach(function (p) { voicing.forEach(function (n, j) { ep(t + p[0] * ketukDur + j * 0.012 + hum(), n, p[1] * ketukDur, p[2] * (0.85 + M.r() * 0.2)); }); });
-    /* bas: akar E2..D#3 (82-156 Hz: masih terdengar di speaker HP) + sub oktaf di bawahnya */
-    var akar = 40 + ((akor.akar - 4 + 12) % 12);
-    if (s === 'malam' || s === 'hujan') bas(t + hum(), akar, 3.4 * ketukDur, 0.7);
-    else { bas(t + hum(), akar, 1.5 * ketukDur, 0.9); bas(t + 2.5 * ketukDur + hum(), (M.birama % 2 ? akar + 7 : akar), 1.2 * ketukDur, 0.65); }
-    /* drum lo-fi: siang lengkap, senja tipis, malam/hujan tanpa drum (cuma hi-hat sangat pelan saat hujan) */
-    if (s === 'siang' || s === 'senja') {
-      kick(t, 1); if (s === 'siang') kick(t + 2.5 * ketukDur, 0.7);
-      snare(t + ketukDur, 0.8); snare(t + 3 * ketukDur, 0.85);
-      for (i = 0; i < 8; i++) { if (s === 'senja' && i % 2) continue; if (M.r() < 0.12) continue; hat(t + i * ketukDur / 2 + (i % 2 ? swing : 0), i % 2 ? 0.6 : 0.9); }
-    } else if (s === 'hujan') { for (i = 0; i < 4; i++) hat(t + i * ketukDur + swing, 0.35); }
-    /* kalimba: motif 2 birama, diulang dengan variasi (pola A A B A per 8 birama) */
-    var padat = { siang: 0.75, senja: 0.6, malam: 0.38, hujan: 0.45 }[s];
-    if (M.birama % 2 === 0) {
-      var babak = (M.birama / 2) % 4;
-      if (!M.motif || babak === 0 || babak === 2) M.motif = musikMotif(M.r, akor.nada, padat);
-      M.mainkan = M.r() < ({ siang: 0.8, senja: 0.7, malam: 0.45, hujan: 0.5 }[s]);
-    }
-    if (M.mainkan && M.motif) M.motif.forEach(function (n) {
-      var b = n.ketuk - (M.birama % 2) * 4;
-      if (b >= 0 && b < 4) kalimba(t + b * ketukDur + (b % 1 ? swing : 0) + hum(), n.midi, 0.8 + M.r() * 0.3);
-    });
-    M.birama++;
-    return 4 * ketukDur;
-  }
-  return { jadwalBirama: jadwalBirama, masuk: masuk };
-}
-var MUSIK = { mesin: null, waktu: 0, timer: 0 };
-var MUSIK_DEPAN = 1.5; /* dtk: birama berikutnya dijadwalkan sejauh ini di depan (dulu 0,6) */
-function musikJadwal() {
-  /* Ryan 16 Nov "suara musiknya pecah rusak": dulu birama dijadwalkan 0,6 dtk di depan dan waktu yang
-     sudah lewat sampai 0,2 dtk tetap dipakai. HP yang tersendat > 0,5 dtk (masuk Jalan Kampung, GC)
-     = nada dijadwalkan ke masa lalu: amplop dilompati (klik keras) + nada terpotong. Sekarang 1,5 dtk
-     di depan, dan kalau tetap terlambat birama digeser maju (jeda sebentar lebih baik daripada klik). */
+/* ---- musik dari file (bukan sintesis live) ---- */
+/* Ryan 17 Nov: musik sintesis live (nada dijadwalkan di main thread) putus-putus di HP lemah
+   (main thread sibuk render 3D) — perbaikan PR #18 tidak cukup di HP. Musik kini FILE MP3 loop
+   yang dirender dari mesin generatif yang sama (OfflineAudioContext, benih tetap): pemutaran
+   ditangani audio thread + buffer besar, jadi mulus walau main thread sibuk. File:
+   assets/musik/{siang,senja,malam,hujan}.mp3 (loop, ujung-awal sudah crossfade di file).
+   Teori musiknya (akor/progresi/voicing/motif/tempo) tetap di blok MUSIK-START di atas — dari
+   situlah file-file ini dirender; kalau musik mau di-render ulang, pakai data itu. */
+var MUSIK_FILE = { siang: 'assets/musik/siang.mp3', senja: 'assets/musik/senja.mp3', malam: 'assets/musik/malam.mp3', hujan: 'assets/musik/hujan.mp3' };
+var MUSIK = { file: {}, src: null, srcG: null, suasana: '', memuat: false };
+function musikMuat() {
+  /* unduh + decode 4 file (sekali, saat context audio dibuat); mulai main begitu file suasana
+     kini siap. Gagal unduh/decode = musik diam, game tetap jalan (tanpa throw). */
   var c = SUARA.ctx;
-  if (!c || c.state !== 'running' || !SUARA.setel.musik || !MUSIK.mesin) return;
-  if (MUSIK.waktu < c.currentTime + 0.05) MUSIK.waktu = c.currentTime + 0.12;
-  var jaga = 0;
-  while (MUSIK.waktu < c.currentTime + MUSIK_DEPAN && jaga++ < 4) {
-    try { MUSIK.waktu += MUSIK.mesin.jadwalBirama(MUSIK.waktu, suasanaKini); } catch (e) { MUSIK.waktu += 3; }
+  if (!c || MUSIK.memuat) return;
+  MUSIK.memuat = true;
+  Object.keys(MUSIK_FILE).forEach(function (nama) {
+    fetch(MUSIK_FILE[nama]).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
+      .then(function (ab) { return c.decodeAudioData(ab); })
+      .then(function (buf) {
+        MUSIK.file[nama] = buf;
+        if (nama === musikSuasana(suasanaKini) && SUARA.setel.musik) musikPutar(nama);
+      })
+      .catch(function () { /* file tidak ada / rusak: musik diam */ });
+  });
+}
+function musikPutar(nama) {
+  /* mainkan file suasana `nama` (crossfade ~2 dtk dari yang sedang jalan). Kalau file belum
+     siap, tidak main apa-apa — musikMuat memanggil lagi begitu decode selesai. */
+  var c = SUARA.ctx, buf = MUSIK.file[nama];
+  if (!c || c.state !== 'running' || !buf) return;
+  if (MUSIK.src && MUSIK.suasana === nama) return; /* sudah main suasana ini */
+  var t = c.currentTime;
+  var src = c.createBufferSource(); src.buffer = buf; src.loop = true;
+  var g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(1, t + 2);
+  src.connect(g); g.connect(SUARA.musik); src.start(t);
+  var lama = MUSIK.src, lamaG = MUSIK.srcG;
+  if (lama) {
+    lamaG.gain.cancelScheduledValues(t); lamaG.gain.setValueAtTime(lamaG.gain.value, t);
+    lamaG.gain.linearRampToValueAtTime(0.0001, t + 2);
+    try { lama.stop(t + 2.1); } catch (e) { /* abaikan */ }
   }
+  MUSIK.src = src; MUSIK.srcG = g; MUSIK.suasana = nama;
+}
+function musikBerhenti() {
+  /* Musik dimatikan (menu): hentikan sumber (pudar 0,3 dtk supaya tidak "tek"). File di-pause =
+     sumber dihentikan; dinyalakan lagi = file suasana kini mulai dari awal (loop, jadi titik
+     awal mana pun sah secara musikal). */
+  var c = SUARA.ctx, src = MUSIK.src, g = MUSIK.srcG;
+  MUSIK.src = null; MUSIK.srcG = null; MUSIK.suasana = ''; /* tidak ada yang main */
+  if (!c || !src) return;
+  var t = c.currentTime;
+  try {
+    g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t);
+    g.gain.linearRampToValueAtTime(0.0001, t + 0.3);
+    src.stop(t + 0.35);
+  } catch (e) { /* abaikan */ }
+}
+function musikCekSuasana() {
+  /* dipanggil suaraAlamTick (~4x/dtk): ganti file kalau suasana berubah (crossfade di musikPutar).
+     Musik mati = tidak mulai apa-apa; suasana dicatat saat dinyalakan lagi. */
+  if (!SUARA.setel.musik) return;
+  var nama = musikSuasana(suasanaKini);
+  if (nama !== MUSIK.suasana || !MUSIK.src) musikPutar(nama);
 }
 /* ---- suara alam (loop + sesekali) ---- */
 var ALAM = { hujan: null, hujanLp: null, gemuruh: null, keran: null, api: null, mesin: null, jangkrik: 0, burung: 0, guntur: 0, tetes: 0 };
@@ -12607,6 +12551,7 @@ function suaraAlamTick(dt) {
   /* dipanggil suasanaTick (~4x/dtk): target gain loop + jadwal bunyi sesekali */
   var c = SUARA.ctx;
   if (!c || c.state !== 'running' || !ALAM.hujan) return;
+  musikCekSuasana(); /* ganti file musik kalau suasana berubah (crossfade ~2 dtk) */
   var t = c.currentTime, k = suasanaKini, luar = myRealm === 'yard' || myRealm === 'jalan', on = SUARA.setel.efek ? 1 : 0;
   var hj = k.hujan * on;
   ALAM.hujan.g.gain.setTargetAtTime(hj * (luar ? 0.075 : 0.03), t, 0.6);
@@ -12660,7 +12605,7 @@ function suaraRangkai() {
   SUARA.musik = c.createGain(); SUARA.musik.gain.value = 0; SUARA.musik.connect(SUARA.master);
   SUARA.efek = c.createGain(); SUARA.efek.gain.value = SUARA.setel.efek ? SUARA_VOL.efek : 0; SUARA.efek.connect(SUARA.master);
   SUARA.alam = c.createGain(); SUARA.alam.gain.value = SUARA.setel.efek ? SUARA_VOL.alam : 0; SUARA.alam.connect(SUARA.master);
-  MUSIK.mesin = musikRangkai(c, SUARA.musik);
+  musikMuat(); /* unduh + decode 4 file MP3 loop (musik dari file, bukan sintesis live) */
   alamRangkai(c);
 }
 function suaraTerapkan() { /* setelan -> gain bus (pudar halus) */
@@ -12671,8 +12616,8 @@ function suaraTerapkan() { /* setelan -> gain bus (pudar halus) */
   SUARA.musik.gain.linearRampToValueAtTime(SUARA.setel.musik ? SUARA_VOL.musik : 0, t + (SUARA.setel.musik ? 3 : 0.5));
   SUARA.efek.gain.setTargetAtTime(SUARA.setel.efek ? SUARA_VOL.efek : 0, t, 0.08);
   SUARA.alam.gain.setTargetAtTime(SUARA.setel.efek ? SUARA_VOL.alam : 0, t, 0.3);
-  if (SUARA.setel.musik && !MUSIK.timer) { MUSIK.waktu = t + 0.15; MUSIK.timer = setInterval(musikJadwal, 100); musikJadwal(); }
-  if (!SUARA.setel.musik && MUSIK.timer) { clearInterval(MUSIK.timer); MUSIK.timer = 0; }
+  if (SUARA.setel.musik) musikPutar(musikSuasana(suasanaKini)); /* file loop (bukan sintesis live) */
+  else musikBerhenti();
   /* Musik + Efek suara dua-duanya mati: context diistirahatkan sesudah pudar (loop derau, LFO, motor
      mesin cuci tidak diproses diam-diam = hemat baterai HP); nyala lagi lewat suaraBuka */
   clearTimeout(SUARA.diamTimer);

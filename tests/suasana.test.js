@@ -150,7 +150,12 @@ test('Suasana: kabel ke index.html (tick sebelum render, langkah, menu, tanpa fi
   assert.match(HTML, /<button id="musikBtn"[^>]*>[\s\S]*?Musik <span id="musikStatus"/);
   assert.match(HTML, /<button id="efekBtn"[^>]*>[\s\S]*?Efek suara <span id="efekStatus"/);
   assert.match(HTML, /localStorage\.setItem\('kosan3d-suara'/);
-  assert.doesNotMatch(HTML, /new Audio\(|<audio|\.mp3|\.ogg|\.wav['"]/, 'semua bunyi dibuat Web Audio (tanpa file)');
+  /* musik = 4 file MP3 loop (17 Nov: sintesis live diganti file karena putus-putus di HP lemah);
+     efek + alam tetap Web Audio (tanpa file), tanpa OGG/WAV (OGG tidak jalan di Safari) */
+  assert.doesNotMatch(HTML, /new Audio\(|<audio|\.ogg|\.wav['"]/, 'efek + alam tetap Web Audio (tanpa file)');
+  assert.deepEqual([...HTML.matchAll(/assets\/musik\/\w+\.mp3/g)].map((m) => m[0]).sort(),
+    ['assets/musik/hujan.mp3', 'assets/musik/malam.mp3', 'assets/musik/senja.mp3', 'assets/musik/siang.mp3'],
+    'musik = 4 file MP3 loop');
   const rt = antara('/* ================= Suasana (runtime)', 'function suasanaPengingat(');
   assert.doesNotMatch(rt, /new THREE\.\w*Light\(/, 'jumlah lampu tidak berubah (tanpa kompilasi ulang shader)');
   assert.doesNotMatch(rt, /transparent: true|AdditiveBlending/, 'tanpa bidang transparan / aditif baru');
@@ -198,38 +203,109 @@ test('Malam lebih terang (Ryan 16 Nov "gelap banget"): lampu yang sama, intensit
   assert.match(fungsi('suasanaSiapkan'), /JALAN_TIANG_X\.forEach\(function \(x\) \{ gj\.push\(\[x, 3\.2, 4\.4, 4\.4, 0, 1\]\); \}\);/);
 });
 
-test('Musik tidak "pecah": tanpa kresek piringan hitam, filter drum bersama, osilator berhenti saat tak terdengar, potong sub-bass', () => {
-  const mr = fungsi('musikRangkai');
-  assert.doesNotMatch(mr, /kresek/, 'desis + klik piringan hitam dicabut');
-  /* bunyi per nada / pukulan tanpa node filter / gema sendiri (dulu satu BiquadFilter per pukulan drum) */
-  const perNada = mr.slice(mr.indexOf('  function ep('), mr.indexOf('  function jadwalBirama('));
-  assert.ok(perNada.length > 500);
-  assert.doesNotMatch(perNada, /createBiquadFilter|createConvolver|createDynamicsCompressor/);
-  assert.match(perNada, /tine\.start\(t\); tine\.stop\(t \+ 0\.35\);/);
-  assert.match(perNada, /\[car, mod\]\.forEach\(function \(o\) \{ o\.start\(t\); o\.stop\(t \+ dur \+ 1\.1\); \}\);/);
-  assert.match(mr, /var drumKlik = saringDrum\('bandpass', 1400, 1\), drumSnare = saringDrum\('bandpass', 1900, 0\.8\), drumHat = saringDrum\('highpass', 7200, 0\.7\);/);
+test('Musik dari file (17 Nov, ganti sintesis live): tanpa scheduler live, 4 MP3 loop valid, master tetap potong sub-bass', () => {
+  /* DIUBAH 17 Nov: mesin sintesis live (musikRangkai) dihapus dari game — musik kini file MP3 yang
+     dirender dari mesin yang sama (OfflineAudioContext). Tes lama yang memeriksa isi musikRangkai
+     diganti tes file + tes pemutar (di bawah). Yang tersisa dari rantai master: potong sub-bass. */
+  assert.doesNotMatch(HTML, /musikRangkai|musikJadwal|MUSIK_DEPAN|MUSIK\.mesin|MUSIK\.timer|MUSIK\.waktu/, 'tidak ada sisa scheduler live');
+  assert.doesNotMatch(HTML, /kresekLp/, 'kode kresek piringan hitam tidak ada');
   const rm = fungsi('suaraRantaiMaster');
   assert.match(rm, /potong\.type = 'highpass'; potong\.frequency\.value = 70;/);
   assert.match(rm, /master\.connect\(potong\); potong\.connect\(kompres\); kompres\.connect\(c\.destination\);/);
   assert.match(fungsi('suaraRangkai'), /SUARA\.master = suaraRantaiMaster\(c\);/);
+  /* 4 file MP3 loop: ada, MP3 asli (ID3 atau frame sync), ukuran wajar, total ~4 MB */
+  let total = 0;
+  for (const nama of ['siang', 'senja', 'malam', 'hujan']) {
+    const f = path.join(__dirname, '..', 'assets', 'musik', nama + '.mp3');
+    assert.ok(fs.existsSync(f), nama + '.mp3 ada');
+    const b = fs.readFileSync(f);
+    assert.ok(b.length > 100000, nama + ' > 100 KB: ' + b.length);
+    const id3 = b[0] === 0x49 && b[1] === 0x44 && b[2] === 0x33;
+    const sync = b[0] === 0xff && (b[1] & 0xe0) === 0xe0;
+    assert.ok(id3 || sync, nama + ' header MP3');
+    total += b.length;
+  }
+  assert.ok(total > 2000000 && total < 6000000, 'total 4 file ~4 MB: ' + total);
 });
 
-test('Musik dijadwalkan cukup jauh di depan: HP tersendat 1,4 dtk tidak menjadwalkan nada ke masa lalu (klik)', () => {
-  const kode = HTML.match(/var MUSIK = \{[^}]*\};\nvar MUSIK_DEPAN = [\d.]+;/)[0] + '\n' + fungsi('musikJadwal')
-    + '\nreturn { musikJadwal: musikJadwal, MUSIK: MUSIK };';
-  const ctx = { state: 'running', currentTime: 0 }, maju = [];
-  const J = new Function('SUARA', 'suasanaKini', kode)({ ctx, setel: { musik: true } }, {});
-  J.MUSIK.mesin = { jadwalBirama: (t) => { maju.push(t - ctx.currentTime); return 3.08; } };
-  J.MUSIK.waktu = 0.15;
-  const langkah = [];
-  for (let i = 0; i < 400; i++) langkah.push(i % 37 === 20 ? 1.4 : (i % 53 === 30 ? 0.9 : 0.1)); /* sesekali tersendat 0,9 / 1,4 dtk */
-  for (const d of langkah) { ctx.currentTime += d; J.musikJadwal(); }
-  assert.ok(maju.length > 10);
-  assert.ok(Math.min(...maju) >= 0.1, 'birama selalu mulai di masa depan: ' + Math.min(...maju).toFixed(3));
-  /* tersendat lebih lama dari jarak jadwal (tab pindah, GC panjang): birama digeser maju, tidak menumpuk */
-  ctx.currentTime += 9; maju.length = 0; J.musikJadwal();
-  assert.equal(maju.length, 1);
-  assert.ok(Math.abs(maju[0] - 0.12) < 1e-9);
+test('Musik file: putar loop + crossfade ~2 dtk saat ganti suasana + berhenti saat dimatikan', () => {
+  /* DIUBAH 17 Nov: menggantikan tes "Musik dijadwalkan cukup jauh di depan" (scheduler live
+     musikJadwal + MUSIK_DEPAN sudah tidak ada). Pemutar baru diuji dengan context palsu. */
+  const kode = antara('/* ---- musik dari file', '/* ---- suara alam')
+    + '\nreturn { MUSIK_FILE, MUSIK, musikMuat, musikPutar, musikBerhenti, musikCekSuasana };';
+  assert.deepEqual(Object.keys(new Function('SUARA', 'suasanaKini', 'musikSuasana', kode)({}, {}, () => 'siang').MUSIK_FILE).sort(),
+    ['hujan', 'malam', 'senja', 'siang'], '4 file suasana');
+  const buatGain = () => {
+    const g = { value: 0, set: [], ramp: [], batal: 0 };
+    return {
+      gain: {
+        get value() { return g.value; }, set value(v) { g.value = v; },
+        setValueAtTime: (v, t) => { g.set.push([v, t]); g.value = v; },
+        linearRampToValueAtTime: (v, t) => { g.ramp.push([v, t]); g.value = v; },
+        cancelScheduledValues: (t) => { g.batal++; },
+      },
+      connect: () => {}, _rekam: g,
+    };
+  };
+  const buatSrc = () => ({ buffer: null, loop: false, connect: () => {}, start: function (t) { this._mulai = t; }, stop: function (t) { this._berhenti = t; } });
+  const sumber = [];
+  const ctx = {
+    state: 'running', currentTime: 10,
+    createBufferSource: () => { const s = buatSrc(); sumber.push(s); return s; },
+    createGain: buatGain,
+  };
+  const SUARA = { ctx, setel: { musik: true, efek: true }, musik: { connect: () => {} } };
+  const kini = { hujan: 0, malam: 0, jingga: 0 };
+  const P = new Function('SUARA', 'suasanaKini', 'musikSuasana', kode)(SUARA, kini, S.musikSuasana);
+  P.MUSIK.file = { siang: { nama: 'siang' }, malam: { nama: 'malam' }, senja: { nama: 'senja' }, hujan: { nama: 'hujan' } };
+  /* putar siang: sumber loop + buffer benar + gain naik 0 -> 1 dalam 2 dtk */
+  P.musikPutar('siang');
+  assert.equal(sumber.length, 1);
+  assert.equal(sumber[0].buffer.nama, 'siang');
+  assert.equal(sumber[0].loop, true);
+  assert.equal(sumber[0]._mulai, 10);
+  assert.deepEqual(P.MUSIK.srcG._rekam.ramp, [[1, 12]], 'crossfade masuk 2 dtk');
+  assert.equal(P.MUSIK.suasana, 'siang');
+  /* putar siang lagi: tidak ada sumber baru (sudah main) */
+  P.musikPutar('siang');
+  assert.equal(sumber.length, 1);
+  /* ganti ke malam: sumber lama dipudar 2 dtk + berhenti, sumber baru jalan */
+  ctx.currentTime = 20;
+  P.musikPutar('malam');
+  assert.equal(sumber.length, 2);
+  assert.equal(sumber[1].buffer.nama, 'malam');
+  assert.deepEqual(sumber[0]._berhenti, 22.1, 'sumber lama berhenti sesudah pudar');
+  assert.ok(P.MUSIK.srcG._rekam.ramp.some(([v, t]) => v === 1 && t === 22), 'sumber baru pudar masuk 2 dtk');
+  assert.equal(P.MUSIK.suasana, 'malam');
+  /* file belum siap: tidak main apa-apa */
+  delete P.MUSIK.file.senja;
+  ctx.currentTime = 30;
+  P.musikPutar('senja');
+  assert.equal(sumber.length, 2);
+  /* berhenti: sumber dipudar 0,3 dtk + berhenti, src dikosongkan */
+  ctx.currentTime = 40;
+  P.musikBerhenti();
+  assert.equal(P.MUSIK.src, null);
+  assert.deepEqual(sumber[1]._berhenti, 40.35);
+  /* cek suasana: ganti kalau beda, diam kalau sama, diam kalau musik mati */
+  kini.malam = 1;
+  P.musikCekSuasana();
+  assert.equal(P.MUSIK.suasana, 'malam');
+  assert.equal(sumber.length, 3, 'cek suasana memulai file malam');
+  P.musikCekSuasana();
+  assert.equal(sumber.length, 3, 'suasana sama: tidak mulai ulang');
+  SUARA.setel.musik = false;
+  kini.malam = 0;
+  P.musikCekSuasana();
+  assert.equal(sumber.length, 3, 'musik mati: tidak mulai apa-apa');
+  assert.equal(P.MUSIK.suasana, 'malam', 'suasana terakhir tetap tercatat');
+  /* dinyalakan lagi (suaraTerapkan memanggil musikPutar): file SUASANA KINI (siang, bukan
+     'malam' yang lama) yang mulai — suasana basi tidak dipakai */
+  SUARA.setel.musik = true;
+  P.musikPutar(S.musikSuasana(kini));
+  assert.equal(sumber.length, 4, 'nyala lagi: file suasana kini');
+  assert.equal(sumber[3].buffer.nama, 'siang');
+  assert.equal(P.MUSIK.suasana, 'siang');
 });
 
 test('Derau loop menyambung mulus (dulu "tik" tiap 4 dtk di hujan + api kompor)', () => {
