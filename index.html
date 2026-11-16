@@ -12084,7 +12084,8 @@ function clampBalcony(nx, nz) {
    audio, tanpa lisensi lagu (aman untuk video IG), tanpa request baru (CSP tetap).
    - Mulai setelah ketukan pertama (aturan autoplay browser); berhenti saat tab disembunyikan.
    - Menu ☰: Musik / Efek suara nyala-mati, disimpan di HP ('kosan3d-suara').
-   - Musik lo-fi generatif: piano listrik + bas + kalimba + drum lembut + desis piringan hitam.
+   - Musik lo-fi generatif: piano listrik + bas + kalimba + drum lembut (desis piringan hitam dicabut
+     16 Nov: terdengar seperti speaker pecah).
      Suasana ikut jam + cuaca (suasanaKini): siang ceria, senja hangat, malam pelan tanpa drum,
      hujan redam. Akor + melodi disusun aturan musik (MUSIK-START), bukan rekaman.
    - Suara alam (ikut tombol Efek suara): hujan (di dalam ruangan teredam), guntur sesekali saat
@@ -12155,14 +12156,20 @@ SUARA.setel = (function () {
   catch (e) { return { musik: true, efek: true }; }
 })();
 function suaraSetelTulis() { try { localStorage.setItem('kosan3d-suara', JSON.stringify(SUARA.setel)); } catch (e) { /* abaikan */ } }
-function suaraDerau(c, detik, warna) { /* buffer derau mono: 'putih' | 'pink' */
+function suaraDerau(c, detik, warna) { /* buffer derau mono: 'putih' | 'pink'; ujungnya menyambung mulus ke awal (loop) */
   var n = Math.floor(c.sampleRate * detik), b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0);
+  var silang = Math.min(n >> 2, Math.floor(c.sampleRate * 0.05)), lanjut = new Float32Array(silang);
   var b0 = 0, b1 = 0, b2 = 0, r = suasanaAcak(warna === 'pink' ? 7 : 3);
-  for (var i = 0; i < n; i++) {
-    var w = r() * 2 - 1;
-    if (warna === 'pink') { b0 = 0.99765 * b0 + w * 0.099; b1 = 0.963 * b1 + w * 0.2965; b2 = 0.57 * b2 + w * 1.0527; d[i] = (b0 + b1 + b2 + w * 0.1848) * 0.2; }
-    else d[i] = w;
+  for (var i = 0; i < n + silang; i++) {
+    var w = r() * 2 - 1, v;
+    if (warna === 'pink') { b0 = 0.99765 * b0 + w * 0.099; b1 = 0.963 * b1 + w * 0.2965; b2 = 0.57 * b2 + w * 1.0527; v = (b0 + b1 + b2 + w * 0.1848) * 0.2; }
+    else v = w;
+    if (i < n) d[i] = v; else lanjut[i - n] = v;
   }
+  /* Ryan 16 Nov "suara ... pecah rusak": dulu sambungan loop pink = lompatan 0,79 (4,5x lompatan biasa)
+     -> "tik"/"dug" tiap 4 dtk di hujan + api kompor. Awal buffer dipudar-silang (daya tetap) dari
+     lanjutan derau sesudah ujung: sampel sesudah d[n-1] = lanjutan aslinya. */
+  for (var k = 0; k < silang; k++) { var a = k / silang; d[k] = d[k] * Math.sqrt(a) + lanjut[k] * Math.sqrt(1 - a); }
   return b;
 }
 function suaraGemaBuffer(c, detik) { /* gema buatan (ruang lembut): derau stereo meluruh */
@@ -12362,13 +12369,13 @@ function musikRangkai(c, tujuan) {
   epLp.connect(epTrem); epTrem.connect(masuk); epTrem.connect(gemaKirim);
   var basLp = c.createBiquadFilter(); basLp.type = 'lowpass'; basLp.frequency.value = 380; basLp.connect(masuk);
   var drum = c.createBiquadFilter(); drum.type = 'lowpass'; drum.frequency.value = 5200; var drumG = c.createGain(); drumG.gain.value = 0.85; drum.connect(drumG); drumG.connect(masuk);
+  /* filter derau drum BERSAMA (satu per jenis pukulan, dibuat sekali): dulu satu BiquadFilter baru per
+     pukulan = biaya render drum ~2,5x (diukur), alasan utama musik tersendat di HP */
+  function saringDrum(jenis, f, q) { var fl = c.createBiquadFilter(); fl.type = jenis; fl.frequency.value = f; fl.Q.value = q; fl.connect(drum); return fl; }
+  var drumKlik = saringDrum('bandpass', 1400, 1), drumSnare = saringDrum('bandpass', 1900, 0.8), drumHat = saringDrum('highpass', 7200, 0.7);
   var kal = c.createGain(); kal.gain.value = 1; kal.connect(masuk); var kalGema = c.createGain(); kalGema.gain.value = 0.9; kal.connect(kalGema); kalGema.connect(gemaKirim);
-  /* desis piringan hitam: derau jarang berklik, sangat pelan, berulang */
-  var kresek = c.createBufferSource(), kb = c.createBuffer(1, c.sampleRate * 3, c.sampleRate), kd = kb.getChannelData(0), r0 = suasanaAcak(23);
-  for (var i = 0; i < kd.length; i++) { kd[i] = (r0() * 2 - 1) * 0.012; if (r0() < 0.00035) { var amp = 0.25 + r0() * 0.5; for (var j = 0; j < 40 && i + j < kd.length; j++) kd[i + j] += (r0() * 2 - 1) * amp * Math.exp(-j / 6); } }
-  kresek.buffer = kb; kresek.loop = true;
-  var kresekLp = c.createBiquadFilter(); kresekLp.type = 'bandpass'; kresekLp.frequency.value = 2400; kresekLp.Q.value = 0.4;
-  var kresekG = c.createGain(); kresekG.gain.value = 0.18; kresek.connect(kresekLp); kresekLp.connect(kresekG); kresekG.connect(masuk); kresek.start();
+  /* (Ryan 16 Nov "suara musiknya pecah rusak": desis + klik piringan hitam DICABUT — ~11 letupan/dtk
+     di 2,4 kHz terdengar seperti speaker rusak, paling jelas malam hari saat piano diredam) */
   var derau = suaraDerau(c, 2, 'putih');
   var M = { suasana: 'siang', progresi: MUSIK_PROGRESI.siang[0], birama: 0, pusat: 62, motif: null, r: suasanaAcak(Date.now() & 0xffff), tempo: MUSIK_TEMPO.siang };
   function ep(t, midi, dur, vel) {
@@ -12381,7 +12388,10 @@ function musikRangkai(c, tujuan) {
     env.gain.setValueAtTime(0.0001, t); env.gain.exponentialRampToValueAtTime(0.11 * vel, t + 0.008); env.gain.setTargetAtTime(0.045 * vel, t + 0.01, 0.7);
     env.gain.setTargetAtTime(0.0001, t + dur, 0.28);
     car.connect(env); tine.connect(tineG); tineG.connect(env); env.connect(epLp);
-    [car, mod, tine].forEach(function (o) { o.start(t); o.stop(t + dur + 1.6); });
+    /* berhenti begitu tak terdengar (hemat CPU HP): denting 0,3 dtk -> osilatornya 0,35 dtk (dulu ikut
+       nada penuh); nada 1,1 dtk sesudah dilepas = 4 konstanta waktu (-67 dBFS, dulu 1,6 dtk) */
+    tine.start(t); tine.stop(t + 0.35);
+    [car, mod].forEach(function (o) { o.start(t); o.stop(t + dur + 1.1); });
   }
   function bas(t, midi, dur, vel) {
     var o1 = c.createOscillator(), o2 = c.createOscillator(), g = c.createGain(), f = musikHz(midi);
@@ -12400,28 +12410,27 @@ function musikRangkai(c, tujuan) {
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.003); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     o.connect(g); g.connect(ke); o.start(t); o.stop(t + dur + 0.05);
   }
-  function desisKe(t, o) { /* derau terfilter ke bus drum */
-    var src = c.createBufferSource(), fl = c.createBiquadFilter(), g = c.createGain();
-    src.buffer = derau; fl.type = o.filter; fl.frequency.value = o.f; fl.Q.value = o.q || 0.7;
-    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(o.vol, t + 0.002); g.gain.exponentialRampToValueAtTime(0.0001, t + o.dur);
-    src.connect(fl); fl.connect(g); g.connect(drum); src.start(t, M.r() * 1.5); src.stop(t + o.dur + 0.05);
+  function desisKe(t, ke, vol, dur) { /* semburan derau ber-amplop -> filter drum bersama (ke) */
+    var src = c.createBufferSource(), g = c.createGain();
+    src.buffer = derau;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.002); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(g); g.connect(ke); src.start(t, M.r() * 1.5); src.stop(t + dur + 0.05);
   }
   function kick(t, vel) {
     var o = c.createOscillator(), g = c.createGain();
     o.frequency.setValueAtTime(115, t); o.frequency.exponentialRampToValueAtTime(44, t + 0.13);
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.42 * vel, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.32);
     o.connect(g); g.connect(drum); o.start(t); o.stop(t + 0.35);
-    desisKe(t, { filter: 'bandpass', f: 1400, q: 1, vol: 0.03 * vel, dur: 0.012 }); /* klik serang: tetap terasa di speaker HP */
+    desisKe(t, drumKlik, 0.03 * vel, 0.012); /* klik serang: tetap terasa di speaker HP */
   }
-  function snare(t, vel) { desisKe(t, { filter: 'bandpass', f: 1900, q: 0.8, vol: 0.12 * vel, dur: 0.14 }); suaraNadaKe(t, 185, 0.06 * vel, 0.08, drum); }
-  function hat(t, vel) { desisKe(t, { filter: 'highpass', f: 7200, vol: 0.035 * vel, dur: 0.035 }); }
+  function snare(t, vel) { desisKe(t, drumSnare, 0.12 * vel, 0.14); suaraNadaKe(t, 185, 0.06 * vel, 0.08, drum); }
+  function hat(t, vel) { desisKe(t, drumHat, 0.035 * vel, 0.035); }
   function jadwalBirama(t, k) {
     var nama = musikSuasana(k), ketukDur = 60 / M.tempo, swing = ketukDur * 0.14, i;
     if (M.birama % 4 === 0) { /* frase baru: ganti suasana / progresi / tempo hanya di batas frase */
       M.suasana = nama; M.tempo = MUSIK_TEMPO[nama]; ketukDur = 60 / M.tempo; swing = ketukDur * 0.14;
       if (M.birama % 8 === 0 || MUSIK_PROGRESI[nama].indexOf(M.progresi) < 0) { var daftar = MUSIK_PROGRESI[nama]; M.progresi = daftar[Math.floor(M.r() * daftar.length)]; }
       epLp.frequency.setTargetAtTime({ siang: 3000, senja: 2500, malam: 1700, hujan: 1900 }[nama], t, 1.5);
-      kresekG.gain.setTargetAtTime(nama === 'malam' || nama === 'hujan' ? 0.24 : 0.16, t, 2);
     }
     var s = M.suasana, akor = MUSIK_AKOR[M.progresi[M.birama % 4]], voicing = musikVoicing(akor.nada, M.pusat, 52, 74);
     M.pusat = Math.round((voicing[0] + voicing[voicing.length - 1]) / 2);
@@ -12456,12 +12465,17 @@ function musikRangkai(c, tujuan) {
   return { jadwalBirama: jadwalBirama, masuk: masuk };
 }
 var MUSIK = { mesin: null, waktu: 0, timer: 0 };
+var MUSIK_DEPAN = 1.5; /* dtk: birama berikutnya dijadwalkan sejauh ini di depan (dulu 0,6) */
 function musikJadwal() {
+  /* Ryan 16 Nov "suara musiknya pecah rusak": dulu birama dijadwalkan 0,6 dtk di depan dan waktu yang
+     sudah lewat sampai 0,2 dtk tetap dipakai. HP yang tersendat > 0,5 dtk (masuk Jalan Kampung, GC)
+     = nada dijadwalkan ke masa lalu: amplop dilompati (klik keras) + nada terpotong. Sekarang 1,5 dtk
+     di depan, dan kalau tetap terlambat birama digeser maju (jeda sebentar lebih baik daripada klik). */
   var c = SUARA.ctx;
   if (!c || c.state !== 'running' || !SUARA.setel.musik || !MUSIK.mesin) return;
-  if (MUSIK.waktu < c.currentTime - 0.2) MUSIK.waktu = c.currentTime + 0.12; /* kembali dari tab tersembunyi */
+  if (MUSIK.waktu < c.currentTime + 0.05) MUSIK.waktu = c.currentTime + 0.12;
   var jaga = 0;
-  while (MUSIK.waktu < c.currentTime + 0.6 && jaga++ < 4) {
+  while (MUSIK.waktu < c.currentTime + MUSIK_DEPAN && jaga++ < 4) {
     try { MUSIK.waktu += MUSIK.mesin.jadwalBirama(MUSIK.waktu, suasanaKini); } catch (e) { MUSIK.waktu += 3; }
   }
 }
@@ -12524,12 +12538,20 @@ function suaraAlamTick(dt) {
   }
 }
 /* ---- nyalakan / matikan ---- */
+function suaraRantaiMaster(c) { /* -> node masukan master: potong sub-bass -> kompresor lembut -> keluaran (dipakai juga uji offline) */
+  /* Ryan 16 Nov "pecah rusak": sub-bass < 70 Hz (oktaf bawah bas, ekor kick) tidak terdengar di speaker
+     HP tapi menghabiskan ruang + menggoyang membran sampai pecah; dipotong lembut (12 dB/oktaf) */
+  var potong = c.createBiquadFilter(); potong.type = 'highpass'; potong.frequency.value = 70; potong.Q.value = 0.7;
+  var kompres = c.createDynamicsCompressor();
+  kompres.threshold.value = -16; kompres.knee.value = 10; kompres.ratio.value = 3; kompres.attack.value = 0.008; kompres.release.value = 0.25;
+  var master = c.createGain(); master.gain.value = 0.9;
+  master.connect(potong); potong.connect(kompres); kompres.connect(c.destination);
+  return master;
+}
 function suaraRangkai() {
   var c = SUARA.ctx;
   SUARA.derau = suaraDerau(c, 2, 'putih');
-  var kompres = c.createDynamicsCompressor();
-  kompres.threshold.value = -16; kompres.knee.value = 10; kompres.ratio.value = 3; kompres.attack.value = 0.008; kompres.release.value = 0.25;
-  SUARA.master = c.createGain(); SUARA.master.gain.value = 0.9; SUARA.master.connect(kompres); kompres.connect(c.destination);
+  SUARA.master = suaraRantaiMaster(c);
   SUARA.musik = c.createGain(); SUARA.musik.gain.value = 0; SUARA.musik.connect(SUARA.master);
   SUARA.efek = c.createGain(); SUARA.efek.gain.value = SUARA.setel.efek ? SUARA_VOL.efek : 0; SUARA.efek.connect(SUARA.master);
   SUARA.alam = c.createGain(); SUARA.alam.gain.value = SUARA.setel.efek ? SUARA_VOL.alam : 0; SUARA.alam.connect(SUARA.master);
@@ -12546,9 +12568,18 @@ function suaraTerapkan() { /* setelan -> gain bus (pudar halus) */
   SUARA.alam.gain.setTargetAtTime(SUARA.setel.efek ? SUARA_VOL.alam : 0, t, 0.3);
   if (SUARA.setel.musik && !MUSIK.timer) { MUSIK.waktu = t + 0.15; MUSIK.timer = setInterval(musikJadwal, 100); musikJadwal(); }
   if (!SUARA.setel.musik && MUSIK.timer) { clearInterval(MUSIK.timer); MUSIK.timer = 0; }
+  /* Musik + Efek suara dua-duanya mati: context diistirahatkan sesudah pudar (loop derau, LFO, motor
+     mesin cuci tidak diproses diam-diam = hemat baterai HP); nyala lagi lewat suaraBuka */
+  clearTimeout(SUARA.diamTimer);
+  if (suaraSemuaMati()) SUARA.diamTimer = setTimeout(function () {
+    if (!suaraSemuaMati() || !SUARA.ctx || SUARA.ctx.state !== 'running') return;
+    try { var p = SUARA.ctx.suspend(); if (p && p.catch) p.catch(function () {}); } catch (e) { /* abaikan */ }
+  }, 1200); /* bus alam (pudar 0,3 dtk) sudah < 2% */
 }
+function suaraSemuaMati() { return !SUARA.setel.musik && !SUARA.setel.efek; }
 function suaraBuka() {
   /* dipanggil di tiap gerakan pengguna sampai suara jalan (aturan autoplay; iOS butuh di dalam handler) */
+  if (suaraSemuaMati()) return; /* dua-duanya mati: tidak membuat / membangunkan context */
   if (!SUARA.ctx) {
     var AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
