@@ -24,7 +24,10 @@ const rute = {
   '/api/keluar': jalankan('keluar', 'POST', () => app),
   '/api/setup/pin': jalankan('setupPin', 'POST', () => app),
   '/api/daftar': jalankan('daftar', 'POST', () => app),
-  '/api/kamar/masuk': jalankan('kamarMasuk', 'POST', () => app)
+  '/api/kamar/masuk': jalankan('kamarMasuk', 'POST', () => app),
+  '/api/dompet': jalankan('dompet', 'GET', () => app), /* Kerja & Belanja */
+  '/api/kerja': jalankan('kerja', 'POST', () => app),
+  '/api/belanja': jalankan('belanja', 'POST', () => app)
 };
 const cfg = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
 const TIPE = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css',

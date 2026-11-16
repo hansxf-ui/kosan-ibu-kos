@@ -30,10 +30,11 @@ tetangga, dan melihat kosnya makin lama makin jadi.
 | `vendor/mqtt/` | mqtt.js 5.10.1 lokal (di-vendor, tanpa CDN unpkg) |
 | `vercel.json` | Header keamanan (CSP, nosniff, anti-iframe). Kalau menambah sumber eksternal baru (script/broker), daftarkan di CSP di sini |
 | `docs/MULTIPLAYER-SPEC.md` | Spek multiplayer |
-| `api/` | Vercel Functions login penghuni + PIN kamar (rasa aman Fase A). `api/_lib/` bukan endpoint |
+| `api/` | Vercel Functions login penghuni + PIN kamar (rasa aman Fase A) + dompet Rupiah, kerja, belanja (`api/dompet.js`, `api/kerja.js`, `api/belanja.js`, aturan di `api/_lib/kerja.js`). `api/_lib/` bukan endpoint |
 | `supabase/migrations/` | SQL tabel + fungsi baru (dijalankan manual di SQL Editor) |
 | `tests/` | Tes server (`node --test tests/server.test.js`) + playtest browser; tidak di-deploy |
 | `docs/RASA-AMAN-DESAIN.md`, `docs/RASA-AMAN-FASE-A.md` | Desain ronde rasa aman + runbook deploy Fase A |
+| `docs/KERJA-BELANJA.md` | Kerja, Rupiah, toko, uang kos: aturan, harga, runbook deploy (migrasi `20261116_kerja_belanja.sql`) |
 | `.kiro/steering/konteks-game.md` | Konteks game (dimuat di setiap sesi Kiro) |
 
 ## Deploy
@@ -42,14 +43,17 @@ Proyek Vercel ini **tidak punya integrasi Git** — merge ke `main` TIDAK
 auto-deploy. Deploy dilakukan manual lewat API Vercel (`vercel_deploy.py`),
 dengan daftar file eksplisit (20 file, termasuk `vendor/mqtt/mqtt.min.js` dan
 `vercel.json`). Sesudah deploy, verifikasi sha live = sha lokal.
-Sejak rasa aman Fase A, daftar itu wajib ditambah 10 file `api/` (termasuk `api/_lib/`) + env var
-Vercel (lihat `docs/RASA-AMAN-FASE-A.md`).
+Sejak rasa aman Fase A, daftar itu wajib ditambah file `api/` (termasuk `api/_lib/`) + env var
+Vercel (lihat `docs/RASA-AMAN-FASE-A.md`). Sejak Kerja & Belanja (16 Nov) ada 14 file `api/`:
+9 endpoint + 5 di `api/_lib/` — baru: `api/dompet.js`, `api/kerja.js`, `api/belanja.js`,
+`api/_lib/kerja.js`. Jalankan dulu `supabase/migrations/20261116_kerja_belanja.sql` di SQL Editor
+(lihat `docs/KERJA-BELANJA.md`).
 
 Berkas yang benar-benar dipakai game saat runtime (audit Fase A, O1):
 `index.html`, `kosan-3d.html` (redirect), `vercel.json`,
 `vendor/three/three.module.js`, `vendor/html2canvas.min.js`,
 `vendor/mqtt/mqtt.min.js`, `fonts/fonts-local.css` + 8 `fonts/*.woff2`,
-`assets/favicon.png`, `assets/og.jpg`, dan 10 berkas `api/`.
+`assets/favicon.png`, `assets/og.jpg`, dan 14 berkas `api/`.
 **`vendor/three/OrbitControls.js` TIDAK perlu di-deploy** (tidak dipakai
 sejak ronde 7, hanya disebut di komentar). `app.js`, `style.css`,
 `vendor/confetti.min.js`, `assets/batik-strip.svg`, `assets/hero.jpg`,

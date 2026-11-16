@@ -9,7 +9,20 @@ const { pinHash, normalize } = require('../api/_lib/inti');
 function buatFakeDb({ penghuni, sekarang = () => Date.now() }) {
   /* penghuni: [{ room, name, gender: 'Cewek'|'Cowok', pin }] */
   const lama = penghuni.map((p) => ({ room: p.room, name: p.name, gender: p.gender, pin_hash: pinHash(p.pin), gagal: 0, kunci: 0 }));
-  const t = { akun: new Map(), sesi: [], log: [], batas: new Map(), gerbang: new Map() };
+  const t = { akun: new Map(), sesi: [], log: [], batas: new Map(), gerbang: new Map(),
+    /* Kerja & Belanja — meniru tabel supabase/migrations/20261116_kerja_belanja.sql */
+    dompet: new Map(), mutasi: [], pekerjaan: new Map(), shift: [], barang: new Map(), sewa: new Map() };
+  const raise = (m) => { const e = new Error(m); e.status = 400; throw e; }; /* RAISE EXCEPTION -> PostgREST 400 */
+  const kunciP = (room, nama) => room + '|' + nama;
+  let mutasiId = 0;
+  const PEKERJAAN_SQL = ['kafe', 'warung', 'ronda', 'laundry'];
+  function kedaluwarsakan(room, nama, maksDetik) {
+    const now = sekarang();
+    for (const s of t.shift) if (s.room === room && s.nama_norm === nama && s.status === 'aktif' && s.mulai < now - maksDetik * 1000) { s.status = 'kedaluwarsa'; s.selesai = now; }
+  }
+  function catatMutasi(room, nama, jumlah, jenis, keterangan, saldo) {
+    t.mutasi.push({ id: ++mutasiId, room, nama_norm: nama, jumlah, jenis, keterangan: String(keterangan || '').slice(0, 80), saldo_sesudah: saldo, dibuat: iso(sekarang()) });
+  }
   const iso = (ms) => new Date(ms).toISOString();
   const panggilan = [];
   /* tiru DELETE FROM kosan_login_attempts WHERE name IN (penghuni kamar) */
@@ -123,7 +136,103 @@ function buatFakeDb({ penghuni, sekarang = () => Date.now() }) {
       if (x.n > g.maks) { x.kunci = now + g.kunciDetik * 1000; t.gerbang.set(kunci, x); return false; }
       t.gerbang.set(kunci, x); return true;
     },
-    async gerbangLepas(kunci) { const x = t.gerbang.get(kunci); if (x && x.n > 0) x.n -= 1; }
+    async gerbangLepas(kunci) { const x = t.gerbang.get(kunci); if (x && x.n > 0) x.n -= 1; },
+
+    /* ---- Kerja & Belanja: tiruan fungsi SQL (atomik: tanpa await di dalam) ---- */
+    async dompetBaca({ room, nama, tanggal, bulan, maksDetik }) {
+      panggilan.push('dompetBaca');
+      kedaluwarsakan(room, nama, maksDetik);
+      const k = kunciP(room, nama), milik = (s) => s.room === room && s.nama_norm === nama;
+      const aktif = t.shift.filter((s) => milik(s) && s.status === 'aktif').sort((a, b) => b.mulai - a.mulai)[0];
+      const selesai = t.shift.filter((s) => milik(s) && s.status === 'selesai');
+      return {
+        saldo: t.dompet.has(k) ? t.dompet.get(k) : 0,
+        pekerjaan: [...t.pekerjaan.values()].filter(milik).sort((a, b) => (a.pekerjaan < b.pekerjaan ? -1 : 1)).map((p) => ({ pekerjaan: p.pekerjaan, shift_total: p.shift_total })),
+        shift_hari_ini: selesai.filter((s) => s.tanggal === tanggal).length,
+        shift_aktif: aktif ? { id: aktif.id, pekerjaan: aktif.pekerjaan, mulai: iso(aktif.mulai) } : null,
+        terakhir_selesai: selesai.length ? iso(Math.max(...selesai.map((s) => s.selesai))) : null,
+        sewa_bulan: bulan, sewa_lunas: t.sewa.has(k + '|' + bulan),
+        barang: [...(t.barang.get(k) || [])],
+        riwayat: t.mutasi.filter(milik).sort((a, b) => b.id - a.id).slice(0, 10)
+          .map((m) => ({ jumlah: m.jumlah, jenis: m.jenis, keterangan: m.keterangan, saldo_sesudah: m.saldo_sesudah, dibuat: m.dibuat })),
+        sekarang: iso(sekarang())
+      };
+    },
+    async kerjaDaftar({ room, nama, pekerjaan }) {
+      if (PEKERJAAN_SQL.indexOf(pekerjaan) === -1) raise('pekerjaan tidak valid');
+      const k = kunciP(room, nama) + '|' + pekerjaan;
+      if (!t.pekerjaan.has(k)) t.pekerjaan.set(k, { room, nama_norm: nama, pekerjaan, shift_total: 0, terdaftar: iso(sekarang()) });
+      return { pekerjaan, shift_total: t.pekerjaan.get(k).shift_total };
+    },
+    async kerjaMulai({ room, nama, pekerjaan, tanggal, maksHari, jedaDetik, maksDetik }) {
+      panggilan.push('kerjaMulai');
+      if (!t.pekerjaan.has(kunciP(room, nama) + '|' + pekerjaan)) raise('belum_daftar');
+      kedaluwarsakan(room, nama, maksDetik);
+      const now = sekarang(), milik = (s) => s.room === room && s.nama_norm === nama;
+      const selesai = t.shift.filter((s) => milik(s) && s.status === 'selesai');
+      if (selesai.filter((s) => s.tanggal === tanggal).length >= maksHari) raise('batas_hari');
+      const terakhir = selesai.length ? Math.max(...selesai.map((s) => s.selesai)) : 0;
+      if (terakhir && terakhir > now - jedaDetik * 1000) raise('jeda:' + Math.ceil((terakhir + jedaDetik * 1000 - now) / 1000));
+      for (const s of t.shift) if (milik(s) && s.status === 'aktif') { s.status = 'batal'; s.selesai = now; } /* satu shift aktif per penghuni */
+      const s = { id: crypto.randomUUID(), room, nama_norm: nama, pekerjaan, tanggal, mulai: now, selesai: null, status: 'aktif', gaji: null, tip: null, benar: null, salah: null };
+      t.shift.push(s);
+      return { id: s.id, mulai: iso(now) };
+    },
+    async kerjaShift({ room, nama, shift }) {
+      const s = t.shift.find((x) => x.id === shift && x.room === room && x.nama_norm === nama);
+      if (!s) return null;
+      const p = t.pekerjaan.get(kunciP(room, nama) + '|' + s.pekerjaan);
+      return { pekerjaan: s.pekerjaan, status: s.status, detik: Math.floor((sekarang() - s.mulai) / 1000), shift_total: p ? p.shift_total : 0 };
+    },
+    async kerjaSelesai({ room, nama, shift, gaji, tip, benar, salah, minDetik, maksDetik, keterangan }) {
+      panggilan.push('kerjaSelesai');
+      if (!(gaji >= 0 && tip >= 0 && gaji + tip <= 20000)) raise('upah tidak valid');
+      const s = t.shift.find((x) => x.id === shift && x.room === room && x.nama_norm === nama);
+      if (!s) raise('shift_tidak_ada');
+      if (s.status !== 'aktif') raise('shift_tidak_aktif');
+      const now = sekarang();
+      if (now - s.mulai < minDetik * 1000) raise('terlalu_cepat');
+      if (now - s.mulai > maksDetik * 1000) raise('kedaluwarsa');
+      Object.assign(s, { status: 'selesai', selesai: now, gaji, tip, benar, salah });
+      const kp = kunciP(room, nama) + '|' + s.pekerjaan;
+      if (!t.pekerjaan.has(kp)) t.pekerjaan.set(kp, { room, nama_norm: nama, pekerjaan: s.pekerjaan, shift_total: 0, terdaftar: iso(now) });
+      const p = t.pekerjaan.get(kp); p.shift_total += 1;
+      const k = kunciP(room, nama), saldo = (t.dompet.get(k) || 0) + gaji + tip;
+      t.dompet.set(k, saldo);
+      if (gaji + tip > 0) catatMutasi(room, nama, gaji + tip, 'gaji', keterangan, saldo);
+      return { saldo, shift_total: p.shift_total, pekerjaan: s.pekerjaan };
+    },
+    async kerjaBatal({ room, nama, shift }) {
+      const s = t.shift.find((x) => x.id === shift && x.room === room && x.nama_norm === nama && x.status === 'aktif');
+      if (!s) return false;
+      s.status = 'batal'; s.selesai = sekarang();
+      return true;
+    },
+    async beli({ room, nama, barang, harga, unik, keterangan }) {
+      panggilan.push('beli');
+      if (!(Number.isInteger(harga) && harga > 0 && harga <= 1000000)) raise('harga tidak valid');
+      const k = kunciP(room, nama);
+      const milik = t.barang.get(k) || new Set();
+      if (unik && milik.has(barang)) raise('sudah_punya');
+      const saldo = t.dompet.get(k) || 0;
+      if (saldo < harga) raise('saldo_kurang');
+      if (unik) { milik.add(barang); t.barang.set(k, milik); }
+      t.dompet.set(k, saldo - harga);
+      catatMutasi(room, nama, -harga, 'beli', keterangan, saldo - harga);
+      return { saldo: saldo - harga };
+    },
+    async sewaBayar({ room, nama, bulan, jumlah, keterangan }) {
+      panggilan.push('sewaBayar');
+      if (!(Number.isInteger(jumlah) && jumlah > 0 && jumlah <= 1000000)) raise('jumlah tidak valid');
+      const k = kunciP(room, nama);
+      if (t.sewa.has(k + '|' + bulan)) raise('sudah_lunas');
+      const saldo = t.dompet.get(k) || 0;
+      if (saldo < jumlah) raise('saldo_kurang');
+      t.sewa.set(k + '|' + bulan, { jumlah, dibayar: iso(sekarang()) });
+      t.dompet.set(k, saldo - jumlah);
+      catatMutasi(room, nama, -jumlah, 'sewa', keterangan, saldo - jumlah);
+      return { saldo: saldo - jumlah, bulan };
+    }
   };
 }
 
