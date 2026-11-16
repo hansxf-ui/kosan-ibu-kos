@@ -353,6 +353,7 @@ function harnessPose() {
   const f = new Function('env', 'with (env) {\n' + kons + '\nvar roomPose = null, poseJangkar = null, poseDiGazebo = false;\n'
     + 'function misiSelesai(i) { env.misi.push(i); } function mpKirimPos() { env.pos++; } function closeCard() {}\n'
     + 'function toastKosan(m) { env.toast.push(m); } var document = { getElementById: function () { return env.wake; } };\n'
+    + 'function bunyi() {}\n' /* Suasana: efek suara (Web Audio) tidak ada di node */
     + nama.map(ambil).join('\n')
     + '\nreturn { tidur: tidurDiKasur, duduk: dudukDiKasur, bangun: bangunDariKasur, terapkan: terapkanPoseKamar, pose: function () { return roomPose; }, jangkar: function () { return poseJangkar; }, set: function (j, r) { poseJangkar = j; roomPose = r; }, POSE_SIT: POSE_SIT, POSE_SLEEP: POSE_SLEEP, WAKE_SPOT: WAKE_SPOT, jangkarPose: jangkarPose }; }');
   return { env, h: f(env) };

@@ -180,6 +180,9 @@
     font-size: 14px; text-align: left; }
   #menuDrop .pillbtn:active { background: #eef2f6; }
   #menuDrop .uicon { margin-right: 8px; }
+  /* Suasana — status Musik / Efek suara di kanan baris menu */
+  #menuDrop .menu-status { float: right; margin-left: 12px; font-size: 12px; font-weight: 800; color: #1B5FA8; }
+  #menuDrop .menu-status.mati { color: #8a94a0; }
   #entryBtn { font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 17px; font-weight: 800;
     background: #FFD11A; color: #4a3400; border: none; border-radius: 14px;
     padding: 12px 20px; width: 100%; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.3); }
@@ -951,6 +954,9 @@
         <button id="ktaBtn" class="pillbtn" type="button" title="Kartu Tanda Penghuni"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="11" r="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5.5 16c.5-1.5 1.7-2.2 3-2.2s2.5.7 3 2.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M15 9.5h4M15 13.5h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> KTA</button>
         <!-- Karakter v2 — pilihan tampilan (warna kaus + rambut) -->
         <button id="rupaBtn" class="pillbtn" type="button" title="Ganti tampilan karakter"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3l-5 3 2 4 2-1v12h10V9l2 1 2-4-5-3a4 4 0 0 1-8 0z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Tampilan</button>
+        <!-- Suasana — musik santai + efek suara: nyala/mati (disimpan di HP); menu tetap terbuka saat diketuk -->
+        <button id="musikBtn" class="pillbtn" type="button" title="Musik santai nyala/mati"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l11-2v13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17.5" cy="16" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/></svg> Musik <span id="musikStatus" class="menu-status">Nyala</span></button>
+        <button id="efekBtn" class="pillbtn" type="button" title="Efek suara + suara alam nyala/mati"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h4l5-4v13l-5-4H4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M16.5 9a4 4 0 0 1 0 6M19 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Efek suara <span id="efekStatus" class="menu-status">Nyala</span></button>
         <button id="exitBtn" class="pillbtn" type="button" style="display:none"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 21h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="13" cy="12" r="0.7" fill="currentColor"/></svg> Keluar</button>
       </div>
     </div>
@@ -4321,12 +4327,14 @@ function toggleDapurStove() {
   dapurStoveOn = !dapurStoveOn;
   stoveFlames.forEach(function (f) { f.visible = dapurStoveOn; });
   potSteam.forEach(function (s) { s.visible = dapurStoveOn; });
+  bunyi('kompor', { nyala: dapurStoveOn }); /* Suasana: pemantik + api; dengung api = loop suara alam */
   toastKosan(dapurStoveOn ? '🔥 Kompor dinyalakan — panci mulai beruap' : '🔥 Kompor dimatikan');
 }
 function toggleDapurFaucet() {
   if (myRealm !== 'dapur') return;
   dapurFaucetOn = !dapurFaucetOn;
   if (faucetWater) faucetWater.visible = dapurFaucetOn;
+  bunyi('keran', { buka: dapurFaucetOn }); /* Suasana: decit keran; air mengalir = loop suara alam */
   toastKosan(dapurFaucetOn ? '💧 Keran dibuka — air mengalir' : '💧 Keran ditutup');
 }
 function startWash(which) {
@@ -4342,6 +4350,7 @@ function startWash(which) {
     if (sj === 'dijemur' || sj === 'kering') { toastKosan('Cucianmu masih di jemuran — angkat dulu ya 🧺'); return; }
   }
   st.active = true; st.t = WASH_DUR;
+  bunyi('mesin'); /* Suasana: tombol + motor mulai; dengung = loop suara alam */
   toastKosan(nama + ' jalan… (' + WASH_DUR + ' dtk) 🌀');
 }
 function finishWash(which) {
@@ -4351,6 +4360,7 @@ function finishWash(which) {
   else { if (drLed) drLed.visible = true; }
   var mesinSelesai = which === 'wm' ? wmMesin : drMesin; /* Perabot modern: layar mesin "OK" sampai siklus berikutnya */
   if (mesinSelesai) layarMesinTulis(mesinSelesai.layar, 'OK', '#8dff9a');
+  bunyi('mesinSelesai'); /* Suasana: tit tit tit */
   if (which === 'wm' && jemuranAksi('cuci_selesai')) { toastKosan('✅ Cucian selesai! Bawa ke jemuran di halaman barat 🧺'); return; } /* Tahap 1 */
   toastKosan(which === 'wm' ? '✅ Cucian selesai! 👕' : '✅ Pakaian kering! 👕');
 }
@@ -4888,18 +4898,26 @@ function jemuranMuat(raw, sekarang) {
   }
   return jemuranBaru();
 }
-function jemuranStatus(st, sekarang, dur) {
+function jemuranKeringMs(st, sekarang, hujan) {
+  /* Suasana (Ryan: hujan -> jemuran BERHENTI kering dulu, waktunya tidak diulang): lama
+     menjemur efektif = waktu di tali dikurangi waktu hujan. hujan(a, b) = ms hujan di
+     [a, b] (opsional; tanpa hujan = perilaku lama persis). Tidak pernah turun: sesudah
+     kering, hujan berikutnya tidak membuatnya basah lagi. */
+  var lama = sekarang - st.sejak;
+  return typeof hujan === 'function' ? lama - hujan(st.sejak, sekarang) : lama;
+}
+function jemuranStatus(st, sekarang, dur, hujan) {
   if (!st) return 'kosong';
-  if (st.status === 'dijemur') return sekarang - st.sejak >= dur ? 'kering' : 'dijemur';
+  if (st.status === 'dijemur') return jemuranKeringMs(st, sekarang, hujan) >= dur ? 'kering' : 'dijemur';
   return st.status === 'basah' ? 'basah' : 'kosong';
 }
-function jemuranSisaDetik(st, sekarang, dur) {
+function jemuranSisaDetik(st, sekarang, dur, hujan) {
   if (!st || st.status !== 'dijemur') return 0;
-  return Math.max(0, Math.ceil((st.sejak + dur - sekarang) / 1000));
+  return Math.max(0, Math.ceil((dur - jemuranKeringMs(st, sekarang, hujan)) / 1000));
 }
-function jemuranTransisi(st, aksi, sekarang, dur) {
+function jemuranTransisi(st, aksi, sekarang, dur, hujan) {
   /* state baru, atau null kalau aksi tidak sah dari status sekarang. */
-  var now = jemuranStatus(st, sekarang, dur);
+  var now = jemuranStatus(st, sekarang, dur, hujan);
   if (aksi === 'cuci_selesai' && now === 'kosong') return { status: 'basah', sejak: 0 };
   if (aksi === 'jemur' && now === 'basah') return { status: 'dijemur', sejak: sekarang };
   if (aksi === 'angkat' && now === 'kering') return jemuranBaru();
@@ -4910,6 +4928,118 @@ function jemuranTeksSisa(detik) {
   return 'kira-kira ' + Math.ceil(detik / 60) + ' menit lagi';
 }
 /* ==== JEMURAN-END ==== */
+/* ==== SUASANA-START ==== */
+/* Suasana (Ryan 15 Nov: "gamenya cerah terus gak ada malamnya, gak ada hujannya ... cuaca
+   malam berganti otomatis mengikuti jam asli, tambahkan juga hujan di jam-jam tertentu").
+   Helper MURNI — dites node (tests/suasana.test.js). Jam = WIB (UTC+7, pola formatWIB /
+   ibuWaktu). Jadwal hujan dihitung dari TANGGAL WIB (acak bersemai), jadi semua pemain
+   melihat hujan yang sama pada jam yang sama TANPA server / pesan multiplayer. */
+var SUASANA_WIB = 7 * 3600 * 1000;
+var HUJAN_PUDAR_MS = 3 * 60 * 1000; /* hujan menderas di awal / mereda di akhir: 3 menit */
+var MENDUNG_SEBELUM_MS = 8 * 60 * 1000, MENDUNG_SESUDAH_MS = 6 * 60 * 1000; /* langit mendung dulu, lalu cerah lagi */
+var PELANGI_MS = 8 * 60 * 1000; /* pelangi sesudah hujan siang reda */
+function suasanaHalus(a, b, x) { var t = (x - a) / (b - a); t = t < 0 ? 0 : (t > 1 ? 1 : t); return t * t * (3 - 2 * t); }
+function suasanaSisaHari(ms) { return ((ms + SUASANA_WIB) % 86400000 + 86400000) % 86400000; }
+function suasanaJam(ms) { return suasanaSisaHari(ms) / 3600000; } /* 0..24, pecahan (WIB) */
+function suasanaAwalHari(ms) { return ms - suasanaSisaHari(ms); } /* 00:00 WIB hari itu (ms) */
+function suasanaTanggal(ms) {
+  var d = new Date(ms + SUASANA_WIB);
+  return d.getUTCFullYear() + '-' + ('0' + (d.getUTCMonth() + 1)).slice(-2) + '-' + ('0' + d.getUTCDate()).slice(-2);
+}
+function suasanaTerang(jam) {
+  /* 0 = malam .. 1 = siang. Jakarta: matahari terbit ~05:45, terbenam ~17:55 (sepanjang tahun
+     bergeser < 30 menit) -> subuh 05:00-06:18, senja 17:30-18:48 (perlahan, tidak tiba-tiba). */
+  return jam < 12 ? suasanaHalus(5.0, 6.3, jam) : 1 - suasanaHalus(17.6, 18.9, jam);
+}
+function suasanaSurya(jam) { /* matahari di atas cakrawala (cahaya langsung): terbit 05:33-06:15, terbenam 17:21-18:03 */
+  return jam < 12 ? suasanaHalus(5.55, 6.25, jam) : 1 - suasanaHalus(17.35, 18.05, jam);
+}
+function suasanaJingga(jam) { /* cahaya jingga fajar (lebih lembut) + senja: 0..1 */
+  var fajar = Math.exp(-Math.pow((jam - 5.8) / 0.42, 2)), senja = Math.exp(-Math.pow((jam - 17.9) / 0.5, 2));
+  return Math.max(fajar * 0.8, senja);
+}
+function suasanaAcak(benih) { /* mulberry32: acak bersemai, sama di semua HP */
+  var a = benih >>> 0;
+  return function () {
+    a = (a + 0x6D2B79F5) >>> 0;
+    var t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function suasanaBenih(teks) { /* FNV-1a 32 bit */
+  var h = 2166136261;
+  for (var i = 0; i < teks.length; i++) { h ^= teks.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function suasanaJadwalHujan(tanggal) {
+  /* tanggal 'YYYY-MM-DD' (WIB) -> [{ mulai, selesai (menit sejak 00:00 WIB), kuat 0,55..1 }],
+     urut, berjarak >= 45 menit, selesai <= 23:55. Musim hujan (Nov-Mar) lebih sering: hari
+     berhujan 75% (kemarau 35%), 1-3 kali, 15-40 menit, paling sering siang-sore (pola tropis). */
+  var r = suasanaAcak(suasanaBenih('hujan:' + tanggal)), bulan = +tanggal.slice(5, 7);
+  var basah = bulan >= 11 || bulan <= 3;
+  if (r() >= (basah ? 0.75 : 0.35)) return [];
+  var n = 1 + (r() < (basah ? 0.55 : 0.3) ? 1 : 0) + (r() < (basah ? 0.25 : 0.08) ? 1 : 0);
+  var hasil = [];
+  for (var coba = 0; coba < n * 4 && hasil.length < n; coba++) {
+    var u = r();
+    var jam = u < 0.55 ? 13 + r() * 5 : (u < 0.8 ? 18 + r() * 5.2 : (u < 0.95 ? 6 + r() * 6 : r() * 5.5));
+    var mulai = Math.round(jam * 60), selesai = Math.min(mulai + 15 + Math.round(r() * 25), 23 * 60 + 55), kuat = Math.round((0.55 + r() * 0.45) * 100) / 100;
+    if (selesai - mulai < 15) continue;
+    var bentrok = false;
+    for (var k = 0; k < hasil.length; k++) if (mulai < hasil[k].selesai + 45 && selesai > hasil[k].mulai - 45) bentrok = true;
+    if (!bentrok) hasil.push({ mulai: mulai, selesai: selesai, kuat: kuat });
+  }
+  return hasil.sort(function (a, b) { return a.mulai - b.mulai; });
+}
+function suasanaCuaca(ms) {
+  /* -> { hujan 0..1 (deras), mendung 0..1, pelangi 0..1 } pada waktu ms. Jadwal kemarin ikut
+     dicek (mendung sesudah hujan 23:55 menyeberang tengah malam). */
+  var hasil = { hujan: 0, mendung: 0, pelangi: 0 }, awal = suasanaAwalHari(ms);
+  for (var h = 1; h >= 0; h--) {
+    var d = awal - h * 86400000, jadwal = suasanaJadwalHujan(suasanaTanggal(d));
+    for (var i = 0; i < jadwal.length; i++) {
+      var s = jadwal[i], t0 = d + s.mulai * 60000, t1 = d + s.selesai * 60000;
+      if (ms >= t0 && ms <= t1) hasil.hujan = Math.max(hasil.hujan, s.kuat * suasanaHalus(0, 1, Math.min((ms - t0) / HUJAN_PUDAR_MS, (t1 - ms) / HUJAN_PUDAR_MS)));
+      var m = ms < t0 ? suasanaHalus(t0 - MENDUNG_SEBELUM_MS, t0, ms) : 1 - suasanaHalus(t1, t1 + MENDUNG_SESUDAH_MS, ms);
+      hasil.mendung = Math.max(hasil.mendung, m * (0.6 + 0.4 * s.kuat));
+      /* pelangi: hujan cukup deras yang reda di siang terang (matahari keluar lagi) */
+      if (s.kuat >= 0.6 && ms >= t1 - 60000 && ms <= t1 + PELANGI_MS && suasanaTerang(suasanaJam(t1)) >= 0.8) {
+        var u = (ms - (t1 - 60000)) / (PELANGI_MS + 60000);
+        hasil.pelangi = Math.max(hasil.pelangi, suasanaHalus(0, 0.2, u) * (1 - suasanaHalus(0.65, 1, u)) * suasanaTerang(suasanaJam(ms)));
+      }
+    }
+  }
+  return hasil;
+}
+function suasanaHujanTumpang(a, b) {
+  /* ms hujan (selang [mulai, selesai] jadwal) di dalam [a, b] — jemuran berhenti kering selama
+     hujan. Lebih dari 30 hari: 0 (cucian pasti sudah kering; hindari perulangan panjang). */
+  if (!(b > a) || b - a > 30 * 86400000) return 0;
+  var total = 0;
+  for (var d = suasanaAwalHari(a); d <= b; d += 86400000) {
+    var jadwal = suasanaJadwalHujan(suasanaTanggal(d));
+    for (var i = 0; i < jadwal.length; i++) {
+      var t0 = Math.max(a, d + jadwal[i].mulai * 60000), t1 = Math.min(b, d + jadwal[i].selesai * 60000);
+      if (t1 > t0) total += t1 - t0;
+    }
+  }
+  return total;
+}
+function suasanaKeadaan(ms, paksa) {
+  /* gabungan untuk tampilan + suara: { jam, terang, jingga, malam, hujan, mendung, pelangi }.
+     paksa (opsional, pratinjau ?jam= / ?hujan=): { jam: angka|null, hujan: 0|1|null }. */
+  paksa = paksa || {};
+  var jamPaksa = typeof paksa.jam === 'number' && paksa.jam >= 0 && paksa.jam < 24;
+  var jam = jamPaksa ? paksa.jam : suasanaJam(ms), terang = suasanaTerang(jam);
+  var c = suasanaCuaca(ms);
+  if (paksa.hujan === 1) c = { hujan: 0.85, mendung: 1, pelangi: 0 };
+  else if (paksa.hujan === 0) c = { hujan: 0, mendung: 0, pelangi: paksa.pelangi === 1 ? 1 : 0 };
+  if (jamPaksa) c.pelangi *= terang; /* jam pratinjau malam: tanpa pelangi */
+  return { jam: jam, terang: terang, surya: suasanaSurya(jam), jingga: suasanaJingga(jam), malam: 1 - terang, hujan: c.hujan, mendung: c.mendung, pelangi: c.pelangi };
+}
+/* ==== SUASANA-END ==== */
 /* ==== IBU-START ==== */
 /* Tahap 1 — ngobrol dengan Ibu Kos (spek §5). Helper MURNI — dites node.
    Isi kalimat DISETUJUI Ryan 14 Nov (4 sapaan + 11 kalimat; kalimat ke-12
@@ -5071,7 +5201,7 @@ function emoteAnimasi(t, id) {
    dobel, cukup diperpanjang + berdenyut. Lama tampil ikut panjang teks. */
 var TOAST_MAKS = 3;
 var TOAST_EMOJI_IKON = { '💡': 'lamp', '🌙': 'bulan', '💧': 'tetes', '🔥': 'api', '👕': 'baju', '🪑': 'chair', '🛋': 'chair',
-  '🧍': 'stand', '😴': 'bed', '🛣': 'jalan', '😺': 'kucing', '🪘': 'kentongan', '🪵': 'palang', '✅': 'cek', '⏳': 'tunggu', '😋': 'warung' };
+  '🧍': 'stand', '😴': 'bed', '🛣': 'jalan', '😺': 'kucing', '🪘': 'kentongan', '🪵': 'palang', '✅': 'cek', '⏳': 'tunggu', '😋': 'warung', '🌧': 'hujan', '🌈': 'pelangi' };
 function toastPecah(msg) { /* -> { ikon: nama UICONS | null, emoji: glyph | null, teks } */
   var t = String(msg == null ? '' : msg).trim(), c = t ? Array.from(t)[0] : '';
   if (c && (TOAST_EMOJI_IKON[c] || /^[\u2300-\u27bf]|^[\ud83c-\ud83e]/.test(c))) {
@@ -5120,6 +5250,7 @@ function toastKosan(msg) {
   var hidup = [].filter.call(wadah.children, function (c) { return !c.classList.contains('keluar'); });
   while (hidup.length > TOAST_MAKS) toastTutup(hidup.shift());
   toastJadwal(el, ms);
+  bunyi('toast'); /* Suasana: "pop" lembut (dilewati kalau efek aksinya baru saja berbunyi) */
 }
 function terapkanPoseKamar() {
   /* dipanggil tiap frame di animate saat roomPose aktif — menimpa
@@ -5140,6 +5271,7 @@ function tidurDiKasur() {
   if (myRealm.indexOf('room-') !== 0) return;
   roomPose = 'sleep';
   poseJangkar = jangkarPose(POSE_SLEEP, WAKE_SPOT);
+  bunyi('kasur'); /* Suasana */
   misiSelesai('tidur'); /* Ronde 20 — misi harian: tidur di kasur */
   terapkanPoseKamar(); /* jangkar langsung — publish pertama sudah bawa posisi kasur */
   mpKirimPos(); /* Ronde 15a — pose berubah: publish segera (bukan tunggu heartbeat 3 dtk) */
@@ -5151,6 +5283,7 @@ function dudukDiKasur() {
   if (myRealm.indexOf('room-') !== 0) return;
   roomPose = 'sit';
   poseJangkar = jangkarPose(POSE_SIT, WAKE_SPOT);
+  bunyi('duduk'); /* Suasana */
   misiSelesai('duduk'); /* Ronde 20 — misi harian: duduk santai */
   terapkanPoseKamar(); /* jangkar langsung — publish pertama sudah bawa posisi kasur */
   mpKirimPos(); /* Ronde 15a — pose berubah: publish segera (bukan tunggu heartbeat 3 dtk) */
@@ -5220,6 +5353,7 @@ function toggleRoomLamp() {
      0x6b5d4f) + garis LED/plafon kamar (interiorKamarNyala) dalam 0,35 dtk; nilai
      akhirnya sama persis dengan dulu (terapkanLampuKamar). */
   lampuKamarDari = lampuKamarLevel; lampuKamarMulai = performance.now();
+  bunyi('saklar'); /* Suasana */
   toastKosan(roomLampOn ? '💡 Lampu dinyalakan' : '🌙 Lampu dimatikan');
   if (!roomLampOn) misiSelesai('lampu'); /* Ronde 20 — misi harian: matikan lampu (hanya saat dimatikan) */
 }
@@ -6640,6 +6774,7 @@ function posRondaDuduk() {
   if (!j) { toastKosan('Bale-balenya penuh 🙂'); return; }
   roomPose = 'sit'; poseJangkar = j; jalanDiPosRonda = true;
   terapkanPoseKamar(); mpKirimPos(); closeCard();
+  bunyi('duduk'); /* Suasana */
   document.getElementById('wakeBtn').style.display = 'inline-block';
   toastKosan('🪵 Nongkrong di pos ronda — ketuk Bangun buat berdiri');
   misiSelesai('ronda');
@@ -6648,6 +6783,7 @@ function pukulKentongan() {
   if (myRealm !== 'jalan') return;
   if (jarakKeKotak(avatarPos.x, avatarPos.z, POS_RONDA_KOTAK) > JALAN_JARAK) { toastKosan('Jalan ke pos ronda dulu ya 🚶'); return; }
   jalanKentonganAyun = 1;
+  bunyi('kentongan'); /* Suasana */
   toastKosan('🪘 Tong… tong… tong! Siskamling aman terkendali');
 }
 function warungRender() {
@@ -6674,6 +6810,7 @@ function warungBeliKlik(id) {
   if (!r.ok) { toastKosan(r.alasan === 'kurang' ? 'Bintangmu kurang — selesaikan Misi Harian dulu ya' : 'Menu tidak ada'); return; }
   try { localStorage.setItem('kosan3d-bintang', String(r.sisa)); } catch (e) { /* abaikan */ }
   jajanPegang(r.item);
+  bunyi('koin'); /* Suasana */
   toastKosan('😋 Beli ' + r.item.nama.toLowerCase() + ' (−' + r.item.harga + ' Bintang)');
   misiSelesai('warung');
   warungRender();
@@ -6738,6 +6875,7 @@ function elusKucing() {
   jalanKucing.hati = emoteMulai(jalanKucing.hati || {}, 'sayang', Date.now(), Date.now());
   jalanKucing.hati.aktif = true;
   closeCard();
+  bunyi('meong'); /* Suasana: meong + dengkur */
   toastKosan('😺 Oyen mendengkur… prrr');
   misiSelesai('kucing');
 }
@@ -7077,6 +7215,7 @@ function gazeboDuduk(nama) {
   terapkanPoseKamar();
   mpKirimPos(); /* pose berubah: publish segera */
   closeCard();
+  bunyi('duduk'); /* Suasana */
   document.getElementById('wakeBtn').style.display = 'inline-block';
   toastKosan('🪑 Nongkrong di gazebo — ketuk Bangun buat berdiri');
   misiSelesai('gazebo');
@@ -7134,6 +7273,7 @@ function dudukRuangTamu(nama) {
   terapkanPoseKamar();
   mpKirimPos(); /* pose berubah: publish segera */
   closeCard();
+  bunyi('duduk'); /* Suasana */
   document.getElementById('wakeBtn').style.display = 'inline-block';
   toastKosan(nama === 'sofa' ? '🛋️ Duduk di sofa — ketuk Bangun buat berdiri' : '🪑 Duduk di bantal — ketuk Bangun buat berdiri');
 }
@@ -7151,7 +7291,7 @@ function jemuranStatusSekarang() {
   /* tamu tidak pernah punya cucian (dapur khusus penghuni) — sisa status
      penghuni lain di HP yang sama tidak ditampilkan ke tamu. */
   if (!ktaIsResident()) return 'kosong';
-  return jemuranStatus(jemuranBaca(), Date.now(), JEMUR_DUR);
+  return jemuranStatus(jemuranBaca(), Date.now(), JEMUR_DUR, jemuranHujan);
 }
 function lukisAnyaman(ctx, w, h) { /* anyaman pandan krem: pita mendatar/tegak berselang (u = keliling, v = tinggi) */
   ctx.fillStyle = '#c9a676'; ctx.fillRect(0, 0, w, h);
@@ -7219,7 +7359,7 @@ function jemuranTerapkanVisual() {
 setInterval(jemuranTerapkanVisual, 1000); /* status login / kering / avatar baru -> visual ikut dalam 1 dtk */
 function jemuranAksi(aksi) {
   if (!ktaIsResident()) return null;
-  var baru = jemuranTransisi(jemuranBaca(), aksi, Date.now(), JEMUR_DUR);
+  var baru = jemuranTransisi(jemuranBaca(), aksi, Date.now(), JEMUR_DUR, jemuranHujan);
   if (!baru) return null;
   jemuranTulis(baru);
   jemuranTerapkanVisual();
@@ -7242,7 +7382,10 @@ function showJemuranCard() {
     if (dekat) tombol = ['jemurBtn', 'Jemur cucian', function () { jemuranJemur(); }];
     else html += '<p style="margin-top:4px">Jalan ke jemuran dulu ya. 🚶</p>';
   } else if (status === 'dijemur') {
-    html = '<p>Cucianmu lagi dijemur. Kering ' + jemuranTeksSisa(jemuranSisaDetik(jemuranBaca(), Date.now(), JEMUR_DUR)) + '. ☀️</p>';
+    var sisaJemur = jemuranTeksSisa(jemuranSisaDetik(jemuranBaca(), Date.now(), JEMUR_DUR, jemuranHujan));
+    html = suasanaLagiHujan()
+      ? '<p>Cucianmu lagi dijemur, tapi lagi hujan — berhenti kering dulu sampai reda. Sesudah reda, kering ' + sisaJemur + '. 🌧️</p>' /* Suasana: hujan = berhenti kering, tidak diulang */
+      : '<p>Cucianmu lagi dijemur. Kering ' + sisaJemur + '. ☀️</p>';
   } else {
     html = '<p>Cucianmu sudah <b>kering</b>! 👕</p>';
     if (dekat) tombol = ['angkatBtn', 'Angkat cucian', function () { jemuranAngkat(); }];
@@ -7263,12 +7406,14 @@ function jemuranJemur() {
   if (jarakKeKotak(avatarPos.x, avatarPos.z, JEMURAN_KOTAK) > JEMURAN_JARAK) { toastKosan('Jalan ke jemuran dulu ya 🚶'); return; }
   if (!jemuranAksi('jemur')) return;
   closeCard();
-  toastKosan('👕 Cucian dijemur — kering kira-kira 3 menit lagi');
+  bunyi('kain');
+  toastKosan(suasanaLagiHujan() ? '👕 Cucian dijemur — lagi hujan, mulai kering sesudah reda' : '👕 Cucian dijemur — kering kira-kira 3 menit lagi');
 }
 function jemuranAngkat() {
   if (jarakKeKotak(avatarPos.x, avatarPos.z, JEMURAN_KOTAK) > JEMURAN_JARAK) { toastKosan('Jalan ke jemuran dulu ya 🚶'); return; }
   if (!jemuranAksi('angkat')) return;
   closeCard();
+  bunyi('kain');
   toastKosan('👕 Cucian kering diangkat');
   misiSelesai('jemur');
 }
@@ -7522,6 +7667,7 @@ function kirimEmote(id) {
   var now = Date.now();
   if (emoteSaya && emoteSaya.id && now - emoteSaya.mulai < EMOTE_JEDA_MS) return; /* jeda anti-banjir */
   emoteSaya = emoteMulai(emoteSaya || {}, id, now, now);
+  bunyi('emote', { id: id }); /* Suasana */
   mpKirimPos(); /* emote baru: publish segera (bukan tunggu heartbeat 3 dtk) */
 }
 function emoteTerimaRemote(entri, m, now) {
@@ -7838,6 +7984,9 @@ var UICONS = {
   cek: '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7.8 12.4l2.8 2.8 5.6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>',
   tunggu: '<path d="M7 3h10M7 21h10M8 3c0 4.5 8 4.5 8 9s-8 4.5-8 9M16 3c0 4.5-8 4.5-8 9s8 4.5 8 9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
   info: '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11v6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="7.6" r="1.3" fill="currentColor"/>',
+  /* Suasana — ikon toast hujan + pelangi; gaya sama (stroke currentColor) */
+  hujan: '<path d="M7 15.5a4.5 4.5 0 0 1-.6-8.96A5.5 5.5 0 0 1 17 7.5a4 4 0 0 1 .5 7.97" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.5 18l-1 2.5M12.5 17l-1 3M16.5 18l-1 2.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  pelangi: '<path d="M2.5 17.5a9.5 9.5 0 0 1 19 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 17.5a6 6 0 0 1 12 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M9.5 17.5a2.5 2.5 0 0 1 5 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
   /* bintang emas (bukan currentColor): harga jajan / saldo Bintang di kartu warung */
   bintang: '<path d="M12 3.2l2.7 5.5 6 .9-4.35 4.25 1.03 6L12 17l-5.38 2.85 1.03-6L3.3 9.6l6-.9z" fill="#f2b21b" stroke="#c98a0b" stroke-width="1" stroke-linejoin="round"/>'
 };
@@ -8455,6 +8604,7 @@ function misiBeriHadiah(nama) {
      pemanggil): simpan + +1 bintang + toast + render ulang panel. */
   misiSimpan();
   misiBintangTambah(1);
+  bunyi('misi'); /* Suasana */
   toastKosan('Misi selesai: ' + nama + ' +1 Bintang');
   if (misiPanelTerbuka()) misiRender();
 }
@@ -8648,6 +8798,7 @@ function sendalLempar() {
   if (!v) return;
   sendal.sandal.vx = v.vx; sendal.sandal.vy = v.vy;
   sendal.status = 'fly';
+  bunyi('lempar'); /* Suasana */
   sendal.lempar++;
   sendal.cepat = 0.55 + 0.12 * (sendal.lempar - 1); /* target makin cepat tiap lemparan */
   misiSelesai('sendal'); /* Ronde 21 — misi harian: main Lempar Sendal (1x/hari, idempotent) */
@@ -8676,6 +8827,7 @@ function sendalLoop(ts) {
       sendal.hasil = poin >= 100 ? 'BULLSEYE! +' + poin : (poin >= 50 ? 'Kena tengah! +' + poin : 'Kena! +' + poin);
       sendal.status = 'jeda';
       sendal.hasilT = 0;
+      bunyi('kena'); /* Suasana */
       sendalHud();
     } else if (sendal.sandal.y >= SENDAL_TANAH || sendal.sandal.x > 380 || sendal.sandal.x < -20) {
       sendal.hasil = 'Meleset! Coba lagi.';
@@ -9442,6 +9594,7 @@ function pulseDoor(n) {
   mat.emissive = new THREE.Color(0xffd11a);
   mat.emissiveIntensity = 0.55;
   setTimeout(function () { mat.emissiveIntensity = 0; }, 700);
+  bunyi('ketuk'); /* Suasana: tok tok */
 }
 
 /* ---------- resize + loop ---------- */
@@ -9829,6 +9982,7 @@ function mpSaatPindahAlam() { /* kontrak §8.3: realm baru -> publish segera + s
   mpTerapkanRender();
   mpKirimPresence();
   mpKirimPos();
+  suaraPindahAlam(); /* Suasana: pintu / gerbang */
 }
 function mpMulai() { /* mulai MQTT sesudah "Masuk Kosan" (§1.4); no-op bila jalan */
   if (!entered) return;
@@ -9977,6 +10131,990 @@ function clampBalcony(nx, nz) {
   }
   return best;
 }
+/* ================= Suara (Suasana): musik santai + efek suara + suara alam =================
+   Ryan 15 Nov: "tolong tambahkan musik santai/cozy untuk game ini dong, karena sekarang hening
+   banget, tambahkan juga suara-suara animasi jika melakukan sesuatu" (+ "tolong buat yang bagus ya").
+   SEMUA bunyi dibuat di browser (Web Audio: osilator + derau + filter + gema buatan): tanpa file
+   audio, tanpa lisensi lagu (aman untuk video IG), tanpa request baru (CSP tetap).
+   - Mulai setelah ketukan pertama (aturan autoplay browser); berhenti saat tab disembunyikan.
+   - Menu ☰: Musik / Efek suara nyala-mati, disimpan di HP ('kosan3d-suara').
+   - Musik lo-fi generatif: piano listrik + bas + kalimba + drum lembut + desis piringan hitam.
+     Suasana ikut jam + cuaca (suasanaKini): siang ceria, senja hangat, malam pelan tanpa drum,
+     hujan redam. Akor + melodi disusun aturan musik (MUSIK-START), bukan rekaman.
+   - Suara alam (ikut tombol Efek suara): hujan (di dalam ruangan teredam), guntur sesekali saat
+     deras, jangkrik malam, burung pagi; dapur: air keran, api kompor, dengung mesin cuci.
+   - Efek: langkah, pintu, gerbang, saklar, keran, kompor, mesin, duduk, kasur, kain, koin,
+     kentongan, meong, emote, toast, misi, lempar sendal, ketuk pintu. */
+/* ==== MUSIK-START ==== */
+/* Helper MURNI musik (dites node): nada MIDI, akor, voicing, motif melodi. Kunci F mayor. */
+var MUSIK_AKOR = { /* kelas nada (C = 0) + akar */
+  Fmaj7: { akar: 5, nada: [5, 9, 0, 4] }, Fmaj9: { akar: 5, nada: [5, 9, 0, 4, 7] },
+  Am7: { akar: 9, nada: [9, 0, 4, 7] }, Bbmaj7: { akar: 10, nada: [10, 2, 5, 9] },
+  C7sus: { akar: 0, nada: [0, 5, 7, 10] }, Dm7: { akar: 2, nada: [2, 5, 9, 0] },
+  Gm7: { akar: 7, nada: [7, 10, 2, 5] }, Bbmaj9: { akar: 10, nada: [10, 2, 5, 9, 0] }
+};
+var MUSIK_PROGRESI = {
+  siang: [['Fmaj7', 'Am7', 'Bbmaj7', 'C7sus'], ['Bbmaj7', 'Am7', 'Gm7', 'Fmaj7'], ['Dm7', 'Bbmaj7', 'Fmaj7', 'C7sus']],
+  senja: [['Bbmaj7', 'Am7', 'Gm7', 'Fmaj7'], ['Fmaj7', 'Dm7', 'Gm7', 'C7sus']],
+  malam: [['Fmaj9', 'Bbmaj9', 'Fmaj9', 'Gm7'], ['Dm7', 'Bbmaj9', 'Fmaj9', 'Fmaj9']],
+  hujan: [['Dm7', 'Bbmaj9', 'Fmaj9', 'C7sus'], ['Bbmaj9', 'Am7', 'Dm7', 'Dm7']]
+};
+var MUSIK_PENTATONIK = [5, 7, 9, 0, 2]; /* F G A C D */
+var MUSIK_TEMPO = { siang: 78, senja: 72, malam: 62, hujan: 66 };
+function musikHz(midi) { return 440 * Math.pow(2, (midi - 69) / 12); }
+function musikSuasana(k) { /* keadaan suasana -> nama suasana musik */
+  if (!k) return 'siang';
+  if (k.hujan > 0.25) return 'hujan';
+  if (k.malam > 0.6) return 'malam';
+  if (k.jingga > 0.45) return 'senja';
+  return 'siang';
+}
+function musikVoicing(kelas, pusat, bawah, atas) {
+  /* tiap kelas nada ditaruh di oktaf paling dekat ke pusat (voice leading halus), dijepit
+     [bawah, atas], urut naik, tanpa nada kembar */
+  var hasil = [];
+  kelas.forEach(function (k) {
+    var n = pusat + ((((k - pusat) % 12) + 18) % 12) - 6;
+    while (n < bawah) n += 12;
+    while (n > atas) n -= 12;
+    if (hasil.indexOf(n) < 0) hasil.push(n);
+  });
+  return hasil.sort(function (a, b) { return a - b; });
+}
+function musikMotif(r, akor, padat) {
+  /* motif 2 birama untuk kalimba: [{ ketuk 0..8, midi }]; nada di ketukan kuat = nada akor
+     (kalau ada di pentatonik), sisanya langkah kecil di pentatonik F (C5..E6). r = acak 0..1. */
+  var pola = [[0, 1.5, 2, 3.5, 5, 6], [0.5, 1, 2.5, 4, 4.5, 6.5], [0, 2, 3, 4.5, 6], [1, 1.5, 3, 5, 5.5, 7]];
+  var p = pola[Math.floor(r() * pola.length)], skala = [];
+  for (var o = 72; o <= 88; o++) if (MUSIK_PENTATONIK.indexOf(o % 12) >= 0) skala.push(o);
+  var i = 2 + Math.floor(r() * 4), hasil = [];
+  p.forEach(function (ketuk, j) {
+    if (j > 0 && r() > padat) return;
+    if (ketuk % 2 === 0) { /* ketukan kuat: cari nada akor terdekat */
+      for (var d = 0; d < 3; d++) {
+        if (skala[i + d] !== undefined && akor.indexOf(skala[i + d] % 12) >= 0) { i += d; break; }
+        if (skala[i - d] !== undefined && akor.indexOf(skala[i - d] % 12) >= 0) { i -= d; break; }
+      }
+    } else i += Math.floor(r() * 5) - 2;
+    i = Math.max(0, Math.min(skala.length - 1, i));
+    hasil.push({ ketuk: ketuk, midi: skala[i] });
+  });
+  return hasil;
+}
+/* ==== MUSIK-END ==== */
+var SUARA = { ctx: null, master: null, musik: null, efek: null, alam: null, derau: null, terakhir: 0, setel: { musik: true, efek: true } };
+var SUARA_VOL = { musik: 0.5, efek: 0.75, alam: 0.7 }; /* gain bus (level per bunyi sudah pelan; master dikompres) */
+SUARA.setel = (function () {
+  try { var p = JSON.parse(localStorage.getItem('kosan3d-suara') || '{}') || {}; return { musik: p.musik !== false, efek: p.efek !== false }; }
+  catch (e) { return { musik: true, efek: true }; }
+})();
+function suaraSetelTulis() { try { localStorage.setItem('kosan3d-suara', JSON.stringify(SUARA.setel)); } catch (e) { /* abaikan */ } }
+function suaraDerau(c, detik, warna) { /* buffer derau mono: 'putih' | 'pink' */
+  var n = Math.floor(c.sampleRate * detik), b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0);
+  var b0 = 0, b1 = 0, b2 = 0, r = suasanaAcak(warna === 'pink' ? 7 : 3);
+  for (var i = 0; i < n; i++) {
+    var w = r() * 2 - 1;
+    if (warna === 'pink') { b0 = 0.99765 * b0 + w * 0.099; b1 = 0.963 * b1 + w * 0.2965; b2 = 0.57 * b2 + w * 1.0527; d[i] = (b0 + b1 + b2 + w * 0.1848) * 0.2; }
+    else d[i] = w;
+  }
+  return b;
+}
+function suaraGemaBuffer(c, detik) { /* gema buatan (ruang lembut): derau stereo meluruh */
+  var n = Math.floor(c.sampleRate * detik), b = c.createBuffer(2, n, c.sampleRate), r = suasanaAcak(11);
+  for (var ch = 0; ch < 2; ch++) {
+    var d = b.getChannelData(ch);
+    for (var i = 0; i < n; i++) { var t = i / n; d[i] = (r() * 2 - 1) * Math.pow(1 - t, 2.6) * (t < 0.01 ? t / 0.01 : 1); }
+  }
+  return b;
+}
+function suaraPan(c, nilai) { /* StereoPanner kalau ada (Safari lama: gain biasa) */
+  if (c.createStereoPanner) { var p = c.createStereoPanner(); p.pan.value = Math.max(-1, Math.min(1, nilai || 0)); return p; }
+  return c.createGain();
+}
+function suaraNada(c, tujuan, t, o) {
+  /* osilator + amplop: o = { tipe, f, f1 (geser ke), geser (detik), vol, a (serang), dur, pan } */
+  var osc = c.createOscillator(), g = c.createGain(), dur = o.dur || 0.2;
+  osc.type = o.tipe || 'sine';
+  osc.frequency.setValueAtTime(o.f, t);
+  if (o.f1) osc.frequency.exponentialRampToValueAtTime(o.f1, t + (o.geser || dur));
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(Math.max(0.0002, o.vol), t + (o.a || 0.005));
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  osc.connect(g);
+  if (o.pan) { var p = suaraPan(c, o.pan); g.connect(p); p.connect(tujuan); } else g.connect(tujuan);
+  osc.start(t); osc.stop(t + dur + 0.05);
+  return osc;
+}
+function suaraDesis(c, tujuan, t, o) {
+  /* semburan derau terfilter: o = { filter 'lowpass'|'bandpass'|'highpass', f, f1, q, vol, a, dur, pan, derau } */
+  var src = c.createBufferSource(), fl = c.createBiquadFilter(), g = c.createGain(), dur = o.dur || 0.1;
+  src.buffer = o.derau || SUARA.derau;
+  fl.type = o.filter || 'bandpass'; fl.Q.value = o.q || 0.8;
+  fl.frequency.setValueAtTime(o.f || 1000, t);
+  if (o.f1) fl.frequency.exponentialRampToValueAtTime(o.f1, t + dur);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(Math.max(0.0002, o.vol), t + (o.a || 0.004));
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  src.connect(fl); fl.connect(g);
+  if (o.pan) { var p = suaraPan(c, o.pan); g.connect(p); p.connect(tujuan); } else g.connect(tujuan);
+  var panjang = src.buffer.duration;
+  src.start(t, Math.random() * Math.max(0, panjang - dur - 0.1)); src.stop(t + dur + 0.05);
+}
+/* ---- efek suara (satu kali) ---- */
+var BUNYI = {
+  langkah: function (c, out, t, o) {
+    var kuat = 0.55 + 0.45 * (o.kuat || 1), pan = o.kiri ? -0.12 : 0.12;
+    if (o.alas === 'kayu') { /* lantai papan di dalam ruangan: dug rendah */
+      suaraDesis(c, out, t, { filter: 'lowpass', f: 520 + Math.random() * 120, q: 0.7, vol: 0.12 * kuat, dur: 0.07, pan: pan });
+      suaraNada(c, out, t, { f: 105 + Math.random() * 20, f1: 70, vol: 0.05 * kuat, dur: 0.06, pan: pan });
+    } else { /* ubin / aspal / batu di luar: tap lembut */
+      suaraDesis(c, out, t, { filter: 'bandpass', f: 1300 + Math.random() * 500, q: 0.9, vol: 0.1 * kuat, dur: 0.045, pan: pan });
+      suaraDesis(c, out, t, { filter: 'lowpass', f: 420, q: 0.6, vol: 0.08 * kuat, dur: 0.05, pan: pan });
+    }
+  },
+  pintu: function (c, out, t) { /* kunci pintu "klek" + daun pintu berayun + "dug" menutup */
+    suaraDesis(c, out, t, { filter: 'bandpass', f: 2600, q: 2, vol: 0.06, dur: 0.03 });
+    suaraNada(c, out, t + 0.04, { tipe: 'sawtooth', f: 190, f1: 150, vol: 0.012, a: 0.06, dur: 0.32 });
+    suaraNada(c, out, t + 0.36, { f: 95, f1: 60, vol: 0.09, dur: 0.12 });
+    suaraDesis(c, out, t + 0.36, { filter: 'lowpass', f: 600, vol: 0.05, dur: 0.08 });
+  },
+  gerbang: function (c, out, t) { /* gerbang besi: "klang" logam lembut */
+    [[520, 0.04], [1385, 0.022], [2210, 0.01]].forEach(function (p) { suaraNada(c, out, t, { tipe: 'sine', f: p[0], vol: p[1], dur: 0.6 }); });
+    suaraDesis(c, out, t, { filter: 'highpass', f: 3000, vol: 0.03, dur: 0.03 });
+  },
+  saklar: function (c, out, t) {
+    suaraDesis(c, out, t, { filter: 'highpass', f: 3200, vol: 0.07, dur: 0.012 });
+    suaraNada(c, out, t, { f: 1700, vol: 0.025, dur: 0.02 });
+  },
+  keran: function (c, out, t, o) { /* putar keran: decit kecil naik (buka) / turun (tutup) */
+    suaraNada(c, out, t, { tipe: 'triangle', f: o.buka ? 900 : 1300, f1: o.buka ? 1350 : 850, vol: 0.05, a: 0.02, dur: 0.12 });
+  },
+  kompor: function (c, out, t, o) {
+    if (o.nyala) { /* pemantik "tik tik tik" + "wusss" api menyala */
+      [0, 0.13, 0.26].forEach(function (d) { suaraDesis(c, out, t + d, { filter: 'bandpass', f: 4200, q: 3, vol: 0.1, dur: 0.012 }); });
+      suaraDesis(c, out, t + 0.3, { filter: 'lowpass', f: 300, f1: 1400, q: 0.7, vol: 0.13, a: 0.05, dur: 0.45 });
+    } else { suaraDesis(c, out, t, { filter: 'bandpass', f: 3000, q: 2, vol: 0.08, dur: 0.02 }); suaraDesis(c, out, t + 0.02, { filter: 'lowpass', f: 900, f1: 200, vol: 0.08, dur: 0.25 }); }
+  },
+  mesin: function (c, out, t) { /* tombol "tit tit" + motor mulai berputar */
+    suaraNada(c, out, t, { f: 1320, vol: 0.035, dur: 0.07 });
+    suaraNada(c, out, t + 0.12, { f: 1760, vol: 0.035, dur: 0.07 });
+    suaraNada(c, out, t + 0.25, { tipe: 'sawtooth', f: 32, f1: 62, geser: 1.1, vol: 0.02, a: 0.4, dur: 1.3 });
+  },
+  mesinSelesai: function (c, out, t) { /* "tit tit tit" selesai */
+    [0, 0.24, 0.48].forEach(function (d) { suaraNada(c, out, t + d, { f: 1568, vol: 0.04, dur: 0.13 }); });
+  },
+  duduk: function (c, out, t) { /* bantal / bangku: "buk" empuk */
+    suaraDesis(c, out, t, { filter: 'lowpass', f: 420, q: 0.6, vol: 0.13, a: 0.01, dur: 0.16 });
+    suaraNada(c, out, t, { f: 85, f1: 55, vol: 0.05, dur: 0.1 });
+  },
+  kasur: function (c, out, t) { /* rebah: kasur + selimut berdesir */
+    suaraDesis(c, out, t, { filter: 'lowpass', f: 380, vol: 0.11, a: 0.02, dur: 0.22 });
+    suaraDesis(c, out, t + 0.08, { filter: 'bandpass', f: 1500, f1: 900, q: 0.5, vol: 0.05, a: 0.12, dur: 0.6 });
+  },
+  kain: function (c, out, t) { /* kain dikibas (jemur / angkat cucian) */
+    suaraDesis(c, out, t, { filter: 'bandpass', f: 700, f1: 2600, q: 0.9, vol: 0.12, a: 0.02, dur: 0.16 });
+    suaraDesis(c, out, t + 0.2, { filter: 'bandpass', f: 900, f1: 2200, q: 0.9, vol: 0.09, a: 0.02, dur: 0.14 });
+  },
+  koin: function (c, out, t) { /* bayar: "cring" */
+    suaraNada(c, out, t, { f: 2093, vol: 0.04, dur: 0.3 });
+    suaraNada(c, out, t + 0.07, { f: 2637, vol: 0.04, dur: 0.4 });
+    suaraNada(c, out, t + 0.07, { f: 5274, vol: 0.008, dur: 0.25 });
+    suaraDesis(c, out, t + 0.15, { filter: 'bandpass', f: 3500, q: 0.7, vol: 0.02, a: 0.03, dur: 0.18 }); /* kantong plastik */
+  },
+  kentongan: function (c, out, t) { /* kayu berongga "tong... tong... tong" */
+    [0, 0.42, 0.84].forEach(function (d) {
+      suaraNada(c, out, t + d, { f: 410, f1: 395, vol: 0.12, dur: 0.38 });
+      suaraNada(c, out, t + d, { f: 1130, vol: 0.03, dur: 0.12 });
+      suaraDesis(c, out, t + d, { filter: 'bandpass', f: 1800, q: 1.2, vol: 0.05, dur: 0.02 });
+    });
+  },
+  meong: function (c, out, t) { /* Oyen: "meoong" (osilator + 2 formant) + dengkur */
+    var osc = c.createOscillator(), g = c.createGain(), f1 = c.createBiquadFilter(), f2 = c.createBiquadFilter(), lp = c.createBiquadFilter();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(520, t); osc.frequency.linearRampToValueAtTime(840, t + 0.14); osc.frequency.linearRampToValueAtTime(760, t + 0.32); osc.frequency.exponentialRampToValueAtTime(460, t + 0.62);
+    f1.type = 'bandpass'; f1.frequency.setValueAtTime(950, t); f1.frequency.linearRampToValueAtTime(1300, t + 0.2); f1.Q.value = 4;
+    f2.type = 'bandpass'; f2.frequency.value = 2600; f2.Q.value = 5; lp.type = 'lowpass'; lp.frequency.value = 3800;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.2, t + 0.06); g.gain.setValueAtTime(0.19, t + 0.45); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.66);
+    osc.connect(f1); osc.connect(f2); f1.connect(g); f2.connect(g); g.connect(lp); lp.connect(out);
+    osc.start(t); osc.stop(t + 0.7);
+    for (var k = 0; k < 18; k++) suaraDesis(c, out, t + 0.8 + k * 0.045, { filter: 'lowpass', f: 260, q: 0.5, vol: 0.035 * (1 - k / 22), a: 0.01, dur: 0.04 }); /* dengkur */
+  },
+  emote: function (c, out, t, o) { /* gelembung "pop" + warna per emote */
+    suaraNada(c, out, t, { f: 520, f1: 1150, geser: 0.07, vol: 0.05, dur: 0.1 });
+    var id = o.id, nada = { lambai: [880, 1175], tawa: [988, 1175, 988, 1319], sedih: [784, 659], sayang: [1047, 1568], marah: [220, 196], ngantuk: [659, 523, 440], hore: [784, 988, 1175, 1568], mantap: [1319] }[id] || [];
+    nada.forEach(function (f, i) { suaraNada(c, out, t + 0.1 + i * (id === 'tawa' ? 0.08 : 0.11), { tipe: id === 'marah' ? 'square' : 'sine', f: f, vol: id === 'marah' ? 0.012 : 0.03, dur: id === 'ngantuk' ? 0.3 : 0.18 }); });
+    if (id === 'mantap') suaraDesis(c, out, t + 0.05, { filter: 'bandpass', f: 2400, q: 3, vol: 0.05, dur: 0.02 }); /* "tek!" */
+  },
+  toast: function (c, out, t) { suaraNada(c, out, t, { f: 1040, f1: 1240, geser: 0.05, vol: 0.045, dur: 0.07 }); },
+  misi: function (c, out, t) { /* misi selesai: arpeggio C-E-G-C berkilau */
+    [1047, 1319, 1568, 2093].forEach(function (f, i) { suaraNada(c, out, t + i * 0.075, { tipe: 'triangle', f: f, vol: 0.035, dur: 0.45 }); });
+  },
+  lempar: function (c, out, t) { suaraDesis(c, out, t, { filter: 'bandpass', f: 500, f1: 2600, q: 1, vol: 0.12, a: 0.04, dur: 0.26 }); },
+  kena: function (c, out, t) { suaraDesis(c, out, t, { filter: 'lowpass', f: 1600, vol: 0.09, dur: 0.06 }); suaraNada(c, out, t, { f: 150, f1: 90, vol: 0.06, dur: 0.08 }); },
+  ketuk: function (c, out, t) { /* ketuk pintu kamar: "tok tok" */
+    [0, 0.15].forEach(function (d) { suaraNada(c, out, t + d, { f: 175, f1: 120, vol: 0.09, dur: 0.07 }); suaraDesis(c, out, t + d, { filter: 'lowpass', f: 900, vol: 0.06, dur: 0.04 }); });
+  }
+};
+function bunyi(nama, opsi) {
+  /* efek suara satu kali (tanpa efek kalau suara belum jalan / Efek suara mati) */
+  var S = SUARA, c = S.ctx;
+  if (!c || c.state !== 'running' || !S.setel.efek || !BUNYI[nama]) return;
+  var now = c.currentTime;
+  if (nama === 'toast' && now - S.terakhir < 0.25) return; /* toast pelengkap: jangan menumpuk dengan efek aksinya */
+  if (nama !== 'langkah') S.terakhir = now;
+  try { BUNYI[nama](c, S.efek, now + 0.005, opsi || {}); } catch (e) { /* abaikan */ }
+}
+/* ---- musik generatif ---- */
+function musikRangkai(c, tujuan) {
+  /* rantai musik di context mana pun (realtime / offline untuk uji level) -> mesin { jadwalBirama(t, keadaan) } */
+  var masuk = c.createGain(); masuk.gain.value = 1; masuk.connect(tujuan);
+  var gema = c.createConvolver(); gema.buffer = suaraGemaBuffer(c, 2.6);
+  var gemaKirim = c.createGain(); gemaKirim.gain.value = 0.32; gemaKirim.connect(gema);
+  var gemaKeluar = c.createGain(); gemaKeluar.gain.value = 0.55; gema.connect(gemaKeluar); gemaKeluar.connect(tujuan);
+  /* piano listrik: lowpass (gelap/terang ikut suasana) + tremolo pelan */
+  var epLp = c.createBiquadFilter(); epLp.type = 'lowpass'; epLp.frequency.value = 2800; epLp.Q.value = 0.4;
+  var epTrem = c.createGain(); epTrem.gain.value = 0.9;
+  var lfo = c.createOscillator(), lfoG = c.createGain(); lfo.frequency.value = 4.6; lfoG.gain.value = 0.09; lfo.connect(lfoG); lfoG.connect(epTrem.gain); lfo.start();
+  epLp.connect(epTrem); epTrem.connect(masuk); epTrem.connect(gemaKirim);
+  var basLp = c.createBiquadFilter(); basLp.type = 'lowpass'; basLp.frequency.value = 380; basLp.connect(masuk);
+  var drum = c.createBiquadFilter(); drum.type = 'lowpass'; drum.frequency.value = 5200; var drumG = c.createGain(); drumG.gain.value = 0.85; drum.connect(drumG); drumG.connect(masuk);
+  var kal = c.createGain(); kal.gain.value = 1; kal.connect(masuk); var kalGema = c.createGain(); kalGema.gain.value = 0.9; kal.connect(kalGema); kalGema.connect(gemaKirim);
+  /* desis piringan hitam: derau jarang berklik, sangat pelan, berulang */
+  var kresek = c.createBufferSource(), kb = c.createBuffer(1, c.sampleRate * 3, c.sampleRate), kd = kb.getChannelData(0), r0 = suasanaAcak(23);
+  for (var i = 0; i < kd.length; i++) { kd[i] = (r0() * 2 - 1) * 0.012; if (r0() < 0.00035) { var amp = 0.25 + r0() * 0.5; for (var j = 0; j < 40 && i + j < kd.length; j++) kd[i + j] += (r0() * 2 - 1) * amp * Math.exp(-j / 6); } }
+  kresek.buffer = kb; kresek.loop = true;
+  var kresekLp = c.createBiquadFilter(); kresekLp.type = 'bandpass'; kresekLp.frequency.value = 2400; kresekLp.Q.value = 0.4;
+  var kresekG = c.createGain(); kresekG.gain.value = 0.18; kresek.connect(kresekLp); kresekLp.connect(kresekG); kresekG.connect(masuk); kresek.start();
+  var derau = suaraDerau(c, 2, 'putih');
+  var M = { suasana: 'siang', progresi: MUSIK_PROGRESI.siang[0], birama: 0, pusat: 62, motif: null, r: suasanaAcak(Date.now() & 0xffff), tempo: MUSIK_TEMPO.siang };
+  function ep(t, midi, dur, vel) {
+    var f = musikHz(midi) * Math.pow(2, (M.r() - 0.5) * 0.004), car = c.createOscillator(), mod = c.createOscillator(), modG = c.createGain();
+    var tine = c.createOscillator(), tineG = c.createGain(), env = c.createGain();
+    car.frequency.value = f; mod.frequency.value = f; tine.frequency.value = f * 4;
+    modG.gain.setValueAtTime(f * 1.3 * vel, t); modG.gain.exponentialRampToValueAtTime(f * 0.12 + 1, t + 0.9);
+    mod.connect(modG); modG.connect(car.frequency);
+    tineG.gain.setValueAtTime(0.0001, t); tineG.gain.exponentialRampToValueAtTime(0.035 * vel, t + 0.003); tineG.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+    env.gain.setValueAtTime(0.0001, t); env.gain.exponentialRampToValueAtTime(0.11 * vel, t + 0.008); env.gain.setTargetAtTime(0.045 * vel, t + 0.01, 0.7);
+    env.gain.setTargetAtTime(0.0001, t + dur, 0.28);
+    car.connect(env); tine.connect(tineG); tineG.connect(env); env.connect(epLp);
+    [car, mod, tine].forEach(function (o) { o.start(t); o.stop(t + dur + 1.6); });
+  }
+  function bas(t, midi, dur, vel) {
+    var o1 = c.createOscillator(), o2 = c.createOscillator(), g = c.createGain(), f = musikHz(midi);
+    o1.type = 'triangle'; o1.frequency.value = f; o2.type = 'sine'; o2.frequency.value = f / 2;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.16 * vel, t + 0.015); g.gain.setTargetAtTime(0.09 * vel, t + 0.02, 0.35); g.gain.setTargetAtTime(0.0001, t + dur, 0.09);
+    o1.connect(g); o2.connect(g); g.connect(basLp);
+    o1.start(t); o2.start(t); o1.stop(t + dur + 0.6); o2.stop(t + dur + 0.6);
+  }
+  function kalimba(t, midi, vel) {
+    var f = musikHz(midi), p = suaraPan(c, (M.r() - 0.5) * 0.7);
+    suaraNadaKe(t, f, 0.05 * vel, 1.3, p); suaraNadaKe(t, f * 5.95, 0.008 * vel, 0.08, p);
+    p.connect(kal);
+  }
+  function suaraNadaKe(t, f, vol, dur, ke) {
+    var o = c.createOscillator(), g = c.createGain(); o.frequency.value = f;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.003); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(ke); o.start(t); o.stop(t + dur + 0.05);
+  }
+  function desisKe(t, o) { /* derau terfilter ke bus drum */
+    var src = c.createBufferSource(), fl = c.createBiquadFilter(), g = c.createGain();
+    src.buffer = derau; fl.type = o.filter; fl.frequency.value = o.f; fl.Q.value = o.q || 0.7;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(o.vol, t + 0.002); g.gain.exponentialRampToValueAtTime(0.0001, t + o.dur);
+    src.connect(fl); fl.connect(g); g.connect(drum); src.start(t, M.r() * 1.5); src.stop(t + o.dur + 0.05);
+  }
+  function kick(t, vel) {
+    var o = c.createOscillator(), g = c.createGain();
+    o.frequency.setValueAtTime(115, t); o.frequency.exponentialRampToValueAtTime(44, t + 0.13);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.42 * vel, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.32);
+    o.connect(g); g.connect(drum); o.start(t); o.stop(t + 0.35);
+    desisKe(t, { filter: 'bandpass', f: 1400, q: 1, vol: 0.03 * vel, dur: 0.012 }); /* klik serang: tetap terasa di speaker HP */
+  }
+  function snare(t, vel) { desisKe(t, { filter: 'bandpass', f: 1900, q: 0.8, vol: 0.12 * vel, dur: 0.14 }); suaraNadaKe(t, 185, 0.06 * vel, 0.08, drum); }
+  function hat(t, vel) { desisKe(t, { filter: 'highpass', f: 7200, vol: 0.035 * vel, dur: 0.035 }); }
+  function jadwalBirama(t, k) {
+    var nama = musikSuasana(k), ketukDur = 60 / M.tempo, swing = ketukDur * 0.14, i;
+    if (M.birama % 4 === 0) { /* frase baru: ganti suasana / progresi / tempo hanya di batas frase */
+      M.suasana = nama; M.tempo = MUSIK_TEMPO[nama]; ketukDur = 60 / M.tempo; swing = ketukDur * 0.14;
+      if (M.birama % 8 === 0 || MUSIK_PROGRESI[nama].indexOf(M.progresi) < 0) { var daftar = MUSIK_PROGRESI[nama]; M.progresi = daftar[Math.floor(M.r() * daftar.length)]; }
+      epLp.frequency.setTargetAtTime({ siang: 3000, senja: 2500, malam: 1700, hujan: 1900 }[nama], t, 1.5);
+      kresekG.gain.setTargetAtTime(nama === 'malam' || nama === 'hujan' ? 0.24 : 0.16, t, 2);
+    }
+    var s = M.suasana, akor = MUSIK_AKOR[M.progresi[M.birama % 4]], voicing = musikVoicing(akor.nada, M.pusat, 52, 74);
+    M.pusat = Math.round((voicing[0] + voicing[voicing.length - 1]) / 2);
+    var hum = function () { return (M.r() - 0.5) * 0.018; };
+    /* piano listrik: pola iringan per suasana */
+    var pola = { siang: [[0, 1.6, 0.85], [2.5, 1.4, 0.55]], senja: [[0, 2, 0.8], [2, 2, 0.5]], malam: [[0, 3.8, 0.75]], hujan: [[0, 3.8, 0.7]] }[s];
+    pola.forEach(function (p) { voicing.forEach(function (n, j) { ep(t + p[0] * ketukDur + j * 0.012 + hum(), n, p[1] * ketukDur, p[2] * (0.85 + M.r() * 0.2)); }); });
+    /* bas: akar E2..D#3 (82-156 Hz: masih terdengar di speaker HP) + sub oktaf di bawahnya */
+    var akar = 40 + ((akor.akar - 4 + 12) % 12);
+    if (s === 'malam' || s === 'hujan') bas(t + hum(), akar, 3.4 * ketukDur, 0.7);
+    else { bas(t + hum(), akar, 1.5 * ketukDur, 0.9); bas(t + 2.5 * ketukDur + hum(), (M.birama % 2 ? akar + 7 : akar), 1.2 * ketukDur, 0.65); }
+    /* drum lo-fi: siang lengkap, senja tipis, malam/hujan tanpa drum (cuma hi-hat sangat pelan saat hujan) */
+    if (s === 'siang' || s === 'senja') {
+      kick(t, 1); if (s === 'siang') kick(t + 2.5 * ketukDur, 0.7);
+      snare(t + ketukDur, 0.8); snare(t + 3 * ketukDur, 0.85);
+      for (i = 0; i < 8; i++) { if (s === 'senja' && i % 2) continue; if (M.r() < 0.12) continue; hat(t + i * ketukDur / 2 + (i % 2 ? swing : 0), i % 2 ? 0.6 : 0.9); }
+    } else if (s === 'hujan') { for (i = 0; i < 4; i++) hat(t + i * ketukDur + swing, 0.35); }
+    /* kalimba: motif 2 birama, diulang dengan variasi (pola A A B A per 8 birama) */
+    var padat = { siang: 0.75, senja: 0.6, malam: 0.38, hujan: 0.45 }[s];
+    if (M.birama % 2 === 0) {
+      var babak = (M.birama / 2) % 4;
+      if (!M.motif || babak === 0 || babak === 2) M.motif = musikMotif(M.r, akor.nada, padat);
+      M.mainkan = M.r() < ({ siang: 0.8, senja: 0.7, malam: 0.45, hujan: 0.5 }[s]);
+    }
+    if (M.mainkan && M.motif) M.motif.forEach(function (n) {
+      var b = n.ketuk - (M.birama % 2) * 4;
+      if (b >= 0 && b < 4) kalimba(t + b * ketukDur + (b % 1 ? swing : 0) + hum(), n.midi, 0.8 + M.r() * 0.3);
+    });
+    M.birama++;
+    return 4 * ketukDur;
+  }
+  return { jadwalBirama: jadwalBirama, masuk: masuk };
+}
+var MUSIK = { mesin: null, waktu: 0, timer: 0 };
+function musikJadwal() {
+  var c = SUARA.ctx;
+  if (!c || c.state !== 'running' || !SUARA.setel.musik || !MUSIK.mesin) return;
+  if (MUSIK.waktu < c.currentTime - 0.2) MUSIK.waktu = c.currentTime + 0.12; /* kembali dari tab tersembunyi */
+  var jaga = 0;
+  while (MUSIK.waktu < c.currentTime + 0.6 && jaga++ < 4) {
+    try { MUSIK.waktu += MUSIK.mesin.jadwalBirama(MUSIK.waktu, suasanaKini); } catch (e) { MUSIK.waktu += 3; }
+  }
+}
+/* ---- suara alam (loop + sesekali) ---- */
+var ALAM = { hujan: null, hujanLp: null, gemuruh: null, keran: null, api: null, mesin: null, jangkrik: 0, burung: 0, guntur: 0, tetes: 0 };
+function suaraLoop(c, buffer, filter, f, q, tujuan) {
+  var src = c.createBufferSource(), fl = c.createBiquadFilter(), g = c.createGain();
+  src.buffer = buffer; src.loop = true; fl.type = filter; fl.frequency.value = f; fl.Q.value = q || 0.7;
+  g.gain.value = 0; src.connect(fl); fl.connect(g); g.connect(tujuan); src.start(0, Math.random() * buffer.duration);
+  return { g: g, f: fl };
+}
+function alamRangkai(c) {
+  var pink = suaraDerau(c, 4, 'pink');
+  ALAM.hujan = suaraLoop(c, pink, 'lowpass', 5200, 0.3, SUARA.alam); /* desis hujan */
+  ALAM.gemuruh = suaraLoop(c, pink, 'lowpass', 420, 0.5, SUARA.alam); /* badan hujan (rendah) */
+  ALAM.keran = suaraLoop(c, SUARA.derau, 'bandpass', 1500, 0.7, SUARA.alam); /* air keran */
+  ALAM.api = suaraLoop(c, pink, 'lowpass', 480, 0.6, SUARA.alam); /* api kompor */
+  var dengung = c.createOscillator(), dl = c.createBiquadFilter(), dg = c.createGain(); /* motor mesin cuci */
+  dengung.type = 'sawtooth'; dengung.frequency.value = 58; dl.type = 'lowpass'; dl.frequency.value = 210; dg.gain.value = 0;
+  dengung.connect(dl); dl.connect(dg); dg.connect(SUARA.alam); dengung.start();
+  ALAM.mesin = { g: dg, f: dl, o: dengung };
+}
+function suaraAlamTick(dt) {
+  /* dipanggil suasanaTick (~4x/dtk): target gain loop + jadwal bunyi sesekali */
+  var c = SUARA.ctx;
+  if (!c || c.state !== 'running' || !ALAM.hujan) return;
+  var t = c.currentTime, k = suasanaKini, luar = myRealm === 'yard' || myRealm === 'jalan', on = SUARA.setel.efek ? 1 : 0;
+  var hj = k.hujan * on;
+  ALAM.hujan.g.gain.setTargetAtTime(hj * (luar ? 0.075 : 0.03), t, 0.6);
+  ALAM.hujan.f.frequency.setTargetAtTime(luar ? 5200 : 900, t, 0.3); /* di dalam ruangan: teredam dinding */
+  ALAM.gemuruh.g.gain.setTargetAtTime(hj * (luar ? 0.16 : 0.1), t, 0.6);
+  var dapur = myRealm === 'dapur' ? on : 0;
+  ALAM.keran.g.gain.setTargetAtTime(dapur && dapurFaucetOn ? 0.035 : 0, t, 0.15);
+  ALAM.api.g.gain.setTargetAtTime(dapur && dapurStoveOn ? 0.06 : 0, t, 0.25);
+  var mesinJalan = dapur && ((washWM && washWM.active) || (washDR && washDR.active));
+  ALAM.mesin.g.gain.setTargetAtTime(mesinJalan ? 0.035 : 0, t, 0.4);
+  if (!on) return;
+  var sekarang = performance.now();
+  /* tetes hujan di dekat (luar) */
+  if (luar && hj > 0.2 && sekarang > ALAM.tetes) {
+    ALAM.tetes = sekarang + 60 + Math.random() * 220 / hj;
+    suaraDesis(c, SUARA.alam, t + Math.random() * 0.1, { filter: 'bandpass', f: 2200 + Math.random() * 2400, q: 2.5, vol: 0.012 + Math.random() * 0.015, dur: 0.03, pan: Math.random() * 1.6 - 0.8 });
+  }
+  /* guntur: hujan deras, sesekali (40-110 dtk) */
+  if (hj > 0.75 && sekarang > ALAM.guntur) {
+    if (ALAM.guntur) suaraDesis(c, SUARA.alam, t, { filter: 'lowpass', f: 900, f1: 110, q: 0.5, vol: luar ? 0.22 : 0.12, a: 0.25, dur: 4.5 + Math.random() * 2 });
+    ALAM.guntur = sekarang + 40000 + Math.random() * 70000;
+  }
+  /* jangkrik: malam, tidak hujan, di luar */
+  if (luar && k.malam > 0.6 && k.hujan < 0.05 && sekarang > ALAM.jangkrik) {
+    ALAM.jangkrik = sekarang + 350 + Math.random() * 1100;
+    var fj = Math.random() < 0.5 ? 4350 : 4900, pj = Math.random() < 0.5 ? -0.55 : 0.5, nj = 3 + Math.floor(Math.random() * 2);
+    for (var i = 0; i < nj; i++) suaraNada(c, SUARA.alam, t + i * 0.032, { f: fj, vol: 0.012, a: 0.004, dur: 0.02, pan: pj });
+  }
+  /* burung pagi: 05:30-09:30, tidak hujan, di luar */
+  if (luar && k.jam >= 5.5 && k.jam < 9.5 && k.hujan < 0.05 && sekarang > ALAM.burung) {
+    ALAM.burung = sekarang + 3000 + Math.random() * 7000;
+    var pb = Math.random() * 1.4 - 0.7, nb = 2 + Math.floor(Math.random() * 3), fb = 2600 + Math.random() * 900;
+    for (var b = 0; b < nb; b++) suaraNada(c, SUARA.alam, t + b * (0.09 + Math.random() * 0.05), { f: fb + Math.random() * 300, f1: fb * 1.45, geser: 0.05, vol: 0.018, a: 0.006, dur: 0.07, pan: pb });
+  }
+}
+/* ---- nyalakan / matikan ---- */
+function suaraRangkai() {
+  var c = SUARA.ctx;
+  SUARA.derau = suaraDerau(c, 2, 'putih');
+  var kompres = c.createDynamicsCompressor();
+  kompres.threshold.value = -16; kompres.knee.value = 10; kompres.ratio.value = 3; kompres.attack.value = 0.008; kompres.release.value = 0.25;
+  SUARA.master = c.createGain(); SUARA.master.gain.value = 0.9; SUARA.master.connect(kompres); kompres.connect(c.destination);
+  SUARA.musik = c.createGain(); SUARA.musik.gain.value = 0; SUARA.musik.connect(SUARA.master);
+  SUARA.efek = c.createGain(); SUARA.efek.gain.value = SUARA.setel.efek ? SUARA_VOL.efek : 0; SUARA.efek.connect(SUARA.master);
+  SUARA.alam = c.createGain(); SUARA.alam.gain.value = SUARA.setel.efek ? SUARA_VOL.alam : 0; SUARA.alam.connect(SUARA.master);
+  MUSIK.mesin = musikRangkai(c, SUARA.musik);
+  alamRangkai(c);
+}
+function suaraTerapkan() { /* setelan -> gain bus (pudar halus) */
+  var c = SUARA.ctx;
+  if (!c) return;
+  var t = c.currentTime;
+  SUARA.musik.gain.cancelScheduledValues(t); SUARA.musik.gain.setValueAtTime(SUARA.musik.gain.value, t);
+  SUARA.musik.gain.linearRampToValueAtTime(SUARA.setel.musik ? SUARA_VOL.musik : 0, t + (SUARA.setel.musik ? 3 : 0.5));
+  SUARA.efek.gain.setTargetAtTime(SUARA.setel.efek ? SUARA_VOL.efek : 0, t, 0.08);
+  SUARA.alam.gain.setTargetAtTime(SUARA.setel.efek ? SUARA_VOL.alam : 0, t, 0.3);
+  if (SUARA.setel.musik && !MUSIK.timer) { MUSIK.waktu = t + 0.15; MUSIK.timer = setInterval(musikJadwal, 100); musikJadwal(); }
+  if (!SUARA.setel.musik && MUSIK.timer) { clearInterval(MUSIK.timer); MUSIK.timer = 0; }
+}
+function suaraBuka() {
+  /* dipanggil di tiap gerakan pengguna sampai suara jalan (aturan autoplay; iOS butuh di dalam handler) */
+  if (!SUARA.ctx) {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    try { SUARA.ctx = new AC({ latencyHint: 'playback' }); } catch (e) { try { SUARA.ctx = new AC(); } catch (e2) { return; } }
+    try { suaraRangkai(); } catch (e) { SUARA.ctx = null; return; }
+    SUARA.ctx.onstatechange = function () { if (SUARA.ctx.state === 'running') suaraTerapkan(); };
+    suaraTerapkan();
+  }
+  if (SUARA.ctx.state === 'suspended' && !document.hidden) {
+    try { var p = SUARA.ctx.resume(); if (p && p.catch) p.catch(function () { /* tunggu ketukan berikutnya */ }); } catch (e) { /* abaikan */ }
+  }
+}
+['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'].forEach(function (nama) {
+  document.addEventListener(nama, function () { if (!SUARA.ctx || SUARA.ctx.state !== 'running') suaraBuka(); }, { capture: true, passive: true });
+});
+document.addEventListener('visibilitychange', function () { /* tab disembunyikan / HP dikunci: diam (hemat baterai) */
+  if (!SUARA.ctx) return;
+  try {
+    if (document.hidden) { var p = SUARA.ctx.suspend(); if (p && p.catch) p.catch(function () {}); }
+    else suaraBuka();
+  } catch (e) { /* abaikan */ }
+});
+function suaraMenuPerbarui() {
+  [['musikStatus', SUARA.setel.musik], ['efekStatus', SUARA.setel.efek]].forEach(function (p) {
+    var el = document.getElementById(p[0]);
+    if (el) { el.textContent = p[1] ? 'Nyala' : 'Mati'; el.classList.toggle('mati', !p[1]); }
+  });
+}
+[['musikBtn', 'musik'], ['efekBtn', 'efek']].forEach(function (p) {
+  var b = document.getElementById(p[0]);
+  if (!b) return;
+  b.addEventListener('click', function (e) {
+    e.stopPropagation(); /* menu tetap terbuka: status Nyala/Mati langsung terlihat */
+    SUARA.setel[p[1]] = !SUARA.setel[p[1]];
+    suaraSetelTulis(); suaraMenuPerbarui(); suaraBuka(); suaraTerapkan();
+    if (p[1] === 'efek' && SUARA.setel.efek) bunyi('saklar');
+  });
+});
+suaraMenuPerbarui();
+/* pindah alam (mpSaatPindahAlam): lewat gerbang Jalan Kampung = "klang" gerbang, ruangan = pintu */
+var suaraRealmTadi = 'yard';
+function suaraPindahAlam() {
+  if (myRealm === suaraRealmTadi) return;
+  bunyi(myRealm === 'jalan' || suaraRealmTadi === 'jalan' ? 'gerbang' : 'pintu');
+  suaraRealmTadi = myRealm;
+}
+/* langkah kaki dari animate: tiap ayunan kaki lewat nol = satu langkah (kiri/kanan bergantian) */
+var langkahTanda = 0;
+function suaraLangkah(sw, gerak) {
+  if (gerak < 0.12 || roomPose || !SUARA.ctx) { langkahTanda = 0; return; }
+  var tanda = sw >= 0 ? 1 : -1;
+  if (langkahTanda && tanda !== langkahTanda) bunyi('langkah', { kuat: gerak, kiri: tanda > 0, alas: (myRealm === 'yard' || myRealm === 'jalan') ? 'luar' : 'kayu' });
+  langkahTanda = tanda;
+}
+/* ================= Suasana (runtime): siang-malam ikut jam WIB, hujan, pelangi, kunang-kunang =================
+   Ryan 15 Nov (lihat SUASANA-START). Semua dihitung dari jam WIB + jadwal hujan bersemai tanggal
+   (sama di semua HP, tanpa server). Aturan tetap:
+   - JUMLAH LAMPU TIDAK BERUBAH (ubah warna/intensitas saja: lampu ditambah/dibuang = shader
+     dikompilasi ulang = HP tersendat). Bayangan matahari tetap; malam = cahaya bulan biru redup.
+   - Siang = tampilan lama PERSIS (langit rata 0x8ec9ee, lampu + bahan sama).
+   - Menyala = MeshBasicMaterial; TANPA bidang transparan baru (hujan = garis opak, pelangi +
+     halo bulan = warna dicampur ke warna langit di belakangnya, bulan + kunang-kunang = alphaTest).
+   - Genangan cahaya lampu di lantai (malam) = sisipan shader kecil di bahan Lambert luar ruangan
+     (peta genangan per scene), BUKAN mesh / bidang / lampu baru. Siang kekuatannya 0.
+   - Bahan "pengangkat" emissive gedung (putih/kayu/AC) ikut redup saat malam (kalau tidak,
+     dinding menyala di gelap); kaca jendela berganti tekstur malam (gorden diterangi lampu kamar).
+   - Di dalam ruangan: cahaya + lampu tetap; hanya kaca jendela kamar ikut langit luar.
+   Pratinjau tanpa menunggu jam: ?jam=19.5 (atau 19:30), ?hujan=1 / ?hujan=0, ?pelangi=1. */
+var suasanaPaksa = (function () {
+  var p = {}, q;
+  try { q = new URLSearchParams(location.search); } catch (e) { return p; }
+  var j = q.get('jam');
+  if (j !== null && j !== '') {
+    var bagian = j.split(':'), jam = bagian.length > 1 ? +bagian[0] + (+bagian[1] || 0) / 60 : parseFloat(j);
+    if (isFinite(jam) && jam >= 0 && jam < 24) p.jam = jam;
+  }
+  if (q.get('hujan') === '1') p.hujan = 1;
+  else if (q.get('hujan') === '0') p.hujan = 0;
+  if (q.get('pelangi') === '1') { p.hujan = 0; p.pelangi = 1; }
+  return p;
+})();
+var suasanaKini = suasanaKeadaan(Date.now(), suasanaPaksa);
+function suasanaLagiHujan() { return suasanaKini.hujan > 0.05; }
+function jemuranHujan(a, b) { /* ms hujan di [a, b] untuk jemuran (pratinjau ?hujan=1: hujan terus, ?hujan=0: tanpa hujan) */
+  if (suasanaPaksa.hujan === 1) return Math.max(0, b - a);
+  if (suasanaPaksa.hujan === 0) return 0;
+  return suasanaHujanTumpang(a, b);
+}
+var SU = { siap: false, lampu: [], latar: [], emisi: [], redup: [], kacaSiang: null, kacaMalam: null, jendelaKamar: null, jendelaWarna: null,
+  langit: null, kubah: null, bintang: null, bulan: null, halo: null, pelangi: null, hujan: null, kunang: null, scene: null, tik: 0, kunci: '',
+  hujanTadi: false, pelangiTadi: false, faseBulan: -1, genangWarna: new THREE.Color(0, 0, 0), petaHalaman: null, petaJalan: null, genangBahanDaftar: [], genangContoh: [] };
+var SU_WARNA = { /* palet langit (cakrawala / puncak) per keadaan; siang = latar lama persis */
+  siangH: new THREE.Color(0x8ec9ee), siangZ: new THREE.Color(0x8ec9ee),
+  senjaH: new THREE.Color(0xffa95e), senjaZ: new THREE.Color(0x4f66aa), fajarH: new THREE.Color(0xffc49a), fajarZ: new THREE.Color(0x7e9fd8),
+  malamH: new THREE.Color(0x1d2a48), malamZ: new THREE.Color(0x060b19),
+  mendungSiangH: new THREE.Color(0x9ea9b3), mendungSiangZ: new THREE.Color(0x7f8a95), mendungMalamH: new THREE.Color(0x171e2a), mendungMalamZ: new THREE.Color(0x0b1018),
+  cahayaSiang: new THREE.Color(0xfff2d9), cahayaSenja: new THREE.Color(0xffb35c), cahayaBulan: new THREE.Color(0x9fb6ff),
+  hemiLangitSenja: new THREE.Color(0xffcf9a), hemiLangitMalam: new THREE.Color(0x4a5d94), hemiTanahMalam: new THREE.Color(0x232b3b), hemiMendung: new THREE.Color(0xa9b4be),
+  jendelaSiang: new THREE.Color(0xffe9b0), jendelaSenja: new THREE.Color(0xf6b98c), jendelaMalam: new THREE.Color(0x22324f), jendelaHujan: new THREE.Color(0xa3acb3), jendelaHujanMalam: new THREE.Color(0x161e2b),
+  hujanSiang: new THREE.Color(0xb9c6d1), hujanMalam: new THREE.Color(0x45546a), kunang: new THREE.Color(0xd8ff76), haloBulan: new THREE.Color(0x8fa6d8), genang: new THREE.Color(0xffcc8f)
+};
+var suTmp = { a: new THREE.Color(), b: new THREE.Color(), c: new THREE.Color(), d: new THREE.Color(), pita: new THREE.Color(), v: new THREE.Vector3() };
+var SU_GENANG = { aktif: false, peta: { value: null }, kotak: { value: new THREE.Vector4(0, 0, 1, 1) }, warna: { value: new THREE.Color(0, 0, 0) } }; /* uniform bersama semua bahan bersisipan */
+var SU_GENANG_KUAT = 1.5;
+var SU_KUNCI_BAWAAN = THREE.Material.prototype.onBeforeCompile.toString(); /* kunci program bawaan three.js */
+function suGenangKunci() { /* customProgramCacheKey: siang = kunci bawaan (program SAMA dengan bahan tanpa sisipan), malam = varian bersisipan */
+  return SU_GENANG.aktif ? 'suGenangMalam' : SU_KUNCI_BAWAAN;
+}
+function suGenangSuntik(shader) {
+  /* sisipan shader bahan Lambert luar ruangan (HANYA varian malam): cahaya lampu jatuh di permukaan
+     menghadap atas. Peta genangan: merah = lantai bawah (y < 1 m), hijau = lantai balkon lantai 2
+     (4,225 m). Kedua varian program dikompilasi di awal (suasanaSiapkanProgram), jadi pergantian
+     senja/subuh tidak mengompilasi apa pun. */
+  shader.uniforms.suGenangPeta = SU_GENANG.peta; /* selalu ada di objek uniform bahan (varian mana pun yang terakhir dibangun) */
+  shader.uniforms.suGenangKotak = SU_GENANG.kotak;
+  shader.uniforms.suGenangWarna = SU_GENANG.warna;
+  if (!SU_GENANG.aktif) return; /* siang: GLSL bawaan persis */
+  /* bobot dihitung per verteks (permukaan yang terkena genangan datar, jadi tepat): xy = posisi dunia xz,
+     z = bobot lantai bawah, w = bobot lantai balkon. Dinding / atap = 0 -> fragmen langsung lewat. */
+  shader.vertexShader = shader.vertexShader
+    .replace('#include <common>', '#include <common>\nvarying vec4 vSuGenang;')
+    .replace('#include <project_vertex>', '#include <project_vertex>\n' +
+      'vec4 suP = vec4( transformed, 1.0 );\nvec3 suN = objectNormal;\n' +
+      '#ifdef USE_INSTANCING\nsuP = instanceMatrix * suP;\nsuN = mat3( instanceMatrix ) * suN;\n#endif\n' +
+      'suP = modelMatrix * suP;\n' +
+      'float suNaik = smoothstep( 0.55, 0.9, normalize( mat3( modelMatrix ) * suN ).y );\n' +
+      'vSuGenang = vec4( suP.xz, suNaik * ( 1.0 - smoothstep( 0.35, 1.1, suP.y ) ), suNaik * smoothstep( 3.6, 4.0, suP.y ) * ( 1.0 - smoothstep( 4.6, 5.3, suP.y ) ) );');
+  shader.fragmentShader = shader.fragmentShader
+    .replace('#include <common>', '#include <common>\nvarying vec4 vSuGenang;\nuniform sampler2D suGenangPeta;\nuniform vec4 suGenangKotak;\nuniform vec3 suGenangWarna;')
+    .replace('#include <opaque_fragment>',
+      'if ( suGenangWarna.r > 0.0 && vSuGenang.z + vSuGenang.w > 0.002 ) {\n' +
+      '  vec4 suT = texture2D( suGenangPeta, ( vSuGenang.xy - suGenangKotak.xy ) * suGenangKotak.zw );\n' +
+      '  outgoingLight += diffuseColor.rgb * suGenangWarna * ( suT.r * vSuGenang.z + suT.g * vSuGenang.w );\n' +
+      '}\n#include <opaque_fragment>');
+}
+function suGenangAktif(nyala) { /* ganti varian program (keduanya sudah ada: tanpa kompilasi ulang) */
+  if (SU_GENANG.aktif === nyala) return;
+  SU_GENANG.aktif = nyala;
+  SU.genangBahanDaftar.forEach(function (q) { q.m.needsUpdate = true; });
+}
+function suGenangSiapkanLain() {
+  /* kompilasi varian program yang SEDANG TIDAK dipakai (siang: varian malam, malam: varian siang)
+     sekarang, bukan saat senja/subuh. Wakil = mesh baru yang memakai geometri + bahan contoh (parameter
+     program sama), di grup sementara; cahaya + kabut dari scene aslinya. */
+  if (!SU.genangContoh.length || typeof renderer.compile !== 'function') return;
+  var tadi = SU_GENANG.aktif, grup = new Map(), ke = new Map();
+  SU_GENANG.aktif = !tadi;
+  try {
+    SU.genangContoh.forEach(function (q) { /* renderer.compile memakai satu objek per bahan: contoh ke-n bahan yang sama -> grup ke-n */
+      var kunciBahan = q.S.uuid + q.m.uuid, n = ke.get(kunciBahan) || 0, kunci = q.S.uuid + '#' + n;
+      ke.set(kunciBahan, n + 1);
+      if (!grup.has(kunci)) grup.set(kunci, { S: q.S, g: new THREE.Group() });
+      grup.get(kunci).g.add(new THREE.Mesh(q.o.geometry, q.m));
+    });
+    grup.forEach(function (x) { renderer.compile(x.g, camera, x.S); });
+  } catch (e) { /* abaikan: varian dikompilasi saat pertama dipakai */ }
+  SU_GENANG.aktif = tadi;
+  SU.genangBahanDaftar.forEach(function (q) { q.m.needsUpdate = true; }); /* kembali ke varian yang sedang dipakai */
+}
+function suasanaSiapkanProgram() {
+  /* 3 dtk sesudah mulai: semua program yang baru dipakai saat senja / hujan / malam dikompilasi
+     sekarang (varian genangan lawan, kubah, bintang, bulan, halo, pelangi, hujan, kunang-kunang) */
+  suGenangSiapkanLain();
+  try {
+    [scene, jalanScene].forEach(function (S) { renderer.compile(SU.langit, camera, S); renderer.compile(SU.hujan, camera, S); });
+    renderer.compile(SU.kunang, camera, scene);
+  } catch (e) { /* abaikan */ }
+}
+function suGenangTanda(o) { /* atribut geometri yang ikut menentukan program three.js */
+  var a = o.geometry.attributes;
+  return [a.color ? a.color.itemSize : 0, !!a.uv, !!a.uv1, !!a.uv2, !!a.uv3, !!a.tangent, Object.keys(o.geometry.morphAttributes).length].join();
+}
+function suasanaPetaGenang(daftar, lebarPx) {
+  /* daftar [x, z, rx, rz, kanal (0 = lantai bawah, 1 = balkon), kuat] -> kanvas data (bukan sRGB) + kotak dunia.
+     Latar hitam opak + 'lighter': nilai kanal = jumlah kekuatan genangan (tidak bergantung alfa). */
+  var x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+  daftar.forEach(function (q) { x0 = Math.min(x0, q[0] - q[2]); x1 = Math.max(x1, q[0] + q[2]); z0 = Math.min(z0, q[1] - q[3]); z1 = Math.max(z1, q[1] + q[3]); });
+  x0 -= 1; x1 += 1; z0 -= 1; z1 += 1;
+  var W = lebarPx, H = Math.max(64, Math.min(1024, Math.pow(2, Math.round(Math.log2(W * (z1 - z0) / (x1 - x0))))));
+  var cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  var ctx = cv.getContext('2d');
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+  ctx.globalCompositeOperation = 'lighter';
+  daftar.forEach(function (q) {
+    var warna = q[4] ? '0,255,0' : '255,0,0', kuat = q[5];
+    ctx.save();
+    ctx.translate((q[0] - x0) / (x1 - x0) * W, (q[1] - z0) / (z1 - z0) * H);
+    ctx.scale(q[2] / (x1 - x0) * W, q[3] / (z1 - z0) * H);
+    var g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+    [[0, 1], [0.2, 0.86], [0.45, 0.5], [0.7, 0.19], [0.88, 0.05], [1, 0]].forEach(function (h) { g.addColorStop(h[0], 'rgba(' + warna + ',' + (h[1] * kuat).toFixed(3) + ')'); });
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 1, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  });
+  var tex = new THREE.CanvasTexture(cv);
+  tex.flipY = false; /* baris kanvas 0 = z0 */
+  tex.generateMipmaps = false; tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter;
+  return { tex: tex, kotak: new THREE.Vector4(x0, z0, 1 / (x1 - x0), 1 / (z1 - z0)) };
+}
+function lukisKacaJendelaMalam(ctx, w, h) {
+  /* kaca malam (pasangan lukisKacaJendela): pita atas = pantulan langit malam; bawah = gorden krem
+     diterangi lampu kamar hangat dari dalam (tidak silau: setara lampu tidur, kamar terasa dihuni) */
+  var A = 96;
+  var g1 = ctx.createLinearGradient(0, 0, 0, A);
+  g1.addColorStop(0, '#2a3a58'); g1.addColorStop(1, '#16213a');
+  ctx.fillStyle = g1; ctx.fillRect(0, 0, w, A);
+  ctx.fillStyle = '#3a2a1c'; ctx.fillRect(0, A, w, h - A);
+  var gl = ctx.createRadialGradient(w / 2, A + 70, 6, w / 2, A + 70, 150);
+  gl.addColorStop(0, 'rgba(255,214,150,0.95)'); gl.addColorStop(0.55, 'rgba(214,150,84,0.75)'); gl.addColorStop(1, 'rgba(120,76,40,0.6)');
+  ctx.fillStyle = gl; ctx.fillRect(0, A, w, h - A);
+  [[0, 66], [w - 66, w]].forEach(function (g) { /* gorden tembus cahaya + lipatan */
+    for (var x = g[0]; x < g[1]; x++) {
+      var t = 0.78 + 0.22 * Math.cos((x - g[0]) / 11 * Math.PI), tepi = 1 - Math.abs((x - g[0]) / 66 - 0.5) * 0.5;
+      ctx.fillStyle = 'rgb(' + Math.round(236 * t * tepi) + ',' + Math.round(186 * t * tepi) + ',' + Math.round(122 * t * tepi) + ')';
+      ctx.fillRect(x, A + 4, 1, h - A - 4);
+    }
+  });
+  ctx.fillStyle = '#2a2622'; ctx.fillRect(0, A, w, 5); /* rel gorden */
+  ctx.fillStyle = 'rgba(160,190,255,0.08)'; /* pantulan miring tipis */
+  [[24, 44], [150, 22]].forEach(function (p) { ctx.beginPath(); ctx.moveTo(p[0], 0); ctx.lineTo(p[0] + p[1], 0); ctx.lineTo(p[0] + p[1] - 96, h); ctx.lineTo(p[0] - 96, h); ctx.closePath(); ctx.fill(); });
+}
+function suasanaWarnaLangit(k, y, x, z, hasil) {
+  /* warna langit di arah (x, y, z) (satuan, y = sin elevasi) -> hasil (THREE.Color, linear) */
+  var naik = y < 0 ? 0 : Math.pow(Math.min(1, y / 0.55), 0.75);
+  var H = suTmp.a, Z = suTmp.b; /* suTmp.a/b/d = coretan fungsi ini saja (pemanggil jangan memakainya) */
+  H.copy(SU_WARNA.malamH).lerp(SU_WARNA.siangH, k.terang); Z.copy(SU_WARNA.malamZ).lerp(SU_WARNA.siangZ, k.terang);
+  if (k.jingga > 0.001) { /* jingga ke arah matahari (pagi timur +x, sore barat -x), lembut di puncak */
+    var pagi = k.jam < 12, arahX = pagi ? 1 : -1, hadap = Math.max(0, (x * arahX + 1) / 2), kj = k.jingga * (1 - k.mendung * 0.85);
+    H.lerp(pagi ? SU_WARNA.fajarH : SU_WARNA.senjaH, kj * (0.55 + 0.4 * hadap * hadap));
+    Z.lerp(pagi ? SU_WARNA.fajarZ : SU_WARNA.senjaZ, kj * 0.7);
+  }
+  if (k.mendung > 0.001) {
+    H.lerp(suTmp.d.copy(SU_WARNA.mendungMalamH).lerp(SU_WARNA.mendungSiangH, k.terang), k.mendung * 0.85);
+    Z.lerp(suTmp.d.copy(SU_WARNA.mendungMalamZ).lerp(SU_WARNA.mendungSiangZ, k.terang), k.mendung * 0.85);
+  }
+  hasil.copy(H).lerp(Z, naik);
+  if (y < 0) hasil.multiplyScalar(1 - Math.min(0.25, -y * 0.8));
+  return hasil;
+}
+function suasanaFaseBulan(ms) { /* 0 = bulan baru .. 0,5 = purnama .. 1 (siklus sinodik 29,53 hari dari bulan baru 6 Jan 2000) */
+  var hari = (ms - Date.UTC(2000, 0, 6, 18, 14)) / 86400000;
+  return ((hari / 29.530588853) % 1 + 1) % 1;
+}
+function lukisBulan(fase) {
+  return function (ctx, w, h) {
+    /* piringan bulan berkawah lembut; bagian gelap = transparan (alphaTest: langit + halo terlihat) */
+    var R = w / 2 - 2, cx = w / 2, cy = h / 2, k = Math.cos(fase * Math.PI * 2), naik = fase < 0.5;
+    ctx.clearRect(0, 0, w, h);
+    ctx.save();
+    ctx.beginPath(); /* bagian terang = setengah piringan + elips terminator */
+    ctx.arc(cx, cy, R, -Math.PI / 2, Math.PI / 2, !naik);
+    ctx.ellipse(cx, cy, Math.abs(k) * R, R, 0, Math.PI / 2, -Math.PI / 2, (k > 0) === naik);
+    ctx.closePath(); ctx.clip();
+    var g = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.3, R * 0.1, cx, cy, R);
+    g.addColorStop(0, '#fffbea'); g.addColorStop(1, '#e9e1c3');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+    var r = acak(77);
+    for (var i = 0; i < 14; i++) { ctx.fillStyle = 'rgba(160,150,120,' + (0.1 + r() * 0.16) + ')'; ctx.beginPath(); ctx.arc(cx + (r() - 0.5) * R * 1.4, cy + (r() - 0.5) * R * 1.4, R * (0.05 + r() * 0.14), 0, Math.PI * 2); ctx.fill(); }
+    ctx.restore();
+  };
+}
+function suasanaSiapkan() {
+  if (SU.siap) return;
+  /* lampu + latar luar ruangan (nilai siang dicatat = basis) */
+  [scene, jalanScene].forEach(function (S) {
+    S.children.forEach(function (o) {
+      if (o.isDirectionalLight) SU.lampu.push({ o: o, jenis: o.castShadow ? 'matahari' : 'isi', i: o.intensity, c: o.color.clone() });
+      else if (o.isHemisphereLight) SU.lampu.push({ o: o, jenis: 'hemi', i: o.intensity, c: o.color.clone(), g: o.groundColor.clone() });
+    });
+    SU.latar.push({ s: S, near: S.fog.near, far: S.fog.far });
+  });
+  /* bahan luar ruangan yang perlu ikut malam (bahan yang juga dipakai di dalam ruangan tidak disentuh) */
+  var dalam = new Set(), lihat = new Set(), tokoh = new Set();
+  [livingScene, dapurScene, roomScene].forEach(function (S) { S.traverse(function (o) { if (o.material) [].concat(o.material).forEach(function (m) { dalam.add(m); }); }); });
+  [avatar, ibuAvatar, jalanKucing && jalanKucing.g].forEach(function (g) { /* karakter bergerak: tanpa sisipan genangan */
+    if (g) g.traverse(function (o) { if (o.material) [].concat(o.material).forEach(function (m) { tokoh.add(m); }); });
+  });
+  var kaca = GD ? GD.kaca : null;
+  [scene, jalanScene].forEach(function (S) {
+    S.traverse(function (o) {
+      if (!o.material || o.isSprite) return;
+      [].concat(o.material).forEach(function (m) {
+        if (lihat.has(m)) return;
+        lihat.add(m);
+        /* sisipan genangan: juga bahan yang dipakai bersama ruang dalam (dek gazebo = lantai kayu M.floorWood);
+           di dalam ruangan kekuatannya 0 (suasanaPasangLangit), jadi tampilan ruang dalam tidak berubah */
+        if (m.isMeshLambertMaterial && !m.transparent && !tokoh.has(m) && o.isMesh && !o.isInstancedMesh) {
+          m.onBeforeCompile = suGenangSuntik; m.customProgramCacheKey = suGenangKunci; m.needsUpdate = true;
+          SU.genangBahanDaftar.push({ m: m });
+        }
+        if (dalam.has(m) || m === kaca) return;
+        if (m.isMeshLambertMaterial && m.emissive && m.emissiveIntensity > 0 && m.emissive.r + m.emissive.g + m.emissive.b > 0.001) SU.emisi.push({ m: m, e: m.emissive.clone() });
+        else if (m.isMeshBasicMaterial && m.transparent) SU.redup.push({ m: m, c: m.color.clone(), min: 0.2 }); /* kaca railing balkon: tidak bercahaya di gelap */
+        else if (m.isMeshBasicMaterial && m.map && !m.vertexColors) SU.redup.push({ m: m, c: m.color.clone(), min: 0.72 }); /* papan nama/tanda: tetap terbaca, tidak menyilaukan */
+      });
+    });
+  });
+  var contoh = new Set(); /* contoh mesh per (scene, bahan bersisipan, atribut geometri): untuk kompilasi varian lawan
+                             (ruang dalam ikut: dek gazebo = lantai kayu ruang tamu, cahaya ruangannya lain) */
+  [scene, jalanScene, livingScene, dapurScene, roomScene].forEach(function (S) {
+    S.traverse(function (o) {
+      if (!o.isMesh || !o.material || o.material.customProgramCacheKey !== suGenangKunci) return;
+      var k = S.uuid + o.material.uuid + suGenangTanda(o);
+      if (!contoh.has(k)) { contoh.add(k); SU.genangContoh.push({ m: o.material, o: o, S: S }); }
+    });
+  });
+  if (kaca) { SU.kacaSiang = kaca.map; SU.kacaWarna = kaca.color.clone(); SU.kacaMalam = teksturLukis(256, 256, lukisKacaJendelaMalam); SU.kacaMalam.anisotropy = SU.kacaSiang.anisotropy; }
+  roomScene.traverse(function (o) { /* kaca jendela kamar (Basic 0xffe9b0, satu bidang) */
+    if (!SU.jendelaKamar && o.isMesh && o.material && o.material.isMeshBasicMaterial && !o.material.map && o.material.color.getHex() === 0xffe9b0) SU.jendelaKamar = o.material;
+  });
+  /* langit: kubah warna-verteks (ikut kamera) + bintang + bulan + halo + pelangi */
+  var L = SU.langit = new THREE.Group();
+  L.name = 'suasanaLangit';
+  var kg = new THREE.SphereGeometry(150, 32, 12, 0, Math.PI * 2, 0, Math.acos(-0.2)); /* kubah sampai 11 derajat di bawah cakrawala (di bawahnya selalu tanah / latar warna cakrawala) */
+  kg.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(kg.attributes.position.count * 3), 3));
+  SU.kubah = new THREE.Mesh(kg, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false }));
+  SU.kubah.renderOrder = 900; SU.kubah.frustumCulled = false; L.add(SU.kubah); /* langit digambar SESUDAH semua benda opak: piksel yang tertutup gedung ditolak uji kedalaman (hanya langit yang terlihat yang diwarnai, hemat di HP) */
+  var r = suasanaAcak(4242), nb = 700, pb = new Float32Array(nb * 3), cb = new Float32Array(nb * 3);
+  for (var i = 0; i < nb; i++) {
+    var y = 0.17 + r() * 0.83, a = r() * Math.PI * 2, q = Math.sqrt(1 - y * y), terangB = 0.35 + Math.pow(r(), 3) * 0.65;
+    pb[i * 3] = Math.cos(a) * q * 140; pb[i * 3 + 1] = y * 140; pb[i * 3 + 2] = Math.sin(a) * q * 140;
+    cb[i * 3] = terangB * (0.9 + r() * 0.1); cb[i * 3 + 1] = terangB * 0.95; cb[i * 3 + 2] = terangB;
+  }
+  var bg = new THREE.BufferGeometry();
+  bg.setAttribute('position', new THREE.Float32BufferAttribute(pb, 3)); bg.setAttribute('color', new THREE.Float32BufferAttribute(cb, 3));
+  SU.bintang = new THREE.Points(bg, new THREE.PointsMaterial({ size: 1.7, sizeAttenuation: false, vertexColors: true, fog: false, depthWrite: false }));
+  SU.bintang.renderOrder = 901; SU.bintang.frustumCulled = false; L.add(SU.bintang);
+  SU.arahBulan = new THREE.Vector3(-0.53, 0.34, -0.78).normalize(); /* barat laut ~20 derajat: terlihat di atas jemuran / gedung A saat kamera menoleh sedikit */
+  var hg = new THREE.CircleGeometry(10, 40, 0, Math.PI * 2);
+  hg.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(hg.attributes.position.count * 3), 3));
+  SU.halo = new THREE.Mesh(hg, new THREE.MeshBasicMaterial({ vertexColors: true, fog: false, depthWrite: false }));
+  SU.halo.position.copy(SU.arahBulan).multiplyScalar(134); SU.halo.lookAt(0, 0, 0); SU.halo.renderOrder = 901; L.add(SU.halo);
+  SU.bulan = new THREE.Mesh(new THREE.CircleGeometry(3.6, 40), new THREE.MeshBasicMaterial({ map: teksturLukis(128, 128, lukisBulan(0.5)), alphaTest: 0.5, fog: false, depthWrite: false }));
+  SU.bulan.position.copy(SU.arahBulan).multiplyScalar(130); SU.bulan.lookAt(0, 0, 0); SU.bulan.renderOrder = 902; L.add(SU.bulan);
+  var pg = new THREE.TorusGeometry(72, 3.2, 10, 72, Math.PI);
+  pg.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(pg.attributes.position.count * 3), 3));
+  SU.pelangi = new THREE.Mesh(pg, new THREE.MeshBasicMaterial({ vertexColors: true, fog: false, depthWrite: false, side: THREE.DoubleSide }));
+  SU.arahPelangi = new THREE.Vector3(-0.79, 0, -0.62).normalize(); /* membelakangi matahari (cahaya dari tenggara) */
+  SU.pelangi.position.copy(SU.arahPelangi).multiplyScalar(128); SU.pelangi.position.y = -24;
+  SU.pelangi.lookAt(0, -24, 0); SU.pelangi.renderOrder = 901; SU.pelangi.visible = false; L.add(SU.pelangi);
+  /* hujan: garis opak jatuh di kotak sekitar pemain (satu draw call) */
+  var nh = (window.innerWidth * window.innerHeight < 600000) ? 900 : 1400, ph = new Float32Array(nh * 6);
+  SU.hujanData = { n: nh, x: new Float32Array(nh), y: new Float32Array(nh), z: new Float32Array(nh), v: new Float32Array(nh), p: new Float32Array(nh) };
+  for (var h = 0; h < nh; h++) { SU.hujanData.x[h] = (r() - 0.5) * 32; SU.hujanData.y[h] = r() * 14; SU.hujanData.z[h] = (r() - 0.5) * 32; SU.hujanData.v[h] = 11 + r() * 4; SU.hujanData.p[h] = 0.3 + r() * 0.25; }
+  var hgeo = new THREE.BufferGeometry(); hgeo.setAttribute('position', new THREE.BufferAttribute(ph, 3));
+  SU.hujan = new THREE.LineSegments(hgeo, new THREE.LineBasicMaterial({ color: 0xb9c6d1, fog: true }));
+  SU.hujan.frustumCulled = false; SU.hujan.visible = false;
+  /* kunang-kunang: di pagar tanaman / planter / pohon halaman (malam, tidak hujan) */
+  var titik = [];
+  HL_PLANTER.forEach(function (p) { for (var t = 0; t < 4; t++) titik.push([p[0] + (p[1] - p[0]) * (t + 0.5) / 4, -1.2]); });
+  [[6.5, 13], [23.5, 13], [-17, 8], [17.5, 9], [-17, -11.5]].forEach(function (p) { for (var t = 0; t < 3; t++) titik.push([p[0] + Math.cos(t * 2.1) * 1.6, p[1] + Math.sin(t * 2.1) * 1.6]); });
+  for (var j = 0; j < 6; j++) titik.push([-13, 0.8 + j * 1.3]);
+  var nk = titik.length, pk = new Float32Array(nk * 3), ck = new Float32Array(nk * 3);
+  SU.kunangData = titik.map(function (p) { return { x: p[0], z: p[1], y: 0.5 + r() * 1.3, f: r() * 6.28, s: 0.4 + r() * 0.6 }; });
+  var kgeo = new THREE.BufferGeometry();
+  kgeo.setAttribute('position', new THREE.BufferAttribute(pk, 3)); kgeo.setAttribute('color', new THREE.BufferAttribute(ck, 3));
+  var bulat = teksturLukis(32, 32, function (ctx) { ctx.clearRect(0, 0, 32, 32); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(16, 16, 13, 0, Math.PI * 2); ctx.fill(); });
+  SU.kunang = new THREE.Points(kgeo, new THREE.PointsMaterial({ size: 0.13, map: bulat, alphaTest: 0.5, vertexColors: true, fog: true }));
+  SU.kunang.frustumCulled = false; SU.kunang.visible = false; scene.add(SU.kunang);
+  /* peta genangan cahaya lampu (dibaca sisipan suGenangSuntik; tanpa mesh baru):
+     [x, z, rx, rz, kanal 0 = lantai bawah / 1 = balkon lantai 2, kuat] */
+  var gh = [];
+  HL_LAMPU_SELATAN.forEach(function (x) { gh.push([x, 13, 3.0, 3.0, 0, 1]); }); /* lampu tiang tepi selatan plaza */
+  HL_PLANTER.forEach(function (p) { [p[0] + 0.5, p[1] - 0.5].forEach(function (x) { gh.push([x, -0.9, 1.1, 1.1, 0, 0.7]); }); }); /* lampu taman di ujung planter */
+  gh.push([12, 6.5, 3.6, 3.0, 0, 0.6]); /* gazebo: 3 lampu gantung + lis LED (dek kayu sudah jingga: lebih lembut) */
+  [4.25, 9.75].forEach(function (z) { gh.push([40, z, 1.9, 2.4, 0, 0.9]); }); /* carport: 2 pasang downlight */
+  for (var nd = 1; nd <= 40; nd++) { /* lampu dinding up-down tiap pintu (sisi engsel x - 1) -> selasar / balkon */
+    var pd = ROOM_DOORS[nd];
+    if (!pd) continue;
+    pd.mesh.getWorldPosition(suTmp.v);
+    var arah = pd.hadapUtara ? -1 : 1;
+    gh.push(pd.pos.y > 2 ? [suTmp.v.x - 0.5, suTmp.v.z + arah * 0.74, 1.6, 0.95, 1, 0.75] : [suTmp.v.x - 0.5, suTmp.v.z + arah * 1.0, 1.7, 1.35, 0, 1]);
+  }
+  var gj = [];
+  JALAN_TIANG_X.forEach(function (x) { gj.push([x, 4.2, 3.0, 3.0, 0, 1]); }); /* lampu jalan di tiang (lengan ke arah jalan) */
+  [[-60, JALAN_GERBANG_X - 1.6], [JALAN_GERBANG_X + 1.6, 60]].forEach(function (sg) { /* lampu pilaster tembok kos (pola buildJalan: tiap 8 m) */
+    for (var px = sg[0] + 2, n = 0; px < sg[1] - 0.5; px += 4, n++) if (n % 2 === 1 && Math.abs(px) < 40) gj.push([px, -6.3, 1.5, 1.5, 0, 0.8]);
+  });
+  gj.push([JALAN_GERBANG_X, -6.2, 1.8, 1.8, 0, 0.9], [-4.5, 5.6, 2.2, 1.4, 0, 0.9], [9.6, 6.0, 1.5, 1.1, 0, 0.8]); /* gerbang, warung, pos ronda */
+  SU.petaHalaman = suasanaPetaGenang(gh, 512);
+  SU.petaJalan = suasanaPetaGenang(gj, 512);
+  SU_GENANG.peta.value = SU.petaHalaman.tex; SU_GENANG.kotak.value.copy(SU.petaHalaman.kotak);
+  SU.siap = true;
+  suasanaTerapkan(true);
+  setTimeout(suasanaSiapkanProgram, 3000); /* sesudah bingkai pertama: program senja/malam/hujan disiapkan (tanpa tersendat nanti) */
+}
+function suasanaPasangLangit() { /* langit + hujan ikut scene luar yang aktif; di dalam ruangan disembunyikan */
+  var luar = myRealm === 'yard' ? scene : (myRealm === 'jalan' ? jalanScene : null);
+  if (luar && SU.scene !== luar) {
+    luar.add(SU.langit); luar.add(SU.hujan); SU.scene = luar;
+    var pg = luar === scene ? SU.petaHalaman : SU.petaJalan; /* peta genangan scene ini */
+    SU_GENANG.peta.value = pg.tex; SU_GENANG.kotak.value.copy(pg.kotak);
+  }
+  SU.langit.visible = !!luar;
+  if (!luar) SU.hujan.visible = false;
+  if (luar) SU_GENANG.warna.value.copy(SU.genangWarna); else SU_GENANG.warna.value.setRGB(0, 0, 0); /* di dalam ruangan: tanpa genangan */
+}
+function suasanaTerapkan(paksa) {
+  /* keadaan suasanaKini -> lampu, latar, kabut, bahan, kubah, bintang, bulan, pelangi, jendela kamar.
+     Hanya dihitung ulang saat keadaannya berubah (dibulatkan) supaya ringan. */
+  var k = suasanaKini;
+  var kunci = [k.terang, k.surya, k.jingga, k.mendung, k.hujan, k.pelangi].map(function (v) { return Math.round(v * 200); }).join(',') + (k.jam < 12 ? 'p' : 's');
+  if (!paksa && kunci === SU.kunci) return;
+  SU.kunci = kunci;
+  var siang = k.terang, mendung = k.mendung, hj = k.hujan, jg = k.jingga * (1 - mendung * 0.8);
+  /* latar + kabut = warna cakrawala; kabut lebih dekat saat hujan */
+  SU.latar.forEach(function (L) {
+    var cakrawala = suasanaWarnaLangit(k, 0.02, 0, -1, L.s.background);
+    L.s.fog.color.copy(cakrawala);
+    var dekat = 1 - 0.45 * hj - 0.15 * (1 - siang);
+    L.s.fog.near = L.near * dekat; L.s.fog.far = L.far * (1 - 0.3 * hj - 0.08 * (1 - siang));
+  });
+  /* lampu: matahari -> jingga senja -> bulan biru; hemisfer meredup + membiru; mendung meredupkan */
+  var redupMendung = 1 - 0.5 * mendung;
+  SU.lampu.forEach(function (l) {
+    if (l.jenis === 'hemi') {
+      l.o.color.copy(SU_WARNA.hemiLangitMalam).lerp(l.c, siang).lerp(SU_WARNA.hemiLangitSenja, jg * 0.22 * k.surya).lerp(SU_WARNA.hemiMendung, mendung * 0.45 * siang);
+      l.o.groundColor.copy(SU_WARNA.hemiTanahMalam).lerp(l.g, siang);
+      l.o.intensity = l.i * (0.8 + 0.2 * siang) * (1 - 0.2 * mendung);
+    } else if (l.jenis === 'matahari') {
+      /* matahari (cahaya langsung, keemasan saat rendah) -> sesudah terbenam tinggal cahaya bulan biru redup */
+      l.o.color.copy(SU_WARNA.cahayaBulan).lerp(l.c, k.surya).lerp(SU_WARNA.cahayaSenja, jg * 0.6 * k.surya);
+      l.o.intensity = l.i * Math.max(k.surya * (1 - 0.4 * jg), 0.22 * (1 - siang)) * redupMendung;
+    } else {
+      l.o.color.copy(SU_WARNA.cahayaBulan).lerp(l.c, siang);
+      l.o.intensity = l.i * (0.2 + 0.8 * siang) * (1 - 0.3 * mendung);
+    }
+  });
+  var angkat = siang * siang * (1 - 0.25 * mendung); /* malam = 0: emissive hangat kecil pun (linear 0,02) tampil merah-ungu di gelap */
+  SU.emisi.forEach(function (q) { q.m.emissive.copy(q.e).multiplyScalar(angkat); });
+  SU.redup.forEach(function (q) { q.m.color.copy(q.c).multiplyScalar(q.min + (1 - q.min) * siang * (1 - 0.3 * mendung)); });
+  if (GD && GD.kaca && SU.kacaMalam) { /* kaca: siang = tekstur lama (meredup di senja), malam = gorden diterangi lampu kamar */
+    var malamKaca = siang < 0.5;
+    GD.kaca.map = malamKaca ? SU.kacaMalam : SU.kacaSiang;
+    GD.kaca.color.copy(SU.kacaWarna).multiplyScalar(malamKaca ? 0.72 + 0.28 * (1 - siang * 2) : (0.55 + 0.45 * (siang - 0.5) * 2) * (1 - 0.25 * mendung));
+  }
+  if (SU.jendelaKamar) {
+    var jw = SU.jendelaKamar.color.copy(SU_WARNA.jendelaMalam).lerp(SU_WARNA.jendelaSiang, siang).lerp(SU_WARNA.jendelaSenja, jg * 0.6);
+    jw.lerp(suTmp.c.copy(SU_WARNA.jendelaHujanMalam).lerp(SU_WARNA.jendelaHujan, siang), mendung * 0.8);
+  }
+  /* kubah langit: siang cerah = rata persis warna latar -> tidak digambar (hemat isi layar di HP) */
+  SU.kubah.visible = !(siang > 0.999 && k.jingga < 0.001 && mendung < 0.001);
+  var pos = SU.kubah.geometry.attributes.position, col = SU.kubah.geometry.attributes.color, w = suTmp.c;
+  for (var i = 0; i < pos.count; i++) {
+    var x = pos.getX(i) / 150, y = pos.getY(i) / 150, z = pos.getZ(i) / 150;
+    suasanaWarnaLangit(k, y, x, z, w);
+    col.setXYZ(i, w.r, w.g, w.b);
+  }
+  col.needsUpdate = true;
+  /* bintang + bulan (malam, tertutup awan saat mendung) */
+  var langitMalam = Math.max(0, 1 - siang * 1.6) * (1 - mendung);
+  SU.bintang.visible = langitMalam > 0.02;
+  SU.bintang.material.color.setScalar(langitMalam);
+  var fase = suasanaFaseBulan(Date.now()), terangBulan = (1 - Math.cos(fase * Math.PI * 2)) / 2;
+  if (Math.abs(fase - SU.faseBulan) > 0.01) { /* lukis ulang bentuk bulan (fase asli) paling sering ~7 jam sekali */
+    SU.faseBulan = fase;
+    var tex = SU.bulan.material.map, u = tex.userData; lukisBulan(fase)(u.ctx, u.w, u.h); tex.needsUpdate = true;
+  }
+  SU.bulan.visible = SU.halo.visible = langitMalam > 0.02 && terangBulan > 0.04;
+  SU.bulan.material.color.setScalar(Math.min(1, 0.25 + langitMalam));
+  /* halo bulan: tiap verteks = warna langit di arahnya + cahaya bulan memudar ke tepi (tepi = langit persis, tanpa garis) */
+  var hc = SU.halo.geometry.attributes.color, hp = SU.halo.geometry.attributes.position, cahayaHalo = 0.42 * terangBulan * langitMalam;
+  SU.halo.updateMatrix();
+  for (var h = 0; h < hp.count; h++) {
+    var d = Math.min(1, Math.hypot(hp.getX(h), hp.getY(h)) / 10);
+    suTmp.v.set(hp.getX(h), hp.getY(h), 0).applyMatrix4(SU.halo.matrix).normalize();
+    suasanaWarnaLangit(k, suTmp.v.y, suTmp.v.x, suTmp.v.z, w);
+    w.lerp(SU_WARNA.haloBulan, cahayaHalo * Math.pow(1 - d, 1.6)); hc.setXYZ(h, w.r, w.g, w.b);
+  }
+  hc.needsUpdate = true;
+  /* pelangi: warna pita dicampur ke warna langit di belakangnya (opak, tanpa transparansi) */
+  SU.pelangi.visible = k.pelangi > 0.01;
+  if (SU.pelangi.visible) {
+    var pp = SU.pelangi.geometry.attributes.position, pc = SU.pelangi.geometry.attributes.color, pita = [0x8a5ad8, 0x4f7fe2, 0x4fc46c, 0xf2d34b, 0xf39a3b, 0xe8524a].map(function (c) { return new THREE.Color(c); });
+    SU.pelangi.updateMatrixWorld(true);
+    for (var p = 0; p < pp.count; p++) {
+      var u = (Math.hypot(pp.getX(p), pp.getY(p)) - (72 - 3.2)) / 6.4;
+      u = Math.max(0, Math.min(0.9999, u));
+      var f = u * 5, ia = Math.floor(f), warnaPita = suTmp.pita.copy(pita[ia]).lerp(pita[Math.min(5, ia + 1)], f - ia);
+      suTmp.v.set(pp.getX(p), pp.getY(p), pp.getZ(p)).applyMatrix4(SU.pelangi.matrix).normalize();
+      suasanaWarnaLangit(k, suTmp.v.y, suTmp.v.x, suTmp.v.z, w);
+      w.lerp(warnaPita, 0.5 * k.pelangi * Math.sin(Math.PI * u) * Math.min(1, (suTmp.v.y + 0.02) * 6));
+      pc.setXYZ(p, w.r, w.g, w.b);
+    }
+    pc.needsUpdate = true;
+  }
+  SU.hujan.material.color.copy(SU_WARNA.hujanMalam).lerp(SU_WARNA.hujanSiang, siang);
+  /* genangan cahaya lampu (sisipan shader): mulai terlihat saat senja, penuh di malam; tanah basah saat hujan sedikit lebih terang */
+  var genang = Math.max(0, 1 - siang * 1.4);
+  SU.genangWarna.copy(SU_WARNA.genang).multiplyScalar(genang > 0.01 ? SU_GENANG_KUAT * genang * (1 + 0.2 * hj) : 0);
+  suGenangAktif(genang > 0.01); /* siang: program bawaan persis (tanpa biaya sisipan) */
+}
+function suasanaTick(dt, now) {
+  /* dipanggil animate tiap frame (sebelum render): keadaan dihitung ~4x/dtk, gerak hujan + kunang-kunang + kubah tiap frame */
+  if (!SU.siap) return;
+  SU.tik -= dt;
+  if (SU.tik <= 0) {
+    SU.tik = 0.25;
+    suasanaKini = suasanaKeadaan(now, suasanaPaksa);
+    suasanaTerapkan(false);
+    suaraAlamTick(0.25);
+    suasanaPengingat();
+  }
+  suasanaPasangLangit();
+  var k = suasanaKini, luar = SU.langit.visible;
+  if (luar) SU.langit.position.copy(camera.position);
+  /* hujan */
+  var deras = luar ? k.hujan : 0;
+  SU.hujan.visible = deras > 0.02;
+  if (SU.hujan.visible) {
+    var D = SU.hujanData, arr = SU.hujan.geometry.attributes.position.array, n = Math.floor(D.n * Math.min(1, 0.25 + deras)), angin = 0.12;
+    SU.hujan.position.set(camTarget.x + (camera.position.x - camTarget.x) * 0.35, 0, camTarget.z + (camera.position.z - camTarget.z) * 0.35);
+    for (var i = 0; i < n; i++) {
+      D.y[i] -= D.v[i] * dt;
+      if (D.y[i] < 0) { D.y[i] += 14; D.x[i] = (Math.random() - 0.5) * 32; D.z[i] = (Math.random() - 0.5) * 32; }
+      var j = i * 6, L = D.p[i];
+      arr[j] = D.x[i]; arr[j + 1] = D.y[i]; arr[j + 2] = D.z[i];
+      arr[j + 3] = D.x[i] - angin * L; arr[j + 4] = D.y[i] + L; arr[j + 5] = D.z[i] - angin * 0.4 * L;
+    }
+    SU.hujan.geometry.setDrawRange(0, n * 2);
+    SU.hujan.geometry.attributes.position.needsUpdate = true;
+  }
+  /* kunang-kunang (halaman, malam, tidak hujan) */
+  var kunang = myRealm === 'yard' && k.malam > 0.55 && k.hujan < 0.03;
+  SU.kunang.visible = kunang;
+  if (kunang) {
+    var t = now / 1000, pk = SU.kunang.geometry.attributes.position, ck = SU.kunang.geometry.attributes.color, kuat = Math.min(1, (k.malam - 0.55) / 0.3);
+    SU.kunangData.forEach(function (q, i) {
+      var kedip = Math.max(0, Math.sin(t * (0.9 + q.s) + q.f * 3)) * kuat, c = SU_WARNA.kunang;
+      if (kedip < 0.12) { pk.setXYZ(i, q.x, -50, q.z); return; } /* padam = tidak digambar (titik redup = bintik hitam di lantai yang diterangi lampu) */
+      pk.setXYZ(i, q.x + Math.sin(t * 0.37 * q.s + q.f) * 0.9, q.y + Math.sin(t * 0.61 * q.s + q.f * 2) * 0.35, q.z + Math.cos(t * 0.29 * q.s + q.f) * 0.9);
+      var nyala = 0.3 + 0.7 * kedip;
+      ck.setXYZ(i, c.r * nyala, c.g * nyala, c.b * nyala);
+    });
+    pk.needsUpdate = true; ck.needsUpdate = true;
+  }
+}
+function suasanaPengingat() {
+  /* hujan mulai: ingatkan pemilik cucian di jemuran; pelangi: kabari pemain yang di luar */
+  var hj = suasanaKini.hujan > 0.05;
+  if (hj && !SU.hujanTadi && entered) {
+    var sj = jemuranStatusSekarang();
+    if (sj === 'dijemur') toastKosan('🌧 Hujan turun! Cucianmu di jemuran berhenti kering dulu sampai reda');
+    else if (sj === 'kering') toastKosan('🌧 Hujan turun! Cucianmu sudah kering — angkat dari jemuran ya');
+  }
+  SU.hujanTadi = hj;
+  var pl = suasanaKini.pelangi > 0.3;
+  if (pl && !SU.pelangiTadi && entered && (myRealm === 'yard' || myRealm === 'jalan')) toastKosan('🌈 Ada pelangi sesudah hujan — lihat ke langit barat laut!');
+  SU.pelangiTadi = pl;
+}
+suasanaSiapkan();
 function animate() {
   requestAnimationFrame(animate);
   var dt = Math.min(clock.getDelta(), 0.05);
@@ -10095,6 +11233,7 @@ function animate() {
   var gerak = mag; /* amplitudo ayunan = besar defleksi ter-latch */
   mpMag = mag; /* multiplayer: besar gerak untuk publish pos (§2.4) */
   var sw = Math.sin(walkT * 11);
+  suaraLangkah(sw, gerak); /* Suasana — bunyi langkah tiap kaki menapak (ayunan lewat nol) */
   avLegL.rotation.x = sw * 0.55 * gerak;
   avLegR.rotation.x = -sw * 0.55 * gerak;
   avArmL.rotation.x = -sw * 0.6 * gerak;
@@ -10198,6 +11337,8 @@ function animate() {
   /* Tahap 3a — Jalan Kampung: Oyen (posisi dari jam) + kentongan; jajan habis 90 dtk di alam mana pun */
   if (myRealm === 'jalan') jalanTick(dt, Date.now());
   jajanTick(Date.now());
+  /* Suasana — siang/malam ikut jam WIB, hujan, pelangi, kunang-kunang, suara alam (semua alam) */
+  suasanaTick(dt, Date.now());
   renderer.render(myRealm === 'living' ? livingScene : (myRealm === 'dapur' ? dapurScene : (myRealm.indexOf('room-') === 0 ? roomScene : (myRealm === 'jalan' ? jalanScene : scene))), camera);
 }
 animate();
