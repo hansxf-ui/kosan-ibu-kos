@@ -11,6 +11,7 @@
    Aturan: PIN + token sesi tidak pernah disimpan mentah, tidak pernah
    dikembalikan, tidak pernah ditulis ke log. */
 const I = require('./inti');
+const K = require('./kerja');
 
 const MENIT = 60 * 1000, JAM = 60 * MENIT, HARI = 24 * JAM;
 const UMUR_INGAT = 30 * HARI; /* "Ingat saya": 30 hari, diperpanjang saat dipakai */
@@ -28,6 +29,23 @@ const BATAS = { masuk: 20, daftar: 20, kamar: 60 }; /* per jaringan (HMAC IP, IP
    akun (6 tebakan tiap 20 menit). Pemilik membuka dengan
    kosan_akun_buka(N) — lihat docs/RASA-AMAN-FASE-A.md. */
 const GERBANG = { maks: 5, jendelaDetik: 15 * 60, kunciDetik: 20 * 60 };
+/* Kerja & Belanja: batas per KAMAR (bukan per IP — penghuni di balik CGNAT operator seluler
+   berbagi IP) per jam. Pemakaian wajar jauh di bawahnya (3 shift sehari = 9-12 panggilan). */
+const BATAS_PENGHUNI = { dompet: 600, kerja: 120, belanja: 60 };
+const PESAN_KERJA = {
+  belum_daftar: 'Daftar dulu di papan lowongan ya.',
+  batas_hari: 'Jatah kerja hari ini sudah habis (' + K.BATAS_KERJA.shiftHari + ' shift). Besok lagi ya!',
+  jeda: 'Istirahat dulu sebentar sebelum shift berikutnya.',
+  ada_shift: 'Kamu masih punya shift yang berjalan.',
+  belum_buka: 'Ronda malam mulai jam 20.00 sampai 04.00 WIB.',
+  shift_tidak_ada: 'Shift tidak ditemukan.',
+  shift_tidak_aktif: 'Shift ini sudah tidak aktif.',
+  terlalu_cepat: 'Shift belum selesai.',
+  kedaluwarsa: 'Shift ini sudah kedaluwarsa (lebih dari 20 menit).',
+  saldo_kurang: 'Saldo belum cukup — kerja dulu yuk.',
+  sudah_punya: 'Barang ini sudah kamu punya.',
+  sudah_lunas: 'Uang kos bulan ini sudah lunas. Makasih ya!'
+};
 
 const PESAN = {
   belumTerdaftar: 'Nama ini belum terdaftar sebagai penghuni — daftar dulu, atau masuk sebagai tamu.',
@@ -237,7 +255,126 @@ function buatApp({ db, rahasia, sekarang = () => Date.now(), aman = true }) {
     return balas(200, { ok: true });
   }
 
-  return { masuk, setupPin: masuk, daftar, sesi, keluar, kamarMasuk };
+  /* ================= Kerja & Belanja (Ryan 16 Nov) =================
+     Rupiah HANYA untuk penghuni (sesi cookie) dan disimpan di server. Setiap perubahan
+     saldo lewat fungsi SQL atomik (supabase/migrations/20261116_kerja_belanja.sql). Upah
+     dihitung di sini dari hasil kerja yang dilaporkan klien (dijepit, kerja.js), harga
+     dari katalog server: klien tidak pernah mengirim angka uang. Durasi minimum shift,
+     jatah 3 shift sehari, jeda 10 menit dan "satu shift aktif" ditegakkan di database. */
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+  async function penghuniSesi(ctx, jenis) {
+    const s = await sesiDari(ctx);
+    if (!s.sah) return { tolak: galat(401, 'perlu_login', 'Masuk sebagai penghuni dulu ya.') };
+    const room = s.sah.penghuni.room, nama = s.sah.sesi.nama_norm;
+    if ((await db.batasTambah(jenis + ':kamar:' + room, 3600)) > BATAS_PENGHUNI[jenis]) return { tolak: galat(429, 'terkunci', 'Terlalu sering — tunggu sebentar ya.') };
+    return { room, nama };
+  }
+  function galatKerja(e) { /* pesan RAISE dari fungsi SQL ('saldo_kurang', 'jeda:120', ...) -> 409 ramah; galat lain dilempar ulang (503) */
+    const m = /^([a-z_]+)(?::(\d{1,6}))?$/.exec(String((e && e.message) || ''));
+    if (!e || !e.status || e.status >= 500 || !m || !Object.prototype.hasOwnProperty.call(PESAN_KERJA, m[1])) return null;
+    const body = { galat: m[1], pesan: PESAN_KERJA[m[1]] };
+    if (m[2]) body.detik = +m[2];
+    return balas(409, body);
+  }
+  function bentukDompet(d) {
+    const pek = {};
+    Object.keys(K.PEKERJAAN).forEach((id) => { pek[id] = { terdaftar: false, shift: 0, pangkat: 0 }; });
+    (Array.isArray(d.pekerjaan) ? d.pekerjaan : []).forEach((p) => {
+      const n = Number(p && p.shift_total) || 0;
+      if (p && K.pekerjaanDari(p.pekerjaan)) pek[p.pekerjaan] = { terdaftar: true, shift: n, pangkat: K.pangkatDari(n) };
+    });
+    const nowDb = Date.parse(d.sekarang) || sekarang();
+    const terakhir = d.terakhir_selesai ? Date.parse(d.terakhir_selesai) : 0;
+    const a = d.shift_aktif && typeof d.shift_aktif.id === 'string' ? d.shift_aktif : null;
+    return {
+      saldo: Number(d.saldo) || 0,
+      pekerjaan: pek,
+      hariIni: { shift: Number(d.shift_hari_ini) || 0, maks: K.BATAS_KERJA.shiftHari },
+      jedaDetik: terakhir ? Math.max(0, Math.ceil((terakhir + K.BATAS_KERJA.jedaDetik * 1000 - nowDb) / 1000)) : 0,
+      shiftAktif: a ? { id: a.id, pekerjaan: a.pekerjaan, detik: Math.max(0, Math.floor((nowDb - Date.parse(a.mulai)) / 1000)) } : null,
+      rondaBuka: K.rondaBuka(sekarang()),
+      sewa: { bulan: d.sewa_bulan || K.bulanWib(sekarang()), label: K.bulanLabel(d.sewa_bulan || K.bulanWib(sekarang())), lunas: !!d.sewa_lunas, harga: K.SEWA_HARGA },
+      barang: (Array.isArray(d.barang) ? d.barang : []).filter((b) => !!K.barangDari(b)),
+      riwayat: (Array.isArray(d.riwayat) ? d.riwayat : []).slice(0, 10).map((r) => ({
+        jumlah: Number(r.jumlah) || 0, jenis: String(r.jenis || ''), ket: String(r.keterangan || '').slice(0, 80),
+        saldo: Number(r.saldo_sesudah) || 0, waktu: r.dibuat || null }))
+    };
+  }
+
+  /* GET /api/dompet — saldo, status kerja, uang kos bulan ini, barang, 10 mutasi terakhir */
+  async function dompet(ctx) {
+    const p = await penghuniSesi(ctx, 'dompet'); if (p.tolak) return p.tolak;
+    const now = sekarang();
+    const d = await db.dompetBaca({ room: p.room, nama: p.nama, tanggal: K.tanggalWib(now), bulan: K.bulanWib(now), maksDetik: K.BATAS_KERJA.maksDetik });
+    return balas(200, bentukDompet(d || {}));
+  }
+
+  /* POST /api/kerja {aksi: 'daftar'|'mulai'|'selesai'|'batal', pekerjaan?, shift?, hasil?} */
+  async function kerja(ctx) {
+    const tolak = cekPermintaan(ctx); if (tolak) return tolak;
+    const { aksi, pekerjaan, shift, hasil } = ctx.body;
+    if (['daftar', 'mulai', 'selesai', 'batal'].indexOf(aksi) === -1) return galat(400, 'format', 'Aksi tidak dikenal.');
+    if ((aksi === 'daftar' || aksi === 'mulai') && !K.pekerjaanDari(pekerjaan)) return galat(400, 'format', 'Pekerjaan tidak dikenal.');
+    if ((aksi === 'selesai' || aksi === 'batal') && !(typeof shift === 'string' && UUID_RE.test(shift))) return galat(400, 'format', 'Shift tidak valid.');
+    const p = await penghuniSesi(ctx, 'kerja'); if (p.tolak) return p.tolak;
+    const now = sekarang();
+    try {
+      if (aksi === 'daftar') {
+        await db.kerjaDaftar({ room: p.room, nama: p.nama, pekerjaan });
+        return balas(200, { ok: true, pekerjaan });
+      }
+      if (aksi === 'mulai') {
+        if (pekerjaan === 'ronda' && !K.rondaBuka(now)) return balas(409, { galat: 'belum_buka', pesan: PESAN_KERJA.belum_buka });
+        const r = await db.kerjaMulai({ room: p.room, nama: p.nama, pekerjaan, tanggal: K.tanggalWib(now),
+          maksHari: K.BATAS_KERJA.shiftHari, jedaDetik: K.BATAS_KERJA.jedaDetik, maksDetik: K.BATAS_KERJA.maksDetik });
+        const job = K.PEKERJAAN[pekerjaan];
+        return balas(200, { shift: r.id, pekerjaan, pesanan: job.pesanan, minDetik: job.minDetik });
+      }
+      if (aksi === 'batal') {
+        await db.kerjaBatal({ room: p.room, nama: p.nama, shift });
+        return balas(200, { ok: true });
+      }
+      /* selesai: pekerjaan + jumlah shift sebelum ini (pangkat) dari DB, upah dihitung di sini,
+         lalu DB mengunci atomik: status aktif, milik kamar ini, durasi >= minDetik, < 20 menit */
+      const s = await db.kerjaShift({ room: p.room, nama: p.nama, shift });
+      if (!s) return balas(409, { galat: 'shift_tidak_ada', pesan: PESAN_KERJA.shift_tidak_ada });
+      const job = K.pekerjaanDari(s.pekerjaan);
+      if (!job) throw new Error('pekerjaan shift tidak dikenal');
+      const u = K.upahShift(s.pekerjaan, Number(s.shift_total) || 0, hasil);
+      const r = await db.kerjaSelesai({ room: p.room, nama: p.nama, shift, gaji: u.gaji, tip: u.tip, benar: u.benar, salah: u.salah,
+        minDetik: job.minDetik, maksDetik: K.BATAS_KERJA.maksDetik, keterangan: 'Gaji ' + job.nama + (u.tip ? ' + tip' : '') });
+      const total = Number(r.shift_total) || 0;
+      return balas(200, { gaji: u.gaji, tip: u.tip, saldo: Number(r.saldo) || 0, pekerjaan: s.pekerjaan, shift: total,
+        pangkat: K.pangkatDari(total), naikPangkat: K.pangkatDari(total) > u.pangkat });
+    } catch (e) {
+      const g = galatKerja(e); if (g) return g;
+      throw e;
+    }
+  }
+
+  /* POST /api/belanja {aksi: 'beli', barang} | {aksi: 'sewa'} — harga dari katalog server */
+  async function belanja(ctx) {
+    const tolak = cekPermintaan(ctx); if (tolak) return tolak;
+    const { aksi, barang } = ctx.body;
+    if (aksi !== 'beli' && aksi !== 'sewa') return galat(400, 'format', 'Aksi tidak dikenal.');
+    const item = aksi === 'beli' ? K.barangDari(barang) : null;
+    if (aksi === 'beli' && !item) return galat(400, 'format', 'Barang tidak dikenal.');
+    const p = await penghuniSesi(ctx, 'belanja'); if (p.tolak) return p.tolak;
+    try {
+      if (aksi === 'beli') {
+        const r = await db.beli({ room: p.room, nama: p.nama, barang, harga: item.harga, unik: item.jenis !== 'kafe', keterangan: 'Beli ' + item.nama });
+        return balas(200, { saldo: Number(r.saldo) || 0, barang });
+      }
+      const bulan = K.bulanWib(sekarang());
+      const r = await db.sewaBayar({ room: p.room, nama: p.nama, bulan, jumlah: K.SEWA_HARGA, keterangan: 'Uang kos ' + K.bulanLabel(bulan) });
+      return balas(200, { saldo: Number(r.saldo) || 0, bulan, label: K.bulanLabel(bulan) });
+    } catch (e) {
+      const g = galatKerja(e); if (g) return g;
+      throw e;
+    }
+  }
+
+  return { masuk, setupPin: masuk, daftar, sesi, keluar, kamarMasuk, dompet, kerja, belanja };
 }
 
-module.exports = { buatApp, UMUR_INGAT, UMUR_BIASA, BATAS, GERBANG, PESAN, JUMLAH_KAMAR, KUNCI_CD };
+module.exports = { buatApp, UMUR_INGAT, UMUR_BIASA, BATAS, GERBANG, PESAN, JUMLAH_KAMAR, KUNCI_CD, BATAS_PENGHUNI, PESAN_KERJA };

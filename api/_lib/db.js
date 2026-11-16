@@ -33,6 +33,13 @@ function buatDb({ url, kunci, fetchFn = globalThis.fetch }) {
   const angka = (n) => { if (!Number.isInteger(n)) throw new Error('room bukan bilangan bulat'); return n; };
   const hex = (s) => { if (!/^[0-9a-f]{64}$/.test(s)) throw new Error('hash tidak valid'); return s; };
   const uuid = (s) => { if (!/^[0-9a-f-]{36}$/.test(String(s))) throw new Error('id tidak valid'); return s; };
+  /* Kerja & Belanja: argumen dicek bentuknya sebelum dikirim (nilai = dari server, bukan klien) */
+  const nama = (s) => { if (typeof s !== 'string' || !s || s.length > 30 || /[\u0000-\u001f]/.test(s)) throw new Error('nama tidak valid'); return s; };
+  const kode = (s) => { if (!/^[a-z0-9_]{2,30}$/.test(String(s))) throw new Error('kode tidak valid'); return s; };
+  const tanggal = (s) => { if (!/^\d{4}-\d{2}-\d{2}$/.test(String(s))) throw new Error('tanggal tidak valid'); return s; };
+  const bulan = (s) => { if (!/^\d{4}-\d{2}$/.test(String(s))) throw new Error('bulan tidak valid'); return s; };
+  const uang = (n) => { if (!Number.isInteger(n) || n < 0 || n > 1000000) throw new Error('jumlah tidak valid'); return n; };
+  const ket = (s) => String(s || '').slice(0, 80);
 
   return {
     occupants: async () => (await rpc('kosan_occupants', {})) || [],
@@ -77,7 +84,19 @@ function buatDb({ url, kunci, fetchFn = globalThis.fetch }) {
        — fungsi SQL supabase/migrations/20261114_batas_kembali.sql. */
     batasKembali: (kunci, detik) => rpc('kosan_batas_kembali', { p_kunci: kunci, p_detik: detik }),
     gerbangAmbil: async (kunci, g) => (await rpc('kosan_gerbang_ambil', { p_kunci: kunci, p_maks: g.maks, p_jendela: g.jendelaDetik, p_kunci_detik: g.kunciDetik })) === true,
-    gerbangLepas: (kunci) => rpc('kosan_gerbang_lepas', { p_kunci: kunci })
+    gerbangLepas: (kunci) => rpc('kosan_gerbang_lepas', { p_kunci: kunci }),
+    /* ---- Kerja & Belanja (16 Nov): fungsi SQL atomik supabase/migrations/20261116_kerja_belanja.sql.
+       Galat RAISE (mis. 'saldo_kurang', 'jeda:120') dilempar dengan .status 400 seperti PostgREST. ---- */
+    dompetBaca: async (a) => rpc('kosan_dompet_baca', { p_room: angka(a.room), p_nama: nama(a.nama), p_tanggal: tanggal(a.tanggal), p_bulan: bulan(a.bulan), p_maks_detik: uang(a.maksDetik) }),
+    kerjaDaftar: async (a) => rpc('kosan_kerja_daftar', { p_room: angka(a.room), p_nama: nama(a.nama), p_pekerjaan: kode(a.pekerjaan) }),
+    kerjaMulai: async (a) => rpc('kosan_kerja_mulai', { p_room: angka(a.room), p_nama: nama(a.nama), p_pekerjaan: kode(a.pekerjaan), p_tanggal: tanggal(a.tanggal),
+      p_maks_hari: uang(a.maksHari), p_jeda_detik: uang(a.jedaDetik), p_maks_detik: uang(a.maksDetik) }),
+    kerjaShift: async (a) => rpc('kosan_kerja_shift', { p_room: angka(a.room), p_nama: nama(a.nama), p_shift: uuid(a.shift) }),
+    kerjaSelesai: async (a) => rpc('kosan_kerja_selesai', { p_room: angka(a.room), p_nama: nama(a.nama), p_shift: uuid(a.shift), p_gaji: uang(a.gaji), p_tip: uang(a.tip),
+      p_benar: uang(a.benar), p_salah: uang(a.salah), p_min_detik: uang(a.minDetik), p_maks_detik: uang(a.maksDetik), p_keterangan: ket(a.keterangan) }),
+    kerjaBatal: async (a) => rpc('kosan_kerja_batal', { p_room: angka(a.room), p_nama: nama(a.nama), p_shift: uuid(a.shift) }),
+    beli: async (a) => rpc('kosan_beli', { p_room: angka(a.room), p_nama: nama(a.nama), p_barang: kode(a.barang), p_harga: uang(a.harga), p_unik: a.unik === true, p_keterangan: ket(a.keterangan) }),
+    sewaBayar: async (a) => rpc('kosan_sewa_bayar', { p_room: angka(a.room), p_nama: nama(a.nama), p_bulan: bulan(a.bulan), p_jumlah: uang(a.jumlah), p_keterangan: ket(a.keterangan) })
   };
 }
 
