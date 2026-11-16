@@ -565,7 +565,8 @@ test('Tahap 1 Ibu Kos: urutan acak per hari, tetap sepanjang hari, tidak berulan
 test('Tahap 1 misi: 10 misi Tahap 1 tetap di urutan awal (Tahap 3a menambah 3 di belakang), 3 baru tercentang sekali per hari, state lama tetap terbaca', () => {
   const m = blokMurni('MISI-START', 'MISI-END', ['MISI_LIST', 'misiStateBaru', 'misiSelesaiDiState', 'misiHitungSelesai']);
   assert.deepEqual(m.MISI_LIST.map((x) => x.id).slice(0, 10), ['kamar', 'tidur', 'duduk', 'lampu', 'living', 'jalan', 'sendal', 'gazebo', 'jemur', 'ibu']);
-  assert.deepEqual(m.MISI_LIST.map((x) => x.id).slice(10), ['warung', 'kucing', 'ronda']); /* Tahap 3a — Jalan Kampung (tests/jalan.test.js) */
+  assert.deepEqual(m.MISI_LIST.map((x) => x.id).slice(10, 13), ['warung', 'kucing', 'ronda']); /* Tahap 3a — Jalan Kampung (tests/jalan.test.js) */
+  assert.deepEqual(m.MISI_LIST.map((x) => x.id).slice(13), ['kerja', 'kafe']); /* Kerja & Belanja (tests/kerja-klien.test.js) */
   const st = { done: { kamar: true, sendal: true }, jalan: 12 }; /* state lama (7 misi) */
   assert.equal(m.misiHitungSelesai(st), 2);
   for (const id of ['gazebo', 'jemur', 'ibu']) {

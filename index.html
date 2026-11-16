@@ -875,6 +875,151 @@
     .rupa-model button { min-height: 46px; padding: 4px 2px; font-size: 10.5px; }
     .rupa-model svg { width: 22px; height: 22px; }
   }
+  /* ===== Kerja & Belanja (16 Nov): pil dompet, panel Dompet (Kerja / Toko / Riwayat), panel kerja, ronda, cap LUNAS ===== */
+  #dompetPill { background: rgba(255,255,255,.95); color: #1d6b3a; box-shadow: inset 0 0 0 1px rgba(255,255,255,.75), 0 2px 8px rgba(0,0,0,.3); }
+  #dompetPill .uicon { color: #22a06b; }
+  #dompetPill.memuat { opacity: .75; }
+  #dompetPanel, #kerjaPanel { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 35;
+    display: none; max-width: 440px; margin: 0 auto; background: #fff; border-radius: 22px; padding: 14px 16px 14px;
+    box-shadow: var(--kb-bayang-2), inset 0 0 0 1px rgba(255,255,255,.7); color: var(--kb-teks); }
+  #dompetPanel { max-height: calc(100dvh - 120px); overflow-y: auto; }
+  #dompetPanel.open, #kerjaPanel.open { display: block; animation: kbMuncul .2s ease-out; }
+  #dompetPanel h2, #kerjaPanel h2 { font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 19px; color: var(--kb-biru); margin: 0 40px 2px 0; line-height: 1.2; }
+  #dompetClose { position: absolute; top: 10px; right: 12px; width: 30px; height: 30px; border: none; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; background: var(--kb-isi); color: var(--kb-teks-2); cursor: pointer; }
+  .dp-saldo { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin: 2px 0 6px; }
+  .dp-saldo b { font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 26px; color: #1d6b3a; line-height: 1; }
+  .dp-saldo span { font-size: 12px; font-weight: 700; color: var(--kb-teks-2); }
+  .dp-catatan { font-size: 11.5px; font-weight: 700; color: #6b7d92; line-height: 1.4; margin: 8px 0 0; }
+  .dp-info { font-size: 12.5px; font-weight: 700; color: var(--kb-teks-2); background: var(--kb-isi); border-radius: 12px; padding: 8px 10px; margin: 8px 0; line-height: 1.4; }
+  .dp-info b { color: var(--kb-teks); }
+  .dp-job { display: flex; gap: 10px; align-items: center; padding: 9px 10px; border-radius: 14px; background: var(--kb-isi); margin-top: 7px;
+    box-shadow: inset 0 0 0 1px rgba(19,37,58,.05); }
+  .dp-job > .uicon { width: 30px; height: 30px; flex: 0 0 30px; padding: 5px; border-radius: 10px; background: #fff; color: var(--kb-biru-2); }
+  .dp-job .dp-isi { flex: 1; min-width: 0; }
+  .dp-job .dp-nama { font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 15px; font-weight: 800; color: var(--kb-teks); line-height: 1.15; }
+  .dp-job .dp-meta { font-size: 11.5px; font-weight: 700; color: var(--kb-teks-2); line-height: 1.35; }
+  .dp-job .dp-pangkat { display: inline-block; font-size: 10.5px; font-weight: 900; color: #1d6b3a; background: #e6f4ea; border-radius: 999px; padding: 1px 7px; margin-top: 2px; }
+  .dp-job button, .dp-barang button, .dp-aksi button { flex: 0 0 auto; border: none; border-radius: 10px; padding: 7px 11px; cursor: pointer;
+    font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 13px; font-weight: 800; color: #fff; background: linear-gradient(180deg, #3a8de6, #1f6fc9); }
+  .dp-job button.sekunder, .dp-barang button.sekunder { background: #fff; color: var(--kb-biru); box-shadow: inset 0 0 0 1.5px var(--kb-garis); }
+  .dp-job button:disabled, .dp-barang button:disabled, .dp-aksi button:disabled { opacity: .5; cursor: default; }
+  .dp-bagian { font-size: 12px; font-weight: 900; color: var(--kb-teks-2); text-transform: uppercase; letter-spacing: .6px; margin: 12px 0 2px; }
+  .dp-barang { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 7px; margin-top: 6px; }
+  .dp-barang > div { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 6px; border-radius: 14px; background: var(--kb-isi); text-align: center;
+    box-shadow: inset 0 0 0 1px rgba(19,37,58,.05); }
+  .dp-barang > div.punya { background: #eef8f1; box-shadow: inset 0 0 0 1.5px #9fd6b4; }
+  .dp-barang > div.dipakai { background: var(--kb-biru-muda); box-shadow: inset 0 0 0 2px var(--kb-biru-2); }
+  .dp-barang svg { width: 34px; height: 34px; color: var(--kb-biru-2); }
+  .dp-barang .dp-nama { font-size: 12px; font-weight: 800; color: var(--kb-teks); line-height: 1.2; }
+  .dp-barang .dp-harga { font-size: 11.5px; font-weight: 900; color: #1d6b3a; }
+  .dp-barang .dp-harga svg { width: 13px; height: 13px; vertical-align: -2px; color: #1d6b3a; }
+  .dp-riwayat { list-style: none; margin: 6px 0 0; padding: 0; }
+  .dp-riwayat li { display: flex; justify-content: space-between; gap: 8px; padding: 7px 2px; border-bottom: 1px solid var(--kb-garis); font-size: 12.5px; font-weight: 700; color: var(--kb-teks-2); }
+  .dp-riwayat li b { font-weight: 900; white-space: nowrap; }
+  .dp-riwayat li b.masuk { color: #1d6b3a; } .dp-riwayat li b.keluar { color: #b3261e; }
+  .dp-riwayat small { display: block; font-size: 10.5px; color: #8a9bb0; }
+  .dp-aksi { display: flex; gap: 8px; margin-top: 8px; }
+  .dp-aksi button { flex: 1; padding: 10px; font-size: 14px; }
+  /* panel kerja (selama shift): kepala + status + tugas + tombol */
+  #kerjaPanel { padding: 10px 12px 12px; max-height: 52dvh; overflow-y: auto; }
+  .kp-kepala { display: flex; align-items: center; gap: 8px; }
+  .kp-kepala .uicon { width: 26px; height: 26px; padding: 4px; border-radius: 9px; color: #fff; background: var(--kp-warna, #7a4a2a); flex: 0 0 26px; }
+  .kp-kepala h2 { flex: 1; min-width: 0; margin: 0 !important; font-size: 16px !important; }
+  .kp-kepala h2 small { display: block; font-family: 'Nunito', sans-serif; font-size: 11px; font-weight: 800; color: var(--kb-teks-2); }
+  #kerjaBerhenti { border: none; border-radius: 10px; padding: 6px 10px; cursor: pointer; font-family: 'Baloo 2', 'Nunito', sans-serif;
+    font-size: 12px; font-weight: 800; background: var(--kb-isi); color: var(--kb-teks-2); }
+  .kp-status { display: flex; align-items: center; gap: 8px; margin: 7px 0 5px; font-size: 12px; font-weight: 800; color: var(--kb-teks-2); }
+  .kp-status b { color: var(--kb-teks); }
+  .kp-bar { flex: 1; height: 8px; border-radius: 99px; background: #e6edf5; overflow: hidden; }
+  .kp-bar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #22a06b, #7fd18f); transition: width .2s linear; }
+  .kp-bar.genting i { background: linear-gradient(90deg, #e8524a, #f39a3b); }
+  .kp-tugas { background: #fff8ec; border-radius: 14px; padding: 8px 10px; box-shadow: inset 0 0 0 1px #f2dfbd; }
+  .kp-tugas p { margin: 0; font-size: 13px; font-weight: 700; line-height: 1.4; color: #4a3b22; }
+  .kp-tugas .kp-pesan { font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 16px; font-weight: 800; color: #3d2c00; }
+  .kp-chip { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+  .kp-chip span { font-size: 11.5px; font-weight: 800; padding: 3px 8px; border-radius: 99px; background: #fff; color: #7a6a4f; box-shadow: inset 0 0 0 1px #ead7b1; }
+  .kp-chip span.sudah { background: #e6f4ea; color: #1d6b3a; box-shadow: none; text-decoration: line-through; }
+  .kp-chip span.berikut { background: #ffd11a; color: #3d2c00; box-shadow: none; }
+  .kp-tombol { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+  .kp-tombol.empat { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .kp-tombol.tiga { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .kp-tombol button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 54px; padding: 5px 2px;
+    border: none; border-radius: 12px; cursor: pointer; background: var(--kb-isi); color: var(--kb-teks);
+    font-family: 'Nunito', sans-serif; font-size: 11px; font-weight: 800; line-height: 1.1; text-align: center;
+    box-shadow: inset 0 0 0 1px rgba(19,37,58,.07), 0 1px 0 rgba(19,37,58,.06); transition: transform .06s, background .12s; }
+  .kp-tombol button:active { transform: scale(.94); background: var(--kb-biru-muda); }
+  .kp-tombol button svg { width: 24px; height: 24px; color: var(--kp-warna, #7a4a2a); }
+  .kp-tombol button.utama { background: linear-gradient(180deg, #ffdb4d, #ffc700); color: #3d2c00; }
+  .kp-tombol button.utama svg { color: #3d2c00; }
+  .kp-tombol button .kp-jml { font-size: 10px; font-weight: 900; color: #1d6b3a; }
+  .kp-tombol button:disabled { opacity: .45; cursor: default; }
+  .kp-tombol button.salah, .kp-tugas.salah { animation: kpGoyang .32s; background: #fde3e1; }
+  .kp-tombol button.benar { background: #e6f4ea; }
+  @keyframes kpGoyang { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-5px); } 40% { transform: translateX(5px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(3px); } }
+  .kp-hasil { text-align: center; padding: 4px 0 2px; }
+  .kp-hasil .kp-uang { font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 28px; font-weight: 800; color: #1d6b3a; line-height: 1.1; margin: 4px 0; }
+  .kp-hasil p { margin: 3px 0; font-size: 13px; font-weight: 700; color: var(--kb-teks-2); line-height: 1.4; }
+  .kp-hasil button { width: 100%; margin-top: 8px; padding: 10px; border: none; border-radius: 14px; cursor: pointer; color: #fff;
+    font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 15px; font-weight: 800; background: linear-gradient(180deg, #3a8de6, #1f6fc9); }
+  .kp-kantong { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 12px; background: var(--kb-isi); margin-top: 6px; font-size: 12.5px; font-weight: 800; }
+  .kp-kantong.aktif { background: #fff8ec; box-shadow: inset 0 0 0 1.5px #f2c94c; }
+  .kp-kantong .kp-k-isi { flex: 1; min-width: 0; line-height: 1.3; }
+  .kp-kantong small { display: block; font-size: 11px; color: var(--kb-teks-2); }
+  .kp-kantong button { border: none; border-radius: 10px; padding: 7px 10px; cursor: pointer; font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 12.5px; font-weight: 800;
+    color: #3d2c00; background: linear-gradient(180deg, #ffdb4d, #ffc700); }
+  .kp-kantong button:disabled { opacity: .5; cursor: default; }
+  .kp-kantong > .uicon { width: 22px; height: 22px; flex: 0 0 22px; color: var(--kp-warna, #2a9d8f); }
+  .kp-kantong.beres { background: #eef8f1; }
+  .kp-kantong.beres > .uicon { color: #1d6b3a; }
+  .kp-kantong + .kp-chip, .kp-kantong + .kp-tombol, .kp-chip + .kp-tombol { margin-left: 4px; margin-right: 4px; }
+  .kp-kantong + .kp-tombol { margin-top: 6px; }
+  .kp-intip { border: none; border-radius: 8px; padding: 3px 8px; margin-left: 2px; cursor: pointer; font-family: 'Nunito', sans-serif; font-size: 11.5px; font-weight: 800;
+    background: #fff; color: #7a4a2a; box-shadow: inset 0 0 0 1px #ead7b1; }
+  .kp-hasil .kp-naik { color: #1d6b3a; font-weight: 900; }
+  .kp-hasil .kp-naik .uicon { color: #f2b705; width: 18px; height: 18px; vertical-align: -3px; }
+  #rondaHud .rd-baris > .uicon { width: 22px; height: 22px; flex: 0 0 22px; color: #ffd27a; }
+  #rondaHud .rd-baris small { display: block; font-family: 'Nunito', sans-serif; font-size: 11.5px; }
+  /* ronda: pita kecil di atas + bilah irama kentongan (layar tetap lapang untuk berjalan) */
+  #rondaHud { position: fixed; left: 50%; top: calc(118px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); z-index: 14; display: none;
+    width: min(360px, calc(100vw - 24px)); background: rgba(16,30,54,.86); color: #fff; border-radius: 16px; padding: 8px 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.35); font-size: 12.5px; font-weight: 800; }
+  #rondaHud.open { display: block; animation: kbMuncul .2s ease-out; }
+  #rondaHud .rd-baris { display: flex; align-items: center; gap: 8px; }
+  #rondaHud .rd-baris b { flex: 1; min-width: 0; font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 14px; line-height: 1.2; }
+  #rondaHud .rd-panah { width: 26px; height: 26px; flex: 0 0 26px; color: #ffd27a; transition: transform .1s; }
+  #rondaHud small { color: #c7d4e6; font-weight: 700; }
+  #rondaHud button { border: none; border-radius: 9px; padding: 5px 9px; cursor: pointer; font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 12px; font-weight: 800;
+    background: rgba(255,255,255,.14); color: #fff; }
+  .rd-irama { margin-top: 8px; }
+  .rd-bar { position: relative; height: 18px; border-radius: 99px; background: rgba(255,255,255,.16); overflow: hidden; }
+  .rd-bar .rd-oke { position: absolute; left: 30%; width: 40%; top: 0; bottom: 0; background: rgba(255,210,122,.35); }
+  .rd-bar .rd-pas { position: absolute; left: 42%; width: 16%; top: 0; bottom: 0; background: rgba(127,209,143,.85); }
+  .rd-bar .rd-kursor { position: absolute; top: -2px; bottom: -2px; width: 6px; margin-left: -3px; border-radius: 3px; background: #fff; box-shadow: 0 0 6px rgba(255,255,255,.8); }
+  .rd-ketuk { display: flex; justify-content: center; gap: 6px; margin: 6px 0 4px; }
+  .rd-ketuk i { width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,.22); }
+  .rd-ketuk i.kena { background: #7fd18f; }
+  #rondaPukul { display: block; width: 100%; margin-top: 4px; padding: 11px; font-size: 15px !important; color: #3d2c00 !important; background: linear-gradient(180deg, #ffdb4d, #ffc700) !important; }
+  /* KTA: cap LUNAS uang kos */
+  .kta-lunas { display: inline-block; margin-top: 4px; padding: 2px 8px; border: 2.5px solid #b3261e; border-radius: 8px; color: #b3261e;
+    font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 12px; font-weight: 800; letter-spacing: 1px; transform: rotate(-6deg); background: rgba(255,255,255,.6); }
+  @media (orientation: landscape) and (min-width: 900px) and (min-height: 501px) {
+    #dompetPanel, #kerjaPanel { left: auto; right: 16px; top: 72px; bottom: auto; width: 380px; margin: 0; max-height: calc(100dvh - 88px); overflow-y: auto; }
+    #kerjaPanel { top: auto; bottom: 16px; max-height: calc(100dvh - 100px); }
+  }
+  @media (max-height: 500px) and (orientation: landscape) {
+    #dompetPanel, #kerjaPanel { left: auto; right: 10px; top: 52px; bottom: 8px; width: 330px; margin: 0; max-height: none; overflow-y: auto; padding: 8px 12px; }
+    #dompetPanel h2, #kerjaPanel h2 { font-size: 16px; }
+    .dp-saldo b { font-size: 21px; }
+    .kp-tombol button { min-height: 44px; font-size: 10px; }
+    .kp-tombol button svg { width: 20px; height: 20px; }
+    #rondaHud { top: 50px; left: auto; right: 10px; transform: none; width: 300px; }
+  }
+  @media (max-width: 420px) {
+    #kerjaPanel { left: 8px; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }
+    .kp-tombol button { min-height: 50px; font-size: 10.5px; }
+    #rondaHud { top: calc(104px + env(safe-area-inset-top, 0px)); }
+  }
   /* =================== AKHIR UI REFRESH =================== */
 </style>
 <script type="importmap">
@@ -954,6 +1099,9 @@
         <button id="ktaBtn" class="pillbtn" type="button" title="Kartu Tanda Penghuni"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="11" r="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5.5 16c.5-1.5 1.7-2.2 3-2.2s2.5.7 3 2.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M15 9.5h4M15 13.5h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> KTA</button>
         <!-- Karakter v2 — pilihan tampilan (warna kaus + rambut) -->
         <button id="rupaBtn" class="pillbtn" type="button" title="Ganti tampilan karakter"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3l-5 3 2 4 2-1v12h10V9l2 1 2-4-5-3a4 4 0 0 1-8 0z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Tampilan</button>
+        <!-- Kerja & Belanja — lowongan kerja + toko online (panel Dompet) -->
+        <button id="kerjaBtn" class="pillbtn" type="button" title="Lowongan kerja: kafe, warung, ronda, laundry"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 12.5h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Kerja</button>
+        <button id="tokoBtn" class="pillbtn" type="button" title="Toko online: aksesori + dekorasi kamar (Rupiah)"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1.2 12H6.2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 10V6.5a3 3 0 0 1 6 0V10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Toko Online</button>
         <!-- Suasana — musik santai + efek suara: nyala/mati (disimpan di HP); menu tetap terbuka saat diketuk -->
         <button id="musikBtn" class="pillbtn" type="button" title="Musik santai nyala/mati"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l11-2v13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17.5" cy="16" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/></svg> Musik <span id="musikStatus" class="menu-status">Nyala</span></button>
         <button id="efekBtn" class="pillbtn" type="button" title="Efek suara + suara alam nyala/mati"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h4l5-4v13l-5-4H4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M16.5 9a4 4 0 0 1 0 6M19 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Efek suara <span id="efekStatus" class="menu-status">Nyala</span></button>
@@ -973,7 +1121,7 @@
         <button id="livingBtn" type="button" title="Masuk ke ruang tamu"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 21h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> RUANG TAMU</button>
         <button id="dapurBtn" type="button" title="Masuk ke dapur (mesin cuci + pengering)"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="13" r="5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="7" y="6" width="10" height="2" fill="currentColor"/></svg> DAPUR</button>
         <!-- Tahap 3a — alam baru di luar gerbang (boleh untuk tamu: luar ruangan) -->
-        <button id="jalanBtn" type="button" title="Keluar gerbang ke Jalan Kampung (warung, pos ronda, si Oyen)"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3L4 21M16 3l4 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 4v3M12 10.5v3M12 17v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> JALAN KAMPUNG</button>
+        <button id="jalanBtn" type="button" title="Keluar gerbang ke Jalan Kampung (warung, Kedai Kopi, pos ronda, si Oyen)"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3L4 21M16 3l4 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 4v3M12 10.5v3M12 17v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> JALAN KAMPUNG</button>
       </div>
     </div>
     <!-- Tahap 2 — emote: daftar TETAP 8 (tanpa teks bebas). Isi menu dibangun JS (ikon kanvas). -->
@@ -981,6 +1129,8 @@
       <button id="emoteBtn" type="button" title="Kirim emote" aria-expanded="false" aria-haspopup="true"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="10" r="1.2" fill="currentColor"/><circle cx="15" cy="10" r="1.2" fill="currentColor"/><path d="M8 14.5a4.5 4.5 0 0 0 8 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Emote</button>
       <div id="emoteMenu" role="menu" aria-label="Pilih emote"></div>
     </div>
+    <!-- Kerja & Belanja — saldo Rupiah (penghuni saja; diisi JS dari /api/dompet), ketuk = panel Dompet -->
+    <button id="dompetPill" type="button" title="Dompet: saldo Rupiah, kerja, toko" style="display:none"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><rect x="4" y="7.5" width="16" height="11.5" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 13.2h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="16.2" cy="13.2" r="1" fill="currentColor"/></svg> <span id="dompetPillTeks">Rp0</span></button>
   </div>
 </div>
 
@@ -1010,7 +1160,7 @@
     <p id="misiDate"></p>
     <p id="misiStars"></p>
     <ul id="misiList"></ul>
-    <p class="misi-note">Progres tersimpan di browser ini saja (lokal), reset tiap hari. Bintang Kosan cuma catatan di HP ini — bukan hadiah server.</p>
+    <p class="misi-note">Progres tersimpan di browser ini saja (lokal), reset tiap hari. Bintang Kosan cuma catatan di HP ini — bukan hadiah server. (Rupiah dari kerja beda: disimpan di server.)</p>
     <!-- Ronde 21 — tautan dari panel Misi ke mini game (konteks misi 'sendal'); tutup panel Misi lalu buka game. -->
     <button id="misiSendalBtn" type="button"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6a3 3 0 0 1 3 3v10a6 6 0 0 1-12 0V6a3 3 0 0 1 3-3z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 8l-3.5 5M12 8l3.5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Main Lempar Sendal</button>
   </div>
@@ -1068,6 +1218,24 @@
   <p class="rupa-note">Tersimpan di HP ini. Pemain lain langsung melihat tampilan barumu.</p>
   <button id="rupaSelesai" type="button">Selesai</button>
 </div>
+<!-- Kerja & Belanja — panel Dompet: tab Kerja (lowongan) / Toko (aksesori + dekor kamar) / Riwayat (uang kos + mutasi).
+     Isi di-render dompetRender() dari /api/dompet (Rupiah di server, penghuni saja). Pola #rupaPanel (tanpa latar gelap). -->
+<div id="dompetPanel" role="dialog" aria-modal="false" aria-labelledby="dompetJudul">
+  <button id="dompetClose" type="button" aria-label="Tutup"><svg class="kb-x" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button>
+  <h2 id="dompetJudul">Dompet</h2>
+  <div class="dp-saldo" id="dompetSaldo"></div>
+  <div class="rupa-tab" role="tablist" aria-label="Bagian dompet">
+    <button type="button" role="tab" id="dompetTab-kerja" data-tab="kerja" aria-controls="dompetIsi-kerja" aria-selected="true">Kerja</button>
+    <button type="button" role="tab" id="dompetTab-toko" data-tab="toko" aria-controls="dompetIsi-toko" aria-selected="false">Toko</button>
+    <button type="button" role="tab" id="dompetTab-riwayat" data-tab="riwayat" aria-controls="dompetIsi-riwayat" aria-selected="false">Riwayat</button>
+  </div>
+  <div class="rupa-isi" id="dompetIsi-kerja" role="tabpanel" aria-labelledby="dompetTab-kerja"></div>
+  <div class="rupa-isi" id="dompetIsi-toko" role="tabpanel" aria-labelledby="dompetTab-toko" hidden></div>
+  <div class="rupa-isi" id="dompetIsi-riwayat" role="tabpanel" aria-labelledby="dompetTab-riwayat" hidden></div>
+</div>
+<!-- Kerja & Belanja — panel selama shift (isi per pekerjaan, di-render kerjaRender) + pita ronda malam -->
+<div id="kerjaPanel" role="dialog" aria-modal="false" aria-label="Sedang bekerja"></div>
+<div id="rondaHud" role="status" aria-live="polite"></div>
 <div id="ktaOverlay">
   <div id="ktaCard">
     <button id="ktaClose" type="button" aria-label="Tutup"><svg class="kb-x" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button>
@@ -1421,6 +1589,8 @@ var PLAZA_SOLIDS = [
 var DAPUR = { minX: -4.0, maxX: 4.0, minZ: -3.5, maxZ: 3.5 };
 var DAPUR_LAUNDRY = { minX: -1.1, maxX: 1.1, minZ: -3.95, maxZ: -3.2 };
 var DAPUR_COUNTER = { minX: -4.5, maxX: -3.9, minZ: -1.5, maxZ: 1.5 };
+var DAPUR_KILOAN = { minX: 1.5, maxX: 3.0, minZ: -4.0, maxZ: -3.3 }; /* Kerja & Belanja — meja laundry kiloan (dinding utara, timur pengering; AABB padat) */
+var DAPUR_KILOAN_HARGA_KG = 2000; /* = LAUNDRY_HARGA_KG (blok KERJA): papan harga dilukis buildDapur, sebelum blok KERJA dieksekusi */
 var DAPUR_SPAWN = { x: 0, z: 0.5, rot: Math.PI };
 
 function collideBuilding(x, z) {
@@ -1710,6 +1880,29 @@ function mpGayaSama(a, b) {
   var x = mpBacaGaya(a), y = mpBacaGaya(b);
   return x.potong === y.potong && x.atasan === y.atasan && x.bawahan === y.bawahan && x.alas === y.alas;
 }
+/* Kerja & Belanja (16 Nov) — aksesori toko (topi / kacamata / tas: indeks AKS_SLOT di blok KERJA,
+   dibeli pakai Rupiah) + status kerja (celemek / kentongan saat shift). Field OPSIONAL di pos +
+   presence (pola gaya); klien lama mengabaikannya. Kosmetik saja: field ini TIDAK pernah memicu
+   gaji (gaji hanya lewat /api/kerja) dan tidak membuktikan kepemilikan barang. */
+var MP_KERJA_IDS = ['kafe', 'warung', 'ronda', 'laundry'];
+var MP_AKS_KUNCI = [['topi', 2], ['kacamata', 2], ['tas', 2]];
+function mpKerjaDikenal(k) { return (typeof k === 'string' && MP_KERJA_IDS.indexOf(k) !== -1) ? k : null; }
+function mpBacaAksesori(m) { /* -> { topi, kacamata, tas (indeks sah atau -1), kerja (id atau null) } */
+  var o = {}, ada = m && typeof m === 'object';
+  MP_AKS_KUNCI.forEach(function (k) { o[k[0]] = ada ? mpRupaDikenal(m[k[0]], k[1]) : -1; });
+  o.kerja = ada ? mpKerjaDikenal(m.kerja) : null;
+  return o;
+}
+function mpPasangAksesori(o, a) { /* field sah saja ikut (tanpa aksesori / tidak kerja = field tidak dikirim) */
+  var x = mpBacaAksesori(a);
+  MP_AKS_KUNCI.forEach(function (k) { if (x[k[0]] >= 0) o[k[0]] = x[k[0]]; });
+  if (x.kerja) o.kerja = x.kerja;
+  return o;
+}
+function mpAksesoriSama(a, b) {
+  var x = mpBacaAksesori(a), y = mpBacaAksesori(b);
+  return x.topi === y.topi && x.kacamata === y.kacamata && x.tas === y.tas && x.kerja === y.kerja;
+}
 function gayaEfektif(gender, simpan) {
   /* bawaan = tampilan lama: cewek rambut panjang + rok, cowok rambut pendek + celana pendek; kaus + sneakers */
   var o = mpBacaGaya(simpan), cowok = gender === 'cowok';
@@ -1765,7 +1958,8 @@ function mpValidasiPos(m, selfId) {
     emoteTs: (mpEmoteDikenal(m.emote) && mpEmoteTsSah(m.emoteTs)) ? m.emoteTs : 0,
     baju: mpRupaDikenal(m.baju, RUPA_BAJU.length), rambut: mpRupaDikenal(m.rambut, RUPA_RAMBUT.length), /* Karakter v2 */
     potong: mpRupaDikenal(m.potong, GAYA_RAMBUT.length), atasan: mpRupaDikenal(m.atasan, GAYA_ATASAN.length),
-    bawahan: mpRupaDikenal(m.bawahan, GAYA_BAWAHAN.length), alas: mpRupaDikenal(m.alas, GAYA_ALAS.length) }; /* Perabot modern — gaya (-1 = bawaan) */
+    bawahan: mpRupaDikenal(m.bawahan, GAYA_BAWAHAN.length), alas: mpRupaDikenal(m.alas, GAYA_ALAS.length), /* Perabot modern — gaya (-1 = bawaan) */
+    topi: mpRupaDikenal(m.topi, 2), kacamata: mpRupaDikenal(m.kacamata, 2), tas: mpRupaDikenal(m.tas, 2), kerja: mpKerjaDikenal(m.kerja) }; /* Kerja & Belanja — aksesori + status kerja (-1 / null = tidak ada) */
 }
 function mpValidasiPresence(m, selfId) {
   if (!m || typeof m !== 'object') return null;
@@ -1777,7 +1971,8 @@ function mpValidasiPresence(m, selfId) {
     ts: (typeof m.ts === 'number' ? m.ts : 0),
     baju: mpRupaDikenal(m.baju, RUPA_BAJU.length), rambut: mpRupaDikenal(m.rambut, RUPA_RAMBUT.length), /* Karakter v2 */
     potong: mpRupaDikenal(m.potong, GAYA_RAMBUT.length), atasan: mpRupaDikenal(m.atasan, GAYA_ATASAN.length),
-    bawahan: mpRupaDikenal(m.bawahan, GAYA_BAWAHAN.length), alas: mpRupaDikenal(m.alas, GAYA_ALAS.length) }; /* Perabot modern — gaya (-1 = bawaan) */
+    bawahan: mpRupaDikenal(m.bawahan, GAYA_BAWAHAN.length), alas: mpRupaDikenal(m.alas, GAYA_ALAS.length), /* Perabot modern — gaya (-1 = bawaan) */
+    topi: mpRupaDikenal(m.topi, 2), kacamata: mpRupaDikenal(m.kacamata, 2), tas: mpRupaDikenal(m.tas, 2), kerja: mpKerjaDikenal(m.kerja) }; /* Kerja & Belanja */
 }
 function mpProsesPesan(topik, teks, selfId) {
   if (typeof topik !== 'string') return null;
@@ -4316,6 +4511,7 @@ function buildDapur() {
      nyala/mati api, keran = buka/tutup air, mesin cuci / pengering = mulai siklus.
      Perabot modern: userData.interact dipasang di bangunMejaDapurModern +
      bangunMesinModern (semua mesh gabungan benda itu bisa diketuk). */
+  bangunMejaKiloan(); /* Kerja & Belanja — meja laundry kiloan (DAPUR_KILOAN, timur pengering) */
 }
 /* (buildDapur() kini dipanggil di depan buildWorld() — lihat Interior modern) */
 
@@ -4339,6 +4535,7 @@ function toggleDapurFaucet() {
 }
 function startWash(which) {
   if (myRealm !== 'dapur') return;
+  if (KERJA && KERJA.id === 'laundry' && !KERJA.beres) { laundryKetukMesin(which); return; } /* Kerja & Belanja — shift laundry kiloan: mesin untuk kantong pelanggan */
   var st = which === 'wm' ? washWM : washDR;
   var nama = which === 'wm' ? 'Mesin cuci' : 'Pengering';
   if (st.active) { toastKosan(nama + ' lagi jalan, tunggu bentar ya 🌀'); return; }
@@ -4361,6 +4558,7 @@ function finishWash(which) {
   var mesinSelesai = which === 'wm' ? wmMesin : drMesin; /* Perabot modern: layar mesin "OK" sampai siklus berikutnya */
   if (mesinSelesai) layarMesinTulis(mesinSelesai.layar, 'OK', '#8dff9a');
   bunyi('mesinSelesai'); /* Suasana: tit tit tit */
+  if (typeof st.kiloan === 'number') { laundryMesinSelesai(which); return; } /* Kerja & Belanja — siklus kantong laundry kiloan (bukan cucian sendiri) */
   if (which === 'wm' && jemuranAksi('cuci_selesai')) { toastKosan('✅ Cucian selesai! Bawa ke jemuran di halaman barat 🧺'); return; } /* Tahap 1 */
   toastKosan(which === 'wm' ? '✅ Cucian selesai! 👕' : '✅ Pakaian kering! 👕');
 }
@@ -4754,6 +4952,7 @@ function enterRoom(n) {
   camYaw = 0; camPitch = 0.35; camDist = 2.8; /* Ronde 17 — kamera TETAP 2,8/0,35 (koreksi Ryan 10:28 "kamera udah bagus", JANGAN ditarik mundur): kamar 6 m, kamera z ~2,1 DI DALAM ruangan (dinding 3,0); pola 10d */
   flyTarget = null; flyKeep = false;
   updateRoomSign(n);
+  dekorTerapkan(); /* Kerja & Belanja — dekorasi kamar yang dibeli (kamar ini = kamar sendiri: hanya pemilik yang bisa masuk) */
   document.getElementById('exitBtn').style.display = 'inline-block';
   closeCard();
   mpSaatPindahAlam(); /* realm baru -> publish presence + pos segera + snap */
@@ -5094,11 +5293,39 @@ function ibuUrutan(tanggal, n) {
   }
   return a;
 }
-function ibuObrolanBerikut(simpan, tanggal) {
-  /* simpan = {tanggal, i} dari localStorage (boleh rusak) -> kalimat + simpan baru */
+function ibuObrolanBerikut(simpan, tanggal, daftar) {
+  /* simpan = {tanggal, i} dari localStorage (boleh rusak) -> kalimat + simpan baru.
+     daftar (opsional) = kumpulan kalimat lain (malam / hujan), bawaan IBU_OBROLAN. */
+  var d = Array.isArray(daftar) && daftar.length ? daftar : IBU_OBROLAN;
   var i = simpan && simpan.tanggal === tanggal && typeof simpan.i === 'number' && isFinite(simpan.i) && simpan.i >= 0 ? Math.floor(simpan.i) : 0;
-  var u = ibuUrutan(tanggal, IBU_OBROLAN.length);
-  return { teks: IBU_OBROLAN[u[i % u.length]], simpan: { tanggal: tanggal, i: i + 1 } };
+  var u = ibuUrutan(tanggal, d.length);
+  return { teks: d[u[i % u.length]], simpan: { tanggal: tanggal, i: i + 1 } };
+}
+/* Suasana + Kerja & Belanja (16 Nov) — DRAF kalimat malam, hujan, dan uang kos. MENUNGGU persetujuan
+   Ryan SATU PER SATU (aturan 14 Nov); jangan di-merge sebelum disetujui. Aturan isi sama (§5.3): tidak
+   menjanjikan fasilitas yang belum dibangun, tanpa nama penghuni lain, tanpa tanggal episode.
+   11 kalimat + 4 sapaan yang sudah disetujui TIDAK diubah. */
+var IBU_OBROLAN_MALAM = [
+  'Malam-malam gini kunang-kunang suka muncul di halaman. Cantik ya.',
+  'Yang ronda malam ini, kentongannya jangan kekencengan ya, tetangga lagi tidur.',
+  'Kalau langit cerah, bulannya kelihatan bagus dari balkon lantai dua.',
+  'Masih mau ngopi? Kedai Kopi di Jalan Kampung masih buka kok.'
+];
+var IBU_OBROLAN_HUJAN = [
+  'Hujan-hujan gini enaknya ngopi. Kedai Kopi di Jalan Kampung buka, lho.',
+  'Lagi hujan, cucian di jemuran berhenti kering dulu. Nanti lanjut sendiri kok.',
+  'Hati-hati turun tangga balkon ya, licin kalau hujan.',
+  'Habis hujan reda kadang ada pelangi di langit barat laut. Coba lihat nanti.'
+];
+var IBU_SEWA = {
+  makasih: 'Makasih ya, uang kosnya udah Ibu terima. KTA-mu Ibu cap LUNAS.',
+  lunas: 'Uang kos bulan ini udah lunas kok. Bulan depan aja ya.',
+  kurang: 'Uangnya belum cukup, Nak. Nggak apa-apa, kerja dulu di kafe atau warung.'
+};
+function ibuDaftarObrolan(k) { /* k = keadaan suasana (suasanaKini, opsional) -> { nama, daftar } kalimat obrolan */
+  if (k && k.hujan > 0.05) return { nama: 'hujan', daftar: IBU_OBROLAN_HUJAN };
+  if (k && k.malam > 0.5) return { nama: 'malam', daftar: IBU_OBROLAN_MALAM };
+  return { nama: '', daftar: IBU_OBROLAN };
 }
 /* ==== IBU-END ==== */
 /* ==== TAHAP2-START ==== */
@@ -5201,7 +5428,8 @@ function emoteAnimasi(t, id) {
    dobel, cukup diperpanjang + berdenyut. Lama tampil ikut panjang teks. */
 var TOAST_MAKS = 3;
 var TOAST_EMOJI_IKON = { '💡': 'lamp', '🌙': 'bulan', '💧': 'tetes', '🔥': 'api', '👕': 'baju', '🪑': 'chair', '🛋': 'chair',
-  '🧍': 'stand', '😴': 'bed', '🛣': 'jalan', '😺': 'kucing', '🪘': 'kentongan', '🪵': 'palang', '✅': 'cek', '⏳': 'tunggu', '😋': 'warung', '🌧': 'hujan', '🌈': 'pelangi' };
+  '🧍': 'stand', '😴': 'bed', '🛣': 'jalan', '😺': 'kucing', '🪘': 'kentongan', '🪵': 'palang', '✅': 'cek', '⏳': 'tunggu', '😋': 'warung', '🌧': 'hujan', '🌈': 'pelangi',
+  '💰': 'uang', '☕': 'kafe', '🛍': 'toko', '🧺': 'laundry', '💼': 'kerja' }; /* Kerja & Belanja */
 function toastPecah(msg) { /* -> { ikon: nama UICONS | null, emoji: glyph | null, teks } */
   var t = String(msg == null ? '' : msg).trim(), c = t ? Array.from(t)[0] : '';
   if (c && (TOAST_EMOJI_IKON[c] || /^[\u2300-\u27bf]|^[\ud83c-\ud83e]/.test(c))) {
@@ -6089,6 +6317,7 @@ function buildVisitorAvatar() {
   if (avatarLabel && location.search.indexOf('debug=nolabel') === -1) avatar.add(avatarLabel.sprite);
   jajanPasang(); /* Tahap 3a — jajan warung ikut pindah ke tangan avatar baru (ganti gender / tampilan) */
   if (jemuranKeranjang) jemuranTerapkanVisual(); /* Perabot modern — keranjang cucian langsung pindah ke badan baru (tanpa jeda 1 dtk) */
+  avPartsSaya = avParts; aksesoriPasang(avParts, aksesoriSayaMp()); /* Kerja & Belanja — topi/kacamata/tas + celemek kerja ikut ke badan baru */
 }
 /* Interior modern (15 Nov): ketiga ruangan dibangun DI SINI (dulu tepat di bawah
    definisinya) — kulit ruangan baru (bangunKulit*) memakai JalanKumpul/krGabung
@@ -6128,6 +6357,164 @@ ibuAvatar.rotation.y = 0; /* menghadap halaman (+z), tempat pengunjung jalan */
 ibuAvatar.traverse(function (o) { o.userData.card = 'ibu'; clickables.push(o); });
 scene.add(ibuAvatar);
 
+/* ==== KERJA-START ==== */
+/* Kerja & Belanja (Ryan 16 Nov: "orang-orang bisa bekerja, seperti di cafe dan lain-lain dan
+   mendapatkan uang IDR, untuk mendapatkan uangnya jangan terlalu mudah ... uangnya bisa dipake
+   untuk berbelanja"; tambahan disetujui: jaga warung, ronda malam, laundry kiloan, uang kos,
+   misi kerja + jajan kafe). Rupiah DISIMPAN DI SERVER (penghuni saja): angka di sini = salinan
+   TAMPILAN aturan api/_lib/kerja.js (tests/kerja-server.test.js memastikan sama); server yang
+   menghitung upah + harga. Bintang tetap lokal (misi + warung); Rupiah = kerja, kafe, toko, kos.
+   Helper MURNI mini game (resep barista, belanjaan + kembalian warung, ketukan kentongan,
+   timbangan + lipatan laundry) — dites node (tests/kerja-klien.test.js). */
+var KERJA_PEKERJAAN = {
+  kafe: { nama: 'Barista Kafe', tempat: 'Kedai Kopi, Jalan Kampung', pangkat: ['Magang Barista', 'Barista', 'Barista Senior'],
+    gaji: [7000, 9000, 11000], tipMaks: 4000, pesanan: 6, minDetik: 100 },
+  warung: { nama: 'Penjaga Warung', tempat: 'Warung, Jalan Kampung', pangkat: ['Magang Warung', 'Penjaga Warung', 'Kepala Warung'],
+    gaji: [6000, 8000, 10000], tipMaks: 3000, pesanan: 6, minDetik: 100 },
+  ronda: { nama: 'Ronda Malam', tempat: 'Pos Ronda, Jalan Kampung (20.00–04.00 WIB)', pangkat: ['Hansip Magang', 'Hansip', 'Komandan Ronda'],
+    gaji: [8000, 10000, 12000], tipMaks: 3000, pesanan: 4, minDetik: 100 },
+  laundry: { nama: 'Laundry Kiloan', tempat: 'Dapur kos (mesin cuci + pengering)', pangkat: ['Magang Laundry', 'Tukang Cuci', 'Ahli Laundry'],
+    gaji: [7000, 9000, 11000], tipMaks: 3000, pesanan: 3, minDetik: 100 }
+};
+var KERJA_IDS = ['kafe', 'warung', 'ronda', 'laundry'];
+var KERJA_PANGKAT_SHIFT = [0, 5, 15];
+var KERJA_BATAS = { shiftHari: 3, jedaDetik: 10 * 60, maksDetik: 20 * 60 };
+var KERJA_RONDA_JAM = { mulai: 20, selesai: 4 };
+var SEWA_HARGA = 100000;
+var KATALOG = {
+  kopisusu: { nama: 'Es kopi susu gula aren', harga: 4000, jenis: 'kafe' },
+  americano: { nama: 'Americano panas', harga: 3000, jenis: 'kafe' },
+  tehtarik: { nama: 'Teh tarik', harga: 3500, jenis: 'kafe' },
+  escokelat: { nama: 'Es cokelat', harga: 4000, jenis: 'kafe' },
+  topi_baseball: { nama: 'Topi baseball', harga: 15000, jenis: 'aksesori', slot: 'topi' },
+  topi_bucket: { nama: 'Topi bucket', harga: 18000, jenis: 'aksesori', slot: 'topi' },
+  kacamata_hitam: { nama: 'Kacamata hitam', harga: 20000, jenis: 'aksesori', slot: 'kacamata' },
+  kacamata_bulat: { nama: 'Kacamata bulat', harga: 20000, jenis: 'aksesori', slot: 'kacamata' },
+  tas_ransel: { nama: 'Tas ransel', harga: 30000, jenis: 'aksesori', slot: 'tas' },
+  tas_selempang: { nama: 'Tas selempang', harga: 25000, jenis: 'aksesori', slot: 'tas' },
+  poster: { nama: 'Poster dinding', harga: 12000, jenis: 'dekor' },
+  tanaman: { nama: 'Tanaman hias', harga: 20000, jenis: 'dekor' },
+  karpet: { nama: 'Karpet bulu', harga: 35000, jenis: 'dekor' },
+  lampu_tumblr: { nama: 'Lampu tumblr', harga: 25000, jenis: 'dekor' }
+};
+/* indeks aksesori yang dikirim ke pemain lain (field opsional topi/kacamata/tas) = urutan di sini */
+var AKS_SLOT = { topi: ['topi_baseball', 'topi_bucket'], kacamata: ['kacamata_hitam', 'kacamata_bulat'], tas: ['tas_ransel', 'tas_selempang'] };
+var DEKOR_IDS = ['poster', 'tanaman', 'karpet', 'lampu_tumblr'];
+var KAFE_MENU_IDS = ['kopisusu', 'americano', 'tehtarik', 'escokelat'];
+function kerjaPunya(o, k) { return typeof k === 'string' && Object.prototype.hasOwnProperty.call(o, k); }
+function rupiah(n) { /* 12500 -> 'Rp12.500' (titik ribuan, tanpa desimal) */
+  var v = Math.round(Number(n) || 0), s = String(Math.abs(v)), o = '';
+  while (s.length > 3) { o = '.' + s.slice(-3) + o; s = s.slice(0, -3); }
+  return (v < 0 ? '−' : '') + 'Rp' + s + o;
+}
+function kerjaPangkat(n) { n = Number.isInteger(n) && n > 0 ? n : 0; return n >= KERJA_PANGKAT_SHIFT[2] ? 2 : (n >= KERJA_PANGKAT_SHIFT[1] ? 1 : 0); }
+function kerjaSisaPangkat(n) { /* shift lagi sampai pangkat berikutnya (0 = sudah tertinggi) */
+  var p = kerjaPangkat(n);
+  return p >= 2 ? 0 : KERJA_PANGKAT_SHIFT[p + 1] - (Number.isInteger(n) && n > 0 ? n : 0);
+}
+function kerjaUpah(id, n, hasil) { /* salinan upahShift (server) — hanya untuk "perkiraan gaji" di layar */
+  if (!kerjaPunya(KERJA_PEKERJAAN, id)) return null;
+  var p = KERJA_PEKERJAAN[id], h = hasil && typeof hasil === 'object' ? hasil : {}, pk = kerjaPangkat(n);
+  var benar = Number.isInteger(h.benar) ? Math.max(0, Math.min(p.pesanan, h.benar)) : 0;
+  var salah = Number.isInteger(h.salah) ? Math.max(0, Math.min(99, h.salah)) : 0;
+  var cepat = typeof h.cepat === 'number' && isFinite(h.cepat) ? Math.max(0, Math.min(1, h.cepat)) : 0;
+  var mutu = benar / p.pesanan, ke500 = function (v) { return Math.max(0, Math.floor(v / 500) * 500); };
+  var gaji = ke500(p.gaji[pk] * (0.3 + 0.7 * mutu)), tip = ke500(p.tipMaks * mutu * Math.max(0, 1 - salah * 0.1) * (0.4 + 0.6 * cepat));
+  return { gaji: gaji, tip: tip, total: gaji + tip, pangkat: pk };
+}
+function kerjaRondaBuka(jam) { return jam >= KERJA_RONDA_JAM.mulai || jam < KERJA_RONDA_JAM.selesai; }
+function kerjaHasil(st) { /* hasil shift -> laporan ke server { benar, salah, cepat } (server menjepit lagi) */
+  var n = st && st.pesanan > 0 ? st.pesanan : 1;
+  return { benar: Math.max(0, Math.min(n, (st && st.benar) | 0)), salah: Math.max(0, (st && st.salah) | 0),
+    cepat: st && st.cepatN > 0 ? Math.max(0, Math.min(1, st.cepatJumlah / st.cepatN)) : 0 };
+}
+/* pelanggan (kafe + warung): datang paling cepat tiap 17 dtk (6 pesanan = shift >= ~100 dtk
+   walau pemain sangat cepat), sabar 32/27/23 dtk (pangkat makin tinggi = pembeli makin buru-buru) */
+var KERJA_TIBA_MS = 17000, KERJA_TIBA_JEDA_MS = 2500, KERJA_SABAR_MS = [32000, 27000, 23000];
+function kerjaWaktuTiba(ke, mulai, selesaiTerakhir) { return Math.max(mulai + ke * KERJA_TIBA_MS, (selesaiTerakhir || mulai) + KERJA_TIBA_JEDA_MS); }
+function kerjaSkorCepat(tunggu, sabar) { return Math.max(0, Math.min(1, 1 - tunggu / sabar)); }
+function kerjaAcakUrut(arr, r) { var a = arr.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(r() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+/* --- barista: resep = urutan tombol; Magang melihat langkah berikutnya, Barista melihat resep, Senior hanya nama minuman --- */
+var KAFE_BAHAN = { gelasPanas: 'Gelas panas', gelasEs: 'Gelas es', espresso: 'Espresso', teh: 'Teh', cokelat: 'Cokelat',
+  airPanas: 'Air panas', susu: 'Susu', gulaAren: 'Gula aren', esBatu: 'Es batu', sajikan: 'Sajikan' };
+var KAFE_BAHAN_URUT = ['gelasPanas', 'gelasEs', 'espresso', 'teh', 'cokelat', 'airPanas', 'susu', 'gulaAren', 'esBatu', 'sajikan'];
+var KAFE_RESEP = {
+  kopisusu: ['gelasEs', 'espresso', 'susu', 'gulaAren', 'esBatu', 'sajikan'],
+  americano: ['gelasPanas', 'espresso', 'airPanas', 'sajikan'],
+  tehtarik: ['gelasPanas', 'teh', 'susu', 'gulaAren', 'sajikan'],
+  escokelat: ['gelasEs', 'cokelat', 'susu', 'esBatu', 'sajikan']
+};
+function kafeLangkah(resep, ke, tombol) { /* -> 'benar' (lanjut) | 'selesai' (langkah terakhir) | 'salah' */
+  if (!Array.isArray(resep) || !Number.isInteger(ke) || ke < 0 || ke >= resep.length || resep[ke] !== tombol) return 'salah';
+  return ke === resep.length - 1 ? 'selesai' : 'benar';
+}
+/* --- jaga warung: ambil barang sesuai pesanan, lalu kembalian pas (pecahan Rp500-5.000) --- */
+var WARUNG_KERJA_BARANG = [
+  { id: 'esteh', nama: 'Es teh', harga: 3000 }, { id: 'gorengan', nama: 'Gorengan', harga: 1000 },
+  { id: 'eskrim', nama: 'Es krim', harga: 5000 }, { id: 'kerupuk', nama: 'Kerupuk', harga: 2000 },
+  { id: 'permen', nama: 'Permen', harga: 500 }
+];
+var WARUNG_KERJA_UANG = [500, 1000, 2000, 5000], WARUNG_KERJA_PECAHAN = [5000, 10000, 20000, 50000];
+function warungKerjaBarang(id) { for (var i = 0; i < WARUNG_KERJA_BARANG.length; i++) if (WARUNG_KERJA_BARANG[i].id === id) return WARUNG_KERJA_BARANG[i]; return null; }
+function warungPesananAcak(r) { /* 1-3 jenis barang, 1-3 buah, total <= Rp15.000; pembeli bayar pecahan terkecil > total */
+  var urut = kerjaAcakUrut(WARUNG_KERJA_BARANG, r), n = 1 + Math.floor(r() * 3), isi = {}, total = 0;
+  for (var i = 0; i < n; i++) {
+    var b = urut[i], q = 1 + Math.floor(r() * 3);
+    while (q > 0 && total + q * b.harga > 15000) q--;
+    if (q > 0) { isi[b.id] = q; total += q * b.harga; }
+  }
+  if (!total) { isi.gorengan = 1; total = 1000; }
+  var bayar = WARUNG_KERJA_PECAHAN[WARUNG_KERJA_PECAHAN.length - 1];
+  for (var j = WARUNG_KERJA_PECAHAN.length - 1; j >= 0; j--) if (WARUNG_KERJA_PECAHAN[j] > total) bayar = WARUNG_KERJA_PECAHAN[j];
+  return { isi: isi, total: total, bayar: bayar, kembali: bayar - total };
+}
+function warungAmbil(pesanan, ambil, id) { /* ambil = { id: jumlah diambil } (diubah kalau benar) -> 'benar' | 'lengkap' | 'salah' */
+  var mau = kerjaPunya(pesanan.isi, id) ? pesanan.isi[id] : 0, sudah = kerjaPunya(ambil, id) ? ambil[id] : 0;
+  if (!(mau > 0) || sudah >= mau) return 'salah';
+  ambil[id] = sudah + 1;
+  for (var k in pesanan.isi) if (kerjaPunya(pesanan.isi, k) && (kerjaPunya(ambil, k) ? ambil[k] : 0) < pesanan.isi[k]) return 'benar';
+  return 'lengkap';
+}
+function warungUang(kembali, terkumpul, nilai) { /* uang kembalian ditambah satu pecahan -> { hasil: 'kurang'|'pas'|'lebih', terkumpul } */
+  var t = terkumpul + nilai;
+  if (t === kembali) return { hasil: 'pas', terkumpul: t };
+  if (t > kembali) return { hasil: 'lebih', terkumpul: 0 };
+  return { hasil: 'kurang', terkumpul: t };
+}
+/* --- ronda malam: 4 titik patroli di Jalan Kampung, tiap titik 3 ketukan kentongan tepat irama --- */
+var RONDA_TITIK = [
+  { x: 18.0, z: -5.7, nama: 'Ujung timur' }, { x: -24.0, z: -5.7, nama: 'Ujung barat' },
+  { x: -12.0, z: 5.6, nama: 'Seberang gerbang kos' }, { x: 4.5, z: 5.6, nama: 'Depan Kedai Kopi' }
+];
+var RONDA_KETUK = 3, RONDA_PERIODE = 1.6, RONDA_JARAK = 1.7;
+function rondaKursor(detik) { /* 0 -> 1 -> 0 (gelombang segitiga, satu periode = RONDA_PERIODE dtk) */
+  var u = (detik / RONDA_PERIODE) % 1; if (u < 0) u += 1;
+  return u < 0.5 ? u * 2 : 2 - u * 2;
+}
+function rondaNilai(pos) { var d = Math.abs(pos - 0.5); return d <= 0.08 ? 'pas' : (d <= 0.2 ? 'oke' : 'meleset'); }
+/* --- laundry kiloan: 3 kantong; timbang (pilih harga = kg x Rp2.000), cuci, keringkan, lipat 3 baju --- */
+var LAUNDRY_HARGA_KG = 2000, LAUNDRY_MESIN_DETIK = 12, LAUNDRY_ARAH = ['kiri', 'kanan', 'bawah'], LAUNDRY_BAJU = 3;
+function laundryKantongAcak(r) {
+  var kg = Math.round((2 + r() * 3) * 10) / 10, harga = Math.round(kg * LAUNDRY_HARGA_KG);
+  var a = harga + (r() < 0.5 ? 1000 : -1000), b = harga + (r() < 0.5 ? 400 : -400);
+  if (a <= 0) a = harga + 1000;
+  if (b <= 0 || b === a) b = harga + 600;
+  var lipat = [];
+  for (var i = 0; i < LAUNDRY_BAJU; i++) lipat.push(kerjaAcakUrut(LAUNDRY_ARAH, r));
+  return { kg: kg, harga: harga, pilihan: kerjaAcakUrut([harga, a, b], r), lipat: lipat };
+}
+function laundryKgTeks(kg) { return String(kg).replace('.', ',') + ' kg'; }
+function laundryLipat(urutan, ke, arah) { return kafeLangkah(urutan, ke, arah); } /* sama: urutan benar / selesai / salah */
+/* --- tempat (koordinat lokal Jalan Kampung / dapur): dipakai buildJalan + buildDapur (dipanggil sebelum blok runtime) --- */
+var KAFE_PLOT = { x0: -0.9, x1: 6.9 }; /* kavling rumah krem lama (x -1..7): Kedai Kopi, menghadap jalan (utara) */
+var KAFE_KOTAK = { minX: 0.4, maxX: 5.4, minZ: 6.85, maxZ: 9.2 }; /* teras + meja bar (ketuk = kartu Kedai Kopi) */
+var KAFE_LOWONGAN_KOTAK = { minX: 5.45, maxX: 6.45, minZ: 6.95, maxZ: 7.5 }; /* papan lowongan kerja di teras timur */
+var KAFE_BARISTA = { x: 3.15, z: 8.5, rot: Math.PI }; /* barista di balik meja bar, menghadap jalan */
+var KAFE_PELANGGAN = { x: 2.7, z: 7.05 }; /* pembeli berdiri di depan meja bar, sedikit ke barat barista (kamera kerja dari timur laut: barista tidak tertutup) */
+var WARUNG_PENJAGA = { x: -4.5, z: 8.4, rot: Math.PI }; /* penjaga di balik etalase warung */
+var WARUNG_PELANGGAN = { x: -5.2, z: 6.55 }; /* sedikit ke barat penjaga (kamera kerja dari timur laut: penjaga tidak tertutup) */
+var KERJA_TROTOAR_Z = 5.75; /* jalur pejalan kaki (pembeli) di trotoar selatan */
+/* ==== KERJA-END ==== */
 /* ==== JALAN-START ==== */
 /* Tahap 3a — JALAN KAMPUNG (perintah Ryan 15 Nov: "gas langsung bangun, yang
    bagus ya"). Alam baru 'jalan' di luar gerbang kos (gerbang halaman x 15,
@@ -6436,6 +6823,7 @@ function buildJalan() {
   var rumah = [[-24, -16, 0xf4c7c3], [-16, -8, 0xc9e7d3], [-1, 7, 0xf3e3b5], [12, 20, 0xc7dcf2], [20, 28, 0xe6d3ef],
     [-32, -24, 0xf0d9b5], [28, 36, 0xd6e8c0], [-40, -32, 0xd3e3ef], [36, 44, 0xf4d2c0]];
   rumah.forEach(function (rm) {
+    if (rm[2] === 0xf3e3b5) return; /* Kerja & Belanja (Ryan 16 Nov): rumah krem x -1..7 diganti Kedai Kopi (bangunKafe) */
     var x0 = rm[0] + 0.5, x1 = rm[1] - 0.5, w = x1 - x0, cx = (x0 + x1) / 2;
     K.kotak(cat(K, plester, rm[2]), w, 3.2, 5, cx, 1.6, 11.9, 0, 2); /* badan rumah */
     [x0, x1].forEach(function (ex) { /* dinding segitiga (gable) di dua sisi */
@@ -6468,6 +6856,8 @@ function buildJalan() {
     });
     K.kotak(cat(K, polos, C.halaman), w, 0.03, 2.0, cx, 0.015, 7.8);
   });
+  /* --- KEDAI KOPI (Kerja & Belanja, kavling rumah krem x -1..7): lihat bangunKafe (sesudah jalanTick) --- */
+  var kafeLatar = bangunKafe(S, K, KD, { polos: polos, nyala: nyala, plester: plester, kayu: kayu, paving: paving });
   /* --- WARUNG (x -8..-1): kios papan kayu, atap seng, etalase, toples, renceng, kulkas --- */
   var wx = -4.5;
   K.kotak(cat(K, kayu, C.kayu), 6.6, 3.4, 0.15, wx, 1.7, 11.0, 0, 1); /* dinding belakang */
@@ -6596,7 +6986,8 @@ function buildJalan() {
   [gU[M.slate.uuid], papanKos].forEach(function (m) { m.userData = { interact: 'gerbangKos' }; jalanClickables.push(m); });
   /* kotak ketuk tak terlihat: warung, pos ronda, palang (raycast ke kotak, bukan ke ratusan bagian gabungan) */
   var tak = new THREE.MeshBasicMaterial({ visible: false });
-  [[WARUNG_KOTAK, 'warung', 2.4], [POS_RONDA_KOTAK, 'posronda', 1.2], [PALANG_TIMUR, 'palang', 1.5], [PALANG_BARAT, 'palang', 1.5]].forEach(function (d) {
+  [[WARUNG_KOTAK, 'warung', 2.4], [POS_RONDA_KOTAK, 'posronda', 1.2], [PALANG_TIMUR, 'palang', 1.5], [PALANG_BARAT, 'palang', 1.5],
+    [KAFE_KOTAK, 'kafe', 2.6], [KAFE_LOWONGAN_KOTAK, 'lowongan', 1.9]].forEach(function (d) { /* Kerja & Belanja: Kedai Kopi + papan lowongan */
     var k = d[0], m = new THREE.Mesh(new THREE.BoxGeometry(k.maxX - k.minX, d[2], k.maxZ - k.minZ), tak);
     m.position.set((k.minX + k.maxX) / 2, d[2] / 2, (k.minZ + k.maxZ) / 2);
     m.userData = { interact: d[1] }; S.add(m); jalanClickables.push(m);
@@ -6608,7 +6999,7 @@ function buildJalan() {
   /* --- latar di halaman: salinan K (bentuk besar: jalan, rumah, warung, pos ronda, tiang) + papan warung + etalase --- */
   var latar = [];
   for (var uid in gK) latar.push(gK[uid]);
-  jalanLatarHalaman = jalanPasangLatar(latar.concat([papanW, etalase]));
+  jalanLatarHalaman = jalanPasangLatar(latar.concat([papanW, etalase]).concat(kafeLatar)); /* Kerja & Belanja: papan + kaca Kedai Kopi ikut latar halaman */
 }
 /* Latar halaman: mesh BARU yang memakai geometri + material yang SAMA (tanpa
    memori GPU baru) di koordinat cermin halaman (x + 27, z + 36,25), naik 1,5 cm
@@ -6721,7 +7112,7 @@ function enterJalan(lewat) {
   document.getElementById('exitBtn').style.display = 'inline-block';
   closeCard();
   mpSaatPindahAlam();
-  toastKosan('🛣️ Jalan Kampung — ada warung, pos ronda, dan si Oyen');
+  toastKosan('🛣️ Jalan Kampung — ada warung, Kedai Kopi, pos ronda, dan si Oyen');
 }
 function exitJalan(lewat) {
   if (myRealm !== 'jalan') return;
@@ -6764,6 +7155,9 @@ function showPosRondaCard() {
     var bk = document.createElement('button'); bk.id = 'kentonganBtn'; bk.innerHTML = iconSvg('kentongan') + ' Pukul kentongan';
     bk.addEventListener('click', function () { pukulKentongan(); }); cardActions.appendChild(bk);
   }
+  /* Kerja & Belanja — ronda malam (kerja, jam 20.00-04.00 WIB) */
+  if (!KERJA && !kerjaRondaBuka(suasanaKini.jam)) html += '<p style="margin-top:4px">Kerja <b>ronda malam</b> buka jam 20.00–04.00 WIB. 🌙</p>';
+  else { var bm = kerjaTombolKartu('ronda', showPosRondaCard); if (bm) cardActions.appendChild(bm); }
   cardBody.innerHTML = html;
   openCard();
 }
@@ -6802,8 +7196,13 @@ function warungRender() {
     b.addEventListener('click', function () { warungBeliKlik(it.id); });
     cardActions.appendChild(b);
   });
+  var bk = kerjaTombolKartu('warung', warungRender); /* Kerja & Belanja — jaga warung (Rupiah), terpisah dari jajan Bintang */
+  if (bk) cardActions.appendChild(bk);
 }
-function showWarungCard() { warungRender(); openCard(); }
+function showWarungCard() {
+  if (KERJA && KERJA.id === 'warung' && !KERJA.beres) return; /* sedang jaga warung: ketuk warung = bagian dari kerja */
+  warungRender(); openCard();
+}
 function warungBeliKlik(id) {
   if (jarakKeKotak(avatarPos.x, avatarPos.z, WARUNG_KOTAK) > JALAN_JARAK) { toastKosan('Jalan ke depan warung dulu ya 🚶'); return; }
   var r = warungBeli(misiBintang(), id);
@@ -6832,6 +7231,15 @@ function jajanBuatGrup(id) {
       var gr = new THREE.Mesh(new THREE.SphereGeometry(0.035, 10, 8), jalanMat('goreng', { color: 0xc98a3a })); gr.position.set(q[0], q[1], q[2]); gr.scale.set(1, 0.7, 1.3); g.add(gr);
     });
     naik = 0.04;
+  } else if (id === 'kopisusu' || id === 'escokelat') { /* Kerja & Belanja — es Kedai Kopi: gelas plastik (isi opak) + pita label + tutup kubah + sedotan hijau */
+    var isi = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.04, 0.14, 16), jalanMat('kafeIsi-' + id, { color: id === 'kopisusu' ? 0xb98a5e : 0x7a4a2e })); g.add(isi);
+    var pitaK = new THREE.Mesh(new THREE.CylinderGeometry(0.0485, 0.0455, 0.03, 16), jalanMat('pitaGelas', { color: 0xf6f1e4 })); pitaK.position.y = 0.01; g.add(pitaK);
+    var kubah = new THREE.Mesh(new THREE.SphereGeometry(0.054, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), jalanMat('kubahGelas', { color: 0xeef4f7 })); kubah.position.y = 0.07; kubah.scale.y = 0.6; g.add(kubah);
+    var sedotanK = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.15, 6), jalanMat('sedotanHijau', { color: 0x2e6b4f })); sedotanK.position.set(0.012, 0.13, 0); sedotanK.rotation.z = -0.12; g.add(sedotanK);
+  } else if (id === 'americano' || id === 'tehtarik') { /* Kerja & Belanja — minuman panas Kedai Kopi: gelas kertas + sabuk cokelat + tutup putih */
+    var cup = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.038, 0.13, 16), jalanMat('gelasKertas', { color: 0xf4efe4 })); g.add(cup);
+    var sabuk = new THREE.Mesh(new THREE.CylinderGeometry(0.048, 0.044, 0.05, 16), jalanMat('sabukGelas-' + id, { color: id === 'americano' ? 0x8a5a3a : 0xc0392b })); sabuk.position.y = -0.005; g.add(sabuk);
+    var tutupK = new THREE.Mesh(new THREE.CylinderGeometry(0.053, 0.05, 0.018, 16), jalanMat('tutupKertas', { color: 0xffffff })); tutupK.position.y = 0.072; g.add(tutupK);
   } else { /* es krim cone: wafer + 2 bola (stroberi + vanila) */
     var cone = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.13, 12), jalanMat('wafer', { color: 0xd9a35a })); cone.rotation.x = Math.PI; g.add(cone);
     var es = new THREE.Mesh(new THREE.SphereGeometry(0.048, 14, 10), jalanMat('eskrim', { color: 0xf7b3c8 })); es.position.y = 0.075; g.add(es);
@@ -6889,7 +7297,7 @@ function showPalangCard() {
 function showGerbangCard(keluar) {
   cardTitle.innerHTML = iconSvg('door') + (keluar ? ' Gerbang Kos' : ' Gerbang Kosan');
   cardActions.innerHTML = '';
-  cardBody.innerHTML = keluar ? '<p>Gerbang depan kos. Di luar ada Jalan Kampung: warung, pos ronda, dan si Oyen. 🛣️</p>'
+  cardBody.innerHTML = keluar ? '<p>Gerbang depan kos. Di luar ada Jalan Kampung: warung, Kedai Kopi, pos ronda, dan si Oyen. 🛣️</p>'
     : '<p>Gerbang Kosan Ibu Kos. Masuk lagi ke halaman kos? 🏠</p>';
   var b = document.createElement('button'); b.id = keluar ? 'keJalanBtn' : 'keKosBtn';
   b.innerHTML = iconSvg(keluar ? 'jalan' : 'home') + (keluar ? ' Keluar ke Jalan Kampung' : ' Masuk ke halaman kos');
@@ -6928,6 +7336,1478 @@ function jalanTick(dt, now) {
 }
 function jajanTick(now) { /* dipanggil tiap frame di SEMUA alam: jajan dibawa pulang ke kos tetap habis 90 dtk */
   if (jajanSaya && now - jajanSaya.mulai > JAJAN_DURASI_MS) { toastKosan('😋 ' + jajanSaya.item.nama + ' habis'); jajanLepas(); }
+}
+/* ================= Kedai Kopi (Kerja & Belanja, Ryan 16 Nov) =================
+   Pengganti rumah krem x -1..7 di Jalan Kampung (perintah langsung Ryan "bisa bekerja, seperti di
+   cafe", pola warung; BUKAN di area palang "SEGERA DIBUKA" yang dicadangkan untuk voting penonton).
+   Bangunan kecil gaya gedung kos (plester putih + kisi kayu + kusen hitam), teras terakota terbuka,
+   kanopi kanvas bergaris (opak), meja bar menghadap jalan, rak belakang, papan menu + papan lowongan.
+   Bagian diam digabung ke K (ikut latar halaman) / KD (detail khusus jalan). Menyala = Basic. */
+function lukisKacaKafe(ctx, w, h) {
+  /* 512x256: kiri 0..384 = jendela besar (ruang dalam hangat: rak, lampu gantung, meja), kanan = pintu kaca */
+  var g = ctx.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, '#5b3b28'); g.addColorStop(0.45, '#8a5a3a'); g.addColorStop(1, '#4a2f20');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = '#efd2a8'; ctx.fillRect(0, 40, 384, 120); /* dinding dalam krem */
+  for (var r = 0; r < 2; r++) { /* rak dinding + toples + gelas */
+    var y = 70 + r * 46;
+    ctx.fillStyle = '#6b4429'; ctx.fillRect(20, y, 344, 6);
+    for (var i = 0; i < 11; i++) {
+      ctx.fillStyle = ['#c8742f', '#f4efe4', '#3a2a1e', '#e8b04a', '#8fbf8f'][(i + r * 2) % 5];
+      ctx.fillRect(30 + i * 30, y - 18 - (i % 3) * 3, 16, 18 + (i % 3) * 3);
+    }
+  }
+  [[80, 0], [192, 0], [304, 0]].forEach(function (q) { /* lampu gantung menyala */
+    ctx.strokeStyle = '#2a2420'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(q[0], 0); ctx.lineTo(q[0], 30); ctx.stroke();
+    var gl = ctx.createRadialGradient(q[0], 40, 2, q[0], 40, 46);
+    gl.addColorStop(0, 'rgba(255,236,190,1)'); gl.addColorStop(0.35, 'rgba(255,205,130,0.55)'); gl.addColorStop(1, 'rgba(255,205,130,0)');
+    ctx.fillStyle = gl; ctx.fillRect(q[0] - 50, 0, 100, 100);
+    ctx.fillStyle = '#2a2420'; ctx.beginPath(); ctx.moveTo(q[0] - 14, 40); ctx.lineTo(q[0] + 14, 40); ctx.lineTo(q[0] + 7, 28); ctx.lineTo(q[0] - 7, 28); ctx.closePath(); ctx.fill();
+  });
+  ctx.fillStyle = '#3a2618'; ctx.fillRect(0, 168, 384, 88); /* lantai kayu + meja bundar + kursi */
+  [[70, 210], [190, 222], [310, 208]].forEach(function (q) {
+    ctx.fillStyle = '#7a4a2a'; ctx.beginPath(); ctx.ellipse(q[0], q[1] - 18, 34, 8, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillRect(q[0] - 3, q[1] - 18, 6, 34);
+    ctx.fillStyle = '#d98d4a'; ctx.fillRect(q[0] - 46, q[1] - 6, 14, 26); ctx.fillRect(q[0] + 32, q[1] - 6, 14, 26);
+    ctx.fillStyle = '#f4efe4'; ctx.fillRect(q[0] - 6, q[1] - 30, 10, 12);
+  });
+  ctx.fillStyle = 'rgba(255,214,150,0.18)'; ctx.fillRect(0, 0, 384, h); /* cahaya hangat merata */
+  ctx.fillStyle = 'rgba(255,255,255,0.12)'; /* pantulan kaca miring */
+  [[40, 30], [230, 18]].forEach(function (p) { ctx.beginPath(); ctx.moveTo(p[0], 0); ctx.lineTo(p[0] + p[1], 0); ctx.lineTo(p[0] + p[1] - 90, h); ctx.lineTo(p[0] - 90, h); ctx.closePath(); ctx.fill(); });
+  /* pintu kaca 384..512: ruang dalam + gagang + tulisan BUKA */
+  ctx.fillStyle = '#e9caa0'; ctx.fillRect(392, 20, 112, 150);
+  ctx.fillStyle = '#3a2618'; ctx.fillRect(392, 170, 112, 86);
+  var gp = ctx.createRadialGradient(448, 60, 3, 448, 60, 70); gp.addColorStop(0, 'rgba(255,236,190,0.9)'); gp.addColorStop(1, 'rgba(255,236,190,0)');
+  ctx.fillStyle = gp; ctx.fillRect(392, 0, 112, 140);
+  ctx.fillStyle = '#c9a227'; ctx.fillRect(488, 110, 6, 46);
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(412, 88, 72, 26);
+  ctx.fillStyle = '#2e7d4f'; ctx.font = '800 20px "Baloo 2", "Nunito", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('BUKA', 448, 102);
+}
+function lukisKanvasKafe(ctx, w, h) { /* kanvas kanopi: garis hijau tua + krem (satu garis per petak) */
+  ctx.fillStyle = '#f3ead6'; ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = '#2e6b4f'; ctx.fillRect(0, 0, w / 2, h);
+  ctx.fillStyle = 'rgba(0,0,0,0.06)'; ctx.fillRect(w / 2 - 2, 0, 2, h); ctx.fillRect(w - 2, 0, 2, h);
+}
+function lukisMenuKafe(ctx, w, h) { /* papan tulis berdiri: menu + harga Rupiah (dari KATALOG) */
+  ctx.fillStyle = '#7a5132'; ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = '#26302b'; ctx.fillRect(12, 12, w - 24, h - 24);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#f7f1e3'; ctx.font = '800 40px "Baloo 2", "Nunito", sans-serif'; ctx.fillText('MENU', w / 2, 52);
+  ctx.strokeStyle = 'rgba(247,241,227,0.5)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(48, 80); ctx.lineTo(w - 48, 80); ctx.stroke();
+  ctx.textAlign = 'left'; ctx.font = '700 21px "Nunito", sans-serif';
+  KAFE_MENU_IDS.forEach(function (id, i) {
+    var it = KATALOG[id], y = 116 + i * 60;
+    ctx.fillStyle = '#f7f1e3'; ctx.fillText(it.nama.replace(' gula aren', ''), 30, y);
+    ctx.fillStyle = '#ffd27a'; ctx.textAlign = 'right'; ctx.fillText(rupiah(it.harga), w - 28, y + 24); ctx.textAlign = 'left';
+  });
+  ctx.fillStyle = 'rgba(247,241,227,0.75)'; ctx.font = '700 17px "Nunito", sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('dibuat barista penghuni', w / 2, h - 34);
+}
+function lukisLowongan(ctx, w, h) { /* papan gabus: LOWONGAN KERJA + 4 kertas pekerjaan */
+  ctx.fillStyle = '#2b2622'; ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = '#c99a63'; ctx.fillRect(10, 10, w - 20, h - 20);
+  for (var i = 0; i < 260; i++) { ctx.fillStyle = 'rgba(90,60,30,' + (0.08 + (i % 5) * 0.03) + ')'; ctx.fillRect((i * 97) % (w - 24) + 12, (i * 61) % (h - 24) + 12, 3, 3); }
+  ctx.fillStyle = '#c0392b'; ctx.fillRect(24, 18, w - 48, 54);
+  ctx.fillStyle = '#ffffff'; ctx.font = '800 34px "Baloo 2", "Nunito", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('LOWONGAN KERJA', w / 2, 46);
+  [['BARISTA', '#fff6d6'], ['JAGA WARUNG', '#e8f4ff'], ['RONDA MALAM', '#eef8f1'], ['LAUNDRY', '#fdeef3']].forEach(function (q, i) {
+    var x = 30 + (i % 2) * ((w - 60) / 2), y = 92 + Math.floor(i / 2) * 96, ww = (w - 60) / 2 - 12;
+    ctx.save(); ctx.translate(x + ww / 2, y + 40); ctx.rotate((i % 2 ? 1 : -1) * 0.04);
+    ctx.fillStyle = 'rgba(0,0,0,0.18)'; ctx.fillRect(-ww / 2 + 4, -36, ww, 80);
+    ctx.fillStyle = q[1]; ctx.fillRect(-ww / 2, -40, ww, 80);
+    ctx.fillStyle = '#e74c3c'; ctx.beginPath(); ctx.arc(0, -32, 6, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#2a2420'; ctx.font = '800 21px "Baloo 2", "Nunito", sans-serif'; ctx.fillText(q[0], 0, -6);
+    ctx.font = '700 15px "Nunito", sans-serif'; ctx.fillStyle = '#5b4a3a'; ctx.fillText('digaji Rupiah', 0, 20);
+    ctx.restore();
+  });
+}
+function bangunKafe(S, K, KD, M2) {
+  var polos = M2.polos, nyala = M2.nyala, plester = M2.plester, kayu = M2.kayu, paving = M2.paving, latar = [];
+  var cx = 3.0, HITAM = 0x25282c, PUTIH = 0xf3efe7, BATU = 0xebe6dc, KAYU_TUA = 0x7a5132, LAMPU = 0xffd27a;
+  function kt(Kp, mat, hex, w, h, d, x, y, z, ry, petak) { Kp.cat(hex); Kp.kotak(mat, w, h, d, x, y, z, ry || 0, petak); }
+  function tb(Kp, mat, hex, geo, x, y, z, rx, ry, rz) { Kp.cat(hex); Kp.tambah(mat, geo, x, y, z, rx || 0, ry || 0, rz || 0); }
+  /* lantai teras terakota (sedikit lebih tinggi dari trotoar; tekstur paving x warna verteks) + badan + plint + atap datar + lis */
+  var teras = jalanMatV('terasKafe', { map: jalanTekstur('paving', 256, 256, lukisPaving) });
+  kt(K, teras, 0xe0a487, 7.8, 0.12, 2.4, cx, 0.06, 8.0, 0, 0.6);
+  kt(K, plester, PUTIH, 7.0, 3.5, 5.0, cx, 1.75, 11.7, 0, 2);
+  kt(K, polos, 0x6f6a63, 7.04, 0.35, 5.04, cx, 0.175, 11.7);
+  kt(K, polos, 0x3a3e44, 7.3, 0.2, 5.3, cx, 3.6, 11.7);
+  kt(K, polos, PUTIH, 7.3, 0.3, 0.14, cx, 3.62, 9.08);
+  /* fasad (z 9,2): pintu kaca kiri x 0,15..1,15, jendela besar x 1,45..4,45, kisi kayu kanan */
+  [[0.65, 1.0, 0.12, 2.42], [2.95, 3.0, 1.1, 2.86]].forEach(function (b) { /* kusen hitam keliling */
+    var x = b[0], w = b[1], y0 = b[2], y1 = b[3];
+    kt(K, polos, HITAM, w + 0.12, 0.07, 0.12, x, y1 + 0.03, 9.17);
+    kt(K, polos, HITAM, w + 0.12, 0.07, 0.12, x, y0 - 0.03, 9.17);
+    kt(K, polos, HITAM, 0.07, y1 - y0 + 0.1, 0.12, x - w / 2 - 0.03, (y0 + y1) / 2, 9.17);
+    kt(K, polos, HITAM, 0.07, y1 - y0 + 0.1, 0.12, x + w / 2 + 0.03, (y0 + y1) / 2, 9.17);
+  });
+  [1.95, 3.95].forEach(function (x) { kt(K, polos, HITAM, 0.05, 1.76, 0.08, x, 1.98, 9.16); }); /* mullion jendela */
+  for (var sx = 4.8; sx <= 6.32; sx += 0.13) kt(K, kayu, 0xc89a6a, 0.075, 3.1, 0.06, sx, 1.67, 9.17); /* kisi kayu tegak */
+  /* kaca jendela + pintu = SATU mesh Basic bertekstur (warna verteks putih: tidak ikut diredupkan malam, menyala seperti jendela rumah) */
+  var texKaca = teksturLukis(512, 256, lukisKacaKafe);
+  lukisUlangSetelahFont(texKaca);
+  function bidangKaca(w, h, x, y, u0, u1) {
+    var g = new THREE.PlaneGeometry(w, h), uv = g.attributes.uv;
+    for (var i = 0; i < uv.count; i++) uv.setX(i, u0 + uv.getX(i) * (u1 - u0));
+    return krBagian(g, x, y, 9.19, 0, Math.PI, 0);
+  }
+  var gk = krGabung([bidangKaca(3.0, 1.76, 2.95, 1.98, 0, 0.75), bidangKaca(1.0, 2.3, 0.65, 1.27, 0.75, 1)]);
+  gk.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(gk.attributes.position.count * 3).fill(1), 3));
+  var kaca = new THREE.Mesh(gk, new THREE.MeshBasicMaterial({ map: texKaca, vertexColors: true }));
+  S.add(kaca); latar.push(kaca);
+  /* kanopi kanvas bergaris (opak): fasad y 3,15 melandai ke depan y 2,8; tiang + balok baja hitam */
+  var kanvas = jalanMat('kanvasKafe', { map: jalanTekstur('kanvasKafe', 128, 64, lukisKanvasKafe) });
+  var ga = new THREE.BoxGeometry(7.5, 0.04, 2.36), uva = ga.attributes.uv;
+  for (var ui = 0; ui < uva.count; ui++) uva.setX(ui, uva.getX(ui) * 7.5 / 0.9);
+  K.cat(null); K.tambah(kanvas, ga, cx, 2.985, 8.04, -0.149, 0, 0);
+  var gv = new THREE.BoxGeometry(7.5, 0.24, 0.03), uvv = gv.attributes.uv;
+  for (var vi = 0; vi < uvv.count; vi++) uvv.setX(vi, uvv.getX(vi) * 7.5 / 0.9);
+  K.tambah(kanvas, gv, cx, 2.7, 6.86, 0, 0, 0); /* lis kanopi depan */
+  [-0.72, 6.72].forEach(function (x) { kt(K, polos, HITAM, 0.07, 2.66, 0.07, x, 1.45, 6.92); });
+  kt(K, polos, HITAM, 7.52, 0.07, 0.07, cx, 2.8, 6.9);
+  /* lampu untai di bawah lis kanopi (Basic) + kabel */
+  for (var li = 0; li < 17; li++) {
+    var u = li / 16, lx = -0.6 + u * 7.2, ly = 2.52 - Math.sin(u * Math.PI * 4) * 0.035 - 0.05;
+    tb(KD, nyala, LAMPU, new THREE.SphereGeometry(0.036, 8, 6), lx, ly, 6.95);
+  }
+  kt(KD, polos, HITAM, 7.3, 0.012, 0.012, cx, 2.57, 6.95);
+  /* meja bar x 1,15..4,85, z 7,5..8,15 (atas 1,12): badan kayu tua + muka kisi + daun batu terang */
+  kt(K, kayu, 0x8a5a3a, 3.7, 1.0, 0.62, cx, 0.62, 7.83);
+  for (var bx = 1.24; bx <= 4.77; bx += 0.11) kt(KD, kayu, 0xc89a6a, 0.06, 0.92, 0.03, bx, 0.62, 7.5);
+  kt(K, polos, BATU, 3.86, 0.05, 0.74, cx, 1.145, 7.83);
+  /* mesin espresso (menghadap barista, +z) + penggiling + tumpukan gelas + tablet kasir + kue + toples tip */
+  kt(KD, polos, 0xc9ced3, 0.6, 0.38, 0.4, 2.35, 1.36, 7.92);
+  kt(KD, polos, 0x2a2d31, 0.62, 0.05, 0.42, 2.35, 1.575, 7.92);
+  [2.2, 2.5].forEach(function (x) { tb(KD, polos, 0x1f2124, new THREE.CylinderGeometry(0.045, 0.045, 0.08, 10), x, 1.24, 8.14); kt(KD, polos, 0x1f2124, 0.025, 0.025, 0.16, x, 1.26, 8.22); });
+  kt(KD, polos, 0x8a5a3a, 0.36, 0.08, 0.01, 2.35, 1.38, 7.715); /* pelat logo kayu di punggung mesin (sisi pembeli) */
+  kt(KD, polos, 0x1f2124, 0.18, 0.3, 0.2, 2.95, 1.32, 7.95);
+  tb(KD, polos, 0x6b4226, new THREE.CylinderGeometry(0.075, 0.05, 0.18, 12), 2.95, 1.56, 7.95);
+  for (var ci = 0; ci < 4; ci++) tb(KD, polos, 0xf4efe4, new THREE.CylinderGeometry(0.05, 0.04, 0.07, 12), 3.45, 1.205 + ci * 0.055, 7.98);
+  kt(KD, polos, 0x1f2124, 0.08, 0.16, 0.08, 4.35, 1.25, 7.86);
+  kt(KD, polos, 0x1f2124, 0.3, 0.22, 0.02, 4.35, 1.36, 7.9, 0);
+  kt(KD, nyala, 0x9fd0ff, 0.26, 0.18, 0.005, 4.35, 1.36, 7.912); /* layar kasir (menghadap barista) */
+  tb(KD, polos, 0xf4efe4, new THREE.CylinderGeometry(0.2, 0.2, 0.02, 18), 1.6, 1.18, 7.8);
+  [[1.52, 7.74, 0xc98a3a], [1.68, 7.78, 0xe8a0b4], [1.6, 7.9, 0x7a4a2a]].forEach(function (q) { tb(KD, polos, q[2], new THREE.TorusGeometry(0.06, 0.03, 8, 14), q[0], 1.22, q[1], Math.PI / 2); });
+  tb(KD, polos, 0xdfe7ea, new THREE.CylinderGeometry(0.06, 0.06, 0.14, 12), 4.75, 1.24, 7.62);
+  /* rak belakang di bawah jendela (z 8,85..9,15): toples biji kopi + botol sirup + tanaman kecil */
+  kt(K, kayu, 0x8a5a3a, 3.0, 0.95, 0.3, 2.95, 0.595, 9.0);
+  kt(K, polos, BATU, 3.1, 0.04, 0.34, 2.95, 1.09, 9.0);
+  [1.75, 2.1, 2.45].forEach(function (x) { tb(KD, polos, 0xe8e2d4, new THREE.CylinderGeometry(0.075, 0.075, 0.2, 12), x, 1.21, 9.0); tb(KD, polos, 0x4a2c1c, new THREE.CylinderGeometry(0.07, 0.07, 0.12, 12), x, 1.17, 9.0); });
+  [[3.4, 0xb5482f], [3.6, 0xe8b04a], [3.8, 0x5a7d3a]].forEach(function (q) { tb(KD, polos, q[1], new THREE.CylinderGeometry(0.04, 0.045, 0.24, 10), q[0], 1.23, 9.0); });
+  tb(KD, polos, 0xa45a33, new THREE.CylinderGeometry(0.09, 0.07, 0.14, 12), 4.2, 1.18, 9.0);
+  tb(KD, polos, 0x3f9e4d, new THREE.SphereGeometry(0.14, 10, 8), 4.2, 1.34, 9.0);
+  /* 2 lampu gantung di atas meja bar */
+  [2.15, 4.05].forEach(function (x) {
+    kt(KD, polos, HITAM, 0.012, 0.42, 0.012, x, 2.73, 7.83);
+    tb(KD, polos, HITAM, new THREE.ConeGeometry(0.16, 0.16, 16, 1, true), x, 2.44, 7.83);
+    tb(KD, nyala, LAMPU, new THREE.SphereGeometry(0.06, 10, 8), x, 2.39, 7.83);
+  });
+  /* papan menu berdiri (kiri teras) + papan lowongan (kanan teras), muka menghadap jalan (-z) */
+  var papanMenu = jalanMat('menuKafe', { map: jalanTekstur('menuKafe', 256, 384, lukisMenuKafe) });
+  lukisUlangSetelahFont(papanMenu.map);
+  K.cat(null); K.tambah(papanMenu, new THREE.BoxGeometry(0.62, 0.93, 0.03), -0.05, 0.62, 7.12, 0.16, 0, 0);
+  kt(KD, polos, KAYU_TUA, 0.05, 0.95, 0.05, -0.32, 0.6, 7.3); kt(KD, polos, KAYU_TUA, 0.05, 0.95, 0.05, 0.22, 0.6, 7.3);
+  var papanLw = jalanMat('lowonganKafe', { map: jalanTekstur('lowonganKafe', 384, 288, lukisLowongan) });
+  lukisUlangSetelahFont(papanLw.map);
+  K.cat(null); K.tambah(papanLw, new THREE.BoxGeometry(0.98, 0.74, 0.04), 5.95, 1.32, 7.2, 0, 0, 0);
+  [5.5, 6.4].forEach(function (x) { kt(K, polos, HITAM, 0.05, 1.7, 0.05, x, 0.85, 7.22); });
+  /* meja bundar + 2 kursi (teras timur) + 2 tanaman pot */
+  tb(KD, polos, KAYU_TUA, new THREE.CylinderGeometry(0.32, 0.32, 0.04, 18), 5.95, 0.84, 8.45);
+  kt(KD, polos, HITAM, 0.05, 0.7, 0.05, 5.95, 0.47, 8.45);
+  [5.5, 6.4].forEach(function (x) { tb(KD, polos, 0xc89a6a, new THREE.CylinderGeometry(0.17, 0.17, 0.05, 14), x, 0.6, 8.7); kt(KD, polos, HITAM, 0.04, 0.48, 0.04, x, 0.36, 8.7); });
+  [[-0.55, 7.15], [-0.55, 8.85]].forEach(function (p) {
+    tb(KD, polos, 0x8a8f96, new THREE.CylinderGeometry(0.2, 0.16, 0.4, 12), p[0], 0.32, p[1]);
+    tb(KD, polos, 0x3f9e4d, new THREE.SphereGeometry(0.3, 10, 8), p[0], 0.72, p[1]);
+  });
+  /* papan nama di atas atap (pola papan WARUNG) + 2 penyangga */
+  var papan = jalanPapan('KEDAI KOPI', 'jajan + kerja pakai Rupiah', '#6b3e26', 3.4);
+  papan.position.set(cx, 4.3, 9.12); papan.rotation.y = Math.PI; S.add(papan); latar.push(papan);
+  [1.8, 4.2].forEach(function (x) { kt(K, polos, HITAM, 0.05, 0.9, 0.05, x, 4.15, 9.2); });
+  return latar;
+}
+/* ================= Kerja & Belanja (runtime) — dompet, toko, aksesori, dekor, uang kos =================
+   Rupiah di SERVER (penghuni): GET /api/dompet, POST /api/kerja + /api/belanja — upah + harga
+   dihitung server, klien hanya melapor hasil kerja. Tamu boleh mencoba kerja (latihan, tanpa
+   gaji); kafe, toko, uang kos khusus penghuni. Fungsi di sini juga dipanggil saat avatar
+   dibangun di awal (sebelum baris ini dieksekusi): variabel modul dicek dulu (typeof). */
+var DOMPET = { data: null, memuat: false, galat: '', tab: 'kerja', janji: null, untuk: '' }; /* untuk = identitas pemilik data (ganti akun = data dibuang) */
+var avPartsSaya; /* parts avatar sendiri (aksesori dipasang ulang tanpa bangun ulang avatar) — sengaja tanpa nilai awal */
+function pesanApi(r, cadangan) {
+  if (r && r.data && typeof r.data.pesan === 'string' && r.data.pesan) return r.data.pesan;
+  if (r && r.status === 401) return 'Sesi login-mu sudah habis. Muat ulang halaman lalu masuk lagi ya.';
+  if (r && r.status === 429) return 'Terlalu sering — tunggu sebentar ya.';
+  return cadangan || 'Server lagi sibuk, coba lagi sebentar ya.';
+}
+function dompetMuat() {
+  if (!entered || !ktaIsResident()) { DOMPET.data = null; dompetHudPerbarui(); return Promise.resolve(null); }
+  if (DOMPET.janji) return DOMPET.janji;
+  DOMPET.memuat = true; dompetHudPerbarui();
+  var untuk = DOMPET.untuk;
+  DOMPET.janji = apiKosan('GET', '/api/dompet').then(function (r) {
+    DOMPET.memuat = false; DOMPET.janji = null;
+    if (untuk !== DOMPET.untuk) return null; /* identitas berganti saat memuat: abaikan jawaban lama */
+    var aksLama = JSON.stringify(aksesoriSayaMp());
+    if (r.status === 200 && r.data && typeof r.data.saldo === 'number') { DOMPET.data = r.data; DOMPET.galat = ''; }
+    else DOMPET.galat = pesanApi(r, 'Server dompet belum bisa dihubungi. Coba lagi sebentar ya.');
+    dompetHudPerbarui(); dekorTerapkan(); aksesoriSayaTerapkan(); ktaPerbaruiBila();
+    if (JSON.stringify(aksesoriSayaMp()) !== aksLama) { mpKirimPresence(); mpKirimPos(); } /* barang milik baru diketahui: pemain lain ikut melihat aksesori */
+    if (dompetTerbuka()) dompetRender();
+    if (cardEl.classList.contains('open') && document.getElementById('ibuGelembung')) ibuSewaTombol();
+    return DOMPET.data;
+  });
+  return DOMPET.janji;
+}
+function dompetSaatMasuk() { /* dipanggil masukSebagai: identitas baru = dompet + shift lama dilupakan, lalu muat ulang (penghuni) */
+  var kunci = (isResidentSession ? 'p:' : 't:') + normalize(visitorName);
+  if (DOMPET.untuk !== kunci) { if (KERJA) kerjaBersihkan(); DOMPET.data = null; DOMPET.galat = ''; DOMPET.janji = null; DOMPET.untuk = kunci; }
+  dompetHudPerbarui(); dekorTerapkan(); aksesoriSayaTerapkan();
+  dompetMuat();
+}
+function dompetHudPerbarui() {
+  var pill = document.getElementById('dompetPill'), t = document.getElementById('dompetPillTeks');
+  if (!pill) return;
+  pill.style.display = entered && ktaIsResident() ? '' : 'none';
+  pill.classList.toggle('memuat', !!DOMPET.memuat);
+  if (t) t.textContent = DOMPET.data ? rupiah(DOMPET.data.saldo) : (DOMPET.galat ? 'Rp —' : 'Rp…');
+}
+function dompetSetSaldo(s) { if (DOMPET.data && typeof s === 'number') { DOMPET.data.saldo = s; dompetHudPerbarui(); } }
+function dompetTerbuka() { var p = document.getElementById('dompetPanel'); return !!(p && p.classList.contains('open')); }
+function dompetBuka(tab) {
+  if (KERJA && !KERJA.beres) { menuTutup(); toastKosan('💼 Lagi kerja — buka dompet sesudah shift ya'); return; } /* panel kerja + dompet di tempat yang sama */
+  closeCard(); menuTutup(); if (typeof rupaTutup === 'function' && rupaPanel && rupaPanel.classList.contains('open')) rupaTutup();
+  DOMPET.tab = tab || DOMPET.tab || 'kerja';
+  document.getElementById('dompetPanel').classList.add('open');
+  dompetRender();
+  if (ktaIsResident()) dompetMuat();
+}
+function dompetTutup() { var p = document.getElementById('dompetPanel'); if (p) p.classList.remove('open'); }
+var KERJA_IKON = { kafe: 'kafe', warung: 'warung', ronda: 'kentongan', laundry: 'laundry' };
+var BARANG_IKON = { topi_baseball: 'topi', topi_bucket: 'topi', kacamata_hitam: 'kacamata', kacamata_bulat: 'kacamata', tas_ransel: 'tas', tas_selempang: 'tas',
+  poster: 'poster', tanaman: 'tanaman', karpet: 'karpet', lampu_tumblr: 'lampuhias' };
+function waktuPendek(iso) {
+  var t = Date.parse(iso);
+  if (!isFinite(t)) return '';
+  var d = new Date(t + 7 * 3600 * 1000);
+  return d.getUTCDate() + ' ' + MISI_BULAN[d.getUTCMonth()].slice(0, 3) + ' · ' + formatWIB(new Date(t)) + ' WIB';
+}
+function dompetRender() {
+  var d = DOMPET.data, res = ktaIsResident();
+  document.getElementById('dompetSaldo').innerHTML = res
+    ? '<b>' + (d ? rupiah(d.saldo) : (DOMPET.galat ? 'Rp —' : 'Rp…')) + '</b><span>saldo Rupiah · disimpan di server</span>'
+    : '<span>Tamu belum punya dompet. Kerja tetap bisa dicoba (latihan, tanpa gaji) — daftar jadi penghuni supaya digaji.</span>';
+  ['kerja', 'toko', 'riwayat'].forEach(function (t) {
+    var tab = document.getElementById('dompetTab-' + t), isi = document.getElementById('dompetIsi-' + t), aktif = DOMPET.tab === t;
+    tab.setAttribute('aria-selected', aktif ? 'true' : 'false'); tab.tabIndex = aktif ? 0 : -1; isi.hidden = !aktif;
+  });
+  var el = document.getElementById('dompetIsi-' + DOMPET.tab);
+  el.innerHTML = DOMPET.tab === 'kerja' ? dompetHtmlKerja(d, res) : (DOMPET.tab === 'toko' ? dompetHtmlToko(d, res) : dompetHtmlRiwayat(d, res));
+}
+function dompetHtmlKerja(d, res) {
+  var h = '';
+  if (res && !d) h += '<p class="dp-info">' + escapeHtml(DOMPET.galat || 'Memuat dompet…') + '</p>';
+  if (res && d) h += '<p class="dp-info">Jatah hari ini: <b>' + d.hariIni.shift + '/' + d.hariIni.maks + ' shift</b>'
+    + (d.jedaDetik > 0 ? ' · istirahat <b>' + Math.ceil(d.jedaDetik / 60) + ' menit</b> lagi' : '') + '</p>';
+  if (!res) h += '<p class="dp-info">Mode <b>latihan</b>: kerja di kafe, warung, dan ronda bisa dicoba tanpa gaji. Laundry kiloan di dapur khusus penghuni.</p>';
+  KERJA_IDS.forEach(function (id) {
+    var p = KERJA_PEKERJAAN[id], st = d && d.pekerjaan && d.pekerjaan[id] ? d.pekerjaan[id] : { terdaftar: false, shift: 0, pangkat: 0 };
+    var pangkat = '';
+    if (res && st.terdaftar) {
+      var sisa = kerjaSisaPangkat(st.shift);
+      pangkat = '<span class="dp-pangkat">' + p.pangkat[st.pangkat] + ' · ' + st.shift + ' shift' + (sisa ? ' · ' + sisa + ' lagi naik pangkat' : '') + '</span>';
+    }
+    var tombol = '';
+    if (res && d && !st.terdaftar) tombol = '<button type="button" data-aksi="daftar" data-id="' + id + '">Daftar</button>';
+    else if (!res && id === 'laundry') tombol = '';
+    else if (!res || d) tombol = '<button type="button" class="sekunder" data-aksi="arah" data-id="' + id + '">Ke sana</button>';
+    h += '<div class="dp-job">' + iconSvg(KERJA_IKON[id]) + '<div class="dp-isi"><div class="dp-nama">' + p.nama + '</div><div class="dp-meta">'
+      + 'Gaji ' + rupiah(p.gaji[0]) + '–' + rupiah(p.gaji[2]) + ' + tip s.d. ' + rupiah(p.tipMaks) + ' · ' + p.tempat + '</div>' + pangkat + '</div>' + tombol + '</div>';
+  });
+  return h + '<p class="dp-catatan">Gaji dihitung server dari hasil kerjamu: makin cepat dan teliti, makin besar tipnya. Maks '
+    + KERJA_BATAS.shiftHari + ' shift sehari (semua pekerjaan), istirahat 10 menit antar shift, naik pangkat sesudah 5 dan 15 shift.</p>';
+}
+function dompetHtmlToko(d, res) {
+  if (!res) return '<p class="dp-info">Toko online khusus penghuni (bayar pakai Rupiah dari kerja). Daftar dulu lewat layar masuk ya.</p>';
+  if (!d) return '<p class="dp-info">' + escapeHtml(DOMPET.galat || 'Memuat toko…') + '</p>';
+  var pakai = aksesoriPilihan(), h = '<p class="dp-bagian">Aksesori · kelihatan pemain lain</p><div class="dp-barang">';
+  Object.keys(AKS_SLOT).forEach(function (slot) {
+    AKS_SLOT[slot].forEach(function (id) {
+      var it = KATALOG[id], punya = d.barang.indexOf(id) >= 0, dipakai = punya && pakai[slot] === id;
+      var b = !punya ? '<button type="button" data-aksi="beli" data-id="' + id + '"' + (d.saldo < it.harga ? ' disabled' : '') + '>Beli</button>'
+        : (dipakai ? '<button type="button" class="sekunder" data-aksi="lepas" data-id="' + id + '">Lepas</button>' : '<button type="button" data-aksi="pakai" data-id="' + id + '">Pakai</button>');
+      h += '<div class="' + (dipakai ? 'dipakai' : (punya ? 'punya' : '')) + '">' + iconSvg(BARANG_IKON[id]) + '<span class="dp-nama">' + it.nama + '</span><span class="dp-harga">'
+        + (punya ? (dipakai ? 'dipakai' : 'punyamu') : rupiah(it.harga)) + '</span>' + b + '</div>';
+    });
+  });
+  h += '</div><p class="dp-bagian">Dekorasi kamar · diantar ke kamarmu</p><div class="dp-barang">';
+  DEKOR_IDS.forEach(function (id) {
+    var it = KATALOG[id], punya = d.barang.indexOf(id) >= 0;
+    h += '<div class="' + (punya ? 'punya' : '') + '">' + iconSvg(BARANG_IKON[id]) + '<span class="dp-nama">' + it.nama + '</span><span class="dp-harga">'
+      + (punya ? iconSvg('cek') + ' terpasang' : rupiah(it.harga)) + '</span>' + (punya ? '' : '<button type="button" data-aksi="beli" data-id="' + id + '"' + (d.saldo < it.harga ? ' disabled' : '') + '>Beli</button>') + '</div>';
+  });
+  return h + '</div><p class="dp-catatan">Minuman dibeli langsung di Kedai Kopi, Jalan Kampung. Aksesori + dekor sekali beli; aksesori bisa dipakai / dilepas kapan saja.</p>';
+}
+function dompetHtmlRiwayat(d, res) {
+  if (!res) return '<p class="dp-info">Riwayat uang khusus penghuni.</p>';
+  if (!d) return '<p class="dp-info">' + escapeHtml(DOMPET.galat || 'Memuat riwayat…') + '</p>';
+  var s = d.sewa, h = '<p class="dp-info">' + iconSvg('home') + ' Uang kos <b>' + escapeHtml(s.label) + '</b>: '
+    + (s.lunas ? '<b style="color:#1d6b3a">LUNAS</b> — KTA-mu sudah dicap.' : '<b>' + rupiah(s.harga) + '</b>, belum dibayar. Bayar ke Ibu Kos di halaman (sukarela: cap LUNAS di KTA).') + '</p>';
+  if (!d.riwayat.length) return h + '<p class="dp-catatan">Belum ada mutasi. Gaji pertama masuk sesudah satu shift kerja.</p>';
+  h += '<ul class="dp-riwayat">';
+  d.riwayat.forEach(function (m) {
+    h += '<li><span>' + escapeHtml(m.ket) + '<small>' + escapeHtml(waktuPendek(m.waktu)) + '</small></span><b class="' + (m.jumlah > 0 ? 'masuk' : 'keluar') + '">' + (m.jumlah > 0 ? '+' : '') + rupiah(m.jumlah) + '</b></li>';
+  });
+  return h + '</ul><p class="dp-catatan">10 mutasi terakhir. Saldo + riwayat tersimpan di server, ikut ke HP mana pun kamu login.</p>';
+}
+document.getElementById('dompetPanel').addEventListener('click', function (e) {
+  var b = e.target.closest ? e.target.closest('button[data-aksi]') : null;
+  if (b) {
+    var a = b.getAttribute('data-aksi'), id = b.getAttribute('data-id');
+    if (a === 'daftar') kerjaDaftar(id);
+    else if (a === 'arah') kerjaKeSana(id);
+    else if (a === 'beli') tokoBeli(id);
+    else if (a === 'pakai') aksesoriPakai(id, true);
+    else if (a === 'lepas') aksesoriPakai(id, false);
+    return;
+  }
+  var tab = e.target.closest ? e.target.closest('button[data-tab]') : null;
+  if (tab) { DOMPET.tab = tab.getAttribute('data-tab'); dompetRender(); }
+});
+document.getElementById('dompetClose').addEventListener('click', dompetTutup);
+document.getElementById('dompetPill').addEventListener('click', function () { if (dompetTerbuka() && DOMPET.tab === 'riwayat') dompetTutup(); else dompetBuka('riwayat'); });
+document.getElementById('kerjaBtn').addEventListener('click', function () { dompetBuka('kerja'); });
+document.getElementById('tokoBtn').addEventListener('click', function () { dompetBuka('toko'); });
+var kerjaDaftarSibuk = false;
+function kerjaDaftar(id, lalu) { /* lalu = susun ulang kartu tempat kerja sesudah diterima (opsional) */
+  if (!ktaIsResident() || !kerjaPunya(KERJA_PEKERJAAN, id) || kerjaDaftarSibuk) return;
+  kerjaDaftarSibuk = true;
+  apiKosan('POST', '/api/kerja', { aksi: 'daftar', pekerjaan: id }).then(function (r) {
+    kerjaDaftarSibuk = false;
+    if (r.status !== 200) { toastKosan(pesanApi(r)); return; }
+    if (DOMPET.data && DOMPET.data.pekerjaan[id] && !DOMPET.data.pekerjaan[id].terdaftar) DOMPET.data.pekerjaan[id] = { terdaftar: true, shift: 0, pangkat: 0 };
+    bunyi('benar');
+    toastKosan('💼 Diterima jadi ' + KERJA_PEKERJAAN[id].pangkat[0] + '! ' + kerjaPetunjuk(id));
+    if (dompetTerbuka()) dompetRender();
+    if (lalu) lalu();
+    dompetMuat();
+  });
+}
+function kerjaPetunjuk(id) {
+  return { kafe: 'Mulai shift di meja bar Kedai Kopi, Jalan Kampung.', warung: 'Mulai jaga di Warung, Jalan Kampung.',
+    ronda: 'Ronda mulai jam 20.00 WIB di Pos Ronda, Jalan Kampung.', laundry: 'Mulai di meja laundry kiloan, dapur kos.' }[id] || '';
+}
+function kerjaKeSana(id) { /* petunjuk arah (tanpa teleport): ke Jalan Kampung / dapur, sisanya jalan sendiri */
+  dompetTutup();
+  if (id === 'laundry') { if (myRealm !== 'dapur') enterDapur(); if (myRealm === 'dapur') toastKosan('🧺 Meja laundry kiloan ada di sebelah pengering (dinding utara dapur)'); return; }
+  if (myRealm !== 'jalan') enterJalan();
+  if (myRealm !== 'jalan') return;
+  toastKosan(id === 'kafe' ? '☕ Kedai Kopi ada di sisi selatan, sebelah timur warung' : (id === 'warung' ? '😋 Warung ada di sisi selatan, sebelah barat Kedai Kopi'
+    : '🪘 Pos Ronda ada di sisi selatan, ujung timur deretan warung + Kedai Kopi'));
+}
+/* ---- toko + aksesori ---- */
+function tokoBeli(id) {
+  var it = kerjaPunya(KATALOG, id) ? KATALOG[id] : null, d = DOMPET.data;
+  if (!it || !ktaIsResident() || !d) return Promise.resolve(false);
+  if (d.saldo < it.harga) { toastKosan('💰 Saldo belum cukup — kerja dulu yuk'); return Promise.resolve(false); }
+  return apiKosan('POST', '/api/belanja', { aksi: 'beli', barang: id }).then(function (r) {
+    if (r.status !== 200 || !r.data) { toastKosan(pesanApi(r)); if (r.status === 409) dompetMuat(); return false; }
+    d.saldo = r.data.saldo;
+    if (it.jenis !== 'kafe' && d.barang.indexOf(id) < 0) d.barang.push(id);
+    bunyi('kasir'); dompetHudPerbarui();
+    if (it.jenis === 'aksesori') { aksesoriPakai(id, true, true); toastKosan('🛍 ' + it.nama + ' dibeli + langsung dipakai (−' + rupiah(it.harga) + ')'); }
+    else if (it.jenis === 'dekor') { dekorTerapkan(); toastKosan('🛍 ' + it.nama + ' diantar ke kamarmu (−' + rupiah(it.harga) + ')'); }
+    if (dompetTerbuka()) dompetRender();
+    dompetMuat();
+    return true;
+  });
+}
+function aksesoriPilihan() { /* { topi, kacamata, tas: id barang | null } — pilihan pakai, disimpan di HP */
+  var p = {}, o = {};
+  try { p = JSON.parse(localStorage.getItem('kosan3d-aksesori') || '{}') || {}; } catch (e) { p = {}; }
+  Object.keys(AKS_SLOT).forEach(function (s) { o[s] = typeof p[s] === 'string' && AKS_SLOT[s].indexOf(p[s]) >= 0 ? p[s] : null; });
+  return o;
+}
+function aksesoriPakai(id, pakai, diam) {
+  var it = kerjaPunya(KATALOG, id) ? KATALOG[id] : null;
+  if (!it || it.jenis !== 'aksesori') return;
+  var p = aksesoriPilihan(); p[it.slot] = pakai ? id : null;
+  try { localStorage.setItem('kosan3d-aksesori', JSON.stringify(p)); } catch (e) { /* abaikan */ }
+  aksesoriSayaTerapkan(); mpKirimPresence(); mpKirimPos();
+  if (!diam) toastKosan(pakai ? '🛍 ' + it.nama + ' dipakai' : '🛍 ' + it.nama + ' dilepas');
+  if (dompetTerbuka()) dompetRender();
+}
+function aksesoriSayaMp() { /* aksesori yang DIMILIKI + dipakai (indeks slot) + status kerja -> pesan multiplayer + avatar sendiri */
+  var o = { topi: -1, kacamata: -1, tas: -1, kerja: null };
+  if (typeof AKS_SLOT === 'undefined' || typeof DOMPET === 'undefined' || !DOMPET) return o; /* dipanggil saat avatar pertama dibangun */
+  var d = DOMPET.data, p = aksesoriPilihan();
+  if (ktaIsResident() && d && Array.isArray(d.barang)) Object.keys(AKS_SLOT).forEach(function (s) { if (p[s] && d.barang.indexOf(p[s]) >= 0) o[s] = AKS_SLOT[s].indexOf(p[s]); });
+  if (typeof KERJA !== 'undefined' && KERJA && !KERJA.beres) o.kerja = KERJA.id;
+  return o;
+}
+function aksesoriSayaTerapkan() { if (avPartsSaya) aksesoriPasang(avPartsSaya, aksesoriSayaMp()); }
+function lukisCelemek(warna, motif) {
+  return function (ctx, w, h) {
+    ctx.fillStyle = warna; ctx.fillRect(0, 0, w, h);
+    if (motif === 'kotak') { /* kotak-kotak merah putih (warung) */
+      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      for (var i = 0; i < w; i += 16) { ctx.fillRect(i, 0, 8, h); }
+      for (var j = 0; j < h; j += 16) { ctx.fillRect(0, j, w, 8); }
+    }
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 3; ctx.setLineDash([7, 5]);
+    ctx.strokeRect(6, 6, w - 12, h - 12);
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(0,0,0,0.16)'; ctx.fillRect(w * 0.3, h * 0.58, w * 0.4, h * 0.2); /* saku */
+    if (motif === 'kafe') { /* cangkir kecil di dada */
+      ctx.strokeStyle = '#f3e3c3'; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(w * 0.4, h * 0.18); ctx.lineTo(w * 0.6, h * 0.18); ctx.lineTo(w * 0.57, h * 0.32); ctx.lineTo(w * 0.43, h * 0.32); ctx.closePath(); ctx.stroke();
+      ctx.beginPath(); ctx.arc(w * 0.62, h * 0.24, 5, -1.4, 1.4); ctx.stroke();
+    }
+  };
+}
+function aksesoriPasang(parts, a) {
+  /* topi / kacamata / tas (toko) + celemek / kentongan (saat kerja) di poros badan / lengan kanan.
+     Mesh lama dibuang dulu (geometri per avatar, bahan dipakai bersama lewat krMat). */
+  if (!parts || !parts.tubuh) return;
+  (parts.aks || []).forEach(function (m) { if (m.parent) m.parent.remove(m); if (m.geometry) m.geometry.dispose(); });
+  parts.aks = [];
+  var x = mpBacaAksesori(a);
+  function pasang(list, mat, induk) { var m = new THREE.Mesh(krGabung(list), mat); m.castShadow = true; (induk || parts.tubuh).add(m); parts.aks.push(m); return m; }
+  var lam = function (k, c) { return krMat('aks:' + k, function () { return new THREE.MeshLambertMaterial({ color: c }); }); };
+  /* topi menutup SEMUA model rambut (poni bob jangkauan ~0,333 dari poros, ikal keriting ~0,356 dari pusat kepala 1,555):
+     kubah / mahkota r >= 0,34 di ketinggian poni, puncak <= 1,92 (di bawah teks label nama) */
+  if (x.topi === 0) { /* topi baseball biru: kubah + lidah depan + kancing */
+    pasang([krBagian(new THREE.SphereGeometry(0.35, 22, 10, 0, Math.PI * 2, 0, Math.PI / 2), 0, 1.655, -0.01, 0, 0, 0, 0.93, 0.76, 1.05),
+      krBagian(new THREE.SphereGeometry(0.03, 8, 6), 0, 1.92, -0.01)], lam('topiBiru', 0x2f5d8a));
+    pasang([krBagian(new THREE.CylinderGeometry(0.25, 0.25, 0.022, 20, 1, false, -Math.PI / 2, Math.PI), 0, 1.665, 0.27, 0.22, 0, 0, 0.92, 1, 1)], lam('topiLidah', 0x1f3f63));
+  } else if (x.topi === 1) { /* topi bucket krem: mahkota + tutup + pinggiran landai */
+    pasang([krBagian(new THREE.CylinderGeometry(0.3, 0.355, 0.22, 24), 0, 1.8, -0.01), krBagian(new THREE.CylinderGeometry(0.3, 0.3, 0.02, 24), 0, 1.905, -0.01),
+      krBagian(new THREE.CylinderGeometry(0.355, 0.5, 0.075, 28, 1, true), 0, 1.66, -0.01)], krMat('aks:bucket', function () { return new THREE.MeshLambertMaterial({ color: 0xcdb98e, side: THREE.DoubleSide }); }));
+  }
+  if (x.kacamata === 0) { /* kacamata hitam: 2 lensa gelap + bingkai + gagang */
+    var lensa = [];
+    [-1, 1].forEach(function (s) { lensa.push(krBagian(new THREE.CylinderGeometry(0.058, 0.058, 0.012, 18), s * 0.097, 1.583, 0.27, Math.PI / 2, 0, 0, 1.12, 1, 0.92)); });
+    pasang(lensa, lam('lensaGelap', 0x15181d), parts.tubuh);
+    var bk = [krBagian(new THREE.BoxGeometry(0.33, 0.016, 0.014), 0, 1.627, 0.272)];
+    [-1, 1].forEach(function (s) { bk.push(krBagian(new THREE.BoxGeometry(0.008, 0.012, 0.22), s * 0.205, 1.605, 0.165, 0, s * 0.5, 0)); });
+    pasang(bk, lam('bingkaiHitam', 0x111214));
+  } else if (x.kacamata === 1) { /* kacamata bulat emas */
+    var kb = [];
+    [-1, 1].forEach(function (s) {
+      kb.push(krBagian(new THREE.TorusGeometry(0.053, 0.0065, 6, 22), s * 0.097, 1.585, 0.272, 0, s * 0.3, 0));
+      kb.push(krBagian(new THREE.BoxGeometry(0.008, 0.008, 0.21), s * 0.2, 1.6, 0.165, 0, s * 0.5, 0));
+    });
+    kb.push(krBagian(new THREE.BoxGeometry(0.044, 0.007, 0.007), 0, 1.6, 0.287));
+    pasang(kb, lam('bingkaiEmas', 0xc9a227));
+  }
+  if (x.tas === 0) { /* tas ransel oranye di punggung + 2 tali bahu */
+    pasang([krBagian(geoEmpukBaru(0.36, 0.42, 0.16, 0.045), 0, 1.03, -0.355), krBagian(geoEmpukBaru(0.27, 0.16, 0.06, 0.02), 0, 0.92, -0.45)], lam('ransel', 0xe07a2e));
+    var tali = [];
+    [-1, 1].forEach(function (s) {
+      tali.push(krBagian(new THREE.BoxGeometry(0.055, 0.02, 0.6), s * 0.13, 1.3, -0.02, 0.18, 0, 0));
+      tali.push(krBagian(new THREE.BoxGeometry(0.055, 0.32, 0.02), s * 0.13, 1.13, 0.272, -0.05, 0, 0));
+    });
+    pasang(tali, lam('taliTas', 0x2a2d31));
+  } else if (x.tas === 1) { /* tas selempang cokelat: kantong di pinggul kanan + tali melintang dada */
+    pasang([krBagian(geoEmpukBaru(0.22, 0.17, 0.08, 0.03), 0.21, 0.84, 0.2, 0, 0.55, 0)], lam('selempang', 0x8a5a3a));
+    pasang([krBagian(new THREE.TorusGeometry(0.34, 0.012, 6, 40), 0, 1.06, 0.01, Math.PI / 2, 0.78, 0, 0.84, 1, 1)], lam('taliSelempang', 0x5a3a22));
+  }
+  if (x.kerja === 'kafe' || x.kerja === 'warung' || x.kerja === 'laundry') { /* celemek kerja: dada + rok depan + tali leher + tali pinggang */
+    var warna = { kafe: ['#5b3a29', 'kafe'], warung: ['#c0392b', 'kotak'], laundry: ['#4f97c9', 'polos'] }[x.kerja];
+    var mc = krMat('celemek:' + x.kerja, function () { return new THREE.MeshLambertMaterial({ map: teksturLukis(128, 128, lukisCelemek(warna[0], warna[1])), side: THREE.DoubleSide }); });
+    pasang([krBagian(geoEmpukBaru(0.3, 0.33, 0.02, 0.008), 0, 1.08, 0.283),
+      krBagian(new THREE.CylinderGeometry(0.315, 0.47, 0.5, 18, 1, true, -1.15, 2.3), 0, 0.62, 0)], mc);
+    var tl = [krBagian(new THREE.TorusGeometry(0.3, 0.012, 4, 24), 0, 0.865, 0, Math.PI / 2)];
+    [-1, 1].forEach(function (s) { tl.push(krBagian(new THREE.BoxGeometry(0.03, 0.22, 0.015), s * 0.115, 1.33, 0.2, 0.55, 0, s * 0.25)); });
+    pasang(tl, lam('taliCelemek', 0xf3e3c3));
+  } else if (x.kerja === 'ronda' && parts.armR) { /* kentongan bambu kecil di tangan kanan */
+    pasang([krBagian(new THREE.CylinderGeometry(0.04, 0.04, 0.3, 12), -0.012, -0.47, 0.09), krBagian(new THREE.BoxGeometry(0.012, 0.16, 0.02), -0.012, -0.47, 0.13)], lam('kentonganKecil', 0xc9a85b), parts.armR);
+  }
+}
+/* ---- dekorasi kamar (dibeli di toko, terpasang di kamar pembeli; roomScene dipakai bersama:
+   hanya pemilik yang bisa masuk kamarnya, jadi dekor = barang milik pemain ini) ---- */
+var DEKOR = null;
+function lukisPoster(ctx, w, h) { /* poster senja pantai: langit gradasi, matahari, laut, 2 pohon kelapa, tulisan */
+  var g = ctx.createLinearGradient(0, 0, 0, h * 0.62);
+  g.addColorStop(0, '#5a6fb8'); g.addColorStop(0.55, '#f39a7b'); g.addColorStop(1, '#ffd38a');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = '#fff2c4'; ctx.beginPath(); ctx.arc(w * 0.5, h * 0.55, w * 0.17, Math.PI, 0); ctx.fill();
+  var l = ctx.createLinearGradient(0, h * 0.55, 0, h); l.addColorStop(0, '#2f6f8f'); l.addColorStop(1, '#173f57');
+  ctx.fillStyle = l; ctx.fillRect(0, h * 0.55, w, h * 0.45);
+  ctx.fillStyle = 'rgba(255,230,180,0.6)'; for (var i = 0; i < 6; i++) ctx.fillRect(w * (0.36 + i * 0.02), h * (0.6 + i * 0.05), w * (0.28 - i * 0.04), 3);
+  [[0.15, 1], [0.86, -1]].forEach(function (p) { /* pohon kelapa siluet */
+    ctx.strokeStyle = '#1d2433'; ctx.lineWidth = 8; ctx.beginPath(); ctx.moveTo(w * p[0], h); ctx.quadraticCurveTo(w * (p[0] + 0.06 * p[1]), h * 0.6, w * (p[0] + 0.02 * p[1]), h * 0.38); ctx.stroke();
+    ctx.fillStyle = '#1d2433';
+    for (var k = 0; k < 6; k++) { ctx.save(); ctx.translate(w * (p[0] + 0.02 * p[1]), h * 0.38); ctx.rotate(-2.6 + k * 1.05); ctx.beginPath(); ctx.ellipse(34, 0, 38, 7, 0.25, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
+  });
+  ctx.fillStyle = '#ffffff'; ctx.font = '800 34px "Baloo 2", "Nunito", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('SANTAI DULU', w / 2, h * 0.13);
+  ctx.font = '700 17px "Nunito", sans-serif'; ctx.fillText('liburan di kamar kos', w / 2, h * 0.21);
+}
+function lukisKarpetBulu(ctx, w, h) { /* karpet bulu bundar krem + lingkaran terakota + titik */
+  ctx.fillStyle = '#efe3cf'; ctx.fillRect(0, 0, w, h);
+  [[0.47, '#d9906a'], [0.4, '#efe3cf'], [0.3, '#7fa38e'], [0.22, '#efe3cf'], [0.12, '#d9906a']].forEach(function (q) {
+    ctx.fillStyle = q[1]; ctx.beginPath(); ctx.arc(w / 2, h / 2, w * q[0], 0, Math.PI * 2); ctx.fill();
+  });
+  for (var i = 0; i < 900; i++) { ctx.fillStyle = 'rgba(120,90,60,' + (0.05 + (i % 4) * 0.025) + ')'; ctx.fillRect((i * 131) % w, (i * 71) % h, 2, 2); }
+}
+function bangunDekorKamar() {
+  /* titik aman (vonis penempatan, lihat buildRoom): poster di dinding aksen utara x 1,6 (di atas label nama, y >= 2,2),
+     tanaman di pojok timur laut (jalur 0,5 m dinding: tanpa AABB), karpet bundar di tengah (rata lantai),
+     lampu tumblr di pucuk dinding utara (x -2,5..3,8, di bawah plafon drop). Menyala = Basic. */
+  var D = DEKOR = {}, lam = function (k, o) { return krMat('dekor:' + k, function () { return new THREE.MeshLambertMaterial(o); }); };
+  var tex = teksturLukis(256, 352, lukisPoster); lukisUlangSetelahFont(tex);
+  D.poster = new THREE.Group();
+  var bingkai = new THREE.Mesh(krGabung([krBagian(new THREE.BoxGeometry(1.0, 1.32, 0.03), 0, 0, 0)]), lam('bingkai', { color: 0x2a2420 }));
+  var gambar = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 1.22), lam('poster', { map: tex }));
+  gambar.position.z = 0.017; D.poster.add(bingkai); D.poster.add(gambar);
+  D.poster.position.set(1.6, 2.22, -3.47); roomScene.add(D.poster);
+  D.tanaman = new THREE.Group();
+  D.tanaman.add(new THREE.Mesh(krGabung([krBagian(new THREE.CylinderGeometry(0.24, 0.18, 0.45, 16), 0, 0.225, 0), krBagian(new THREE.CylinderGeometry(0.25, 0.25, 0.04, 16), 0, 0.45, 0)]), lam('pot', { color: 0xe9e4da })));
+  var daun = [krBagian(new THREE.CylinderGeometry(0.02, 0.025, 0.7, 6), 0, 0.8, 0)];
+  for (var i = 0; i < 9; i++) {
+    var a = i * 2.4, t = 0.55 + (i % 3) * 0.22, r = 0.16 + (i % 2) * 0.1;
+    daun.push(krBagian(new THREE.SphereGeometry(1, 10, 6), Math.cos(a) * r, 0.62 + t, Math.sin(a) * r, 0.4, a, 0.5, 0.2, 0.025, 0.13));
+  }
+  D.tanaman.add(new THREE.Mesh(krGabung(daun), lam('daun', { color: 0x2f8a4a })));
+  D.tanaman.traverse(function (o) { if (o.isMesh) o.castShadow = true; });
+  D.tanaman.position.set(3.62, 0, -3.12); roomScene.add(D.tanaman);
+  D.karpet = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.15, 0.02, 40), lam('karpet', { map: teksturLukis(256, 256, lukisKarpetBulu) }));
+  D.karpet.position.set(0.7, 0.012, 0.25); D.karpet.receiveShadow = true; roomScene.add(D.karpet);
+  D.lampu = new THREE.Group();
+  var kabel = [], bola = [];
+  for (var k = 0; k <= 26; k++) {
+    var u = k / 26, x = -2.5 + u * 6.3, y = 3.27 - Math.sin(u * Math.PI * 3) * 0.06;
+    bola.push(krBagian(new THREE.SphereGeometry(0.035, 8, 6), x, y - 0.06, -3.44));
+    if (k < 26) kabel.push(krBagian(new THREE.BoxGeometry(6.3 / 26 + 0.01, 0.008, 0.008), x + 6.3 / 52, y - 0.01, -3.45));
+  }
+  D.lampuMat = new THREE.MeshBasicMaterial({ color: 0xffd27a });
+  var bolaMesh = new THREE.Mesh(krGabung(bola), D.lampuMat);
+  bolaMesh.userData = { interact: 'lampuHias' }; roomClickables.push(bolaMesh);
+  D.lampu.add(bolaMesh); D.lampu.add(new THREE.Mesh(krGabung(kabel), lam('kabel', { color: 0x2a2420 })));
+  roomScene.add(D.lampu);
+  [D.poster, D.tanaman, D.karpet, D.lampu].forEach(function (o) { o.visible = false; });
+}
+function lampuHiasNyala() { try { return localStorage.getItem('kosan3d-lampu-tumblr') !== '0'; } catch (e) { return true; } }
+function dekorTerapkan() {
+  var d = DOMPET.data, punya = function (id) { return !!(d && ktaIsResident() && d.barang.indexOf(id) >= 0); };
+  if (!DEKOR && !DEKOR_IDS.some(punya)) return;
+  if (!DEKOR) bangunDekorKamar();
+  DEKOR.poster.visible = punya('poster'); DEKOR.tanaman.visible = punya('tanaman'); DEKOR.karpet.visible = punya('karpet'); DEKOR.lampu.visible = punya('lampu_tumblr');
+  DEKOR.lampuMat.color.setHex(lampuHiasNyala() ? 0xffd27a : 0x5c5246);
+}
+function lampuHiasToggle() {
+  if (!DEKOR || !DEKOR.lampu.visible) return;
+  var nyala = !lampuHiasNyala();
+  try { localStorage.setItem('kosan3d-lampu-tumblr', nyala ? '1' : '0'); } catch (e) { /* abaikan */ }
+  dekorTerapkan(); bunyi('saklar');
+  toastKosan(nyala ? '💡 Lampu tumblr dinyalakan' : '💡 Lampu tumblr dimatikan');
+}
+/* ---- uang kos (sukarela, cap LUNAS di KTA) — dibayar lewat kartu Ibu Kos ---- */
+function ibuSewaTombol() {
+  var lama = document.getElementById('ibuSewaBtn');
+  if (lama) lama.remove();
+  if (!ktaIsResident() || !DOMPET.data || !cardEl.classList.contains('open') || !document.getElementById('ibuGelembung')) return;
+  var s = DOMPET.data.sewa, b = document.createElement('button');
+  b.id = 'ibuSewaBtn';
+  b.innerHTML = s.lunas ? iconSvg('cek') + ' Uang kos ' + escapeHtml(s.label.split(' ')[0]) + ' lunas' : iconSvg('uang') + ' Bayar uang kos · ' + rupiah(s.harga);
+  if (s.lunas) b.disabled = true;
+  b.addEventListener('click', sewaBayar);
+  cardActions.appendChild(b);
+}
+function sewaBayar() {
+  var d = DOMPET.data;
+  if (!ktaIsResident() || !d) return;
+  if (d.sewa.lunas) { ibuTampilKalimat(IBU_SEWA.lunas); return; }
+  if (d.saldo < d.sewa.harga) { ibuTampilKalimat(IBU_SEWA.kurang); toastKosan('💰 Saldomu ' + rupiah(d.saldo) + ', uang kos ' + rupiah(d.sewa.harga)); return; }
+  apiKosan('POST', '/api/belanja', { aksi: 'sewa' }).then(function (r) {
+    if (r.status === 200 && r.data) {
+      d.saldo = r.data.saldo; d.sewa.lunas = true;
+      bunyi('kasir'); ibuTampilKalimat(IBU_SEWA.makasih); dompetHudPerbarui(); ibuSewaTombol(); ktaPerbaruiBila();
+      toastKosan('💰 Uang kos ' + d.sewa.label + ' lunas — KTA-mu dicap LUNAS');
+      dompetMuat();
+    } else if (r.data && r.data.galat === 'sudah_lunas') { d.sewa.lunas = true; ibuTampilKalimat(IBU_SEWA.lunas); ibuSewaTombol(); }
+    else if (r.data && r.data.galat === 'saldo_kurang') { ibuTampilKalimat(IBU_SEWA.kurang); dompetMuat(); }
+    else toastKosan(pesanApi(r));
+  });
+}
+function ktaLunasLabel() { var d = DOMPET.data; return ktaIsResident() && d && d.sewa && d.sewa.lunas ? String(d.sewa.label || '').toUpperCase() : ''; }
+function ktaPerbaruiBila() { var o = document.getElementById('ktaOverlay'); if (o && o.classList.contains('open')) ktaRender(); }
+/* ================= Kerja: alur shift (daftar -> mulai -> tugas + animasi -> selesai -> gaji) =================
+   KERJA = shift berjalan (null = tidak kerja). Penghuni: shift dibuka + ditutup lewat server (upah
+   dihitung server). Tamu: latihan tanpa gaji (tanpa server). kerjaJangkar = avatar ditambat di balik
+   meja (kafe / warung): gerak jalan mati, posisi tetap (pola duduk, tanpa pose baru di protokol). */
+var KERJA = null, kerjaJangkar = null, kerjaMemulai = false;
+var KERJA_WARNA = { kafe: '#7a4a2a', warung: '#c0392b', ronda: '#2f5d8a', laundry: '#2a9d8f' };
+function kerjaBoleh(id) { /* -> alasan belum bisa mulai ('' = boleh) */
+  if (KERJA) return 'Kamu masih kerja — selesaikan shift dulu ya.';
+  if (id === 'ronda' && !kerjaRondaBuka(suasanaKini.jam)) return 'Ronda malam mulai jam 20.00 sampai 04.00 WIB.';
+  var jauh = id === 'laundry' ? (myRealm !== 'dapur' || jarakKeKotak(avatarPos.x, avatarPos.z, DAPUR_KILOAN) > 2.5)
+    : (myRealm !== 'jalan' || jarakKeKotak(avatarPos.x, avatarPos.z, { kafe: KAFE_KOTAK, warung: WARUNG_KOTAK, ronda: POS_RONDA_KOTAK }[id]) > JALAN_JARAK);
+  if (jauh) return { kafe: 'Jalan ke depan meja bar Kedai Kopi dulu ya 🚶', warung: 'Jalan ke depan warung dulu ya 🚶', ronda: 'Jalan ke pos ronda dulu ya 🚶',
+    laundry: 'Dekati meja laundry kiloan di dapur dulu ya 🚶' }[id];
+  if (!ktaIsResident()) return id === 'laundry' ? 'Laundry kiloan khusus penghuni.' : '';
+  var d = DOMPET.data;
+  if (!d) { dompetMuat(); return DOMPET.galat || 'Dompet masih dimuat, coba lagi sebentar ya.'; }
+  if (!d.pekerjaan[id] || !d.pekerjaan[id].terdaftar) return 'Daftar dulu di papan lowongan Kedai Kopi atau menu ☰ Kerja.';
+  if (d.hariIni.shift >= d.hariIni.maks) return 'Jatah kerja hari ini sudah habis (' + d.hariIni.maks + ' shift). Besok lagi ya!';
+  if (d.jedaDetik > 0) return 'Istirahat dulu — shift berikutnya bisa ' + Math.ceil(d.jedaDetik / 60) + ' menit lagi.';
+  return '';
+}
+function kerjaMulai(id) {
+  if (kerjaMemulai) return;
+  var alasan = kerjaBoleh(id);
+  if (alasan) { toastKosan(alasan); return; }
+  if (!ktaIsResident()) { kerjaJalankan(id, null); return; }
+  kerjaMemulai = true;
+  apiKosan('POST', '/api/kerja', { aksi: 'mulai', pekerjaan: id }).then(function (r) {
+    kerjaMemulai = false;
+    if (r.status === 200 && r.data && r.data.shift) kerjaJalankan(id, r.data.shift);
+    else { toastKosan(pesanApi(r)); dompetMuat(); }
+  });
+}
+function kerjaJalankan(id, shiftId) {
+  closeCard(); dompetTutup(); menuTutup(); rupaTutup();
+  if (roomPose) bangunDariKasur(true); /* duduk di bale-bale lalu mulai ronda: berdiri dulu (diam) */
+  if (jajanSaya) jajanLepas(); /* tangan dipakai kerja */
+  var st = shiftId && DOMPET.data ? DOMPET.data.pekerjaan[id] : null;
+  KERJA = { id: id, shift: shiftId, latihan: !shiftId, realm: id === 'laundry' ? 'dapur' : 'jalan', mulai: Date.now(), pangkat: st ? st.pangkat : 0,
+    pesanan: KERJA_PEKERJAAN[id].pesanan, benar: 0, salah: 0, cepatJumlah: 0, cepatN: 0, ke: 0, selesaiTerakhir: 0, fase: 'kerja', beres: false, sibuk: false, hasil: null, tTampil: 0 };
+  document.getElementById('kerjaPanel').style.setProperty('--kp-warna', KERJA_WARNA[id]);
+  if (id === 'kafe') kafeMulai(); else if (id === 'warung') warungKerjaMulai(); else if (id === 'ronda') rondaMulai(); else laundryMulai();
+  aksesoriSayaTerapkan(); mpKirimPresence(); mpKirimPos();
+  bunyi('benar');
+  toastKosan('💼 Shift ' + KERJA_PEKERJAAN[id].nama + ' mulai' + (KERJA.latihan ? ' (latihan, tanpa gaji)' : '') + ' — semangat!');
+  kerjaRender();
+}
+function kerjaKamera(yaw, pitch, dist) { flyTarget = null; flyKeep = false; camYaw = yaw; camPitch = pitch; camDist = dist; }
+function kerjaPenutup(now) { /* semua tugas beres: tunggu sampai durasi minimum shift (server) sambil merapikan, lalu lapor */
+  var K = KERJA;
+  if (K.beres || K.sibuk) return;
+  var sisa = KERJA_PEKERJAAN[K.id].minDetik * 1000 + 2000 - (now - K.mulai);
+  if (sisa > 0) {
+    if (K.fase !== 'rapikan') { K.fase = 'rapikan'; kerjaRender(); }
+    if (kerjaJangkar && (!kerjaGerak.jenis) && Math.random() < 0.03) kerjaAyun('lap');
+    return;
+  }
+  if (K.id === 'ronda') { if (K.tahap !== 'lapor') { K.tahap = 'lapor'; kerjaRender(); } return; } /* ronda: tombol Lapor */
+  kerjaSelesai();
+}
+function kerjaSelesai() {
+  var K = KERJA;
+  if (!K || K.beres || K.sibuk) return;
+  var hasil = kerjaHasil(K);
+  if (K.latihan) {
+    var u = kerjaUpah(K.id, 0, hasil);
+    misiSelesai('kerja');
+    kerjaTampilHasil({ latihan: true, gaji: u.gaji, tip: u.tip, hasil: hasil });
+    return;
+  }
+  K.sibuk = true; kerjaRender();
+  apiKosan('POST', '/api/kerja', { aksi: 'selesai', shift: K.shift, hasil: hasil }).then(function (r) {
+    if (KERJA !== K) return;
+    K.sibuk = false;
+    if (r.status === 200 && r.data) {
+      dompetSetSaldo(r.data.saldo); bunyi('gaji'); misiSelesai('kerja');
+      kerjaTampilHasil(Object.assign({ hasil: hasil }, r.data));
+      dompetMuat();
+    } else if (r.data && r.data.galat === 'terlalu_cepat') { setTimeout(function () { if (KERJA === K) kerjaSelesai(); }, 2500); } /* jam server sedikit beda: coba lagi */
+    else kerjaTampilHasil({ galat: pesanApi(r, 'Gaji belum tercatat — server lagi sibuk. Shift ini tidak dihitung.') });
+  });
+}
+function kerjaTampilHasil(h) {
+  var K = KERJA;
+  K.beres = true; K.hasil = h;
+  PELANGGAN.slice().forEach(function (p) { if (p.fase !== 'pergi') pelangganPergi(p); });
+  kafeGelasBuang(); warungBarangBuang(); rondaPenandaSembunyi();
+  aksesoriSayaTerapkan(); mpKirimPresence(); mpKirimPos();
+  kerjaRender();
+}
+function kerjaBersihkan() {
+  PELANGGAN.slice().forEach(pelangganBuang);
+  kafeGelasBuang(); warungBarangBuang(); rondaPenandaSembunyi(); laundryBersihkan();
+  if (kerjaJangkar && kerjaJangkar.keluar && myRealm === 'jalan') { avatarPos.x = kerjaJangkar.keluar.x; avatarPos.z = kerjaJangkar.keluar.z; avatar.rotation.y = Math.PI; }
+  kerjaJangkar = null; KERJA = null;
+  document.getElementById('kerjaPanel').classList.remove('open');
+  document.getElementById('rondaHud').classList.remove('open');
+  kerjaLensaHitung(); /* lensa kembali ke tengah (halus) */
+  aksesoriSayaTerapkan(); mpKirimPresence(); mpKirimPos();
+}
+function kerjaBerhenti(alasan) {
+  if (!KERJA) return;
+  if (KERJA.beres) { kerjaBersihkan(); return; }
+  if (KERJA.shift) apiKosan('POST', '/api/kerja', { aksi: 'batal', shift: KERJA.shift });
+  var latihan = KERJA.latihan;
+  kerjaBersihkan();
+  toastKosan(alasan || (latihan ? '💼 Latihan dihentikan' : '💼 Shift dibatalkan — tanpa gaji, jatah hari ini tidak berkurang'));
+}
+function kerjaTick(dt, now) { /* dipanggil animate tiap frame (sebelum render) */
+  pelangganTick(dt, now);
+  if (!KERJA) return;
+  if (myRealm !== KERJA.realm) { kerjaBerhenti(KERJA.beres ? null : '💼 Shift dibatalkan — kamu meninggalkan tempat kerja (tanpa gaji)'); return; }
+  if (!KERJA.beres && !KERJA.sibuk && now - KERJA.mulai > KERJA_BATAS.maksDetik * 1000 - 5000) { kerjaBerhenti('💼 Shift lewat 20 menit — dibatalkan, tanpa gaji'); return; } /* server menolak shift > 20 menit */
+  if (!KERJA.beres) {
+    if (KERJA.id === 'kafe') kafeTick(now); else if (KERJA.id === 'warung') warungKerjaTick(now);
+    else if (KERJA.id === 'ronda') rondaTick(dt, now); else laundryTick(now);
+  }
+  if (KERJA && KERJA.id === 'ronda' && !KERJA.beres) { if (KERJA.tahap === 'ketuk') rondaKursorTampil(); else rondaPanahTampil(); } /* tiap bingkai: kursor irama / panah arah */
+  if (KERJA) { KERJA.tTampil -= dt; if (KERJA.tTampil <= 0) { KERJA.tTampil = 0.2; kerjaRenderWaktu(now); } }
+}
+/* ---- pembeli (kafe + warung): avatar NPC lokal (hanya di layar pemain ini), jalan di trotoar ---- */
+var PELANGGAN = [];
+function pelangganBuat(spawnX) {
+  var r = Math.random, gender = r() < 0.5 ? 'cewek' : 'cowok';
+  var parts = makeKosanAvatar(gender, { baju: Math.floor(r() * RUPA_BAJU.length), rambut: Math.floor(r() * RUPA_RAMBUT.length),
+    potong: Math.floor(r() * GAYA_RAMBUT.length), atasan: Math.floor(r() * GAYA_ATASAN.length), bawahan: Math.floor(r() * GAYA_BAWAHAN.length), alas: Math.floor(r() * GAYA_ALAS.length) });
+  parts.g.position.set(spawnX, 0.1, KERJA_TROTOAR_Z);
+  parts.g.rotation.y = spawnX < 0 ? Math.PI / 2 : -Math.PI / 2;
+  jalanScene.add(parts.g);
+  var p = { g: parts.g, parts: parts, fase: 'datang', jalur: [], laju: 1.6, emote: {}, fasa: r() * 6, pegang: null, hadap: null, ujung: spawnX };
+  PELANGGAN.push(p);
+  return p;
+}
+function pelangganBuang(p) {
+  var i = PELANGGAN.indexOf(p);
+  if (i >= 0) PELANGGAN.splice(i, 1);
+  if (p.g.parent) p.g.parent.remove(p.g);
+  emoteBuang(p.emote);
+  mpBuangGeometri(p.g);
+}
+function pelangganPergi(p) { /* pamit: keluar ke trotoar lalu jalan ke ujung yang lain */
+  p.fase = 'pergi'; p.hadap = null;
+  var ujung = p.ujung < 0 ? 16 : -12;
+  p.jalur = [[p.g.position.x, KERJA_TROTOAR_Z], [ujung, KERJA_TROTOAR_Z]];
+}
+function pelangganTick(dt, now) {
+  for (var i = PELANGGAN.length - 1; i >= 0; i--) {
+    var p = PELANGGAN[i], tujuan = p.jalur[0], gerak = 0;
+    if (tujuan) {
+      var dx = tujuan[0] - p.g.position.x, dz = tujuan[1] - p.g.position.z, jarak = Math.hypot(dx, dz), langkah = p.laju * dt;
+      if (jarak <= langkah) {
+        p.g.position.x = tujuan[0]; p.g.position.z = tujuan[1]; p.jalur.shift();
+        if (!p.jalur.length && p.saatSampai && p.fase === 'datang') p.saatSampai(p);
+      } else {
+        p.g.position.x += dx / jarak * langkah; p.g.position.z += dz / jarak * langkah; gerak = 1;
+        p.g.rotation.y = turnToward(p.g.rotation.y, Math.atan2(dx, dz), Math.min(1, dt * 10));
+      }
+    } else if (p.hadap !== null) p.g.rotation.y = turnToward(p.g.rotation.y, p.hadap, Math.min(1, dt * 8));
+    p.g.position.y = p.g.position.z > 6.8 ? 0.12 : 0.1; /* teras / trotoar (tanpa naik-turun saat jalan) */
+    var sw = Math.sin(now / 1000 * 9 + p.fasa) * gerak, P = p.parts;
+    P.legL.rotation.x = sw * 0.55; P.legR.rotation.x = -sw * 0.55;
+    P.armL.rotation.x = -sw * 0.6; P.armR.rotation.x = p.pegang ? -0.55 : sw * 0.6;
+    P.tubuh.rotation.y = gerak ? 0 : Math.sin(now / 1000 * 1.3 + p.fasa) * 0.2;
+    if (p.emote && p.emote.spr) emoteTick(p.emote, p.g, false, now, Math.max(0.35, Math.min(1.3, camDist / 9.5)));
+    if (p.fase === 'pergi' && !p.jalur.length) pelangganBuang(p);
+  }
+}
+function pelangganPegang(p, grup) { /* barang dari penjual ke tangan kanan pembeli (pola jajan) */
+  if (!grup) return;
+  if (grup.parent) grup.parent.remove(grup);
+  grup.position.set(-0.012, -0.5, 0.085); grup.rotation.set(0, 0, -0.2);
+  p.parts.armR.add(grup); p.pegang = grup;
+}
+/* ---- barista ---- */
+var KAFE_BUNYI = { gelasPanas: 'gelas', gelasEs: 'gelas', espresso: 'mesinKopi', teh: 'tuang', cokelat: 'tuang', airPanas: 'tuang', susu: 'tuang', gulaAren: 'tuang', esBatu: 'es', sajikan: 'gelas' };
+var KAFE_WARNA_CAIR = { espresso: 0x3a2416, teh: 0xa0521d, cokelat: 0x5a3320, airPanas: 0x4a2c1c, susu: null, gulaAren: null };
+var kafeGelasSaya = null; /* { g, badan, atas, es, tutup, sedotan, dingin, warna } gelas yang sedang dibuat di meja bar */
+function gelasMat(hex) { return krMat('gelasKafe:' + hex, function () { return new THREE.MeshLambertMaterial({ color: hex }); }); }
+function kafeGelasBuat(dingin) {
+  kafeGelasBuang();
+  var g = new THREE.Group(), G = { g: g, dingin: dingin };
+  if (dingin) { /* gelas plastik es: badan = warna minuman (opak), pita label, es batu, tutup kubah + sedotan saat disajikan */
+    G.badan = new THREE.Mesh(new THREE.CylinderGeometry(0.058, 0.044, 0.16, 16), gelasMat(0xdfe9ee)); G.badan.position.y = 0.08; g.add(G.badan);
+    var pita = new THREE.Mesh(new THREE.CylinderGeometry(0.0545, 0.0505, 0.035, 16), gelasMat(0xf6f1e4)); pita.position.y = 0.075; g.add(pita);
+    G.es = new THREE.Group();
+    [[0.02, 0.012], [-0.022, 0.006], [0.004, -0.024]].forEach(function (q) { var e = new THREE.Mesh(new THREE.BoxGeometry(0.034, 0.03, 0.034), gelasMat(0xf4fbff)); e.position.set(q[0], 0.165, q[1]); e.rotation.set(0.3, q[0] * 20, 0.2); G.es.add(e); });
+    G.es.visible = false; g.add(G.es);
+    G.tutup = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), gelasMat(0xeef4f7)); G.tutup.position.y = 0.16; G.tutup.scale.y = 0.6; G.tutup.visible = false; g.add(G.tutup);
+    G.sedotan = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.16, 6), gelasMat(0x2e6b4f)); G.sedotan.position.set(0.012, 0.23, 0); G.sedotan.rotation.z = -0.12; G.sedotan.visible = false; g.add(G.sedotan);
+  } else { /* gelas kertas panas: badan putih + sabuk cokelat + permukaan minuman + tutup */
+    G.badan = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.04, 0.13, 16), gelasMat(0xf4efe4)); G.badan.position.y = 0.065; g.add(G.badan);
+    var sabuk = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.046, 0.05, 16), gelasMat(0x8a5a3a)); sabuk.position.y = 0.06; g.add(sabuk);
+    G.atas = new THREE.Mesh(new THREE.CylinderGeometry(0.049, 0.049, 0.004, 16), gelasMat(0xf4efe4)); G.atas.position.y = 0.128; G.atas.visible = false; g.add(G.atas);
+    G.tutup = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.052, 0.018, 16), gelasMat(0xffffff)); G.tutup.position.y = 0.138; G.tutup.visible = false; g.add(G.tutup);
+  }
+  g.traverse(function (o) { if (o.isMesh) o.castShadow = true; });
+  g.position.set(KAFE_BARISTA.x - 0.05, 1.17, 7.68);
+  jalanScene.add(g);
+  kafeGelasSaya = G;
+  return G;
+}
+function kafeGelasBuang() {
+  if (!kafeGelasSaya) return;
+  var g = kafeGelasSaya.g;
+  if (g.parent && !kafeGelasSaya.diserahkan) g.parent.remove(g);
+  if (!kafeGelasSaya.diserahkan) g.traverse(function (o) { if (o.isMesh) o.geometry.dispose(); });
+  kafeGelasSaya = null;
+}
+function kafeGelas(k, menu) { /* tampilan gelas mengikuti langkah resep */
+  if (k === 'gelasPanas' || k === 'gelasEs') { kafeGelasBuat(k === 'gelasEs'); return; }
+  var G = kafeGelasSaya;
+  if (!G) return;
+  if (k === 'esBatu') { if (G.es) G.es.visible = true; return; }
+  if (k === 'sajikan') { G.tutup.visible = true; if (G.sedotan) G.sedotan.visible = true; return; }
+  var c = KAFE_WARNA_CAIR[k];
+  if (k === 'susu') c = menu === 'tehtarik' ? 0xc9905a : (menu === 'escokelat' ? 0x8a5a3a : 0xb98a5e);
+  if (k === 'gulaAren') c = menu === 'tehtarik' ? 0xb97a45 : 0x9a6a42;
+  if (c === null || c === undefined) return;
+  if (G.dingin) G.badan.material = gelasMat(c);
+  else { G.atas.material = gelasMat(c); G.atas.visible = true; }
+}
+function kafeMulai() {
+  kerjaJangkar = { x: KAFE_BARISTA.x, z: KAFE_BARISTA.z, rot: KAFE_BARISTA.rot, y: 0.12, keluar: { x: KAFE_BARISTA.x, z: 6.1 } };
+  kerjaKamera(Math.PI - 0.3, 0.27, isPortrait() ? 9 : 6.5); /* dari trotoar sisi timur: tiang listrik x 2 + pembeli ada di kiri garis pandang */
+  KERJA.antre = [];
+  for (var i = 0; i < KERJA.pesanan; i++) KERJA.antre.push(KAFE_MENU_IDS[Math.floor(Math.random() * KAFE_MENU_IDS.length)]);
+  KERJA.pel = null; KERJA.langkah = 0; KERJA.intip = false;
+}
+function kafeTick(now) {
+  var K = KERJA;
+  if (!K.pel && K.ke < K.pesanan && now >= kerjaWaktuTiba(K.ke, K.mulai, K.selesaiTerakhir)) kafeDatang();
+  if (K.pel && K.pel.fase === 'pesan' && now - K.pel.tiba > KERJA_SABAR_MS[K.pangkat]) kerjaPembeliPergiKesal(now);
+  if (!K.pel && K.ke >= K.pesanan) kerjaPenutup(now);
+}
+function kafeDatang() {
+  var K = KERJA, kiri = Math.random() < 0.5, p = pelangganBuat(kiri ? -9 : 15);
+  p.pesanan = K.antre[K.ke]; K.ke++;
+  p.jalur = [[KAFE_PELANGGAN.x, KERJA_TROTOAR_Z], [KAFE_PELANGGAN.x, KAFE_PELANGGAN.z]]; /* belok tegak lurus: tidak menyerempet tiang listrik x 2 */
+  p.saatSampai = function (q) { q.fase = 'pesan'; q.tiba = Date.now(); q.hadap = 0; emoteMulai(q.emote, 'lambai', Date.now(), Date.now()); bunyi('toast'); kerjaRender(); };
+  K.pel = p; K.langkah = 0; K.intip = false;
+  kerjaRender();
+}
+function kerjaPembeliPergiKesal(now) { /* kesabaran habis: pembeli pergi (pesanan gagal, tanpa tip) */
+  var K = KERJA, p = K.pel;
+  emoteMulai(p.emote, 'sedih', Date.now(), Date.now());
+  pelangganPergi(p);
+  K.pel = null; K.selesaiTerakhir = now; K.langkah = 0; K.ambil = {}; K.terkumpul = 0; K.tahap = 'ambil';
+  kafeGelasBuang(); warungBarangBuang();
+  bunyi('salah'); toastKosan('😢 Pembelinya kelamaan nunggu, jadi pergi');
+  kerjaRender();
+}
+function kafeTekan(k) {
+  var K = KERJA, p = K.pel;
+  if (!p || p.fase !== 'pesan') { kerjaGoyang('k:' + k); toastKosan('Tunggu pembeli sampai di meja dulu ya'); return; }
+  var h = kafeLangkah(KAFE_RESEP[p.pesanan], K.langkah, k);
+  if (h === 'salah') { K.salah++; bunyi('salah'); kerjaGoyang('k:' + k); return; }
+  kerjaAyun(k === 'sajikan' ? 'dua' : (k === 'esBatu' ? 'kocok' : 'raih'));
+  bunyi(KAFE_BUNYI[k]);
+  kafeGelas(k, p.pesanan);
+  K.langkah++;
+  if (h === 'selesai') {
+    var now = Date.now();
+    K.benar++; K.cepatJumlah += kerjaSkorCepat(now - p.tiba, KERJA_SABAR_MS[K.pangkat]); K.cepatN++;
+    setTimeout(function () { bunyi('benar'); }, 160);
+    if (kafeGelasSaya) { kafeGelasSaya.diserahkan = true; pelangganPegang(p, kafeGelasSaya.g); kafeGelasSaya = null; }
+    emoteMulai(p.emote, Math.random() < 0.5 ? 'hore' : 'mantap', now, now);
+    pelangganPergi(p);
+    K.pel = null; K.selesaiTerakhir = now; K.langkah = 0;
+  }
+  kerjaRender();
+}
+/* ---- jaga warung ---- */
+var warungBarangSaya = []; /* barang yang sudah diambil, dijajar di etalase */
+function warungBarangTaruh(id) {
+  var g = jajanBuatGrup(id === 'kerupuk' || id === 'permen' ? 'gorengan' : id);
+  g.scale.setScalar(1.2); g.rotation.set(0, 0, 0);
+  var n = warungBarangSaya.length;
+  g.position.set((WARUNG_PENJAGA.x + WARUNG_PELANGGAN.x) / 2 - 0.48 + (n % 5) * 0.24, 1.06 + (id === 'gorengan' || id === 'kerupuk' || id === 'permen' ? 0.06 : 0), 7.3 + Math.floor(n / 5) * 0.2);
+  jalanScene.add(g); warungBarangSaya.push(g);
+}
+function warungBarangBuang() {
+  warungBarangSaya.forEach(function (g) { if (g.parent) g.parent.remove(g); g.traverse(function (o) { if (o.isMesh) o.geometry.dispose(); }); });
+  warungBarangSaya = [];
+}
+function warungKresek() { /* kantong kresek putih berisi belanjaan (diserahkan ke pembeli) */
+  var g = new THREE.Group();
+  var b = new THREE.Mesh(new THREE.SphereGeometry(0.11, 12, 10), gelasMat(0xf2f3f0)); b.scale.set(1, 1.15, 0.85); b.position.y = -0.05; g.add(b);
+  [-1, 1].forEach(function (s) { var t = new THREE.Mesh(new THREE.TorusGeometry(0.035, 0.008, 4, 10, Math.PI), gelasMat(0xf2f3f0)); t.position.set(s * 0.03, 0.07, 0); g.add(t); });
+  g.traverse(function (o) { if (o.isMesh) o.castShadow = true; });
+  return g;
+}
+function warungKerjaMulai() {
+  kerjaJangkar = { x: WARUNG_PENJAGA.x, z: WARUNG_PENJAGA.z, rot: WARUNG_PENJAGA.rot, y: 0, keluar: { x: WARUNG_PENJAGA.x, z: 6.1 } };
+  kerjaKamera(Math.PI - 0.3, 0.27, isPortrait() ? 9 : 6.5);
+  KERJA.pel = null; KERJA.ambil = {}; KERJA.terkumpul = 0; KERJA.tahap = 'ambil';
+}
+function warungKerjaTick(now) {
+  var K = KERJA;
+  if (!K.pel && K.ke < K.pesanan && now >= kerjaWaktuTiba(K.ke, K.mulai, K.selesaiTerakhir)) {
+    var kiri = Math.random() < 0.5, p = pelangganBuat(kiri ? -14 : 6);
+    p.pw = warungPesananAcak(Math.random); K.ke++;
+    p.jalur = [[WARUNG_PELANGGAN.x, KERJA_TROTOAR_Z], [WARUNG_PELANGGAN.x, WARUNG_PELANGGAN.z]];
+    p.saatSampai = function (q) { q.fase = 'pesan'; q.tiba = Date.now(); q.hadap = 0; emoteMulai(q.emote, 'lambai', Date.now(), Date.now()); bunyi('toast'); kerjaRender(); };
+    K.pel = p; K.ambil = {}; K.terkumpul = 0; K.tahap = 'ambil';
+    kerjaRender();
+  }
+  if (K.pel && K.pel.fase === 'pesan' && now - K.pel.tiba > KERJA_SABAR_MS[K.pangkat] + 6000) kerjaPembeliPergiKesal(now); /* +6 dtk: hitung kembalian */
+  if (!K.pel && K.ke >= K.pesanan) kerjaPenutup(now);
+}
+function warungKerjaTekan(k) {
+  var K = KERJA, p = K.pel;
+  if (!p || p.fase !== 'pesan') { kerjaGoyang(k); toastKosan('Tunggu pembeli sampai di depan etalase dulu ya'); return; }
+  if (k === 'ulang') { K.terkumpul = 0; kerjaRender(); return; }
+  if (k.indexOf('b:') === 0) {
+    if (K.tahap !== 'ambil') { kerjaGoyang(k); return; }
+    var h = warungAmbil(p.pw, K.ambil, k.slice(2));
+    if (h === 'salah') { K.salah++; bunyi('salah'); kerjaGoyang(k); return; }
+    kerjaAyun('raih'); bunyi('plastik'); warungBarangTaruh(k.slice(2));
+    if (h === 'lengkap') { K.tahap = 'kembali'; K.terkumpul = 0; setTimeout(function () { bunyi('kasir'); }, 200); }
+  } else if (k.indexOf('u:') === 0) {
+    if (K.tahap !== 'kembali') { kerjaGoyang(k); return; }
+    var r = warungUang(p.pw.kembali, K.terkumpul, +k.slice(2));
+    if (r.hasil === 'lebih') { K.salah++; K.terkumpul = 0; bunyi('salah'); kerjaRender(); kerjaGoyang(k); toastKosan('Kembaliannya kelebihan — hitung ulang ya'); return; }
+    K.terkumpul = r.terkumpul; bunyi('koin'); kerjaAyun('raih');
+    if (r.hasil === 'pas') {
+      var now = Date.now();
+      K.benar++; K.cepatJumlah += kerjaSkorCepat(now - p.tiba, KERJA_SABAR_MS[K.pangkat] + 6000); K.cepatN++;
+      setTimeout(function () { bunyi('benar'); }, 160);
+      warungBarangBuang(); pelangganPegang(p, warungKresek());
+      emoteMulai(p.emote, Math.random() < 0.5 ? 'hore' : 'mantap', now, now);
+      pelangganPergi(p);
+      K.pel = null; K.selesaiTerakhir = now; K.ambil = {}; K.terkumpul = 0; K.tahap = 'ambil';
+    }
+  }
+  kerjaRender();
+}
+/* ---- ronda malam: patroli 4 titik + kentongan tepat irama, jaga pos, lapor ---- */
+var RONDA_PENANDA = null;
+function rondaPenandaSiapkan() { /* cincin + lampion menyala (Basic) di tiap titik, satu yang tampil */
+  if (RONDA_PENANDA) return;
+  RONDA_PENANDA = RONDA_TITIK.map(function (t) {
+    var g = new THREE.Group(), nyala = krMat('rondaNyala', function () { return new THREE.MeshBasicMaterial({ color: 0xffc56b }); });
+    var cincin = new THREE.Mesh(new THREE.TorusGeometry(0.75, 0.05, 6, 40), nyala); cincin.rotation.x = Math.PI / 2; cincin.position.y = 0.13; g.add(cincin);
+    var lampion = new THREE.Group();
+    lampion.add(new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.3, 12), nyala));
+    lampion.add(new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.04, 12), krMat('rondaTutup', function () { return new THREE.MeshLambertMaterial({ color: 0x2a2420 }); })));
+    lampion.children[1].position.y = 0.17;
+    lampion.position.y = 1.4; g.add(lampion); g.userData.lampion = lampion;
+    g.position.set(t.x, 0, t.z); g.visible = false; jalanScene.add(g);
+    return g;
+  });
+}
+function rondaPenandaTampil(i) { if (!RONDA_PENANDA) return; RONDA_PENANDA.forEach(function (g, k) { g.visible = k === i; }); }
+function rondaPenandaSembunyi() { rondaPenandaTampil(-1); }
+function rondaMulai() {
+  rondaPenandaSiapkan();
+  KERJA.titik = 0; KERJA.ketuk = 0; KERJA.tahap = 'jalan'; KERJA.tKetuk = 0; KERJA.skor = 0; KERJA.nKetuk = 0;
+  rondaPenandaTampil(0);
+}
+function rondaTick(dt, now) {
+  var K = KERJA;
+  if (RONDA_PENANDA) RONDA_PENANDA.forEach(function (g) { if (g.visible) { g.userData.lampion.position.y = 1.4 + Math.sin(now / 1000 * 2.4) * 0.1; g.userData.lampion.rotation.y += dt * 0.8; } });
+  if (K.tahap === 'jalan' || K.tahap === 'ketuk') {
+    var T = RONDA_TITIK[K.titik], dekat = Math.hypot(avatarPos.x - T.x, avatarPos.z - T.z) <= RONDA_JARAK;
+    if (dekat && K.tahap === 'jalan') { K.tahap = 'ketuk'; K.ketuk = 0; K.tKetuk = performance.now(); bunyi('toast'); kerjaRender(); }
+    else if (!dekat && K.tahap === 'ketuk') { K.tahap = 'jalan'; kerjaRender(); }
+  } else if (K.tahap === 'pulang') {
+    if (jarakKeKotak(avatarPos.x, avatarPos.z, POS_RONDA_KOTAK) <= JALAN_JARAK) { K.tahap = 'jaga'; bunyi('toast'); kerjaRender(); }
+  } else if (K.tahap === 'jaga') kerjaPenutup(now);
+}
+function rondaKursorTampil() {
+  var el = document.getElementById('rdKursor');
+  if (el) el.style.left = (rondaKursor((performance.now() - KERJA.tKetuk) / 1000) * 100).toFixed(1) + '%';
+}
+function rondaPukul() {
+  var K = KERJA;
+  if (!K || K.id !== 'ronda' || K.beres) return;
+  if (K.tahap !== 'ketuk') { toastKosan('Jalan ke titik ronda yang menyala dulu ya'); return; }
+  var n = rondaNilai(rondaKursor((performance.now() - K.tKetuk) / 1000));
+  kerjaAyun('pukul'); bunyi('tong');
+  if (n === 'meleset') { K.salah++; kerjaGoyang('pukul'); return; }
+  K.ketuk++; K.skor += n === 'pas' ? 1 : 0.6; K.nKetuk++;
+  if (K.ketuk >= RONDA_KETUK) {
+    K.benar++; K.cepatJumlah += K.skor / K.nKetuk; K.cepatN++; K.skor = 0; K.nKetuk = 0;
+    K.titik++; setTimeout(function () { bunyi('benar'); }, 200);
+    if (K.titik >= RONDA_TITIK.length) { K.tahap = 'pulang'; rondaPenandaSembunyi(); toastKosan('🪘 Patroli beres — balik ke Pos Ronda buat lapor'); }
+    else { K.tahap = 'jalan'; rondaPenandaTampil(K.titik); }
+  }
+  kerjaRender();
+}
+/* ---- laundry kiloan (dapur): 3 kantong — timbang, cuci, keringkan, lipat (mesin dipakai bergantian) ---- */
+var KILOAN; /* meja kiloan: { kantong: [mesh], lipatan: [mesh], layar: tex } — diisi buildDapur SEBELUM baris ini dieksekusi: sengaja tanpa nilai awal (jangan menimpa) */
+function lukisLayarTimbang(teks) {
+  return function (ctx, w, h) {
+    ctx.fillStyle = '#10261c'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#8dff9a'; ctx.font = '800 40px "Nunito", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(teks, w / 2, h / 2 + 2);
+  };
+}
+function kiloanLayar(teks) { if (!KILOAN) return; var u = KILOAN.layar.userData; u.ctx.clearRect(0, 0, u.w, u.h); lukisLayarTimbang(teks)(u.ctx, u.w, u.h); KILOAN.layar.needsUpdate = true; }
+function lukisPapanKiloan(ctx, w, h) {
+  ctx.fillStyle = '#2a9d8f'; ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = '800 34px "Baloo 2", "Nunito", sans-serif'; ctx.fillText('LAUNDRY KILOAN', w / 2, h * 0.38);
+  ctx.font = '700 22px "Nunito", sans-serif'; ctx.fillText(rupiah(DAPUR_KILOAN_HARGA_KG) + ' / kg · cuci + kering + lipat', w / 2, h * 0.72);
+}
+function bangunMejaKiloan() {
+  /* meja laundry kiloan di dinding utara dapur, timur pengering (DAPUR_KILOAN = AABB padat): meja putih + kaki
+     baja, timbangan digital (layar kanvas), 3 kantong cucian, 3 tumpuk lipatan (muncul saat beres), gulungan
+     plastik, papan harga di dinding. Bagian diam digabung jadi SATU mesh warna verteks; tiap kantong / tumpukan
+     satu mesh (bisa disembunyikan sendiri-sendiri): 6 draw call saat diam. Dipanggil buildDapur (sebelum blok
+     KERJA dieksekusi: hanya fungsi + variabel PURE yang dipakai). */
+  var k = DAPUR_KILOAN, cx = (k.minX + k.maxX) / 2, cz = (k.minZ + k.maxZ) / 2 + 0.03;
+  var matV = krMat('kiloan:v', function () { return new THREE.MeshLambertMaterial({ vertexColors: true }); });
+  var diam = new THREE.Group(), KM = new JalanKumpul(diam);
+  KM.cat(0xe9e4da); KM.kotak(matV, 1.5, 0.05, 0.66, cx, 0.86, cz); KM.kotak(matV, 1.42, 0.03, 0.6, cx, 0.25, cz); /* daun meja + rak bawah */
+  KM.cat(0x9aa1a8); [[-0.7, -0.29], [0.7, -0.29], [-0.7, 0.29], [0.7, 0.29]].forEach(function (q) { KM.kotak(matV, 0.04, 0.84, 0.04, cx + q[0], 0.42, cz + q[1]); });
+  KM.cat(0xc9ced3); KM.kotak(matV, 0.34, 0.05, 0.3, cx - 0.45, 0.91, cz + 0.02); KM.kotak(matV, 0.3, 0.012, 0.26, cx - 0.45, 0.94, cz + 0.02); /* timbangan */
+  KM.cat(0xdfe9ee); KM.tambah(matV, new THREE.CylinderGeometry(0.06, 0.06, 0.4, 14), cx + 0.5, 0.95, cz - 0.18, 0, 0, Math.PI / 2); /* gulungan plastik */
+  KM.selesai();
+  var tex = teksturLukis(128, 48, lukisLayarTimbang('0,0 kg'));
+  var layar = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 0.06), new THREE.MeshBasicMaterial({ map: tex }));
+  layar.position.set(cx - 0.45, 0.91, cz + 0.172); layar.rotation.x = -0.35;
+  var texPapan = teksturLukis(512, 192, lukisPapanKiloan); lukisUlangSetelahFont(texPapan);
+  var papan = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.34), new THREE.MeshBasicMaterial({ map: texPapan }));
+  papan.position.set(cx, 1.75, -3.985);
+  var kantong = [], lipatan = [], warna = [0xf2f3f0, 0xd7e9f7, 0xf7e3d7], isiW = [0x3d5a80, 0xe8836f, 0x9bb58a];
+  for (var i = 0; i < 3; i++) {
+    var kg = new THREE.Group(), KK = new JalanKumpul(kg);
+    KK.cat(warna[i]); KK.tambah(matV, new THREE.SphereGeometry(0.17, 12, 10), 0, 0, 0, 0, 0, 0, 1, 0.9, 0.85);
+    KK.cat(isiW[i]); KK.tambah(matV, new THREE.SphereGeometry(0.11, 10, 8), 0, 0.12, 0, 0, 0, 0, 1, 0.5, 1);
+    KK.selesai();
+    kg.position.set(cx - 0.05 + i * 0.33, 1.03, cz + 0.05); kg.userData.x0 = kg.position.x; kantong.push(kg);
+    var lp = new THREE.Group(), KL = new JalanKumpul(lp);
+    for (var j = 0; j < 3; j++) { KL.cat(isiW[(i + j) % 3]); KL.kotak(matV, 0.26, 0.05, 0.2, 0, j * 0.052, 0); }
+    KL.selesai();
+    lp.position.set(cx - 0.05 + i * 0.33, 0.91, cz + 0.05); lp.visible = false; lipatan.push(lp);
+  }
+  [diam, layar, papan].concat(kantong, lipatan).forEach(function (o) {
+    o.traverse(function (m) { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; m.userData = { interact: 'kiloan' }; dapurClickables.push(m); } });
+    dapurScene.add(o);
+  });
+  KILOAN = { kantong: kantong, lipatan: lipatan, layar: tex, timbangX: cx - 0.45, timbangY: 1.1 };
+}
+function kiloanVisual() { /* kantong di meja selama belum dicuci (yang ditimbang naik ke timbangan); tumpuk lipatan saat beres */
+  if (!KILOAN) return;
+  var K = KERJA && KERJA.id === 'laundry' ? KERJA : null;
+  KILOAN.kantong.forEach(function (g, i) {
+    var t = K ? K.kantong[i].tahap : 'antre';
+    g.visible = !K || t === 'antre' || t === 'timbang' || t === 'siapCuci';
+    g.position.x = t === 'timbang' ? KILOAN.timbangX : g.userData.x0; g.position.y = t === 'timbang' ? KILOAN.timbangY : 1.03;
+  });
+  KILOAN.lipatan.forEach(function (g, i) { g.visible = !!(K && (K.kantong[i].tahap === 'beres' || K.kantong[i].tahap === 'lipat')); g.scale.y = K && K.kantong[i].tahap === 'lipat' ? Math.max(0.34, K.kantong[i].lipatKe / LAUNDRY_BAJU) : 1; });
+}
+function laundryMulai() {
+  kerjaKamera(0.55, 0.34, 3.4); /* dari tenggara: meja kiloan + kedua mesin tidak tertutup punggung avatar (kamera tetap di dalam dapur) */
+  KERJA.kantong = [];
+  for (var i = 0; i < KERJA.pesanan; i++) KERJA.kantong.push(Object.assign(laundryKantongAcak(Math.random), { tahap: 'antre', mulai: 0, lipatKe: 0, langkah: 0 }));
+  kiloanLayar('0,0 kg'); kiloanVisual();
+}
+function laundryBersihkan() {
+  if (washWM.kiloan !== undefined && washWM.kiloan !== null) { washWM.active = false; washWM.t = 0; washWM.kiloan = null; }
+  if (washDR.kiloan !== undefined && washDR.kiloan !== null) { washDR.active = false; washDR.t = 0; washDR.kiloan = null; }
+  if (KILOAN) { kiloanAwal(); kiloanLayar('0,0 kg'); }
+}
+function kiloanAwal() { /* tampilan meja kembali ke keadaan awal (dipanggil saat shift dibersihkan) */
+  KILOAN.kantong.forEach(function (g) { g.visible = true; g.position.x = g.userData.x0; g.position.y = 1.03; });
+  KILOAN.lipatan.forEach(function (g) { g.visible = false; g.scale.y = 1; });
+}
+function laundryDekat(apa) {
+  if (apa === 'meja') return jarakKeKotak(avatarPos.x, avatarPos.z, DAPUR_KILOAN) <= 1.4;
+  var x = apa === 'wm' ? -0.7 : 0.7;
+  return Math.hypot(avatarPos.x - x, avatarPos.z - (-3.1)) <= 1.7;
+}
+function laundryTick(now) {
+  var K = KERJA;
+  if (K.kantong.every(function (q) { return q.tahap === 'beres'; })) kerjaPenutup(now);
+}
+function laundryAksi(i, aksi, nilai) {
+  var K = KERJA, q = K.kantong[i];
+  if (!q) return;
+  if (aksi === 'timbang') {
+    if (!laundryDekat('meja')) { toastKosan('🧺 Dekati meja laundry kiloan dulu ya'); return; }
+    if (K.kantong.some(function (x) { return x.tahap === 'timbang'; })) { toastKosan('Selesaikan timbangan kantong yang tadi dulu'); return; }
+    q.tahap = 'timbang'; q.mulai = Date.now(); kiloanLayar(laundryKgTeks(q.kg)); bunyi('timbang'); kerjaAyun('dua');
+  } else if (aksi === 'harga') {
+    if (nilai !== q.harga) { K.salah++; bunyi('salah'); kerjaGoyang('h:' + i + ':' + nilai); return; }
+    q.tahap = 'siapCuci'; bunyi('kasir');
+  } else if (aksi === 'cuci') {
+    if (!laundryDekat('wm')) { toastKosan('🧺 Dekati mesin cuci dulu ya'); return; }
+    if (washWM.active) { toastKosan(washWM.kiloan !== null && washWM.kiloan !== undefined ? 'Mesin cuci masih mencuci kantong lain 🌀' : 'Mesin cuci lagi dipakai cucianmu sendiri — tunggu selesai ya'); return; }
+    q.tahap = 'cuci'; washWM.active = true; washWM.t = LAUNDRY_MESIN_DETIK; washWM.kiloan = i; bunyi('mesin'); kerjaAyun('dua');
+  } else if (aksi === 'kering') {
+    if (!laundryDekat('dr')) { toastKosan('🧺 Dekati pengering dulu ya'); return; }
+    if (washDR.active) { toastKosan('Pengering masih jalan 🌀'); return; }
+    q.tahap = 'kering'; washDR.active = true; washDR.t = LAUNDRY_MESIN_DETIK; washDR.kiloan = i; bunyi('mesin'); kerjaAyun('dua');
+  } else if (aksi === 'lipat') {
+    if (!laundryDekat('meja')) { toastKosan('🧺 Bawa ke meja laundry buat dilipat ya'); return; }
+    if (K.kantong.some(function (x) { return x.tahap === 'lipat'; })) { toastKosan('Selesaikan lipatan yang tadi dulu'); return; }
+    q.tahap = 'lipat'; q.lipatKe = 0; q.langkah = 0; bunyi('kain');
+  } else if (aksi === 'arah') {
+    var h = laundryLipat(q.lipat[q.lipatKe], q.langkah, nilai);
+    if (h === 'salah') { K.salah++; q.langkah = 0; bunyi('salah'); kerjaRender(); kerjaGoyang('a:' + nilai); return; }
+    kerjaAyun('dua'); bunyi('kain'); q.langkah++;
+    if (h === 'selesai') {
+      q.lipatKe++; q.langkah = 0;
+      if (q.lipatKe >= LAUNDRY_BAJU) {
+        q.tahap = 'beres'; bunyi('plastik'); setTimeout(function () { bunyi('benar'); }, 220);
+        K.benar++; K.cepatJumlah += kerjaSkorCepat(Date.now() - q.mulai - 2 * LAUNDRY_MESIN_DETIK * 1000, 40000); K.cepatN++;
+      }
+    }
+  }
+  kiloanVisual(); kerjaRender();
+}
+function laundryMesinSelesai(which) { /* dipanggil finishWash saat siklus kiloan selesai */
+  var st = which === 'wm' ? washWM : washDR, i = st.kiloan;
+  st.kiloan = null;
+  if (!KERJA || KERJA.id !== 'laundry' || !KERJA.kantong[i]) return;
+  KERJA.kantong[i].tahap = which === 'wm' ? 'siapKering' : 'siapLipat';
+  toastKosan(which === 'wm' ? '🧺 Kantong ' + (i + 1) + ' selesai dicuci — pindahkan ke pengering' : '🧺 Kantong ' + (i + 1) + ' sudah kering — lipat di meja');
+  kiloanVisual(); kerjaRender();
+}
+function laundryKetukMesin(which) { /* ketuk mesin di dunia selama shift = aksi kantong berikutnya untuk mesin itu */
+  var K = KERJA, cari = which === 'wm' ? 'siapCuci' : 'siapKering';
+  for (var i = 0; i < K.kantong.length; i++) if (K.kantong[i].tahap === cari) { laundryAksi(i, which === 'wm' ? 'cuci' : 'kering'); return; }
+  toastKosan(which === 'wm' ? 'Belum ada kantong yang siap dicuci (timbang dulu di meja)' : 'Belum ada kantong yang siap dikeringkan');
+}
+/* ---- animasi kerja: lengan meraih / mengocok / menyajikan / memukul (TANPA naik-turun badan) ---- */
+var kerjaGerak = { jenis: null, t0: 0, dur: 0.42 }, kerjaPoseK = 0;
+function kerjaAyun(jenis) { kerjaGerak = { jenis: jenis, t0: performance.now(), dur: jenis === 'kocok' ? 0.6 : (jenis === 'pukul' ? 0.3 : (jenis === 'lap' ? 0.9 : 0.42)) }; }
+function kerjaPoseTick(dt) {
+  if (!avArmR || !avArmL) return;
+  var kerja = !!(KERJA && !KERJA.beres && !roomPose), tambat = kerja && !!kerjaJangkar;
+  kerjaPoseK += ((tambat ? 1 : 0) - kerjaPoseK) * (1 - Math.exp(-10 * dt));
+  var g = kerjaGerak, u = g.jenis ? (performance.now() - g.t0) / 1000 / g.dur : 1;
+  if (u >= 1) { g.jenis = null; u = 1; }
+  var d = g.jenis ? Math.sin(Math.PI * u) : 0;
+  if (kerjaPoseK > 0.01) { /* di balik meja: lengan bawah ke depan, gerak tiap langkah */
+    var tR = -0.42 - 0.78 * d, tL = -0.42 - (g.jenis === 'dua' || g.jenis === 'lap' ? 0.78 * d : 0.18 * d);
+    if (g.jenis === 'kocok') tR += Math.sin(u * Math.PI * 8) * 0.18;
+    if (g.jenis === 'lap') { tR = -0.95 + Math.sin(u * Math.PI * 4) * 0.25; tL = -0.5; }
+    avArmR.rotation.x += (tR - avArmR.rotation.x) * kerjaPoseK;
+    avArmL.rotation.x += (tL - avArmL.rotation.x) * kerjaPoseK;
+    avTubuh.rotation.y *= 1 - kerjaPoseK;
+  } else if (kerja && g.jenis) { /* kerja sambil berjalan (ronda / laundry): gerak tangan menimpa ayunan */
+    if (g.jenis === 'pukul') avArmR.rotation.x = -1.3 * d;
+    else { avArmR.rotation.x = -0.95 * d; avArmL.rotation.x = -0.95 * d * (g.jenis === 'dua' ? 1 : 0.3); }
+  }
+}
+function kerjaPoseRemote(e) { /* pemain lain yang sedang kerja (field kerja): tangan bergerak pelan saat berdiri diam */
+  if (e.pose !== 'stand') return;
+  if (e.aks.kerja === 'kafe' && e.realm === 'jalan' && e.tz > 6.85) e.group.position.y = 0.12; /* barista di balik meja bar: berdiri di lantai teras (pola jangkar lokal) */
+  if (e.gerak > 0.05 || e.aks.kerja === 'ronda') return;
+  var t = walkT * 2.2 + e.walkPhase, d = Math.max(0, Math.sin(t)), d2 = Math.max(0, Math.sin(t * 0.7 + 1.3));
+  e.parts.armR.rotation.x = -0.42 - 0.6 * d; e.parts.armL.rotation.x = -0.42 - 0.25 * d2; e.parts.tubuh.rotation.y = 0;
+}
+function kerjaGoyang(k) { /* umpan balik salah: tombol bergoyang + merah sebentar */
+  var b = document.querySelector('#kerjaPanel [data-k="' + k + '"], #rondaHud [data-k="' + k + '"]');
+  if (!b) return;
+  b.classList.remove('salah'); void b.offsetWidth; b.classList.add('salah');
+  setTimeout(function () { b.classList.remove('salah'); }, 360);
+}
+/* ---- panel kerja (kafe / warung / laundry) + pita ronda: kerjaRender menyusun ulang isi saat tahap
+   berubah; kerjaRenderWaktu hanya memperbarui angka + bilah tiap 0,2 dtk (tanpa menyusun ulang DOM) ---- */
+var KAFE_IKON = { kopisusu: 'gelasEs', americano: 'gelasPanas', tehtarik: 'teh', escokelat: 'cokelat' };
+var WARUNG_KERJA_IKON = { esteh: 'gelasEs', gorengan: 'gorengan', eskrim: 'eskrim', kerupuk: 'kerupuk', permen: 'permen' };
+var LAUNDRY_ARAH_NAMA = { kiri: 'Kiri', kanan: 'Kanan', bawah: 'Bawah' };
+var LAUNDRY_ARAH_IKON = { kiri: 'panahKiri', kanan: 'panahKanan', bawah: 'panahBawah' };
+var KERJA_SATUAN = { kafe: 'pesanan', warung: 'pembeli', ronda: 'titik patroli', laundry: 'kantong' };
+var RONDA_POS_LAPOR = { x: 10, z: 6.2 }; /* trotoar di depan bale-bale pos ronda (arah panah saat pulang) */
+function menitDetik(ms) { var s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ':' + ('0' + s % 60).slice(-2); }
+function kerjaRender() {
+  var panel = document.getElementById('kerjaPanel'), hud = document.getElementById('rondaHud'), K = KERJA;
+  if (!K) { panel.classList.remove('open'); hud.classList.remove('open'); return; }
+  var ronda = K.id === 'ronda' && !K.beres; /* ronda: pita kecil di atas (layar lapang untuk berjalan); hasil ronda di panel biasa */
+  hud.classList.toggle('open', ronda); panel.classList.toggle('open', !ronda);
+  if (ronda) { hud.innerHTML = rondaHudHtml(K); panel.innerHTML = ''; }
+  else {
+    hud.innerHTML = '';
+    panel.innerHTML = K.beres ? kerjaHasilHtml(K) : kerjaKepalaHtml(K) + kerjaStatusHtml(K)
+      + (K.id === 'kafe' ? kafePanelHtml(K) : (K.id === 'warung' ? warungPanelHtml(K) : laundryPanelHtml(K)));
+  }
+  kerjaRenderWaktu(Date.now());
+  if (ronda) rondaPanahTampil();
+  kerjaLensaHitung();
+}
+/* geser lensa kamera selama panel kerja terbuka: avatar tampil di tengah area layar yang TIDAK tertutup panel.
+   setViewOffset = bidang proyeksi digeser (posisi + arah kamera tetap, aturan kamera tidak berubah; raycast ketuk ikut) */
+var kerjaLensa = { tx: 0, ty: 0, x: 0, y: 0 };
+function kerjaLensaHitung() {
+  var panel = document.getElementById('kerjaPanel'), W = window.innerWidth, H = window.innerHeight;
+  kerjaLensa.tx = 0; kerjaLensa.ty = 0;
+  if (!KERJA || myRealm !== KERJA.realm || !panel.classList.contains('open')) return;
+  var r = panel.getBoundingClientRect();
+  if (r.width <= 0 || r.height <= 0) return;
+  if (r.left > W * 0.3) kerjaLensa.tx = Math.min(W * 0.3, W / 2 - r.left / 2); /* panel di kanan (landscape): ke tengah sisa kiri */
+  else if (r.top > H * 0.3) kerjaLensa.ty = Math.min(H * 0.3, H / 2 - r.top / 2); /* panel di bawah (portrait): ke tengah sisa atas */
+}
+function kerjaLensaTick(dt) { /* dipanggil animate tiap bingkai: geser halus menuju target */
+  var L = kerjaLensa, k = 1 - Math.exp(-8 * dt);
+  if (!L.tx && !L.ty && !L.x && !L.y) return;
+  L.x += (L.tx - L.x) * k; L.y += (L.ty - L.y) * k;
+  if (!L.tx && !L.ty && Math.abs(L.x) < 0.5 && Math.abs(L.y) < 0.5) { L.x = 0; L.y = 0; camera.clearViewOffset(); return; }
+  camera.setViewOffset(window.innerWidth, window.innerHeight, L.x, L.y, window.innerWidth, window.innerHeight);
+}
+window.addEventListener('resize', function () { if (KERJA) setTimeout(kerjaLensaHitung, 120); });
+function kerjaKepalaHtml(K) {
+  var p = KERJA_PEKERJAAN[K.id];
+  return '<div class="kp-kepala">' + iconSvg(KERJA_IKON[K.id]) + '<h2>' + p.nama + '<small>' + p.pangkat[K.pangkat] + (K.latihan ? ' · latihan, tanpa gaji' : '') + '</small></h2>'
+    + '<button id="kerjaBerhenti" type="button" data-k="berhenti">Berhenti</button></div>';
+}
+function kerjaStatusHtml(K) {
+  var teks;
+  if (K.sibuk) teks = 'Mencatat gaji…';
+  else if (K.fase === 'rapikan') teks = 'Beres semua · gaji dicatat dalam';
+  else if (K.id === 'laundry') teks = 'Kantong beres <b>' + K.kantong.filter(function (q) { return q.tahap === 'beres'; }).length + '/' + K.pesanan + '</b>';
+  else if (K.pel && K.pel.fase === 'pesan') teks = 'Pembeli <b>' + K.ke + '/' + K.pesanan + '</b> · sabarnya';
+  else teks = 'Pembeli <b>' + Math.min(K.pesanan, K.ke + (K.pel ? 0 : 1)) + '/' + K.pesanan + '</b> lagi jalan ke sini…';
+  return '<div class="kp-status"><span>' + teks + '</span><div class="kp-bar" id="kpBar"><i></i></div><b id="kpWaktu"></b></div>';
+}
+function kerjaMenunggu(K, teks) { return K.sibuk || K.fase === 'rapikan' ? '<p>' + teks + ' Gaji dicatat begitu shift cukup lama.</p>' : ''; }
+function kafePanelHtml(K) {
+  /* pangkat: Magang = langkah berikutnya disorot, Barista = resep tampil, Senior = hanya nama minuman (intip = tip berkurang) */
+  var p = K.pel, pesan = !!(p && p.fase === 'pesan' && !K.sibuk && K.fase !== 'rapikan'), h = '<div class="kp-tugas">';
+  var tunggu = kerjaMenunggu(K, 'Semua pesanan beres. Lap meja dan cuci gelas sebentar.');
+  if (tunggu) h += tunggu;
+  else if (!pesan) h += '<p>Pembeli berikutnya lagi jalan ke meja bar. Siap-siap ya!</p>';
+  else {
+    var resep = KAFE_RESEP[p.pesanan];
+    h += '<p class="kp-pesan">“' + KATALOG[p.pesanan].nama + ' satu, ya!”</p>';
+    if (K.pangkat < 2 || K.intip) {
+      h += '<div class="kp-chip">' + resep.map(function (b, i) {
+        return '<span class="' + (i < K.langkah ? 'sudah' : (i === K.langkah && K.pangkat === 0 ? 'berikut' : '')) + '">' + (i + 1) + '. ' + KAFE_BAHAN[b] + '</span>';
+      }).join('') + '</div>';
+    } else h += '<p>Barista senior hafal resepnya. <button type="button" class="kp-intip" data-k="intip">Lupa? Intip resep (tip berkurang)</button></p>';
+  }
+  h += '</div><div class="kp-tombol">';
+  KAFE_BAHAN_URUT.forEach(function (b) {
+    var berikut = pesan && K.pangkat === 0 && KAFE_RESEP[p.pesanan][K.langkah] === b;
+    h += '<button type="button" data-k="k:' + b + '"' + (berikut ? ' class="utama"' : '') + (pesan ? '' : ' disabled') + '>' + iconSvg(b) + KAFE_BAHAN[b] + '</button>';
+  });
+  return h + '</div>';
+}
+function warungPanelHtml(K) {
+  /* pangkat: Magang = kembalian ditulis, Penjaga = total + uang dibayar, Kepala = hanya harga satuan + uang dibayar */
+  var p = K.pel, pesan = !!(p && p.fase === 'pesan' && !K.sibuk && K.fase !== 'rapikan'), h = '<div class="kp-tugas">';
+  var tunggu = kerjaMenunggu(K, 'Pembeli sudah habis. Rapikan etalase sebentar.');
+  if (tunggu) h += tunggu;
+  else if (!pesan) h += '<p>Pembeli berikutnya lagi jalan ke warung. Siap-siap ya!</p>';
+  else {
+    var pw = p.pw, ids = Object.keys(pw.isi), brg = warungKerjaBarang;
+    var kalimat = ids.map(function (id) { return brg(id).nama.toLowerCase() + ' ' + pw.isi[id]; }).join(', ');
+    h += '<p class="kp-pesan">“' + kalimat.charAt(0).toUpperCase() + kalimat.slice(1) + ', ya!”</p>';
+    if (K.tahap === 'ambil') {
+      h += '<div class="kp-chip">' + ids.map(function (id) { var n = K.ambil[id] || 0; return '<span class="' + (n >= pw.isi[id] ? 'sudah' : '') + '">' + brg(id).nama + ' ' + n + '/' + pw.isi[id] + '</span>'; }).join('') + '</div>';
+    } else {
+      var info = K.pangkat === 0 ? 'Total ' + rupiah(pw.total) + ', dibayar ' + rupiah(pw.bayar) + '. Kembaliannya <b>' + rupiah(pw.kembali) + '</b>.'
+        : (K.pangkat === 1 ? 'Total <b>' + rupiah(pw.total) + '</b>, dibayar <b>' + rupiah(pw.bayar) + '</b>. Kembaliannya berapa?'
+        : ids.map(function (id) { return brg(id).nama + ' ' + pw.isi[id] + ' × ' + rupiah(brg(id).harga); }).join(', ') + '. Dibayar <b>' + rupiah(pw.bayar) + '</b>. Kembaliannya?');
+      h += '<p>' + info + '</p><div class="kp-chip"><span class="berikut">Kembalian di tangan: ' + rupiah(K.terkumpul) + '</span></div>';
+    }
+  }
+  h += '</div>';
+  if (pesan && K.tahap === 'kembali') {
+    h += '<div class="kp-tombol">' + WARUNG_KERJA_UANG.map(function (u) { return '<button type="button" data-k="u:' + u + '">' + iconSvg(u >= 2000 ? 'uangKertas' : 'koin') + rupiah(u) + '</button>'; }).join('')
+      + '<button type="button" data-k="ulang">' + iconSvg('tunggu') + 'Hitung ulang</button></div>';
+  } else {
+    h += '<div class="kp-tombol">' + WARUNG_KERJA_BARANG.map(function (b) {
+      return '<button type="button" data-k="b:' + b.id + '"' + (pesan ? '' : ' disabled') + '>' + iconSvg(WARUNG_KERJA_IKON[b.id]) + b.nama + '<span class="kp-jml">' + rupiah(b.harga) + '</span></button>';
+    }).join('') + '</div>';
+  }
+  return h;
+}
+function laundryPanelHtml(K) {
+  var tunggu = kerjaMenunggu(K, 'Semua cucian beres dan dibungkus. Rapikan meja sebentar.');
+  var h = '<div class="kp-tugas">' + (tunggu || '<p>Urutannya: timbang di meja, cuci, keringkan, lalu lipat di meja. Mesin dipakai bergantian, jadi kerjakan kantong lain sambil menunggu.</p>') + '</div>';
+  K.kantong.forEach(function (q, i) { h += laundryKantongHtml(K, q, i); });
+  return h;
+}
+function laundryKantongHtml(K, q, i) {
+  var st, ikon = 'timbang', tombol = '', ext = '';
+  var tb = function (aksi, label) { return '<button type="button" data-k="l:' + aksi + ':' + i + '">' + label + '</button>'; };
+  if (q.tahap === 'antre') { st = 'Belum ditimbang · di meja laundry'; tombol = tb('timbang', 'Timbang'); }
+  else if (q.tahap === 'timbang') {
+    st = '<b>' + laundryKgTeks(q.kg) + '</b>' + (K.pangkat === 0 ? ' × ' + rupiah(LAUNDRY_HARGA_KG) + '/kg' : '') + ' · ongkosnya berapa?';
+    ext = '<div class="kp-tombol tiga">' + q.pilihan.map(function (v) { return '<button type="button" data-k="h:' + i + ':' + v + '">' + iconSvg('uang') + rupiah(v) + '</button>'; }).join('') + '</div>';
+  } else if (q.tahap === 'siapCuci') { ikon = 'laundry'; st = laundryKgTeks(q.kg) + ' · ' + rupiah(q.harga) + ' — bawa ke mesin cuci'; tombol = tb('cuci', 'Cuci'); }
+  else if (q.tahap === 'cuci') { ikon = 'laundry'; st = 'Dicuci… <b id="kpMesin-wm"></b>'; }
+  else if (q.tahap === 'siapKering') { ikon = 'kering'; st = 'Bersih — bawa ke pengering'; tombol = tb('kering', 'Keringkan'); }
+  else if (q.tahap === 'kering') { ikon = 'kering'; st = 'Dikeringkan… <b id="kpMesin-dr"></b>'; }
+  else if (q.tahap === 'siapLipat') { ikon = 'bungkus'; st = 'Kering — lipat di meja laundry'; tombol = tb('lipat', 'Lipat'); }
+  else if (q.tahap === 'lipat') {
+    ikon = 'bungkus'; st = 'Lipat baju ' + (q.lipatKe + 1) + '/' + LAUNDRY_BAJU + ' sesuai urutan';
+    ext = '<div class="kp-chip">' + q.lipat[q.lipatKe].map(function (a, j) {
+      return '<span class="' + (j < q.langkah ? 'sudah' : (j === q.langkah && K.pangkat === 0 ? 'berikut' : '')) + '">' + (j + 1) + '. ' + LAUNDRY_ARAH_NAMA[a] + '</span>';
+    }).join('') + '</div><div class="kp-tombol tiga">' + LAUNDRY_ARAH.map(function (a) {
+      return '<button type="button" data-k="a:' + a + '">' + iconSvg(LAUNDRY_ARAH_IKON[a]) + 'Lipat ' + LAUNDRY_ARAH_NAMA[a].toLowerCase() + '</button>';
+    }).join('') + '</div>';
+  } else { ikon = 'cek'; st = 'Beres: dilipat + dibungkus plastik'; }
+  var cls = q.tahap === 'timbang' || q.tahap === 'lipat' ? ' aktif' : (q.tahap === 'beres' ? ' beres' : '');
+  return '<div class="kp-kantong' + cls + '">' + iconSvg(ikon) + '<div class="kp-k-isi">Kantong ' + (i + 1) + '<small>' + st + '</small></div>' + tombol + '</div>' + ext;
+}
+function kerjaHasilHtml(K) {
+  var h = K.hasil || {}, p = KERJA_PEKERJAAN[K.id], hs = h.hasil || kerjaHasil(K);
+  var s = '<div class="kp-kepala">' + iconSvg(KERJA_IKON[K.id]) + '<h2>' + p.nama + '<small>' + (h.galat ? 'Shift belum tercatat' : (h.latihan ? 'Latihan selesai' : 'Shift selesai')) + '</small></h2></div><div class="kp-hasil">';
+  if (h.galat) s += '<p>' + escapeHtml(h.galat) + '</p>';
+  else if (h.latihan) {
+    s += '<div class="kp-uang">' + rupiah(h.gaji + h.tip) + '</div><p>Segini kira-kira gajimu kalau sudah jadi penghuni (gaji ' + rupiah(h.gaji) + ' + tip ' + rupiah(h.tip)
+      + '). Daftar dari layar masuk supaya kerjamu digaji.</p>';
+  } else {
+    s += '<div class="kp-uang">+' + rupiah(h.gaji + h.tip) + '</div><p>Gaji ' + rupiah(h.gaji) + (h.tip ? ' + tip ' + rupiah(h.tip) : ' (tanpa tip)') + ' · saldo sekarang <b>' + rupiah(h.saldo) + '</b></p>';
+    if (h.naikPangkat) s += '<p class="kp-naik">' + iconSvg('bintang') + ' Naik pangkat jadi <b>' + p.pangkat[h.pangkat] + '</b>!</p>';
+    else if (kerjaSisaPangkat(h.shift)) s += '<p>' + kerjaSisaPangkat(h.shift) + ' shift lagi naik pangkat jadi ' + p.pangkat[kerjaPangkat(h.shift) + 1] + '.</p>';
+  }
+  if (!h.galat) s += '<p>' + hs.benar + '/' + K.pesanan + ' ' + KERJA_SATUAN[K.id] + ' beres · ' + (hs.salah ? hs.salah + ' salah' : 'tanpa salah') + '</p>';
+  return s + '<button type="button" data-k="tutup">Selesai</button></div>';
+}
+function rondaHudHtml(K) {
+  var stop = '<button type="button" data-k="berhenti">Berhenti</button>';
+  if (K.sibuk) return '<div class="rd-baris">' + iconSvg('tunggu') + '<b>Mencatat gaji…</b></div>';
+  if (K.tahap === 'ketuk') {
+    var titik = '';
+    for (var i = 0; i < RONDA_KETUK; i++) titik += '<i' + (i < K.ketuk ? ' class="kena"' : '') + '></i>';
+    return '<div class="rd-baris">' + iconSvg('kentongan') + '<b>' + RONDA_TITIK[K.titik].nama + '<small>Pukul saat garis putih di tengah (hijau)</small></b>' + stop + '</div>'
+      + '<div class="rd-irama"><div class="rd-bar"><span class="rd-oke"></span><span class="rd-pas"></span><span class="rd-kursor" id="rdKursor"></span></div>'
+      + '<div class="rd-ketuk">' + titik + '</div><button id="rondaPukul" type="button" data-k="pukul">Tong! Pukul kentongan</button></div>';
+  }
+  if (K.tahap === 'jaga') {
+    return '<div class="rd-baris">' + iconSvg('chair') + '<b>Jaga pos sebentar<small>Lapor bisa dalam <span id="rdJaga"></span></small></b>'
+      + (roomPose ? '' : '<button type="button" data-k="duduk">Duduk</button>') + stop + '</div>';
+  }
+  if (K.tahap === 'lapor') {
+    return '<div class="rd-baris">' + iconSvg('cek') + '<b>Patroli beres, kampung aman<small>' + KERJA_PEKERJAAN.ronda.pangkat[K.pangkat] + (K.latihan ? ' · latihan, tanpa gaji' : '') + '</small></b></div>'
+      + '<button id="rondaPukul" type="button" data-k="lapor">Lapor: aman!</button>';
+  }
+  var tujuan = K.tahap === 'jalan' ? 'Titik ' + (K.titik + 1) + '/' + RONDA_TITIK.length + ': ' + RONDA_TITIK[K.titik].nama : 'Balik ke Pos Ronda buat lapor';
+  return '<div class="rd-baris"><svg id="rdPanah" class="rd-panah" viewBox="0 0 24 24" aria-hidden="true">' + UICONS.panahAtas + '</svg><b>' + tujuan
+    + '<small id="rdJarak">ikuti panah</small></b>' + stop + '</div>';
+}
+function rondaPanahTampil() { /* panah ke titik tujuan, relatif arah kamera (atas = lurus ke depan layar) */
+  var K = KERJA, el = document.getElementById('rdPanah');
+  if (!el || !K || (K.tahap !== 'jalan' && K.tahap !== 'pulang')) return;
+  var T = K.tahap === 'jalan' ? RONDA_TITIK[K.titik] : RONDA_POS_LAPOR, dx = T.x - avatarPos.x, dz = T.z - avatarPos.z;
+  var a = Math.atan2(dx * Math.cos(camYaw) - dz * Math.sin(camYaw), -dx * Math.sin(camYaw) - dz * Math.cos(camYaw));
+  el.style.transform = 'rotate(' + a.toFixed(3) + 'rad)';
+}
+function kerjaRenderWaktu(now) {
+  var K = KERJA;
+  if (!K || K.beres) return;
+  if (K.id === 'ronda') {
+    if (K.tahap === 'jalan' || K.tahap === 'pulang') {
+      var j = document.getElementById('rdJarak'), T = RONDA_TITIK[K.titik];
+      var m = K.tahap === 'jalan' ? Math.hypot(T.x - avatarPos.x, T.z - avatarPos.z) - RONDA_JARAK : jarakKeKotak(avatarPos.x, avatarPos.z, POS_RONDA_KOTAK) - JALAN_JARAK;
+      if (j) j.textContent = Math.max(1, Math.round(m)) + ' m lagi · ikuti panah';
+    } else if (K.tahap === 'jaga') {
+      var g = document.getElementById('rdJaga');
+      if (g) g.textContent = menitDetik(KERJA_PEKERJAAN.ronda.minDetik * 1000 + 2000 - (now - K.mulai));
+    }
+    return;
+  }
+  var bar = document.getElementById('kpBar'), wkt = document.getElementById('kpWaktu');
+  if (!bar || !wkt) return;
+  var f = 0, t = '', genting = false;
+  if (K.sibuk) f = 1;
+  else if (K.fase === 'rapikan') {
+    var total = KERJA_PEKERJAAN[K.id].minDetik * 1000 + 2000;
+    f = Math.min(1, (now - K.mulai) / total); t = menitDetik(total - (now - K.mulai));
+  } else if (K.id === 'laundry') {
+    f = K.kantong.filter(function (q) { return q.tahap === 'beres'; }).length / K.pesanan;
+    [['wm', washWM], ['dr', washDR]].forEach(function (w) { var el = document.getElementById('kpMesin-' + w[0]); if (el) el.textContent = menitDetik(w[1].t * 1000); });
+  } else if (K.pel && K.pel.fase === 'pesan') {
+    var sabar = KERJA_SABAR_MS[K.pangkat] + (K.id === 'warung' ? 6000 : 0), sisa = sabar - (now - K.pel.tiba);
+    f = Math.max(0, sisa / sabar); t = menitDetik(sisa); genting = f < 0.3;
+  }
+  bar.firstChild.style.width = (f * 100).toFixed(1) + '%';
+  bar.classList.toggle('genting', genting);
+  wkt.textContent = t;
+}
+function kerjaKlik(e) { /* delegasi klik panel kerja + pita ronda (data-k) */
+  var b = e.target.closest ? e.target.closest('button[data-k]') : null, K = KERJA;
+  if (!b || b.disabled || !K) return;
+  var k = b.getAttribute('data-k');
+  if (k === 'berhenti') { kerjaBerhenti(); return; }
+  if (k === 'tutup') { kerjaBersihkan(); return; }
+  if (K.beres || K.sibuk) return;
+  if (k === 'intip') { if (K.id === 'kafe' && K.pel && !K.intip) { K.intip = true; K.salah++; kerjaRender(); } return; }
+  if (k === 'pukul') { rondaPukul(); return; }
+  if (k === 'lapor') { if (K.tahap === 'lapor') kerjaSelesai(); return; }
+  if (k === 'duduk') { posRondaDuduk(); kerjaRender(); return; }
+  if (K.id === 'kafe' && k.indexOf('k:') === 0) { kafeTekan(k.slice(2)); return; }
+  if (K.id === 'warung') { warungKerjaTekan(k); return; }
+  if (K.id !== 'laundry') return;
+  var m = /^l:(timbang|cuci|kering|lipat):(\d)$/.exec(k), hg = /^h:(\d):(\d+)$/.exec(k), ar = /^a:(kiri|kanan|bawah)$/.exec(k);
+  if (m) laundryAksi(+m[2], m[1]);
+  else if (hg) laundryAksi(+hg[1], 'harga', +hg[2]);
+  else if (ar) { for (var i = 0; i < K.kantong.length; i++) if (K.kantong[i].tahap === 'lipat') { laundryAksi(i, 'arah', ar[1]); return; } }
+}
+document.getElementById('kerjaPanel').addEventListener('click', kerjaKlik);
+document.getElementById('rondaHud').addEventListener('click', kerjaKlik);
+function laundryKetukMeja() { /* ketuk meja kiloan selama shift = aksi meja berikutnya (timbang / lipat) */
+  var K = KERJA, cari = function (t) { for (var i = 0; i < K.kantong.length; i++) if (K.kantong[i].tahap === t) return i; return -1; };
+  if (cari('timbang') >= 0 || cari('lipat') >= 0) { toastKosan('🧺 Pilih di panel kerja ya'); return; }
+  var i = cari('siapLipat') >= 0 ? cari('siapLipat') : cari('antre');
+  if (i < 0) { toastKosan('🧺 Belum ada kantong yang perlu dikerjakan di meja'); return; }
+  laundryAksi(i, K.kantong[i].tahap === 'siapLipat' ? 'lipat' : 'timbang');
+}
+/* ---- kartu tempat kerja: tombol Daftar / Mulai shift / Coba latihan ---- */
+function kerjaTombolKartu(id, ulang) {
+  if (KERJA) return null;
+  var res = ktaIsResident(), d = DOMPET.data, p = KERJA_PEKERJAAN[id], b = document.createElement('button');
+  b.id = 'kerjaKartu-' + id;
+  var susunUlang = function () { if (cardEl.classList.contains('open') && document.getElementById('kerjaKartu-' + id)) ulang(); };
+  if (res && !d && DOMPET.galat) { /* dompet gagal dimuat: tombol coba lagi (tanpa memuat ulang terus-menerus) */
+    b.innerHTML = iconSvg('kerja') + ' Dompet belum termuat · coba lagi';
+    b.addEventListener('click', function () { DOMPET.galat = ''; dompetMuat().then(susunUlang); });
+    return b;
+  }
+  if (res && !d) { b.innerHTML = iconSvg('kerja') + ' Memuat dompet…'; b.disabled = true; dompetMuat().then(susunUlang); return b; }
+  if (res && !(d.pekerjaan[id] && d.pekerjaan[id].terdaftar)) {
+    b.innerHTML = iconSvg('kerja') + ' Daftar kerja · ' + p.nama;
+    b.addEventListener('click', function () { kerjaDaftar(id, function () { if (cardEl.classList.contains('open') && document.getElementById('kerjaKartu-' + id)) ulang(); }); });
+    return b;
+  }
+  b.innerHTML = iconSvg('kerja') + (res ? ' Mulai shift · ' + p.nama : ' Coba kerja · ' + p.nama + ' (latihan)');
+  b.addEventListener('click', function () { kerjaMulai(id); });
+  return b;
+}
+var kafeBeliSibuk = false;
+function showKafeCard() {
+  if (KERJA && KERJA.id === 'kafe' && !KERJA.beres) return; /* sedang jadi barista: ketuk kedai = bagian dari kerja */
+  cardTitle.innerHTML = iconSvg('kafe') + ' Kedai Kopi';
+  cardActions.innerHTML = '';
+  var res = ktaIsResident(), d = DOMPET.data, dekat = jarakKeKotak(avatarPos.x, avatarPos.z, KAFE_KOTAK) <= JALAN_JARAK;
+  var html = '<p>Kedai kopi kampung. Kopinya diracik barista penghuni, bayarnya pakai <b>Rupiah</b> hasil kerja.</p>';
+  if (res && d) html += '<p style="margin-top:4px">Saldomu: <b>' + rupiah(d.saldo) + '</b></p>';
+  else if (res) html += '<p style="margin-top:4px">' + escapeHtml(DOMPET.galat || 'Memuat dompet…') + '</p>'; /* dimuat oleh tombol kerja di bawah */
+  else html += '<p style="margin-top:4px">Jajan kopi khusus penghuni. Tamu boleh coba jadi barista (latihan, tanpa gaji).</p>';
+  if (!dekat) html += '<p style="margin-top:4px">Jalan ke depan meja bar dulu ya. 🚶</p>';
+  if (jajanSaya) html += '<p style="margin-top:4px">Kamu lagi pegang <b>' + escapeHtml(jajanSaya.item.nama.toLowerCase()) + '</b>. 😋</p>';
+  cardBody.innerHTML = html;
+  if (res && d && dekat) KAFE_MENU_IDS.forEach(function (id) {
+    var it = KATALOG[id], b = document.createElement('button');
+    b.id = 'kafeBeli-' + id;
+    b.innerHTML = iconSvg(KAFE_IKON[id]) + ' ' + it.nama + ' · ' + rupiah(it.harga);
+    if (d.saldo < it.harga) b.disabled = true;
+    b.addEventListener('click', function () { kafeBeliKlik(id); });
+    cardActions.appendChild(b);
+  });
+  var bk = kerjaTombolKartu('kafe', showKafeCard);
+  if (bk) cardActions.appendChild(bk);
+  openCard();
+}
+function kafeBeliKlik(id) {
+  if (kafeBeliSibuk) return;
+  if (jarakKeKotak(avatarPos.x, avatarPos.z, KAFE_KOTAK) > JALAN_JARAK) { toastKosan('Jalan ke depan meja bar dulu ya 🚶'); return; }
+  if (KERJA) { toastKosan('💼 Lagi kerja — jajannya sesudah shift ya'); return; }
+  var it = KATALOG[id];
+  kafeBeliSibuk = true;
+  tokoBeli(id).then(function (ok) {
+    kafeBeliSibuk = false;
+    if (!ok) return;
+    jajanPegang({ id: id, nama: it.nama });
+    toastKosan('☕ ' + it.nama + ' (−' + rupiah(it.harga) + ') — selamat menikmati!');
+    misiSelesai('kafe');
+    if (cardEl.classList.contains('open') && document.getElementById('kafeBeli-' + id)) showKafeCard();
+  });
+}
+function showKiloanCard() {
+  cardTitle.innerHTML = iconSvg('laundry') + ' Laundry Kiloan';
+  cardActions.innerHTML = '';
+  var html = '<p>Meja laundry kiloan: cucian ditimbang, dicuci, dikeringkan, lalu dilipat rapi. Ongkos ' + rupiah(LAUNDRY_HARGA_KG) + '/kg.</p>';
+  if (jarakKeKotak(avatarPos.x, avatarPos.z, DAPUR_KILOAN) > 2.5) html += '<p style="margin-top:4px">Dekati meja laundry dulu ya. 🚶</p>';
+  cardBody.innerHTML = html;
+  var bk = kerjaTombolKartu('laundry', showKiloanCard);
+  if (bk) cardActions.appendChild(bk);
+  openCard();
 }
 
 /* ---------- kartu ---------- */
@@ -7135,10 +9015,12 @@ function showLivingCard() {
 }
 var ibuBicara = false; /* Tahap 1 — kartu Ibu Kos sedang terbuka -> Ibu menoleh ke pemain */
 function ibuObrolanLanjut() {
+  /* Suasana: malam / hujan -> kumpulan kalimat sendiri (DRAF, lihat IBU_OBROLAN_MALAM), urutan disimpan terpisah */
+  var set = ibuDaftarObrolan(suasanaKini), kunci = 'kosan3d-ibu-obrolan' + (set.nama ? '-' + set.nama : '');
   var simpan = null;
-  try { simpan = JSON.parse(localStorage.getItem('kosan3d-ibu-obrolan') || 'null'); } catch (e) { simpan = null; }
-  var r = ibuObrolanBerikut(simpan, misiTanggal(new Date()));
-  try { localStorage.setItem('kosan3d-ibu-obrolan', JSON.stringify(r.simpan)); } catch (e) { /* abaikan */ }
+  try { simpan = JSON.parse(localStorage.getItem(kunci) || 'null'); } catch (e) { simpan = null; }
+  var r = ibuObrolanBerikut(simpan, misiTanggal(new Date()), set.daftar);
+  try { localStorage.setItem(kunci, JSON.stringify(r.simpan)); } catch (e) { /* abaikan */ }
   return r.teks;
 }
 function ibuTampilKalimat(teks) {
@@ -7165,6 +9047,8 @@ function showIbuCard() {
   cardActions.appendChild(b);
   openCard();
   ibuBicara = true; /* SETELAH openCard (openCard mereset penanda) */
+  ibuSewaTombol(); /* Kerja & Belanja — bayar uang kos bulan ini (penghuni; dompet dimuat dulu bila belum) */
+  if (ktaIsResident() && !DOMPET.data) dompetMuat();
 }
 /* Tahap 1 — kartu Gazebo + duduk di bangku (spek §4). Pose 'sit' yang
    sudah ada di protokol -> pemain lain melihat kita duduk (tanpa pesan baru). */
@@ -7987,6 +9871,42 @@ var UICONS = {
   /* Suasana — ikon toast hujan + pelangi; gaya sama (stroke currentColor) */
   hujan: '<path d="M7 15.5a4.5 4.5 0 0 1-.6-8.96A5.5 5.5 0 0 1 17 7.5a4 4 0 0 1 .5 7.97" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.5 18l-1 2.5M12.5 17l-1 3M16.5 18l-1 2.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
   pelangi: '<path d="M2.5 17.5a9.5 9.5 0 0 1 19 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 17.5a6 6 0 0 1 12 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M9.5 17.5a2.5 2.5 0 0 1 5 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  /* Kerja & Belanja — ikon kerja, kafe, dompet, toko, aksesori, dekor, bahan barista, barang warung, laundry; gaya sama (stroke currentColor) */
+  kerja: '<rect x="3" y="7" width="18" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 12.5h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  kafe: '<path d="M4 10h13v4a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M17 11h1.5a2.5 2.5 0 0 1 0 5H17M8 3.5c-.8 1 .8 2 0 3M12 3.5c-.8 1 .8 2 0 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  uang: '<path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><rect x="4" y="7.5" width="16" height="11.5" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 13.2h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  toko: '<path d="M5 8h14l-1.2 12H6.2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 10V6.5a3 3 0 0 1 6 0V10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  laundry: '<rect x="4" y="3" width="16" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="13" r="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7 6.5h3M9.8 13.8c1.4-1.2 3-1.2 4.4 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  topi: '<path d="M3.5 16a7.5 6.5 0 0 1 15 0z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M18.5 16h3M11 9.5V8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  kacamata: '<circle cx="7" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10.5 13h3M3.5 13L2 9.5M20.5 13L22 9.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  tas: '<rect x="5" y="7" width="14" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 7V5.5a3 3 0 0 1 6 0V7M8.5 13.5h7v4h-7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
+  poster: '<rect x="4" y="3" width="16" height="18" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7 17l3.5-4 2.5 3 2-2 2 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="15.5" cy="8" r="1.6" fill="currentColor"/>',
+  tanaman: '<path d="M7 15h10l-1.3 6H8.3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 15V9M12 11c-3 0-5-2-5-5 3 0 5 2 5 5zM12 9c0-3 2-5 5-5 0 3-2 5-5 5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
+  karpet: '<rect x="3.5" y="6" width="17" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="7" y="9" width="10" height="6" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3.5 9H1.5M3.5 12H1.5M3.5 15H1.5M20.5 9h2M20.5 12h2M20.5 15h2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+  lampuhias: '<path d="M2 6c5 4 15 4 20 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="6" cy="11.5" r="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="13" r="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="11.5" r="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 8.5v1M12 9.6v1.4M18 8.5v1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  gelasPanas: '<path d="M6 8.5h12L16.5 21h-9z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M5 6h14v2.5H5zM9.5 1.8c-.6.8.6 1.6 0 2.5M14.5 1.8c-.6.8.6 1.6 0 2.5M7 13.5h10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+  gelasEs: '<path d="M6 8h12l-1.5 13h-9z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M5 8a7 3 0 0 1 14 0M13 6l2-4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="8.6" y="11.5" width="3" height="3" rx=".6" fill="currentColor"/><rect x="12.4" y="14" width="3" height="3" rx=".6" fill="currentColor"/>',
+  espresso: '<ellipse cx="12" cy="12" rx="5.6" ry="8" transform="rotate(32 12 12)" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9.6 6.6c3 2.6 1.9 8.4 4.8 10.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  teh: '<path d="M8.5 10h7v7a3.5 3.5 0 0 1-7 0z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 10V3h3.5v2.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+  cokelat: '<rect x="6" y="3" width="12" height="18" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 9h12M6 15h12M12 3v18" fill="none" stroke="currentColor" stroke-width="2"/>',
+  airPanas: '<path d="M5.5 20h12a1 1 0 0 0 1-1v-4.5a6.5 6.5 0 0 0-13 0V19a1 1 0 0 0 1 1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M18.5 13l3-3M9 7a3 3 0 0 1 6 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  susu: '<path d="M7 9.5l2-4h6l2 4V21H7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M7 9.5h10M9 5.5V3h6v2.5M10 14h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  gulaAren: '<path d="M10 3h4v3l2 3v11a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V9l2-3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 13.5h8" fill="none" stroke="currentColor" stroke-width="2"/>',
+  esBatu: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 12l8-4.5M12 12L4 7.5M12 12v9" fill="none" stroke="currentColor" stroke-width="2"/>',
+  sajikan: '<path d="M3 17.5h18M5 17.5a7 7 0 0 1 14 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 10.5V8.5M10 8.5h4M4.5 20.5h15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  gorengan: '<path d="M4 18L12 5l8 13z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8.5 14.5l1.4 1M12 11l1.2 1.2M14.6 15l1 .8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  eskrim: '<path d="M8 11.5l4 9.5 4-9.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="8" r="4.2" fill="none" stroke="currentColor" stroke-width="2"/>',
+  kerupuk: '<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8.5 9.5l1 1M13 8l1 1M15 13l1 1M9.5 14.5l1 1M12 12l.6.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  permen: '<circle cx="12" cy="12" r="4.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7.5 12L3 9v6zM16.5 12L21 9v6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
+  koin: '<circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v10M14.6 9.2c-.6-.8-1.6-1.1-2.6-1.1-1.4 0-2.6.7-2.6 1.8 0 2.6 5.2 1.4 5.2 4 0 1.1-1.2 1.8-2.6 1.8-1.1 0-2-.4-2.7-1.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
+  uangKertas: '<rect x="2.5" y="6" width="19" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 9.5v5M18 9.5v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  timbang: '<rect x="3" y="12" width="18" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="8" y="14.5" width="8" height="3" rx=".6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5 8.5h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  kering: '<path d="M3 8h11a3 3 0 1 0-3-3M3 12h15a3 3 0 1 1-3 3M3 16h7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  bungkus: '<path d="M5 9h14l-1.5 12h-11z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 9c-1.5-3 0-5.5 1.5-5 1 .3 1.5 1.5 1.5 3 0-1.5.5-2.7 1.5-3 1.5-.5 3 2 1.5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
+  panahKiri: '<path d="M19 12H5M11 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>',
+  panahKanan: '<path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>',
+  panahBawah: '<path d="M12 5v14M6 13l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>',
+  panahAtas: '<path d="M12 19V5M6 11l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>',
   /* bintang emas (bukan currentColor): harga jajan / saldo Bintang di kartu warung */
   bintang: '<path d="M12 3.2l2.7 5.5 6 .9-4.35 4.25 1.03 6L12 17l-5.38 2.85 1.03-6L3.3 9.6l6-.9z" fill="#f2b21b" stroke="#c98a0b" stroke-width="1" stroke-linejoin="round"/>'
 };
@@ -8131,8 +10051,14 @@ window.addEventListener('popstate', function () {
   if (sendalO && sendalO.classList.contains('open')) { dorongStateLagi(); sendalTutup(); return; }
   if (ktaO && ktaO.classList.contains('open')) { dorongStateLagi(); ktaTutup(); return; }
   if (rupaPanel && rupaPanel.classList.contains('open')) { dorongStateLagi(); rupaTutup(); return; } /* Karakter v2 */
+  if (dompetTerbuka()) { dorongStateLagi(); dompetTutup(); return; } /* Kerja & Belanja — panel Dompet */
   if (menuDrop && menuDrop.classList.contains('open')) { dorongStateLagi(); menuTutup(); return; }
   if (cardEl.classList.contains('open')) { dorongStateLagi(); closeCard(); return; }
+  if (KERJA) { /* Kerja & Belanja — back saat kerja: hasil = tutup; shift berjalan = tetap (berhenti lewat tombolnya) */
+    dorongStateLagi();
+    if (KERJA.beres) kerjaBersihkan(); else toastKosan('💼 Lagi kerja — ketuk Berhenti di panel kerja kalau mau udahan');
+    return;
+  }
   /* Tidak ada UI yang terbuka: biarkan back keluar dari game. */
 });
 /* Ronde 58 — handler `fullscreenchange` pemulih DICABUT (perintah Ryan
@@ -8178,6 +10104,7 @@ function masukSebagai(nama, resident) {
   mpMulai(); /* MULTIPLAYER-SPEC §1.4: MQTT mulai sesudah masuk eksplisit */
   mpKirimPresence(); /* masuk ulang: nama/gender bisa berubah — tulis ulang segera */
   mpKirimPos();
+  if (typeof dompetSaatMasuk === 'function') dompetSaatMasuk(); /* Kerja & Belanja — pil saldo + dompet Rupiah (penghuni) */
 }
 /* Perbaikan 9 — tamu SEKALI KETUK: tanpa ketik nama; nama otomatis Tamu-N. */
 function tamuNamaTerpakai() {
@@ -8490,7 +10417,10 @@ var MISI_LIST = [
   /* Tahap 3a — Jalan Kampung: 10 -> 13 misi (boleh untuk tamu: luar ruangan) */
   { id: 'warung', nama: 'Jajan di Warung', ket: 'Beli jajan di warung Jalan Kampung pakai Bintang', ikon: 'warung', target: 1 },
   { id: 'kucing', nama: 'Elus Oyen', ket: 'Elus si Oyen, kucing Jalan Kampung', ikon: 'kucing', target: 1 },
-  { id: 'ronda', nama: 'Nongkrong di Pos Ronda', ket: 'Duduk di bale-bale pos ronda', ikon: 'kentongan', target: 1 }
+  { id: 'ronda', nama: 'Nongkrong di Pos Ronda', ket: 'Duduk di bale-bale pos ronda', ikon: 'kentongan', target: 1 },
+  /* Kerja & Belanja (Ryan 16 Nov, disetujui) — misi kerja + jajan kafe (Bintang tetap lokal, +1 seperti misi lain) */
+  { id: 'kerja', nama: 'Kerja 1 Shift', ket: 'Selesaikan 1 shift kerja: kafe, warung, ronda, atau laundry', ikon: 'kerja', target: 1 },
+  { id: 'kafe', nama: 'Jajan di Kafe', ket: 'Beli minuman di Kedai Kopi pakai Rupiah', ikon: 'kafe', target: 1 }
 ];
 var MISI_JALAN_TARGET = 300; /* meter kumulatif per hari; jalan 4 m/dtk, lari 7 m/dtk */
 var MISI_HARI = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
@@ -8645,7 +10575,7 @@ function misiRender() {
     var prog = '';
     if (m.id === 'jalan') prog = '<span class="mprog" id="misiJalanProg">' + Math.min(Math.floor(st.jalan), m.target) + ' / ' + m.target + ' m</span>';
     html += '<li class="' + (done ? 'done' : '') + '"><span class="mikon">' + iconSvg(m.ikon) + '</span>'
-      + '<span class="mbody"><span class="mnama">' + m.nama + '</span><br><span class="mket">' + (m.id === 'jemur' && !done && !ktaIsResident() ? 'Khusus penghuni' : m.ket) + '</span></span>' /* Tahap 1: tamu tidak bisa pakai dapur */
+      + '<span class="mbody"><span class="mnama">' + m.nama + '</span><br><span class="mket">' + ((m.id === 'jemur' || m.id === 'kafe') && !done && !ktaIsResident() ? 'Khusus penghuni' : m.ket) + '</span></span>' /* Tahap 1: tamu tidak bisa pakai dapur */
       + prog
       + '<span class="mcek">✓</span></li>';
   }
@@ -9045,6 +10975,7 @@ function ktaRender() {
     gender: visitorGender, isResident: isRes,
     subHtml: isRes
       ? '<p class="kta-status">Penghuni resmi Kosan Ibu Kos.</p>'
+        + (ktaLunasLabel() ? '<span class="kta-lunas">LUNAS · ' + escapeHtml(ktaLunasLabel()) + '</span>' : '') /* Kerja & Belanja — cap uang kos bulan ini */
       : '<p class="kta-status">Belum tercatat sebagai penghuni resmi.</p>',
     reg: !isRes,
     kunci: kunciPunya() /* Ronde 24 — chip Kunci Kamar di KTA sendiri */
@@ -9163,6 +11094,7 @@ function rupaFokus() { /* Perabot modern — kamera pratinjau per tab: rambut/at
 }
 function rupaBuka() {
   if (!entered) { toastKosan('Masuk Kosan dulu untuk ganti tampilan.'); return; }
+  if (KERJA && !KERJA.beres) { toastKosan('💼 Lagi kerja — ganti tampilan sesudah shift ya'); return; } /* Kerja & Belanja: kamera + panel dipakai kerja */
   rupaRender();
   rupaPanel.classList.add('open');
   closeCard();
@@ -9508,6 +11440,11 @@ function canvasTap(e, wasPinch) {
   if (ud.interact === 'palang') { showPalangCard(); return; }
   if (ud.interact === 'gerbangKos') { showGerbangCard(false); return; }
   if (ud.interact === 'gerbangHalaman') { showGerbangCard(true); return; }
+  /* Kerja & Belanja — Kedai Kopi, papan lowongan, meja laundry kiloan (dapur), lampu tumblr (kamar) */
+  if (ud.interact === 'kafe') { showKafeCard(); return; }
+  if (ud.interact === 'lowongan') { dompetBuka('kerja'); return; }
+  if (ud.interact === 'kiloan') { if (KERJA && KERJA.id === 'laundry' && !KERJA.beres) laundryKetukMeja(); else showKiloanCard(); return; }
+  if (ud.interact === 'lampuHias') { lampuHiasToggle(); return; }
   /* Ronde 48 — interaksi dapur (dicek sebelum 'card', pola bed/lamp). */
   if (ud.interact === 'stove') { toggleDapurStove(); return; }
   if (ud.interact === 'faucet') { toggleDapurFaucet(); return; }
@@ -9811,6 +11748,7 @@ function mpPasangPenangan(c) {
 }
 function mpBuatRemote(id, nama, gender, realm, x, z, rot, baju, rambut, gaya) {
   var parts = makeKosanAvatar(gender, mpPasangGaya({ baju: baju, rambut: rambut }, gaya)); /* Karakter v2 + gaya (Perabot modern) */
+  aksesoriPasang(parts, gaya); /* Kerja & Belanja — topi/kacamata/tas + celemek/kentongan (field opsional pesan) */
   var label = makeLabel('@' + nama); /* Ronde 54 — label pemain remote = @username */
   parts.g.add(label.sprite);
   parts.g.position.set(x, 0, z);
@@ -9821,6 +11759,7 @@ function mpBuatRemote(id, nama, gender, realm, x, z, rot, baju, rambut, gaya) {
     tx: x, tz: z, trot: rot, gerak: 0, pose: 'stand', walkPhase: mpHashFase(id),
     baju: typeof baju === 'number' ? baju : -1, rambut: typeof rambut === 'number' ? rambut : -1, /* Karakter v2 */
     gaya: mpBacaGaya(gaya), /* Perabot modern — model rambut/atasan/bawahan/alas (-1 = bawaan) */
+    aks: mpBacaAksesori(gaya), /* Kerja & Belanja — aksesori + status kerja */
     lastSeen: Date.now(), snapped: true, punyaPos: true, bot: false };
   remotePlayers[id] = entri;
   perbaruiLabelDuplikat();
@@ -9830,6 +11769,7 @@ function mpBuatRemote(id, nama, gender, realm, x, z, rot, baju, rambut, gaya) {
 function mpBangunUlangRemote(entri) { /* gender berubah: rebuild avatar, label tetap */
   var lama = entri.group;
   var parts = makeKosanAvatar(entri.gender, mpPasangGaya({ baju: entri.baju, rambut: entri.rambut }, entri.gaya)); /* Karakter v2 + gaya */
+  aksesoriPasang(parts, entri.aks); /* Kerja & Belanja — aksesori ikut dibangun ulang */
   var g = parts.g;
   g.add(entri.label.sprite); /* add() melepas sprite dari grup lama */
   g.position.copy(lama.position);
@@ -9907,6 +11847,7 @@ function mpTerimaPos(m) {
   if (m.gender !== entri.gender || m.baju !== entri.baju || m.rambut !== entri.rambut || !mpGayaSama(m, entri.gaya)) { /* gender / tampilan / gaya berubah (Karakter v2 + Perabot modern) */
     entri.gender = m.gender; entri.baju = m.baju; entri.rambut = m.rambut; entri.gaya = mpBacaGaya(m); mpBangunUlangRemote(entri);
   }
+  if (!mpAksesoriSama(m, entri.aks)) { entri.aks = mpBacaAksesori(m); aksesoriPasang(entri.parts, entri.aks); } /* Kerja & Belanja — pasang ulang aksesori saja (tanpa bangun ulang avatar) */
   entri.lastSeen = Date.now();
 }
 function mpTerimaPresence(m) {
@@ -9923,6 +11864,7 @@ function mpTerimaPresence(m) {
   if (m.gender !== entri.gender || m.baju !== entri.baju || m.rambut !== entri.rambut || !mpGayaSama(m, entri.gaya)) { /* gender / tampilan / gaya berubah (Karakter v2 + Perabot modern) */
     entri.gender = m.gender; entri.baju = m.baju; entri.rambut = m.rambut; entri.gaya = mpBacaGaya(m); mpBangunUlangRemote(entri);
   }
+  if (!mpAksesoriSama(m, entri.aks)) { entri.aks = mpBacaAksesori(m); aksesoriPasang(entri.parts, entri.aks); } /* Kerja & Belanja — pasang ulang aksesori saja (tanpa bangun ulang avatar) */
   entri.lastSeen = Date.now();
 }
 function mpHapusRemote(id) {
@@ -9964,6 +11906,7 @@ function mpKirimPos() {
     roomPose || 'stand', /* Ronde 15a — pose ikut dipublish (update reguler + saat berubah) */
     emoteAktifSaya(Date.now()) ? emoteSaya.id : null, emoteAktifSaya(Date.now()) ? emoteSaya.emoteTs : 0, /* Tahap 2 — emote aktif ikut */
     rupaSaya().baju, rupaSaya().rambut, rupaMentah()); /* Karakter v2 — tampilan; Perabot modern — gaya yang dipilih (opsional) */
+  mpPasangAksesori(msg, aksesoriSayaMp()); /* Kerja & Belanja — aksesori + status kerja (field opsional) */
   try { klien.publish(MP_TOPICS.pos, JSON.stringify(msg)); } catch (e) {}
   lastPosSent = Date.now();
 }
@@ -9972,6 +11915,7 @@ function mpKirimPresence() {
   var r = rupaSaya();
   var msg = mpBangunPresence(playerId, visitorName, visitorGender, myRealm, Date.now(), r.baju, r.rambut); /* Karakter v2 */
   mpPasangGaya(msg, rupaMentah()); /* Perabot modern — gaya yang dipilih (field opsional) */
+  mpPasangAksesori(msg, aksesoriSayaMp()); /* Kerja & Belanja — aksesori + status kerja (field opsional) */
   try { klien.publish(MP_TOPICS.presence + playerId, JSON.stringify(msg), { retain: true }); } catch (e) {}
   lastPresenceSent = Date.now();
 }
@@ -10353,6 +12297,44 @@ var BUNYI = {
   kena: function (c, out, t) { suaraDesis(c, out, t, { filter: 'lowpass', f: 1600, vol: 0.09, dur: 0.06 }); suaraNada(c, out, t, { f: 150, f1: 90, vol: 0.06, dur: 0.08 }); },
   ketuk: function (c, out, t) { /* ketuk pintu kamar: "tok tok" */
     [0, 0.15].forEach(function (d) { suaraNada(c, out, t + d, { f: 175, f1: 120, vol: 0.09, dur: 0.07 }); suaraDesis(c, out, t + d, { filter: 'lowpass', f: 900, vol: 0.06, dur: 0.04 }); });
+  },
+  /* ---- Kerja & Belanja (16 Nov): bunyi kerja barista / warung / ronda / laundry + gaji ---- */
+  gelas: function (c, out, t) { /* gelas ditaruh di meja: "tuk" */
+    suaraNada(c, out, t, { tipe: 'triangle', f: 980, f1: 760, vol: 0.05, dur: 0.07 });
+    suaraDesis(c, out, t, { filter: 'lowpass', f: 1400, vol: 0.06, dur: 0.035 });
+  },
+  tuang: function (c, out, t) { /* menuang cairan: desis turun + gemericik */
+    suaraDesis(c, out, t, { filter: 'bandpass', f: 1300, f1: 520, q: 1.6, vol: 0.09, a: 0.05, dur: 0.55 });
+    for (var i = 0; i < 6; i++) suaraNada(c, out, t + 0.06 + i * 0.07, { f: 520 + Math.random() * 380, vol: 0.012, dur: 0.05 });
+  },
+  mesinKopi: function (c, out, t) { /* mesin espresso: dengung pompa + desis uap */
+    suaraNada(c, out, t, { tipe: 'sawtooth', f: 62, f1: 70, vol: 0.022, a: 0.05, dur: 0.75 });
+    suaraDesis(c, out, t + 0.1, { filter: 'highpass', f: 3800, vol: 0.06, a: 0.08, dur: 0.6 });
+  },
+  es: function (c, out, t) { /* es batu masuk gelas: "kling-kling" */
+    [[0, 2900], [0.07, 3400], [0.13, 2500]].forEach(function (q) { suaraNada(c, out, t + q[0], { f: q[1], vol: 0.03, dur: 0.12 }); suaraDesis(c, out, t + q[0], { filter: 'highpass', f: 4500, vol: 0.02, dur: 0.02 }); });
+  },
+  kasir: function (c, out, t) { /* mesin kasir: laci + "ting" */
+    suaraDesis(c, out, t, { filter: 'bandpass', f: 900, f1: 1800, q: 0.8, vol: 0.06, a: 0.02, dur: 0.16 });
+    suaraNada(c, out, t + 0.14, { f: 2093, vol: 0.05, dur: 0.45 }); suaraNada(c, out, t + 0.14, { f: 4186, vol: 0.012, dur: 0.3 });
+  },
+  plastik: function (c, out, t) { /* kantong kresek */
+    suaraDesis(c, out, t, { filter: 'bandpass', f: 2600, f1: 3600, q: 0.7, vol: 0.06, a: 0.02, dur: 0.22 });
+    suaraDesis(c, out, t + 0.16, { filter: 'bandpass', f: 3100, f1: 2200, q: 0.7, vol: 0.045, a: 0.02, dur: 0.16 });
+  },
+  timbang: function (c, out, t) { /* timbangan digital: "pip pip" */
+    suaraNada(c, out, t, { f: 1850, vol: 0.03, dur: 0.06 }); suaraNada(c, out, t + 0.1, { f: 1850, vol: 0.03, dur: 0.06 });
+  },
+  tong: function (c, out, t) { /* satu pukulan kentongan (ronda) */
+    suaraNada(c, out, t, { f: 410, f1: 395, vol: 0.12, dur: 0.36 });
+    suaraNada(c, out, t, { f: 1130, vol: 0.03, dur: 0.11 });
+    suaraDesis(c, out, t, { filter: 'bandpass', f: 1800, q: 1.2, vol: 0.05, dur: 0.02 });
+  },
+  benar: function (c, out, t) { suaraNada(c, out, t, { tipe: 'triangle', f: 880, vol: 0.035, dur: 0.12 }); suaraNada(c, out, t + 0.08, { tipe: 'triangle', f: 1319, vol: 0.035, dur: 0.22 }); },
+  salah: function (c, out, t) { suaraNada(c, out, t, { tipe: 'triangle', f: 196, f1: 165, vol: 0.05, dur: 0.22 }); },
+  gaji: function (c, out, t) { /* gajian: arpeggio cerah + gemerincing koin */
+    [1047, 1319, 1568, 2093, 2637].forEach(function (f, i) { suaraNada(c, out, t + i * 0.07, { tipe: 'triangle', f: f, vol: 0.032, dur: 0.4 }); });
+    for (var i = 0; i < 5; i++) suaraNada(c, out, t + 0.38 + i * 0.06, { f: 2600 + Math.random() * 900, vol: 0.016, dur: 0.14 });
   }
 };
 function bunyi(nama, opsi) {
@@ -10943,6 +12925,7 @@ function suasanaSiapkan() {
     for (var px = sg[0] + 2, n = 0; px < sg[1] - 0.5; px += 4, n++) if (n % 2 === 1 && Math.abs(px) < 40) gj.push([px, -6.3, 1.5, 1.5, 0, 0.8]);
   });
   gj.push([JALAN_GERBANG_X, -6.2, 1.8, 1.8, 0, 0.9], [-4.5, 5.6, 2.2, 1.4, 0, 0.9], [9.6, 6.0, 1.5, 1.1, 0, 0.8]); /* gerbang, warung, pos ronda */
+  gj.push([3.0, 7.4, 3.9, 1.8, 0, 0.85]); /* Kerja & Belanja — Kedai Kopi: lampu untai kanopi + 2 lampu gantung meja bar (teras + trotoar depan) */
   SU.petaHalaman = suasanaPetaGenang(gh, 512);
   SU.petaJalan = suasanaPetaGenang(gj, 512);
   SU_GENANG.peta.value = SU.petaHalaman.tex; SU_GENANG.kotak.value.copy(SU.petaHalaman.kotak);
@@ -11134,6 +13117,7 @@ function animate() {
   wasMoving = latched.moving;
   var mag = latched.mag;
   if (roomPose) mag = 0; /* Ronde 13b — tidur/duduk: gerak jalan MATI (ayunan + publish multiplayer ikut 0) */
+  if (kerjaJangkar) mag = 0; /* Kerja & Belanja — barista / penjaga warung ditambat di balik meja (pola duduk) */
   var dir = moveVector(jIn, camYaw);
   var running = wasRunning ? mag >= 0.75 : mag >= 0.9;
   wasRunning = running;
@@ -11160,6 +13144,8 @@ function animate() {
       nx = cd1.x; nz = cd1.z;
       var cd2 = resolveAABB(nx, nz, DAPUR_COUNTER, 0.4, DAPUR);
       nx = cd2.x; nz = cd2.z;
+      var cd3 = resolveAABB(nx, nz, DAPUR_KILOAN, 0.4, DAPUR); /* Kerja & Belanja — meja laundry kiloan */
+      nx = cd3.x; nz = cd3.z;
     } else if (myRealm === 'living') {
       /* Ronde 13a — meja ruang tamu: AABB padat (pola yang sama seperti
          kasur kamar: dorong sumbu-z lama bisa menunjuk ke luar dinding
@@ -11223,6 +13209,9 @@ function animate() {
      y hanya = lantai, tidak berayun. */
   var groundY = (myRealm === 'yard') ? lantaiY(avatarPos.x, avatarPos.z) : 0;
   avatarLevel = (groundY > 0) ? 1 : 0;
+  if (kerjaJangkar && KERJA && myRealm === KERJA.realm) { /* Kerja & Belanja — di balik meja: posisi + hadap tetap, lantai teras (tanpa naik-turun) */
+    avatarPos.x = kerjaJangkar.x; avatarPos.z = kerjaJangkar.z; avatar.rotation.y = kerjaJangkar.rot; groundY = kerjaJangkar.y;
+  }
   avatar.position.set(avatarPos.x, groundY, avatarPos.z);
   avatar.rotation.y = Math.atan2(Math.sin(avatar.rotation.y), Math.cos(avatar.rotation.y)); /* normalisasi ke [-PI, PI] — rot tidak menumpuk (overlay terbaca) */
   /* (Overlay debug DICABUT ronde 36 atas perintah Ryan.) */
@@ -11247,6 +13236,7 @@ function animate() {
   if (roomPose) terapkanPoseKamar();
   /* Perabot modern — bawa keranjang cucian: dua tangan memegang keranjang (lengan tidak berayun) */
   jemuranPoseBawa(dt);
+  kerjaPoseTick(dt); /* Kerja & Belanja — lengan meraih / mengocok / menyajikan / memukul kentongan (tanpa naik-turun badan) */
 
   /* kamera orbit fantasy: follow dengan lerp 0,15; fly "Lihat kamarku"
      me-lerp camTarget/camYaw/camPitch/camDist ke tampilan pintu. */
@@ -11277,6 +13267,7 @@ function animate() {
      (masuk ruangan = FOV kembali 55 seketika, ikut transisi kamera). */
   var fovTarget = (isPortrait() && (myRealm === 'yard' || myRealm === 'jalan')) ? 68 : 55; /* Tahap 3a: Jalan Kampung = luar ruangan, pola halaman */
   if (camera.fov !== fovTarget) { camera.fov = fovTarget; camera.updateProjectionMatrix(); }
+  kerjaLensaTick(dt); /* Kerja & Belanja — avatar tidak tertutup panel kerja (geser bidang proyeksi, kamera tetap) */
   var cp = cameraPos(camTarget, camYaw, camPitch, camDist);
   /* Ronde 12d — jepit kamera 12a DICABUT (vonis Ryan 09:07: view nyekik,
      karakter gede); kamera kembali rumus langsung pra-12a. */
@@ -11308,6 +13299,7 @@ function animate() {
       re.group.rotation.y += mpBungkusSudut(re.trot - re.group.rotation.y) * mpK;
     }
     mpTerapkanPoseRemote(re); /* Ronde 15a — pose pemain lain (sleep/sit/stand) */
+    if (re.aks && re.aks.kerja) kerjaPoseRemote(re); /* Kerja & Belanja — gerak tangan saat bekerja (kosmetik) */
     var rls = Math.max(0.35, Math.min(1.3, camDist / 9.5));
     re.label.sprite.scale.set(2.4 * rls, 0.6 * rls, 1);
     if (re.emote) emoteTick(re.emote, re.group, re.pose === 'sleep', Date.now(), rls); /* Tahap 2 */
@@ -11337,6 +13329,7 @@ function animate() {
   /* Tahap 3a — Jalan Kampung: Oyen (posisi dari jam) + kentongan; jajan habis 90 dtk di alam mana pun */
   if (myRealm === 'jalan') jalanTick(dt, Date.now());
   jajanTick(Date.now());
+  kerjaTick(dt, Date.now()); /* Kerja & Belanja — shift berjalan (pembeli NPC, mesin kiloan, ronda) + angka panel kerja */
   /* Suasana — siang/malam ikut jam WIB, hujan, pelangi, kunang-kunang, suara alam (semua alam) */
   suasanaTick(dt, Date.now());
   renderer.render(myRealm === 'living' ? livingScene : (myRealm === 'dapur' ? dapurScene : (myRealm.indexOf('room-') === 0 ? roomScene : (myRealm === 'jalan' ? jalanScene : scene))), camera);
