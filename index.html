@@ -964,6 +964,10 @@
   .kp-hasil p { margin: 3px 0; font-size: 13px; font-weight: 700; color: var(--kb-teks-2); line-height: 1.4; }
   .kp-hasil button { width: 100%; margin-top: 8px; padding: 10px; border: none; border-radius: 14px; cursor: pointer; color: #fff;
     font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 15px; font-weight: 800; background: linear-gradient(180deg, #3a8de6, #1f6fc9); }
+  .kp-hasil .kp-ulang { display: flex; gap: 8px; }
+  .kp-hasil .kp-ulang button { flex: 1; }
+  .kp-hasil button.sekunder { background: var(--kb-isi); color: var(--kb-teks-2); }
+  .kp-hasil button:disabled, #kerjaBerhenti:disabled { opacity: .5; cursor: default; }
   .kp-kantong { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 12px; background: var(--kb-isi); margin-top: 6px; font-size: 12.5px; font-weight: 800; }
   .kp-kantong.aktif { background: #fff8ec; box-shadow: inset 0 0 0 1.5px #f2c94c; }
   .kp-kantong .kp-k-isi { flex: 1; min-width: 0; line-height: 1.3; }
@@ -7533,7 +7537,9 @@ function bangunKafe(S, K, KD, M2) {
    dihitung server, klien hanya melapor hasil kerja. Tamu boleh mencoba kerja (latihan, tanpa
    gaji); kafe, toko, uang kos khusus penghuni. Fungsi di sini juga dipanggil saat avatar
    dibangun di awal (sebelum baris ini dieksekusi): variabel modul dicek dulu (typeof). */
-var DOMPET = { data: null, memuat: false, galat: '', tab: 'kerja', janji: null, untuk: '' }; /* untuk = identitas pemilik data (ganti akun = data dibuang) */
+var DOMPET = { data: null, memuat: false, galat: '', tab: 'kerja', janji: null, janjiGen: -1, gen: 0, untuk: '', beli: '', sewaSibuk: false }; /* untuk = identitas pemilik data (ganti akun = data dibuang);
+  gen = nomor perubahan (beli / bayar / daftar / gaji): GET yang mulai sebelum perubahan terakhir = basi, dibuang + dimuat ulang;
+  beli = id barang yang sedang dibeli, sewaSibuk = uang kos sedang dibayar (ketuk dua kali = satu permintaan) */
 var avPartsSaya; /* parts avatar sendiri (aksesori dipasang ulang tanpa bangun ulang avatar) — sengaja tanpa nilai awal */
 function pesanApi(r, cadangan) {
   if (r && r.data && typeof r.data.pesan === 'string' && r.data.pesan) return r.data.pesan;
@@ -7541,16 +7547,27 @@ function pesanApi(r, cadangan) {
   if (r && r.status === 429) return 'Terlalu sering — tunggu sebentar ya.';
   return cadangan || 'Server lagi sibuk, coba lagi sebentar ya.';
 }
+function dompetBerubah() { DOMPET.gen++; } /* dipanggil saat server menjawab perubahan dompet (sebelum dompetMuat) */
 function dompetMuat() {
   if (!entered || !ktaIsResident()) { DOMPET.data = null; dompetHudPerbarui(); return Promise.resolve(null); }
-  if (DOMPET.janji) return DOMPET.janji;
+  if (DOMPET.janji && DOMPET.janjiGen === DOMPET.gen) return DOMPET.janji;
+  if (DOMPET.janji) return DOMPET.janji.then(function () { return dompetMuat(); }); /* GET berjalan dibaca sebelum perubahan terakhir: tunggu, lalu muat yang baru */
   DOMPET.memuat = true; dompetHudPerbarui();
-  var untuk = DOMPET.untuk;
-  DOMPET.janji = apiKosan('GET', '/api/dompet').then(function (r) {
-    DOMPET.memuat = false; DOMPET.janji = null;
+  var untuk = DOMPET.untuk, gen = DOMPET.gen, janji;
+  DOMPET.janjiGen = gen;
+  janji = DOMPET.janji = apiKosan('GET', '/api/dompet').then(function (r) {
+    if (DOMPET.janji === janji) { DOMPET.memuat = false; DOMPET.janji = null; } /* jawaban lama (ganti akun) tidak menghapus catatan permintaan baru */
     if (untuk !== DOMPET.untuk) return null; /* identitas berganti saat memuat: abaikan jawaban lama */
+    if (gen !== DOMPET.gen) { dompetMuat(); return null; } /* dibaca sebelum beli / bayar / gaji: jangan menimpa, muat ulang (yang menunggu dirantai ke GET baru) */
     var aksLama = JSON.stringify(aksesoriSayaMp());
-    if (r.status === 200 && r.data && typeof r.data.saldo === 'number') { DOMPET.data = r.data; DOMPET.galat = ''; }
+    if (r.status === 200 && r.data && typeof r.data.saldo === 'number') {
+      /* jeda + jatah + bulan uang kos = potret saat dimuat: jeda dijadikan waktu mutlak (dulu angka detik
+         ini tidak pernah berkurang: shift kedua tertolak "10 menit lagi" sepanjang sesi) */
+      var kini = Date.now();
+      r.data.jedaSampai = kini + Math.max(0, Number(r.data.jedaDetik) || 0) * 1000;
+      r.data.tanggalMuat = suasanaTanggal(kini);
+      DOMPET.data = r.data; DOMPET.galat = '';
+    }
     else DOMPET.galat = pesanApi(r, 'Server dompet belum bisa dihubungi. Coba lagi sebentar ya.');
     dompetHudPerbarui(); dekorTerapkan(); aksesoriSayaTerapkan(); ktaPerbaruiBila();
     if (JSON.stringify(aksesoriSayaMp()) !== aksLama) { mpKirimPresence(); mpKirimPos(); } /* barang milik baru diketahui: pemain lain ikut melihat aksesori */
@@ -7558,8 +7575,11 @@ function dompetMuat() {
     if (cardEl.classList.contains('open') && document.getElementById('ibuGelembung')) ibuSewaTombol();
     return DOMPET.data;
   });
-  return DOMPET.janji;
+  return janji;
 }
+function dompetJedaDetik(d, kini) { return d && d.jedaSampai ? Math.max(0, Math.ceil((d.jedaSampai - kini) / 1000)) : 0; }
+function dompetJatahHabis(d, kini) { return !!d && d.hariIni.shift >= d.hariIni.maks && d.tanggalMuat === suasanaTanggal(kini); } /* lewat tengah malam WIB = jatah baru (server yang menghitung) */
+function sewaLunasKini(d) { return !!(d && d.sewa && d.sewa.lunas && d.sewa.bulan === suasanaTanggal(Date.now()).slice(0, 7)); } /* lunas bulan LALU = belum lunas bulan ini */
 function dompetSaatMasuk() { /* dipanggil masukSebagai: identitas baru = dompet + shift lama dilupakan, lalu muat ulang (penghuni) */
   var kunci = (isResidentSession ? 'p:' : 't:') + normalize(visitorName);
   if (DOMPET.untuk !== kunci) { if (KERJA) kerjaBersihkan(); DOMPET.data = null; DOMPET.galat = ''; DOMPET.janji = null; DOMPET.untuk = kunci; }
@@ -7576,7 +7596,11 @@ function dompetHudPerbarui() {
 function dompetSetSaldo(s) { if (DOMPET.data && typeof s === 'number') { DOMPET.data.saldo = s; dompetHudPerbarui(); } }
 function dompetTerbuka() { var p = document.getElementById('dompetPanel'); return !!(p && p.classList.contains('open')); }
 function dompetBuka(tab) {
-  if (KERJA && !KERJA.beres) { menuTutup(); toastKosan('💼 Lagi kerja — buka dompet sesudah shift ya'); return; } /* panel kerja + dompet di tempat yang sama */
+  /* panel kerja + dompet di tempat yang sama: selama shift tidak bisa; layar hasil shift ditutup dulu
+     (dulu dompet terbuka DI BAWAH panel hasil), kecuali gaji belum tercatat (tombol Coba lagi) */
+  if (KERJA && (!KERJA.beres || KERJA.sibuk)) { menuTutup(); toastKosan(KERJA.sibuk ? '💼 Gaji lagi dicatat, sebentar ya' : '💼 Lagi kerja — buka dompet sesudah shift ya'); return; }
+  if (KERJA && KERJA.hasil && KERJA.hasil.ulang) { menuTutup(); toastKosan('💼 Gaji belum tercatat — ketuk Coba lagi atau Selesai di panel kerja dulu ya'); return; }
+  if (KERJA) kerjaBersihkan();
   closeCard(); menuTutup(); if (typeof rupaTutup === 'function' && rupaPanel && rupaPanel.classList.contains('open')) rupaTutup();
   DOMPET.tab = tab || DOMPET.tab || 'kerja';
   document.getElementById('dompetPanel').classList.add('open');
@@ -7608,8 +7632,9 @@ function dompetRender() {
 function dompetHtmlKerja(d, res) {
   var h = '';
   if (res && !d) h += '<p class="dp-info">' + escapeHtml(DOMPET.galat || 'Memuat dompet…') + '</p>';
-  if (res && d) h += '<p class="dp-info">Jatah hari ini: <b>' + d.hariIni.shift + '/' + d.hariIni.maks + ' shift</b>'
-    + (d.jedaDetik > 0 ? ' · istirahat <b>' + Math.ceil(d.jedaDetik / 60) + ' menit</b> lagi' : '') + '</p>';
+  var kini = Date.now(), jeda = dompetJedaDetik(d, kini);
+  if (res && d) h += '<p class="dp-info">Jatah hari ini: <b>' + (d.tanggalMuat === suasanaTanggal(kini) ? d.hariIni.shift : 0) + '/' + d.hariIni.maks + ' shift</b>'
+    + (jeda > 0 ? ' · istirahat <b>' + Math.ceil(jeda / 60) + ' menit</b> lagi' : '') + '</p>';
   if (!res) h += '<p class="dp-info">Mode <b>latihan</b>: kerja di kafe, warung, dan ronda bisa dicoba tanpa gaji. Laundry kiloan di dapur khusus penghuni.</p>';
   KERJA_IDS.forEach(function (id) {
     var p = KERJA_PEKERJAAN[id], st = d && d.pekerjaan && d.pekerjaan[id] ? d.pekerjaan[id] : { terdaftar: false, shift: 0, pangkat: 0 };
@@ -7635,7 +7660,7 @@ function dompetHtmlToko(d, res) {
   Object.keys(AKS_SLOT).forEach(function (slot) {
     AKS_SLOT[slot].forEach(function (id) {
       var it = KATALOG[id], punya = d.barang.indexOf(id) >= 0, dipakai = punya && pakai[slot] === id;
-      var b = !punya ? '<button type="button" data-aksi="beli" data-id="' + id + '"' + (d.saldo < it.harga ? ' disabled' : '') + '>Beli</button>'
+      var b = !punya ? tokoTombolBeli(d, id, it)
         : (dipakai ? '<button type="button" class="sekunder" data-aksi="lepas" data-id="' + id + '">Lepas</button>' : '<button type="button" data-aksi="pakai" data-id="' + id + '">Pakai</button>');
       h += '<div class="' + (dipakai ? 'dipakai' : (punya ? 'punya' : '')) + '">' + iconSvg(BARANG_IKON[id]) + '<span class="dp-nama">' + it.nama + '</span><span class="dp-harga">'
         + (punya ? (dipakai ? 'dipakai' : 'punyamu') : rupiah(it.harga)) + '</span>' + b + '</div>';
@@ -7645,15 +7670,19 @@ function dompetHtmlToko(d, res) {
   DEKOR_IDS.forEach(function (id) {
     var it = KATALOG[id], punya = d.barang.indexOf(id) >= 0;
     h += '<div class="' + (punya ? 'punya' : '') + '">' + iconSvg(BARANG_IKON[id]) + '<span class="dp-nama">' + it.nama + '</span><span class="dp-harga">'
-      + (punya ? iconSvg('cek') + ' terpasang' : rupiah(it.harga)) + '</span>' + (punya ? '' : '<button type="button" data-aksi="beli" data-id="' + id + '"' + (d.saldo < it.harga ? ' disabled' : '') + '>Beli</button>') + '</div>';
+      + (punya ? iconSvg('cek') + ' terpasang' : rupiah(it.harga)) + '</span>' + (punya ? '' : tokoTombolBeli(d, id, it)) + '</div>';
   });
   return h + '</div><p class="dp-catatan">Minuman dibeli langsung di Kedai Kopi, Jalan Kampung. Aksesori + dekor sekali beli; aksesori bisa dipakai / dilepas kapan saja.</p>';
+}
+function tokoTombolBeli(d, id, it) { /* selama satu pembelian berjalan: semua tombol Beli mati, yang dibeli bertuliskan "Membeli…" */
+  var mati = d.saldo < it.harga || !!DOMPET.beli;
+  return '<button type="button" data-aksi="beli" data-id="' + id + '"' + (mati ? ' disabled' : '') + '>' + (DOMPET.beli === id ? 'Membeli…' : 'Beli') + '</button>';
 }
 function dompetHtmlRiwayat(d, res) {
   if (!res) return '<p class="dp-info">Riwayat uang khusus penghuni.</p>';
   if (!d) return '<p class="dp-info">' + escapeHtml(DOMPET.galat || 'Memuat riwayat…') + '</p>';
   var s = d.sewa, h = '<p class="dp-info">' + iconSvg('home') + ' Uang kos <b>' + escapeHtml(s.label) + '</b>: '
-    + (s.lunas ? '<b style="color:#1d6b3a">LUNAS</b> — KTA-mu sudah dicap.' : '<b>' + rupiah(s.harga) + '</b>, belum dibayar. Bayar ke Ibu Kos di halaman (sukarela: cap LUNAS di KTA).') + '</p>';
+    + (sewaLunasKini(d) ? '<b style="color:#1d6b3a">LUNAS</b> — KTA-mu sudah dicap.' : '<b>' + rupiah(s.harga) + '</b>, belum dibayar. Bayar ke Ibu Kos di halaman (sukarela: cap LUNAS di KTA).') + '</p>';
   if (!d.riwayat.length) return h + '<p class="dp-catatan">Belum ada mutasi. Gaji pertama masuk sesudah satu shift kerja.</p>';
   h += '<ul class="dp-riwayat">';
   d.riwayat.forEach(function (m) {
@@ -7709,10 +7738,16 @@ function kerjaKeSana(id) { /* petunjuk arah (tanpa teleport): ke Jalan Kampung /
 /* ---- toko + aksesori ---- */
 function tokoBeli(id) {
   var it = kerjaPunya(KATALOG, id) ? KATALOG[id] : null, d = DOMPET.data;
-  if (!it || !ktaIsResident() || !d) return Promise.resolve(false);
+  if (!it || !ktaIsResident() || !d || DOMPET.beli) return Promise.resolve(false); /* satu pembelian sekali jalan (ketuk dua kali = satu permintaan) */
   if (d.saldo < it.harga) { toastKosan('💰 Saldo belum cukup — kerja dulu yuk'); return Promise.resolve(false); }
+  var untuk = DOMPET.untuk;
+  DOMPET.beli = id;
+  if (dompetTerbuka()) dompetRender();
   return apiKosan('POST', '/api/belanja', { aksi: 'beli', barang: id }).then(function (r) {
-    if (r.status !== 200 || !r.data) { toastKosan(pesanApi(r)); if (r.status === 409) dompetMuat(); return false; }
+    DOMPET.beli = '';
+    if (untuk !== DOMPET.untuk) return false; /* ganti akun saat membeli */
+    if (r.status !== 200 || !r.data) { toastKosan(pesanApi(r)); if (dompetTerbuka()) dompetRender(); if (r.status === 409) dompetMuat(); return false; }
+    dompetBerubah();
     d.saldo = r.data.saldo;
     if (it.jenis !== 'kafe' && d.barang.indexOf(id) < 0) d.barang.push(id);
     bunyi('kasir'); dompetHudPerbarui();
@@ -7909,30 +7944,40 @@ function ibuSewaTombol() {
   var lama = document.getElementById('ibuSewaBtn');
   if (lama) lama.remove();
   if (!ktaIsResident() || !DOMPET.data || !cardEl.classList.contains('open') || !document.getElementById('ibuGelembung')) return;
-  var s = DOMPET.data.sewa, b = document.createElement('button');
+  var s = DOMPET.data.sewa, lunas = sewaLunasKini(DOMPET.data), b = document.createElement('button');
   b.id = 'ibuSewaBtn';
-  b.innerHTML = s.lunas ? iconSvg('cek') + ' Uang kos ' + escapeHtml(s.label.split(' ')[0]) + ' lunas' : iconSvg('uang') + ' Bayar uang kos · ' + rupiah(s.harga);
-  if (s.lunas) b.disabled = true;
+  b.innerHTML = lunas ? iconSvg('cek') + ' Uang kos ' + escapeHtml(s.label.split(' ')[0]) + ' lunas'
+    : iconSvg('uang') + (DOMPET.sewaSibuk ? ' Membayar uang kos…' : ' Bayar uang kos · ' + rupiah(s.harga));
+  if (lunas || DOMPET.sewaSibuk) b.disabled = true;
   b.addEventListener('click', sewaBayar);
   cardActions.appendChild(b);
 }
 function sewaBayar() {
   var d = DOMPET.data;
-  if (!ktaIsResident() || !d) return;
-  if (d.sewa.lunas) { ibuTampilKalimat(IBU_SEWA.lunas); return; }
+  if (!ktaIsResident() || !d || DOMPET.sewaSibuk) return; /* ketuk dua kali = satu pembayaran (dulu jawaban kedua "udah lunas" menimpa "makasih") */
+  if (sewaLunasKini(d)) { ibuTampilKalimat(IBU_SEWA.lunas); return; }
   if (d.saldo < d.sewa.harga) { ibuTampilKalimat(IBU_SEWA.kurang); toastKosan('💰 Saldomu ' + rupiah(d.saldo) + ', uang kos ' + rupiah(d.sewa.harga)); return; }
+  var untuk = DOMPET.untuk;
+  DOMPET.sewaSibuk = true; ibuSewaTombol();
   apiKosan('POST', '/api/belanja', { aksi: 'sewa' }).then(function (r) {
+    DOMPET.sewaSibuk = false;
+    if (untuk !== DOMPET.untuk) return; /* ganti akun saat membayar */
     if (r.status === 200 && r.data) {
+      dompetBerubah();
       d.saldo = r.data.saldo; d.sewa.lunas = true;
+      if (typeof r.data.bulan === 'string') { d.sewa.bulan = r.data.bulan; d.sewa.label = r.data.label || d.sewa.label; }
       bunyi('kasir'); ibuTampilKalimat(IBU_SEWA.makasih); dompetHudPerbarui(); ibuSewaTombol(); ktaPerbaruiBila();
       toastKosan('💰 Uang kos ' + d.sewa.label + ' lunas — KTA-mu dicap LUNAS');
       dompetMuat();
-    } else if (r.data && r.data.galat === 'sudah_lunas') { d.sewa.lunas = true; ibuTampilKalimat(IBU_SEWA.lunas); ibuSewaTombol(); }
-    else if (r.data && r.data.galat === 'saldo_kurang') { ibuTampilKalimat(IBU_SEWA.kurang); dompetMuat(); }
-    else toastKosan(pesanApi(r));
+    } else if (r.data && r.data.galat === 'sudah_lunas') {
+      dompetBerubah();
+      d.sewa.lunas = true; d.sewa.bulan = suasanaTanggal(Date.now()).slice(0, 7); ibuTampilKalimat(IBU_SEWA.lunas); ibuSewaTombol(); dompetMuat();
+    }
+    else if (r.data && r.data.galat === 'saldo_kurang') { ibuTampilKalimat(IBU_SEWA.kurang); ibuSewaTombol(); dompetMuat(); }
+    else { toastKosan(pesanApi(r)); ibuSewaTombol(); }
   });
 }
-function ktaLunasLabel() { var d = DOMPET.data; return ktaIsResident() && d && d.sewa && d.sewa.lunas ? String(d.sewa.label || '').toUpperCase() : ''; }
+function ktaLunasLabel() { var d = DOMPET.data; return ktaIsResident() && sewaLunasKini(d) ? String(d.sewa.label || '').toUpperCase() : ''; }
 function ktaPerbaruiBila() { var o = document.getElementById('ktaOverlay'); if (o && o.classList.contains('open')) ktaRender(); }
 /* ================= Kerja: alur shift (daftar -> mulai -> tugas + animasi -> selesai -> gaji) =================
    KERJA = shift berjalan (null = tidak kerja). Penghuni: shift dibuka + ditutup lewat server (upah
@@ -7951,8 +7996,9 @@ function kerjaBoleh(id) { /* -> alasan belum bisa mulai ('' = boleh) */
   var d = DOMPET.data;
   if (!d) { dompetMuat(); return DOMPET.galat || 'Dompet masih dimuat, coba lagi sebentar ya.'; }
   if (!d.pekerjaan[id] || !d.pekerjaan[id].terdaftar) return 'Daftar dulu di papan lowongan Kedai Kopi atau menu ☰ Kerja.';
-  if (d.hariIni.shift >= d.hariIni.maks) return 'Jatah kerja hari ini sudah habis (' + d.hariIni.maks + ' shift). Besok lagi ya!';
-  if (d.jedaDetik > 0) return 'Istirahat dulu — shift berikutnya bisa ' + Math.ceil(d.jedaDetik / 60) + ' menit lagi.';
+  var kini = Date.now(), jeda = dompetJedaDetik(d, kini); /* potret dompet dibandingkan dengan jam SEKARANG (server tetap penentu) */
+  if (dompetJatahHabis(d, kini)) return 'Jatah kerja hari ini sudah habis (' + d.hariIni.maks + ' shift). Besok lagi ya!';
+  if (jeda > 0) return 'Istirahat dulu — shift berikutnya bisa ' + Math.ceil(jeda / 60) + ' menit lagi.';
   return '';
 }
 function kerjaMulai(id) {
@@ -7961,9 +8007,17 @@ function kerjaMulai(id) {
   if (alasan) { toastKosan(alasan); return; }
   if (!ktaIsResident()) { kerjaJalankan(id, null); return; }
   kerjaMemulai = true;
+  var untuk = DOMPET.untuk, realm = myRealm;
   apiKosan('POST', '/api/kerja', { aksi: 'mulai', pekerjaan: id }).then(function (r) {
     kerjaMemulai = false;
-    if (r.status === 200 && r.data && r.data.shift) kerjaJalankan(id, r.data.shift);
+    var ok = r.status === 200 && r.data && r.data.shift;
+    if (ok && (untuk !== DOMPET.untuk || myRealm !== realm || KERJA)) {
+      /* jawaban datang sesudah pindah tempat / ganti akun: shift tidak dijalankan (dulu langsung
+         "dibatalkan" di bingkai berikutnya, atau dijalankan akun lain dengan id shift akun lama) */
+      if (untuk === DOMPET.untuk) { apiKosan('POST', '/api/kerja', { aksi: 'batal', shift: r.data.shift }); toastKosan('💼 Shift tidak jadi dimulai — kamu sudah pindah tempat'); }
+      return;
+    }
+    if (ok) { dompetBerubah(); kerjaJalankan(id, r.data.shift); }
     else { toastKosan(pesanApi(r)); dompetMuat(); }
   });
 }
@@ -7992,28 +8046,49 @@ function kerjaPenutup(now) { /* semua tugas beres: tunggu sampai durasi minimum 
     return;
   }
   if (K.id === 'ronda') { if (K.tahap !== 'lapor') { K.tahap = 'lapor'; kerjaRender(); } return; } /* ronda: tombol Lapor */
+  if (K.tungguSampai) return; /* server bilang terlalu_cepat: kerjaTick mengirim ulang SEKALI sesudah 2,5 dtk (dulu tiap bingkai) */
   kerjaSelesai();
 }
-function kerjaSelesai() {
+function kerjaSelesai(ulang) {
+  /* ulang = "Coba lagi" di layar hasil (gaji belum tercatat): dikirim lagi dengan id shift + hasil yang
+     SAMA (server membayar shift yang masih aktif sampai 20 menit sejak mulai) */
   var K = KERJA;
-  if (!K || K.beres || K.sibuk) return;
-  var hasil = kerjaHasil(K);
+  if (!K || K.sibuk) return;
+  if (ulang ? !(K.beres && K.hasil && K.hasil.ulang) : (K.beres || K.tungguSampai)) return;
+  var hasil = ulang ? K.laporan : kerjaHasil(K);
   if (K.latihan) {
     var u = kerjaUpah(K.id, 0, hasil);
     misiSelesai('kerja');
     kerjaTampilHasil({ latihan: true, gaji: u.gaji, tip: u.tip, hasil: hasil });
     return;
   }
-  K.sibuk = true; kerjaRender();
+  K.laporan = hasil; K.coba = (K.coba || 0) + 1; K.sibuk = true; kerjaRender();
+  var untuk = DOMPET.untuk;
   apiKosan('POST', '/api/kerja', { aksi: 'selesai', shift: K.shift, hasil: hasil }).then(function (r) {
-    if (KERJA !== K) return;
+    var ok = !!(r.status === 200 && r.data), galat = r.data && r.data.galat, samaAkun = untuk === DOMPET.untuk;
+    var gajiTeks = ok ? '💰 Gaji ' + KERJA_PEKERJAAN[K.id].nama + ' tercatat: +' + rupiah((Number(r.data.gaji) || 0) + (Number(r.data.tip) || 0)) : '';
+    if (samaAkun && r.status !== 0) dompetBerubah(); /* server sudah menjawab: potret dompet lama basi */
+    if (KERJA !== K) { /* layar kerja sudah ditutup (tombol back di layar hasil / ganti akun): gaji yang tercatat tetap dikabarkan */
+      if (ok && samaAkun) { dompetSetSaldo(r.data.saldo); bunyi('gaji'); misiSelesai('kerja'); toastKosan(gajiTeks); }
+      if (samaAkun) dompetMuat();
+      return;
+    }
     K.sibuk = false;
-    if (r.status === 200 && r.data) {
+    if (ok) {
       dompetSetSaldo(r.data.saldo); bunyi('gaji'); misiSelesai('kerja');
       kerjaTampilHasil(Object.assign({ hasil: hasil }, r.data));
+      if (myRealm !== K.realm) toastKosan(gajiTeks); /* keluar saat "Mencatat gaji…": layar hasil langsung ditutup kerjaTick */
       dompetMuat();
-    } else if (r.data && r.data.galat === 'terlalu_cepat') { setTimeout(function () { if (KERJA === K) kerjaSelesai(); }, 2500); } /* jam server sedikit beda: coba lagi */
-    else kerjaTampilHasil({ galat: pesanApi(r, 'Gaji belum tercatat — server lagi sibuk. Shift ini tidak dihitung.') });
+      return;
+    }
+    if (galat === 'terlalu_cepat' && !K.beres) { K.tungguSampai = Date.now() + 2500; kerjaRender(); return; } /* jam server sedikit beda */
+    dompetMuat(); /* jawaban bisa hilang di jalan sesudah gaji tercatat: saldo terbaru dari server */
+    var bisaUlang = r.status === 0 || r.status === 429 || r.status >= 500 || galat === 'terlalu_cepat';
+    if (galat === 'shift_tidak_aktif' && K.coba > 1) {
+      kerjaTampilHasil({ galat: 'Shift ini sudah ditutup server. Kalau percobaan tadi sempat tercatat, gajinya sudah masuk — cek saldo + riwayat di Dompet ya.', hasil: hasil });
+    } else if (bisaUlang) {
+      kerjaTampilHasil({ galat: 'Gaji belum tercatat — sinyal atau server lagi sibuk. Ketuk Coba lagi (shift masih disimpan sampai 20 menit sejak mulai).', ulang: true, hasil: hasil });
+    } else kerjaTampilHasil({ galat: pesanApi(r, 'Gaji belum tercatat — server lagi sibuk.'), hasil: hasil });
   });
 }
 function kerjaTampilHasil(h) {
@@ -8035,7 +8110,7 @@ function kerjaBersihkan() {
   aksesoriSayaTerapkan(); mpKirimPresence(); mpKirimPos();
 }
 function kerjaBerhenti(alasan) {
-  if (!KERJA) return;
+  if (!KERJA || KERJA.sibuk) return; /* "Mencatat gaji…": jangan membatalkan shift yang sudah dilaporkan (dulu batal bisa menang + gaji hangus) */
   if (KERJA.beres) { kerjaBersihkan(); return; }
   if (KERJA.shift) apiKosan('POST', '/api/kerja', { aksi: 'batal', shift: KERJA.shift });
   var latihan = KERJA.latihan;
@@ -8045,8 +8120,11 @@ function kerjaBerhenti(alasan) {
 function kerjaTick(dt, now) { /* dipanggil animate tiap frame (sebelum render) */
   pelangganTick(dt, now);
   if (!KERJA) return;
-  if (myRealm !== KERJA.realm) { kerjaBerhenti(KERJA.beres ? null : '💼 Shift dibatalkan — kamu meninggalkan tempat kerja (tanpa gaji)'); return; }
+  /* keluar tempat kerja = shift batal; KECUALI gaji sedang dicatat (jawaban server ditunggu) atau gaji
+     belum tercatat dengan tombol Coba lagi (panel tetap terbuka di mana pun) */
+  if (myRealm !== KERJA.realm && !KERJA.sibuk && !(KERJA.hasil && KERJA.hasil.ulang)) { kerjaBerhenti(KERJA.beres ? null : '💼 Shift dibatalkan — kamu meninggalkan tempat kerja (tanpa gaji)'); return; }
   if (!KERJA.beres && !KERJA.sibuk && now - KERJA.mulai > KERJA_BATAS.maksDetik * 1000 - 5000) { kerjaBerhenti('💼 Shift lewat 20 menit — dibatalkan, tanpa gaji'); return; } /* server menolak shift > 20 menit */
+  if (KERJA.tungguSampai && now >= KERJA.tungguSampai && !KERJA.sibuk && !KERJA.beres) { KERJA.tungguSampai = 0; kerjaSelesai(); } /* terlalu_cepat: kirim ulang sekali */
   if (!KERJA.beres) {
     if (KERJA.id === 'kafe') kafeTick(now); else if (KERJA.id === 'warung') warungKerjaTick(now);
     else if (KERJA.id === 'ronda') rondaTick(dt, now); else laundryTick(now);
@@ -8395,8 +8473,14 @@ function laundryMulai() {
   kiloanLayar('0,0 kg'); kiloanVisual();
 }
 function laundryBersihkan() {
-  if (washWM.kiloan !== undefined && washWM.kiloan !== null) { washWM.active = false; washWM.t = 0; washWM.kiloan = null; }
-  if (washDR.kiloan !== undefined && washDR.kiloan !== null) { washDR.active = false; washDR.t = 0; washDR.kiloan = null; }
+  /* siklus kiloan dihentikan di tengah jalan (finishWash tidak jalan): LED + layar mesin kembali diam
+     (dulu layar membeku di hitungan terakhir, mis. "0:07", sampai siklus berikutnya) */
+  [[washWM, wmLed, wmMesin], [washDR, drLed, drMesin]].forEach(function (m) {
+    if (m[0].kiloan === undefined || m[0].kiloan === null) return;
+    m[0].active = false; m[0].t = 0; m[0].kiloan = null;
+    if (m[1]) m[1].visible = true;
+    if (m[2]) layarMesinTulis(m[2].layar, '0:' + WASH_DUR, '#3f7f88');
+  });
   if (KILOAN) { kiloanAwal(); kiloanLayar('0,0 kg'); }
 }
 function kiloanAwal() { /* tampilan meja kembali ke keadaan awal (dipanggil saat shift dibersihkan) */
@@ -8483,9 +8567,14 @@ function kerjaPoseTick(dt) {
     else { avArmR.rotation.x = -0.95 * d; avArmL.rotation.x = -0.95 * d * (g.jenis === 'dua' ? 1 : 0.3); }
   }
 }
+function kerjaAngkatRemote(e) {
+  /* pemain lain di balik meja bar Kedai Kopi berdiri di lantai teras 0,12 m (pola jangkar lokal). Dipilih
+     menurut POSISI, bukan field kerja: field kerja berhenti dikirim di layar hasil shift padahal avatarnya
+     masih di teras (dulu kakinya tenggelam 12 cm). Pemain biasa tidak bisa melewati z 6,4 (batas JALAN). */
+  if (e.pose === 'stand' && e.realm === 'jalan' && e.tz > KAFE_KOTAK.minZ && e.tx >= KAFE_KOTAK.minX && e.tx <= KAFE_KOTAK.maxX) e.group.position.y = 0.12;
+}
 function kerjaPoseRemote(e) { /* pemain lain yang sedang kerja (field kerja): tangan bergerak pelan saat berdiri diam */
   if (e.pose !== 'stand') return;
-  if (e.aks.kerja === 'kafe' && e.realm === 'jalan' && e.tz > 6.85) e.group.position.y = 0.12; /* barista di balik meja bar: berdiri di lantai teras (pola jangkar lokal) */
   if (e.gerak > 0.05 || e.aks.kerja === 'ronda') return;
   var t = walkT * 2.2 + e.walkPhase, d = Math.max(0, Math.sin(t)), d2 = Math.max(0, Math.sin(t * 0.7 + 1.3));
   e.parts.armR.rotation.x = -0.42 - 0.6 * d; e.parts.armL.rotation.x = -0.42 - 0.25 * d2; e.parts.tubuh.rotation.y = 0;
@@ -8532,18 +8621,25 @@ function kerjaLensaHitung() {
   if (r.left > W * 0.3) kerjaLensa.tx = Math.min(W * 0.3, W / 2 - r.left / 2); /* panel di kanan (landscape): ke tengah sisa kiri */
   else if (r.top > H * 0.3) kerjaLensa.ty = Math.min(H * 0.3, H / 2 - r.top / 2); /* panel di bawah (portrait): ke tengah sisa atas */
 }
+var kerjaLensaUkuran = new THREE.Vector2();
 function kerjaLensaTick(dt) { /* dipanggil animate tiap bingkai: geser halus menuju target */
   var L = kerjaLensa, k = 1 - Math.exp(-8 * dt);
   if (!L.tx && !L.ty && !L.x && !L.y) return;
   L.x += (L.tx - L.x) * k; L.y += (L.ty - L.y) * k;
-  if (!L.tx && !L.ty && Math.abs(L.x) < 0.5 && Math.abs(L.y) < 0.5) { L.x = 0; L.y = 0; camera.clearViewOffset(); return; }
-  camera.setViewOffset(window.innerWidth, window.innerHeight, L.x, L.y, window.innerWidth, window.innerHeight);
+  /* ukuran KANVAS (bukan jendela): setViewOffset ikut menimpa camera.aspect = lebar / tinggi yang diberikan.
+     kosanResize sengaja menjaga kanvas setinggi layar penuh saat jendela memendek (keyboard, toolbar HP);
+     dulu ukuran jendela dipakai = adegan gepeng selama shift */
+  renderer.getSize(kerjaLensaUkuran);
+  var W = kerjaLensaUkuran.x, H = kerjaLensaUkuran.y;
+  if (!W || !H) return;
+  if (!L.tx && !L.ty && Math.abs(L.x) < 0.5 && Math.abs(L.y) < 0.5) { L.x = 0; L.y = 0; camera.clearViewOffset(); camera.aspect = W / H; camera.updateProjectionMatrix(); return; }
+  camera.setViewOffset(W, H, L.x, L.y, W, H);
 }
 window.addEventListener('resize', function () { if (KERJA) setTimeout(kerjaLensaHitung, 120); });
 function kerjaKepalaHtml(K) {
   var p = KERJA_PEKERJAAN[K.id];
   return '<div class="kp-kepala">' + iconSvg(KERJA_IKON[K.id]) + '<h2>' + p.nama + '<small>' + p.pangkat[K.pangkat] + (K.latihan ? ' · latihan, tanpa gaji' : '') + '</small></h2>'
-    + '<button id="kerjaBerhenti" type="button" data-k="berhenti">Berhenti</button></div>';
+    + '<button id="kerjaBerhenti" type="button" data-k="berhenti"' + (K.sibuk ? ' disabled' : '') + '>Berhenti</button></div>';
 }
 function kerjaStatusHtml(K) {
   var teks;
@@ -8649,6 +8745,11 @@ function kerjaHasilHtml(K) {
     else if (kerjaSisaPangkat(h.shift)) s += '<p>' + kerjaSisaPangkat(h.shift) + ' shift lagi naik pangkat jadi ' + p.pangkat[kerjaPangkat(h.shift) + 1] + '.</p>';
   }
   if (!h.galat) s += '<p>' + hs.benar + '/' + K.pesanan + ' ' + KERJA_SATUAN[K.id] + ' beres · ' + (hs.salah ? hs.salah + ' salah' : 'tanpa salah') + '</p>';
+  if (h.ulang) { /* gaji belum tercatat (sinyal / server sibuk): kirim ulang laporan yang sama */
+    var mati = K.sibuk ? ' disabled' : '';
+    return s + '<div class="kp-ulang"><button type="button" data-k="cobaLagi"' + mati + '>' + (K.sibuk ? 'Mencatat gaji…' : 'Coba lagi') + '</button>'
+      + '<button type="button" class="sekunder" data-k="tutup"' + mati + '>Selesai</button></div></div>';
+  }
   return s + '<button type="button" data-k="tutup">Selesai</button></div>';
 }
 function rondaHudHtml(K) {
@@ -8716,12 +8817,14 @@ function kerjaKlik(e) { /* delegasi klik panel kerja + pita ronda (data-k) */
   var b = e.target.closest ? e.target.closest('button[data-k]') : null, K = KERJA;
   if (!b || b.disabled || !K) return;
   var k = b.getAttribute('data-k');
+  if (K.sibuk) return; /* gaji sedang dicatat: Berhenti / Selesai / Coba lagi menunggu jawaban server */
   if (k === 'berhenti') { kerjaBerhenti(); return; }
   if (k === 'tutup') { kerjaBersihkan(); return; }
-  if (K.beres || K.sibuk) return;
+  if (k === 'cobaLagi') { kerjaSelesai(true); return; }
+  if (K.beres) return;
   if (k === 'intip') { if (K.id === 'kafe' && K.pel && !K.intip) { K.intip = true; K.salah++; kerjaRender(); } return; }
   if (k === 'pukul') { rondaPukul(); return; }
-  if (k === 'lapor') { if (K.tahap === 'lapor') kerjaSelesai(); return; }
+  if (k === 'lapor') { if (K.tungguSampai) toastKosan('🪘 Sebentar ya, laporannya dikirim ulang…'); else if (K.tahap === 'lapor') kerjaSelesai(); return; }
   if (k === 'duduk') { posRondaDuduk(); kerjaRender(); return; }
   if (K.id === 'kafe' && k.indexOf('k:') === 0) { kafeTekan(k.slice(2)); return; }
   if (K.id === 'warung') { warungKerjaTekan(k); return; }
@@ -10058,7 +10161,9 @@ window.addEventListener('popstate', function () {
   if (cardEl.classList.contains('open')) { dorongStateLagi(); closeCard(); return; }
   if (KERJA) { /* Kerja & Belanja — back saat kerja: hasil = tutup; shift berjalan = tetap (berhenti lewat tombolnya) */
     dorongStateLagi();
-    if (KERJA.beres) kerjaBersihkan(); else toastKosan('💼 Lagi kerja — ketuk Berhenti di panel kerja kalau mau udahan');
+    if (KERJA.sibuk) toastKosan('💼 Gaji lagi dicatat, sebentar ya');
+    else if (KERJA.beres && KERJA.hasil && KERJA.hasil.ulang) toastKosan('💼 Gaji belum tercatat — ketuk Coba lagi atau Selesai di panel kerja');
+    else if (KERJA.beres) kerjaBersihkan(); else toastKosan('💼 Lagi kerja — ketuk Berhenti di panel kerja kalau mau udahan');
     return;
   }
   /* Tidak ada UI yang terbuka: biarkan back keluar dari game. */
@@ -12084,7 +12189,8 @@ function clampBalcony(nx, nz) {
    audio, tanpa lisensi lagu (aman untuk video IG), tanpa request baru (CSP tetap).
    - Mulai setelah ketukan pertama (aturan autoplay browser); berhenti saat tab disembunyikan.
    - Menu ☰: Musik / Efek suara nyala-mati, disimpan di HP ('kosan3d-suara').
-   - Musik lo-fi generatif: piano listrik + bas + kalimba + drum lembut + desis piringan hitam.
+   - Musik lo-fi generatif: piano listrik + bas + kalimba + drum lembut (desis piringan hitam dicabut
+     16 Nov: terdengar seperti speaker pecah).
      Suasana ikut jam + cuaca (suasanaKini): siang ceria, senja hangat, malam pelan tanpa drum,
      hujan redam. Akor + melodi disusun aturan musik (MUSIK-START), bukan rekaman.
    - Suara alam (ikut tombol Efek suara): hujan (di dalam ruangan teredam), guntur sesekali saat
@@ -12155,14 +12261,20 @@ SUARA.setel = (function () {
   catch (e) { return { musik: true, efek: true }; }
 })();
 function suaraSetelTulis() { try { localStorage.setItem('kosan3d-suara', JSON.stringify(SUARA.setel)); } catch (e) { /* abaikan */ } }
-function suaraDerau(c, detik, warna) { /* buffer derau mono: 'putih' | 'pink' */
+function suaraDerau(c, detik, warna) { /* buffer derau mono: 'putih' | 'pink'; ujungnya menyambung mulus ke awal (loop) */
   var n = Math.floor(c.sampleRate * detik), b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0);
+  var silang = Math.min(n >> 2, Math.floor(c.sampleRate * 0.05)), lanjut = new Float32Array(silang);
   var b0 = 0, b1 = 0, b2 = 0, r = suasanaAcak(warna === 'pink' ? 7 : 3);
-  for (var i = 0; i < n; i++) {
-    var w = r() * 2 - 1;
-    if (warna === 'pink') { b0 = 0.99765 * b0 + w * 0.099; b1 = 0.963 * b1 + w * 0.2965; b2 = 0.57 * b2 + w * 1.0527; d[i] = (b0 + b1 + b2 + w * 0.1848) * 0.2; }
-    else d[i] = w;
+  for (var i = 0; i < n + silang; i++) {
+    var w = r() * 2 - 1, v;
+    if (warna === 'pink') { b0 = 0.99765 * b0 + w * 0.099; b1 = 0.963 * b1 + w * 0.2965; b2 = 0.57 * b2 + w * 1.0527; v = (b0 + b1 + b2 + w * 0.1848) * 0.2; }
+    else v = w;
+    if (i < n) d[i] = v; else lanjut[i - n] = v;
   }
+  /* Ryan 16 Nov "suara ... pecah rusak": dulu sambungan loop pink = lompatan 0,79 (4,5x lompatan biasa)
+     -> "tik"/"dug" tiap 4 dtk di hujan + api kompor. Awal buffer dipudar-silang (daya tetap) dari
+     lanjutan derau sesudah ujung: sampel sesudah d[n-1] = lanjutan aslinya. */
+  for (var k = 0; k < silang; k++) { var a = k / silang; d[k] = d[k] * Math.sqrt(a) + lanjut[k] * Math.sqrt(1 - a); }
   return b;
 }
 function suaraGemaBuffer(c, detik) { /* gema buatan (ruang lembut): derau stereo meluruh */
@@ -12362,13 +12474,13 @@ function musikRangkai(c, tujuan) {
   epLp.connect(epTrem); epTrem.connect(masuk); epTrem.connect(gemaKirim);
   var basLp = c.createBiquadFilter(); basLp.type = 'lowpass'; basLp.frequency.value = 380; basLp.connect(masuk);
   var drum = c.createBiquadFilter(); drum.type = 'lowpass'; drum.frequency.value = 5200; var drumG = c.createGain(); drumG.gain.value = 0.85; drum.connect(drumG); drumG.connect(masuk);
+  /* filter derau drum BERSAMA (satu per jenis pukulan, dibuat sekali): dulu satu BiquadFilter baru per
+     pukulan = biaya render drum ~2,5x (diukur), alasan utama musik tersendat di HP */
+  function saringDrum(jenis, f, q) { var fl = c.createBiquadFilter(); fl.type = jenis; fl.frequency.value = f; fl.Q.value = q; fl.connect(drum); return fl; }
+  var drumKlik = saringDrum('bandpass', 1400, 1), drumSnare = saringDrum('bandpass', 1900, 0.8), drumHat = saringDrum('highpass', 7200, 0.7);
   var kal = c.createGain(); kal.gain.value = 1; kal.connect(masuk); var kalGema = c.createGain(); kalGema.gain.value = 0.9; kal.connect(kalGema); kalGema.connect(gemaKirim);
-  /* desis piringan hitam: derau jarang berklik, sangat pelan, berulang */
-  var kresek = c.createBufferSource(), kb = c.createBuffer(1, c.sampleRate * 3, c.sampleRate), kd = kb.getChannelData(0), r0 = suasanaAcak(23);
-  for (var i = 0; i < kd.length; i++) { kd[i] = (r0() * 2 - 1) * 0.012; if (r0() < 0.00035) { var amp = 0.25 + r0() * 0.5; for (var j = 0; j < 40 && i + j < kd.length; j++) kd[i + j] += (r0() * 2 - 1) * amp * Math.exp(-j / 6); } }
-  kresek.buffer = kb; kresek.loop = true;
-  var kresekLp = c.createBiquadFilter(); kresekLp.type = 'bandpass'; kresekLp.frequency.value = 2400; kresekLp.Q.value = 0.4;
-  var kresekG = c.createGain(); kresekG.gain.value = 0.18; kresek.connect(kresekLp); kresekLp.connect(kresekG); kresekG.connect(masuk); kresek.start();
+  /* (Ryan 16 Nov "suara musiknya pecah rusak": desis + klik piringan hitam DICABUT — ~11 letupan/dtk
+     di 2,4 kHz terdengar seperti speaker rusak, paling jelas malam hari saat piano diredam) */
   var derau = suaraDerau(c, 2, 'putih');
   var M = { suasana: 'siang', progresi: MUSIK_PROGRESI.siang[0], birama: 0, pusat: 62, motif: null, r: suasanaAcak(Date.now() & 0xffff), tempo: MUSIK_TEMPO.siang };
   function ep(t, midi, dur, vel) {
@@ -12381,7 +12493,10 @@ function musikRangkai(c, tujuan) {
     env.gain.setValueAtTime(0.0001, t); env.gain.exponentialRampToValueAtTime(0.11 * vel, t + 0.008); env.gain.setTargetAtTime(0.045 * vel, t + 0.01, 0.7);
     env.gain.setTargetAtTime(0.0001, t + dur, 0.28);
     car.connect(env); tine.connect(tineG); tineG.connect(env); env.connect(epLp);
-    [car, mod, tine].forEach(function (o) { o.start(t); o.stop(t + dur + 1.6); });
+    /* berhenti begitu tak terdengar (hemat CPU HP): denting 0,3 dtk -> osilatornya 0,35 dtk (dulu ikut
+       nada penuh); nada 1,1 dtk sesudah dilepas = 4 konstanta waktu (-67 dBFS, dulu 1,6 dtk) */
+    tine.start(t); tine.stop(t + 0.35);
+    [car, mod].forEach(function (o) { o.start(t); o.stop(t + dur + 1.1); });
   }
   function bas(t, midi, dur, vel) {
     var o1 = c.createOscillator(), o2 = c.createOscillator(), g = c.createGain(), f = musikHz(midi);
@@ -12400,28 +12515,27 @@ function musikRangkai(c, tujuan) {
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.003); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     o.connect(g); g.connect(ke); o.start(t); o.stop(t + dur + 0.05);
   }
-  function desisKe(t, o) { /* derau terfilter ke bus drum */
-    var src = c.createBufferSource(), fl = c.createBiquadFilter(), g = c.createGain();
-    src.buffer = derau; fl.type = o.filter; fl.frequency.value = o.f; fl.Q.value = o.q || 0.7;
-    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(o.vol, t + 0.002); g.gain.exponentialRampToValueAtTime(0.0001, t + o.dur);
-    src.connect(fl); fl.connect(g); g.connect(drum); src.start(t, M.r() * 1.5); src.stop(t + o.dur + 0.05);
+  function desisKe(t, ke, vol, dur) { /* semburan derau ber-amplop -> filter drum bersama (ke) */
+    var src = c.createBufferSource(), g = c.createGain();
+    src.buffer = derau;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.002); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(g); g.connect(ke); src.start(t, M.r() * 1.5); src.stop(t + dur + 0.05);
   }
   function kick(t, vel) {
     var o = c.createOscillator(), g = c.createGain();
     o.frequency.setValueAtTime(115, t); o.frequency.exponentialRampToValueAtTime(44, t + 0.13);
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.42 * vel, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.32);
     o.connect(g); g.connect(drum); o.start(t); o.stop(t + 0.35);
-    desisKe(t, { filter: 'bandpass', f: 1400, q: 1, vol: 0.03 * vel, dur: 0.012 }); /* klik serang: tetap terasa di speaker HP */
+    desisKe(t, drumKlik, 0.03 * vel, 0.012); /* klik serang: tetap terasa di speaker HP */
   }
-  function snare(t, vel) { desisKe(t, { filter: 'bandpass', f: 1900, q: 0.8, vol: 0.12 * vel, dur: 0.14 }); suaraNadaKe(t, 185, 0.06 * vel, 0.08, drum); }
-  function hat(t, vel) { desisKe(t, { filter: 'highpass', f: 7200, vol: 0.035 * vel, dur: 0.035 }); }
+  function snare(t, vel) { desisKe(t, drumSnare, 0.12 * vel, 0.14); suaraNadaKe(t, 185, 0.06 * vel, 0.08, drum); }
+  function hat(t, vel) { desisKe(t, drumHat, 0.035 * vel, 0.035); }
   function jadwalBirama(t, k) {
     var nama = musikSuasana(k), ketukDur = 60 / M.tempo, swing = ketukDur * 0.14, i;
     if (M.birama % 4 === 0) { /* frase baru: ganti suasana / progresi / tempo hanya di batas frase */
       M.suasana = nama; M.tempo = MUSIK_TEMPO[nama]; ketukDur = 60 / M.tempo; swing = ketukDur * 0.14;
       if (M.birama % 8 === 0 || MUSIK_PROGRESI[nama].indexOf(M.progresi) < 0) { var daftar = MUSIK_PROGRESI[nama]; M.progresi = daftar[Math.floor(M.r() * daftar.length)]; }
       epLp.frequency.setTargetAtTime({ siang: 3000, senja: 2500, malam: 1700, hujan: 1900 }[nama], t, 1.5);
-      kresekG.gain.setTargetAtTime(nama === 'malam' || nama === 'hujan' ? 0.24 : 0.16, t, 2);
     }
     var s = M.suasana, akor = MUSIK_AKOR[M.progresi[M.birama % 4]], voicing = musikVoicing(akor.nada, M.pusat, 52, 74);
     M.pusat = Math.round((voicing[0] + voicing[voicing.length - 1]) / 2);
@@ -12456,12 +12570,17 @@ function musikRangkai(c, tujuan) {
   return { jadwalBirama: jadwalBirama, masuk: masuk };
 }
 var MUSIK = { mesin: null, waktu: 0, timer: 0 };
+var MUSIK_DEPAN = 1.5; /* dtk: birama berikutnya dijadwalkan sejauh ini di depan (dulu 0,6) */
 function musikJadwal() {
+  /* Ryan 16 Nov "suara musiknya pecah rusak": dulu birama dijadwalkan 0,6 dtk di depan dan waktu yang
+     sudah lewat sampai 0,2 dtk tetap dipakai. HP yang tersendat > 0,5 dtk (masuk Jalan Kampung, GC)
+     = nada dijadwalkan ke masa lalu: amplop dilompati (klik keras) + nada terpotong. Sekarang 1,5 dtk
+     di depan, dan kalau tetap terlambat birama digeser maju (jeda sebentar lebih baik daripada klik). */
   var c = SUARA.ctx;
   if (!c || c.state !== 'running' || !SUARA.setel.musik || !MUSIK.mesin) return;
-  if (MUSIK.waktu < c.currentTime - 0.2) MUSIK.waktu = c.currentTime + 0.12; /* kembali dari tab tersembunyi */
+  if (MUSIK.waktu < c.currentTime + 0.05) MUSIK.waktu = c.currentTime + 0.12;
   var jaga = 0;
-  while (MUSIK.waktu < c.currentTime + 0.6 && jaga++ < 4) {
+  while (MUSIK.waktu < c.currentTime + MUSIK_DEPAN && jaga++ < 4) {
     try { MUSIK.waktu += MUSIK.mesin.jadwalBirama(MUSIK.waktu, suasanaKini); } catch (e) { MUSIK.waktu += 3; }
   }
 }
@@ -12524,12 +12643,20 @@ function suaraAlamTick(dt) {
   }
 }
 /* ---- nyalakan / matikan ---- */
+function suaraRantaiMaster(c) { /* -> node masukan master: potong sub-bass -> kompresor lembut -> keluaran (dipakai juga uji offline) */
+  /* Ryan 16 Nov "pecah rusak": sub-bass < 70 Hz (oktaf bawah bas, ekor kick) tidak terdengar di speaker
+     HP tapi menghabiskan ruang + menggoyang membran sampai pecah; dipotong lembut (12 dB/oktaf) */
+  var potong = c.createBiquadFilter(); potong.type = 'highpass'; potong.frequency.value = 70; potong.Q.value = 0.7;
+  var kompres = c.createDynamicsCompressor();
+  kompres.threshold.value = -16; kompres.knee.value = 10; kompres.ratio.value = 3; kompres.attack.value = 0.008; kompres.release.value = 0.25;
+  var master = c.createGain(); master.gain.value = 0.9;
+  master.connect(potong); potong.connect(kompres); kompres.connect(c.destination);
+  return master;
+}
 function suaraRangkai() {
   var c = SUARA.ctx;
   SUARA.derau = suaraDerau(c, 2, 'putih');
-  var kompres = c.createDynamicsCompressor();
-  kompres.threshold.value = -16; kompres.knee.value = 10; kompres.ratio.value = 3; kompres.attack.value = 0.008; kompres.release.value = 0.25;
-  SUARA.master = c.createGain(); SUARA.master.gain.value = 0.9; SUARA.master.connect(kompres); kompres.connect(c.destination);
+  SUARA.master = suaraRantaiMaster(c);
   SUARA.musik = c.createGain(); SUARA.musik.gain.value = 0; SUARA.musik.connect(SUARA.master);
   SUARA.efek = c.createGain(); SUARA.efek.gain.value = SUARA.setel.efek ? SUARA_VOL.efek : 0; SUARA.efek.connect(SUARA.master);
   SUARA.alam = c.createGain(); SUARA.alam.gain.value = SUARA.setel.efek ? SUARA_VOL.alam : 0; SUARA.alam.connect(SUARA.master);
@@ -12546,9 +12673,18 @@ function suaraTerapkan() { /* setelan -> gain bus (pudar halus) */
   SUARA.alam.gain.setTargetAtTime(SUARA.setel.efek ? SUARA_VOL.alam : 0, t, 0.3);
   if (SUARA.setel.musik && !MUSIK.timer) { MUSIK.waktu = t + 0.15; MUSIK.timer = setInterval(musikJadwal, 100); musikJadwal(); }
   if (!SUARA.setel.musik && MUSIK.timer) { clearInterval(MUSIK.timer); MUSIK.timer = 0; }
+  /* Musik + Efek suara dua-duanya mati: context diistirahatkan sesudah pudar (loop derau, LFO, motor
+     mesin cuci tidak diproses diam-diam = hemat baterai HP); nyala lagi lewat suaraBuka */
+  clearTimeout(SUARA.diamTimer);
+  if (suaraSemuaMati()) SUARA.diamTimer = setTimeout(function () {
+    if (!suaraSemuaMati() || !SUARA.ctx || SUARA.ctx.state !== 'running') return;
+    try { var p = SUARA.ctx.suspend(); if (p && p.catch) p.catch(function () {}); } catch (e) { /* abaikan */ }
+  }, 1200); /* bus alam (pudar 0,3 dtk) sudah < 2% */
 }
+function suaraSemuaMati() { return !SUARA.setel.musik && !SUARA.setel.efek; }
 function suaraBuka() {
   /* dipanggil di tiap gerakan pengguna sampai suara jalan (aturan autoplay; iOS butuh di dalam handler) */
+  if (suaraSemuaMati()) return; /* dua-duanya mati: tidak membuat / membangunkan context */
   if (!SUARA.ctx) {
     var AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
@@ -12643,16 +12779,23 @@ var SU = { siap: false, lampu: [], latar: [], emisi: [], redup: [], kacaSiang: n
 var SU_WARNA = { /* palet langit (cakrawala / puncak) per keadaan; siang = latar lama persis */
   siangH: new THREE.Color(0x8ec9ee), siangZ: new THREE.Color(0x8ec9ee),
   senjaH: new THREE.Color(0xffa95e), senjaZ: new THREE.Color(0x4f66aa), fajarH: new THREE.Color(0xffc49a), fajarZ: new THREE.Color(0x7e9fd8),
-  malamH: new THREE.Color(0x1d2a48), malamZ: new THREE.Color(0x060b19),
+  malamH: new THREE.Color(0x2a3a60), malamZ: new THREE.Color(0x060b19), /* cakrawala malam = juga warna kabut: 0x1d2a48 -> 0x2a3a60 (cahaya kota tipis, ujung jalan tidak hitam) */
   mendungSiangH: new THREE.Color(0x9ea9b3), mendungSiangZ: new THREE.Color(0x7f8a95), mendungMalamH: new THREE.Color(0x171e2a), mendungMalamZ: new THREE.Color(0x0b1018),
-  cahayaSiang: new THREE.Color(0xfff2d9), cahayaSenja: new THREE.Color(0xffb35c), cahayaBulan: new THREE.Color(0x9fb6ff),
-  hemiLangitSenja: new THREE.Color(0xffcf9a), hemiLangitMalam: new THREE.Color(0x4a5d94), hemiTanahMalam: new THREE.Color(0x232b3b), hemiMendung: new THREE.Color(0xa9b4be),
+  cahayaSiang: new THREE.Color(0xfff2d9), cahayaSenja: new THREE.Color(0xffb35c), cahayaBulan: new THREE.Color(0xbccaf5), /* malam lebih terang (SU_MALAM): bulan 0x9fb6ff -> 0xbccaf5, hemisfer 0x4a5d94/0x232b3b -> 0x8090c0/0x474e60 (biru lebih netral, tidak ungu) */
+  hemiLangitSenja: new THREE.Color(0xffcf9a), hemiLangitMalam: new THREE.Color(0x8090c0), hemiTanahMalam: new THREE.Color(0x474e60), hemiMendung: new THREE.Color(0xa9b4be),
   jendelaSiang: new THREE.Color(0xffe9b0), jendelaSenja: new THREE.Color(0xf6b98c), jendelaMalam: new THREE.Color(0x22324f), jendelaHujan: new THREE.Color(0xa3acb3), jendelaHujanMalam: new THREE.Color(0x161e2b),
   hujanSiang: new THREE.Color(0xb9c6d1), hujanMalam: new THREE.Color(0x45546a), kunang: new THREE.Color(0xd8ff76), haloBulan: new THREE.Color(0x8fa6d8), genang: new THREE.Color(0xffcc8f)
 };
 var suTmp = { a: new THREE.Color(), b: new THREE.Color(), c: new THREE.Color(), d: new THREE.Color(), pita: new THREE.Color(), v: new THREE.Vector3() };
 var SU_GENANG = { aktif: false, peta: { value: null }, kotak: { value: new THREE.Vector4(0, 0, 1, 1) }, warna: { value: new THREE.Color(0, 0, 0) } }; /* uniform bersama semua bahan bersisipan */
-var SU_GENANG_KUAT = 1.5;
+var SU_GENANG_KUAT = 1.8; /* Ryan 16 Nov "kalau malam ... gelap banget": 1,5 -> 1,8 */
+/* tingkat cahaya luar ruangan saat malam penuh (kali intensitas siang). Ryan 16 Nov: "kalau malam
+   halaman tengah dan kampung gelap banget, tolong dibuat agar lebih terang". Dulu hemisfer 0,8 +
+   bulan 0,22 + pantul 0,2 dengan warna malam lebih gelap: luma layar malam 0,27-0,40 x siang.
+   Sekarang 0,49-0,63 x siang (diukur di 5 sudut, HP tegak): masih malam (langit gelap, jendela +
+   genangan lampu menyala), tapi lantai, dinding, dan jalan terbaca. Lampu yang sama (jumlah tetap),
+   hanya intensitas + warnanya. Siang (terang 1) = nilai lama persis. */
+var SU_MALAM = { hemi: 1.25, bulan: 0.45, isi: 0.8 };
 var SU_KUNCI_BAWAAN = THREE.Material.prototype.onBeforeCompile.toString(); /* kunci program bawaan three.js */
 function suGenangKunci() { /* customProgramCacheKey: siang = kunci bawaan (program SAMA dengan bahan tanpa sisipan), malam = varian bersisipan */
   return SU_GENANG.aktif ? 'suGenangMalam' : SU_KUNCI_BAWAAN;
@@ -12922,9 +13065,9 @@ function suasanaSiapkan() {
     gh.push(pd.pos.y > 2 ? [suTmp.v.x - 0.5, suTmp.v.z + arah * 0.74, 1.6, 0.95, 1, 0.75] : [suTmp.v.x - 0.5, suTmp.v.z + arah * 1.0, 1.7, 1.35, 0, 1]);
   }
   var gj = [];
-  JALAN_TIANG_X.forEach(function (x) { gj.push([x, 4.2, 3.0, 3.0, 0, 1]); }); /* lampu jalan di tiang (lengan ke arah jalan) */
+  JALAN_TIANG_X.forEach(function (x) { gj.push([x, 3.2, 4.4, 4.4, 0, 1]); }); /* lampu jalan di tiang: kepala lampu 5 m di atas z 4,95 -> genangan menjangkau badan jalan (dulu z 4,2 r 3: aspal tetap gelap) */
   [[-60, JALAN_GERBANG_X - 1.6], [JALAN_GERBANG_X + 1.6, 60]].forEach(function (sg) { /* lampu pilaster tembok kos (pola buildJalan: tiap 8 m) */
-    for (var px = sg[0] + 2, n = 0; px < sg[1] - 0.5; px += 4, n++) if (n % 2 === 1 && Math.abs(px) < 40) gj.push([px, -6.3, 1.5, 1.5, 0, 0.8]);
+    for (var px = sg[0] + 2, n = 0; px < sg[1] - 0.5; px += 4, n++) if (n % 2 === 1 && Math.abs(px) < 40) gj.push([px, -6.3, 2.2, 2.2, 0, 0.8]);
   });
   gj.push([JALAN_GERBANG_X, -6.2, 1.8, 1.8, 0, 0.9], [-4.5, 5.6, 2.2, 1.4, 0, 0.9], [9.6, 6.0, 1.5, 1.1, 0, 0.8]); /* gerbang, warung, pos ronda */
   gj.push([3.0, 7.4, 3.9, 1.8, 0, 0.85]); /* Kerja & Belanja — Kedai Kopi: lampu untai kanopi + 2 lampu gantung meja bar (teras + trotoar depan) */
@@ -12967,14 +13110,14 @@ function suasanaTerapkan(paksa) {
     if (l.jenis === 'hemi') {
       l.o.color.copy(SU_WARNA.hemiLangitMalam).lerp(l.c, siang).lerp(SU_WARNA.hemiLangitSenja, jg * 0.22 * k.surya).lerp(SU_WARNA.hemiMendung, mendung * 0.45 * siang);
       l.o.groundColor.copy(SU_WARNA.hemiTanahMalam).lerp(l.g, siang);
-      l.o.intensity = l.i * (0.8 + 0.2 * siang) * (1 - 0.2 * mendung);
+      l.o.intensity = l.i * (siang + SU_MALAM.hemi * (1 - siang)) * (1 - 0.2 * mendung); /* siang 1 = l.i persis */
     } else if (l.jenis === 'matahari') {
       /* matahari (cahaya langsung, keemasan saat rendah) -> sesudah terbenam tinggal cahaya bulan biru redup */
       l.o.color.copy(SU_WARNA.cahayaBulan).lerp(l.c, k.surya).lerp(SU_WARNA.cahayaSenja, jg * 0.6 * k.surya);
-      l.o.intensity = l.i * Math.max(k.surya * (1 - 0.4 * jg), 0.22 * (1 - siang)) * redupMendung;
+      l.o.intensity = l.i * Math.max(k.surya * (1 - 0.4 * jg), SU_MALAM.bulan * (1 - siang)) * redupMendung;
     } else {
       l.o.color.copy(SU_WARNA.cahayaBulan).lerp(l.c, siang);
-      l.o.intensity = l.i * (0.2 + 0.8 * siang) * (1 - 0.3 * mendung);
+      l.o.intensity = l.i * (siang + SU_MALAM.isi * (1 - siang)) * (1 - 0.3 * mendung);
     }
   });
   var angkat = siang * siang * (1 - 0.25 * mendung); /* malam = 0: emissive hangat kecil pun (linear 0,02) tampil merah-ungu di gelap */
@@ -13301,6 +13444,7 @@ function animate() {
       re.group.rotation.y += mpBungkusSudut(re.trot - re.group.rotation.y) * mpK;
     }
     mpTerapkanPoseRemote(re); /* Ronde 15a — pose pemain lain (sleep/sit/stand) */
+    kerjaAngkatRemote(re); /* Kerja & Belanja — barista di teras Kedai Kopi (juga di layar hasil shift) */
     if (re.aks && re.aks.kerja) kerjaPoseRemote(re); /* Kerja & Belanja — gerak tangan saat bekerja (kosmetik) */
     var rls = Math.max(0.35, Math.min(1.3, camDist / 9.5));
     re.label.sprite.scale.set(2.4 * rls, 0.6 * rls, 1);

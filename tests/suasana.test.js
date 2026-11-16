@@ -184,3 +184,71 @@ test('Suasana: genangan lampu = sisipan shader varian malam (siang = program baw
   assert.match(fungsi('suasanaSiapkan'), /SU\.kubah\.renderOrder = 900;/);
   assert.match(fungsi('suasanaTerapkan'), /SU\.kubah\.visible = !\(siang > 0\.999 && k\.jingga < 0\.001 && mendung < 0\.001\);/);
 });
+
+test('Malam lebih terang (Ryan 16 Nov "gelap banget"): lampu yang sama, intensitas malam naik, siang persis lama', () => {
+  const malam = new Function(HTML.match(/var SU_MALAM = \{[^}]*\};/)[0] + ' return SU_MALAM;')();
+  assert.deepEqual(malam, { hemi: 1.25, bulan: 0.45, isi: 0.8 }, 'diukur: luma malam 0,49-0,63 x siang (dulu 0,27-0,40)');
+  const t = fungsi('suasanaTerapkan');
+  assert.match(t, /l\.o\.intensity = l\.i \* \(siang \+ SU_MALAM\.hemi \* \(1 - siang\)\) \* \(1 - 0\.2 \* mendung\);/);
+  assert.match(t, /SU_MALAM\.bulan \* \(1 - siang\)\) \* redupMendung;/);
+  assert.match(t, /l\.o\.intensity = l\.i \* \(siang \+ SU_MALAM\.isi \* \(1 - siang\)\) \* \(1 - 0\.3 \* mendung\);/);
+  for (const v of Object.values(malam)) { assert.equal(1 + v * (1 - 1), 1, 'siang (terang 1) = intensitas lama persis'); }
+  /* lampu dari scene luar saja: kamar / ruang tamu / dapur tidak ikut (kamar tetap gelap saat lampu mati) */
+  assert.match(fungsi('suasanaSiapkan'), /\[scene, jalanScene\]\.forEach\(function \(S\) \{\n    S\.children\.forEach/);
+  assert.match(fungsi('suasanaSiapkan'), /JALAN_TIANG_X\.forEach\(function \(x\) \{ gj\.push\(\[x, 3\.2, 4\.4, 4\.4, 0, 1\]\); \}\);/);
+});
+
+test('Musik tidak "pecah": tanpa kresek piringan hitam, filter drum bersama, osilator berhenti saat tak terdengar, potong sub-bass', () => {
+  const mr = fungsi('musikRangkai');
+  assert.doesNotMatch(mr, /kresek/, 'desis + klik piringan hitam dicabut');
+  /* bunyi per nada / pukulan tanpa node filter / gema sendiri (dulu satu BiquadFilter per pukulan drum) */
+  const perNada = mr.slice(mr.indexOf('  function ep('), mr.indexOf('  function jadwalBirama('));
+  assert.ok(perNada.length > 500);
+  assert.doesNotMatch(perNada, /createBiquadFilter|createConvolver|createDynamicsCompressor/);
+  assert.match(perNada, /tine\.start\(t\); tine\.stop\(t \+ 0\.35\);/);
+  assert.match(perNada, /\[car, mod\]\.forEach\(function \(o\) \{ o\.start\(t\); o\.stop\(t \+ dur \+ 1\.1\); \}\);/);
+  assert.match(mr, /var drumKlik = saringDrum\('bandpass', 1400, 1\), drumSnare = saringDrum\('bandpass', 1900, 0\.8\), drumHat = saringDrum\('highpass', 7200, 0\.7\);/);
+  const rm = fungsi('suaraRantaiMaster');
+  assert.match(rm, /potong\.type = 'highpass'; potong\.frequency\.value = 70;/);
+  assert.match(rm, /master\.connect\(potong\); potong\.connect\(kompres\); kompres\.connect\(c\.destination\);/);
+  assert.match(fungsi('suaraRangkai'), /SUARA\.master = suaraRantaiMaster\(c\);/);
+});
+
+test('Musik dijadwalkan cukup jauh di depan: HP tersendat 1,4 dtk tidak menjadwalkan nada ke masa lalu (klik)', () => {
+  const kode = HTML.match(/var MUSIK = \{[^}]*\};\nvar MUSIK_DEPAN = [\d.]+;/)[0] + '\n' + fungsi('musikJadwal')
+    + '\nreturn { musikJadwal: musikJadwal, MUSIK: MUSIK };';
+  const ctx = { state: 'running', currentTime: 0 }, maju = [];
+  const J = new Function('SUARA', 'suasanaKini', kode)({ ctx, setel: { musik: true } }, {});
+  J.MUSIK.mesin = { jadwalBirama: (t) => { maju.push(t - ctx.currentTime); return 3.08; } };
+  J.MUSIK.waktu = 0.15;
+  const langkah = [];
+  for (let i = 0; i < 400; i++) langkah.push(i % 37 === 20 ? 1.4 : (i % 53 === 30 ? 0.9 : 0.1)); /* sesekali tersendat 0,9 / 1,4 dtk */
+  for (const d of langkah) { ctx.currentTime += d; J.musikJadwal(); }
+  assert.ok(maju.length > 10);
+  assert.ok(Math.min(...maju) >= 0.1, 'birama selalu mulai di masa depan: ' + Math.min(...maju).toFixed(3));
+  /* tersendat lebih lama dari jarak jadwal (tab pindah, GC panjang): birama digeser maju, tidak menumpuk */
+  ctx.currentTime += 9; maju.length = 0; J.musikJadwal();
+  assert.equal(maju.length, 1);
+  assert.ok(Math.abs(maju[0] - 0.12) < 1e-9);
+});
+
+test('Derau loop menyambung mulus (dulu "tik" tiap 4 dtk di hujan + api kompor)', () => {
+  const S2 = new Function(antara('/* ==== SUASANA-START ==== */', '/* ==== SUASANA-END ==== */') + fungsi('suaraDerau') + '\nreturn suaraDerau;')();
+  const c = { sampleRate: 8000, createBuffer: (ch, n) => { const d = new Float32Array(n); return { getChannelData: () => d }; } };
+  for (const warna of ['pink', 'putih']) {
+    const d = S2(c, 4, warna).getChannelData(0), lompat = [];
+    for (let i = 1; i < d.length; i++) lompat.push(Math.abs(d[i] - d[i - 1]));
+    lompat.sort((a, b) => a - b);
+    const sambung = Math.abs(d[d.length - 1] - d[0]), p99 = lompat[Math.floor(lompat.length * 0.99)];
+    assert.ok(sambung <= p99, warna + ': sambungan ' + sambung.toFixed(3) + ' <= persentil 99 lompatan biasa ' + p99.toFixed(3));
+    const rms = (a, b) => { let s = 0; for (let i = a; i < b; i++) s += d[i] * d[i]; return Math.sqrt(s / (b - a)); };
+    const silang = rms(0, 400), tengah = rms(8000, 24000);
+    assert.ok(silang / tengah > 0.75 && silang / tengah < 1.33, warna + ': kekuatan derau di pudar-silang tetap (' + (silang / tengah).toFixed(2) + ')');
+  }
+});
+
+test('Musik + Efek suara dua-duanya mati: context audio diistirahatkan, tidak dibangunkan ketukan', () => {
+  assert.match(fungsi('suaraTerapkan'), /if \(suaraSemuaMati\(\)\) SUARA\.diamTimer = setTimeout\(function \(\) \{[\s\S]*SUARA\.ctx\.suspend\(\)/);
+  assert.match(fungsi('suaraBuka'), /^function suaraBuka\(\) \{\n[^\n]*\n  if \(suaraSemuaMati\(\)\) return;/);
+  assert.match(HTML, /function suaraSemuaMati\(\) \{ return !SUARA\.setel\.musik && !SUARA\.setel\.efek; \}/);
+});
