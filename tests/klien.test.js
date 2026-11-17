@@ -605,3 +605,114 @@ test('17 Nov: pil MP "N online" global — mpTeksStatus + mpHitungOnline (bukan 
   assert.ok(!HTML.includes('pemain di sini'), 'teks lama "pemain di sini" masih ada');
   assert.ok(!HTML.includes('mpHitungSekitar'), 'fungsi lama mpHitungSekitar masih ada');
 });
+
+/* 17 Nov: Alam Kerja (FINAL 19:43, Ryan: "gak usah numpuk di dalam warung") —
+   tiap pekerja masuk alam kerja PRIVAT miliknya sendiri ('kerja-<job>-<id>');
+   HANYA pekerja pertama (id klien terkecil di antara pekerja job itu) yang
+   keliatan di konter dunia utama (siaran di alam dasar). Pekerja ke-2+ siaran
+   di alam privatnya sendiri — tidak keliatan dunia utama maupun satu sama lain.
+   TIDAK ADA slot berjejer, TIDAK ADA cap jumlah pekerja. */
+test('17 Nov Alam Kerja: mpRealmDikenal terima realm kerja privat; mpRealmDasar petakan ke alam dasar', () => {
+  const kenal = ambilFungsi('mpRealmDikenal');
+  assert.equal(kenal('kerja-warung-pabc123'), 'kerja-warung-pabc123');
+  assert.equal(kenal('kerja-kafe-pxyz'), 'kerja-kafe-pxyz');
+  assert.equal(kenal('kerja-ronda-p1'), 'kerja-ronda-p1');
+  assert.equal(kenal('kerja-laundry-p1'), 'kerja-laundry-p1');
+  assert.equal(kenal('kerja-warung'), 'kerja-warung');
+  for (const r of ['kerja-x-p1', 'kerja-warung-', 'kerja-', 'kerja-warung-p1/x']) assert.equal(kenal(r), 'yard', String(r));
+  const dasar = ambilFungsi('mpRealmDasar');
+  assert.equal(dasar('kerja-warung-pabc123'), 'jalan');
+  assert.equal(dasar('kerja-kafe-pxyz'), 'jalan');
+  assert.equal(dasar('kerja-ronda-p1'), 'jalan');
+  assert.equal(dasar('kerja-laundry-p1'), 'dapur');
+  assert.equal(dasar('kerja-warung'), 'jalan');
+  assert.equal(dasar('jalan'), 'jalan');
+  assert.equal(dasar('dapur'), 'dapur');
+  assert.equal(dasar('yard'), 'yard');
+  assert.equal(dasar(null), 'yard');
+  assert.equal(dasar(7), 'yard');
+});
+
+test('17 Nov Alam Kerja: kerjaRealmSiaran — pertama siaran di alam dasar, ke-2+ di alam privat sendiri', () => {
+  const siaran = ambilFungsi('kerjaRealmSiaran');
+  const set = (me, peers, job) => {
+    global.playerId = me; global.myRealm = 'jalan';
+    global.remotePlayers = {};
+    for (const [id, j] of peers) global.remotePlayers[id] = { aks: { kerja: j } };
+    global.KERJA = { id: job || 'warung', beres: false };
+  };
+  try {
+    set('pmmm', [['paaa', 'warung'], ['pzzz', 'warung']]);
+    assert.equal(siaran(), 'kerja-warung-pmmm'); /* bukan pertama -> alam privat sendiri */
+    set('paaa', [['pmmm', 'warung'], ['pzzz', 'warung']]);
+    assert.equal(siaran(), 'jalan'); /* id terkecil -> alam dasar, keliatan di konter */
+    set('pmmm', [['paaa', 'warung'], ['pzzz', 'kafe']]); /* job lain diabaikan */
+    assert.equal(siaran(), 'kerja-warung-pmmm');
+    set('pmmm', [['paaa', null]]); /* entri tanpa aks.kerja diabaikan */
+    global.remotePlayers.paaa = {};
+    assert.equal(siaran(), 'jalan');
+    /* handover: peer id terkecil berhenti (hilang dari pekerja) -> berikutnya jadi pertama */
+    set('pmmm', [['paaa', 'warung'], ['pzzz', 'warung']]);
+    assert.equal(siaran(), 'kerja-warung-pmmm');
+    delete global.remotePlayers.paaa;
+    assert.equal(siaran(), 'jalan');
+    /* 12 pekerja: tanpa cap, semua dapat realm sendiri yang berbeda */
+    const ids = ['p01', 'p02', 'p03', 'p04', 'p05', 'p06', 'p07', 'p08', 'p09', 'p10', 'p11', 'p12'];
+    const realms = new Set();
+    for (const id of ids) { set(id, ids.filter((x) => x !== id).map((x) => [x, 'warung'])); realms.add(siaran()); }
+    assert.equal(realms.size, 12); /* 'jalan' (p01, pertama) + 11 privat berbeda */
+    assert.ok(realms.has('jalan'));
+    assert.ok(realms.has('kerja-warung-p12'));
+    /* bukan shift / beres -> alam dasar */
+    global.KERJA = null; assert.equal(siaran(), 'jalan');
+    global.KERJA = { id: 'warung', beres: true }; assert.equal(siaran(), 'jalan');
+    /* ronda/laundry sama: pertama di alam dasar, ke-2+ privat (tanpa slot) */
+    set('pmmm', [['paaa', 'ronda']], 'ronda');
+    assert.equal(siaran(), 'kerja-ronda-pmmm');
+    set('paaa', [['pmmm', 'ronda']], 'ronda');
+    assert.equal(siaran(), 'jalan');
+    set('pmmm', [['paaa', 'laundry']], 'laundry');
+    global.myRealm = 'dapur';
+    assert.equal(siaran(), 'kerja-laundry-pmmm');
+  } finally { delete global.playerId; delete global.myRealm; delete global.remotePlayers; delete global.KERJA; }
+});
+
+test('17 Nov Alam Kerja: mpPilihRender — alam privat terisolasi, pekerja tidak saling lihat', () => {
+  const pilih = ambilFungsi('mpPilihRender');
+  /* remotePlayers tidak pernah memuat diri sendiri (mpTerimaPos menolak selfId) */
+  const entries = {
+    pbbb: { realm: 'kerja-warung-pbbb', tx: -4.5, tz: 8.4 },
+    pccc: { realm: 'jalan', tx: -4.5, tz: 8.4 },
+    pddd: { realm: 'yard', tx: 0, tz: 12 }
+  };
+  assert.deepEqual(pilih(entries, -4.5, 8.4, 'kerja-warung-paaa', 20), []); /* privat: tidak ada yang tampil (hanya pemilik yang siaran di realm itu, dan diri sendiri bukan remote) */
+  assert.deepEqual(pilih({ pccc: entries.pccc, pddd: entries.pddd }, -4.5, 8.4, 'kerja-warung-pbbb', 20), []);
+  assert.deepEqual(pilih(entries, -4.5, 8.4, 'jalan', 20), ['pccc']); /* dunia utama: hanya pekerja pertama (siaran 'jalan') */
+  assert.deepEqual(pilih(entries, 0, 12, 'yard', 20), ['pddd']);
+});
+
+test('17 Nov Alam Kerja: sceneUntukRealm menaruh alam kerja privat di scene dasarnya', () => {
+  const awal = HTML.indexOf('function sceneUntukRealm(');
+  const kode = HTML.slice(awal, HTML.indexOf('\n}\n', awal) + 3);
+  const f = new Function('scene', 'livingScene', 'dapurScene', 'roomScene', 'jalanScene', kode + '\nreturn sceneUntukRealm;')('Y', 'L', 'D', 'R', 'J');
+  assert.equal(f('kerja-warung-pabc'), 'J');
+  assert.equal(f('kerja-kafe-pabc'), 'J');
+  assert.equal(f('kerja-ronda-pabc'), 'J');
+  assert.equal(f('kerja-laundry-pabc'), 'D');
+  assert.equal(f('kerja-warung'), 'J');
+  assert.equal(f('jalan'), 'J');
+  assert.equal(f('dapur'), 'D');
+});
+
+test('17 Nov Alam Kerja: kabel — masuk alam privat, berhenti kembali, siaran via kerjaRealmSiaran, pinning di jangkar murni', () => {
+  assert.match(HTML, /myRealmLihat = 'kerja-' \+ id \+ '-' \+ playerId;/); /* mulai shift -> alam privat sendiri */
+  assert.match(HTML, /myRealmLihat = myRealm; \/\* Alam Kerja \(17 Nov\): kembali ke alam utama/); /* berhenti -> alam utama */
+  assert.match(HTML, /mpBangunPos\(playerId, visitorName, visitorGender, kerjaRealmSiaran\(\)/);
+  assert.match(HTML, /mpBangunPresence\(playerId, visitorName, visitorGender, kerjaRealmSiaran\(\)/);
+  assert.match(HTML, /if \(!KERJA\) myRealmLihat = myRealm;/); /* pindah alam biasa -> alam lihat ikut (fix myRealmLihat basi) */
+  assert.match(HTML, /avatarPos\.x = kerjaJangkar\.x; avatarPos\.z = kerjaJangkar\.z;/); /* pinning di jangkar murni, tanpa slot */
+  assert.ok(!HTML.includes('kerjaSlotSaya'), 'fungsi slot berjejer masih ada');
+  assert.ok(!HTML.includes('kerjaSlotGeser'), 'fungsi slot lama masih ada');
+  assert.ok(!HTML.includes('mpCocokKerja'), 'pengecualian filter realm bersama masih ada');
+  assert.ok(!HTML.includes("('kerja-' + KERJA.id)"), 'siaran realm bersama masih ada');
+});

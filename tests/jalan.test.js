@@ -190,3 +190,23 @@ test('Jalan: kabel ke index.html (alam, tabrakan, kamera, render, ketuk, pindah 
   assert.match(blok('jalanPapan'), /new THREE\.MeshBasicMaterial\(\{ map: tex \}\)/);
   assert.doesNotMatch(antara('/* ==== JALAN-END ==== */', 'function jalanTick('), /emissive|transparent: true/);
 });
+
+test('17 Nov Alam Kerja: pos di alam kerja privat ikut batas alam dasarnya (realm utuh, tanpa jatuh ke yard)', () => {
+  const pos = (realm, x, z) => F.mpValidasiPos(JSON.parse(JSON.stringify(F.mpBangunPos('pabc123', 'rina', 'cewek', realm, x, z, 0, 0, 1, 'stand', null, 0, 0, 0))), 'plain456');
+  const r = pos('kerja-ronda-pabc123', -25, 0);
+  assert.ok(r, 'ronda privat di x=-25 ditolak');
+  assert.equal(r.realm, 'kerja-ronda-pabc123');
+  assert.equal(r.x, -25);
+  const w = pos('kerja-warung-pabc123', -4.5, 8.4);
+  assert.ok(w, 'warung privat di jangkar (-4,5, 8,4) ditolak');
+  assert.equal(w.realm, 'kerja-warung-pabc123');
+  assert.equal(w.z, 8.4);
+  const k = pos('kerja-kafe-pabc123', 3.15, 8.5);
+  assert.ok(k, 'kafe privat di jangkar (3,15, 8,5) ditolak');
+  assert.equal(k.realm, 'kerja-kafe-pabc123');
+  const l = pos('kerja-laundry-pabc123', 2, -3.6);
+  assert.ok(l, 'laundry privat di dapur ditolak');
+  assert.equal(l.realm, 'kerja-laundry-pabc123');
+  assert.equal(pos('kerja-ronda-pabc123', -30, 0), null, 'di luar batas jalan tetap ditolak');
+  assert.equal(pos('kerja-warung-pabc123', 40, 0), null, 'di luar batas jalan tetap ditolak');
+});

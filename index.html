@@ -1820,7 +1820,14 @@ function mpRealmDikenal(realm) {
   if (realm === 'yard' || realm === 'living' || realm === 'dapur') return realm; /* Tahap 1 Tugas 0: dapur dikenal (dulu jatuh ke yard) */
   if (realm === 'jalan') return realm; /* Tahap 3a: Jalan Kampung di luar gerbang (klien lama memetakannya ke yard sampai dimuat ulang) */
   if (typeof realm === 'string' && /^room-(?:[1-9]|[1-3][0-9]|40)$/.test(realm)) return realm; /* Gedung C & D: room-1..40 (dulu ..20 — pemain di K21-40 akan tampak di halaman) */
+  if (typeof realm === 'string' && /^kerja-(kafe|warung|ronda|laundry)(-[^/]+)?$/.test(realm)) return realm; /* Alam Kerja (17 Nov): realm kerja per job — 'kerja-<job>' atau privat 'kerja-<job>-<id>' (satu segmen topik, tanpa '/') */
   return 'yard'; /* realm tak dikenal -> perlakukan sebagai yard (§2.7) */
+}
+function mpRealmDasar(realm) { /* Alam Kerja (17 Nov): alam dasar dari satu realm ('kerja-warung' / 'kerja-warung-<id>' -> 'jalan', 'kerja-laundry...' -> 'dapur', lainnya -> dirinya sendiri) */
+  if (typeof realm !== 'string') return 'yard';
+  if (/^kerja-(warung|kafe|ronda)(-|$)/.test(realm)) return 'jalan';
+  if (/^kerja-laundry(-|$)/.test(realm)) return 'dapur';
+  return realm;
 }
 function mpPoseDikenal(pose) { /* Ronde 15a — pose sinkron: 'stand' | 'sit' | 'sleep'; hilang/tak dikenal -> 'stand' (kompatibel mundur).
    Tahap 2: + 'lesehan' (duduk di bantal lantai, pinggul 0,24 m — 'sit' dipasang untuk dudukan 0,48 m).
@@ -1948,7 +1955,7 @@ var MP_BATAS_JALAN = { minX: -27, maxX: 21, minZ: -8, maxZ: 8 };
 function mpValidasiPos(m, selfId) {
   if (!m || typeof m !== 'object') return null;
   if (!mpIdSah(m.id) || m.id === selfId) return null;
-  var bt = mpRealmDikenal(typeof m.realm === 'string' ? m.realm : 'yard') === 'jalan' ? MP_BATAS_JALAN : YARD;
+  var bt = mpRealmDasar(typeof m.realm === 'string' ? m.realm : 'yard') === 'jalan' ? MP_BATAS_JALAN : YARD; /* Alam Kerja (17 Nov): 'kerja-warung/kafe/ronda' ikut batas jalan (ronda bisa sampai x -25,9), 'kerja-laundry' ikut YARD */
   if (typeof m.x !== 'number' || !isFinite(m.x) || m.x < bt.minX - 1 || m.x > bt.maxX + 1) return null;
   if (typeof m.z !== 'number' || !isFinite(m.z) || m.z < bt.minZ - 1 || m.z > bt.maxZ + 1) return null;
   if (typeof m.rot !== 'number' || !isFinite(m.rot)) return null;
@@ -2039,13 +2046,13 @@ function mpHitungDuplikat(entries) { /* label akhiran · #XXXX (§2.6) */
   var hitung = Object.create(null);
   for (var id in entries) {
     var e = entries[id];
-    var k = e.realm + '\n' + String(e.nama || '').trim().toLowerCase();
+    var k = mpRealmDasar(e.realm) + '\n' + String(e.nama || '').trim().toLowerCase(); /* Alam Kerja (17 Nov): realm kerja dihitung sebagai alam dasarnya (nama sama di 'jalan' + 'kerja-<job>-<id>' tetap dapat akhiran) */
     hitung[k] = (hitung[k] || 0) + 1;
   }
   var out = Object.create(null);
   for (var id2 in entries) {
     var e2 = entries[id2];
-    var k2 = e2.realm + '\n' + String(e2.nama || '').trim().toLowerCase();
+    var k2 = mpRealmDasar(e2.realm) + '\n' + String(e2.nama || '').trim().toLowerCase();
     out[id2] = hitung[k2] > 1 ? ('@' + e2.nama + ' · #' + id2.slice(0, 4)) : ('@' + e2.nama); /* Ronde 54 — label = @username (+ akhiran duplikat) */
   }
   return out;
@@ -3286,6 +3293,7 @@ var LIVING_TABLE = { minX: -1.1, maxX: 1.1, minZ: -3.9, maxZ: -2.3 };
    (Ep2, sudah dibangun) + alas + 2 bantal. */
 var LIVING_SPAWN = { x: 1.2, z: -0.5, rot: Math.PI }; /* tengah ruangan menghadap meja (Ronde 10d: spawn lama z 2,5 + kamera selatan dist 5 -> kamera z 7,2 DI LUAR ruangan, panel pintu memenuhi layar masuk; spawn digeser ke utara supaya kamera selatan tetap di dalam, pintu tidak masuk frame. Ronde 26: ruangan 12x9, dinding selatan 4,5 — kamera masuk z 3,26 tetap DI DALAM. Ronde 10e: x 0 -> 1,2 supaya router (x 0) terlihat DI SAMPING avatar saat masuk — dulu avatar di x 0 tepat menutupi router dari kamera selatan) */
 var myRealm = 'yard'; /* alam aktif: 'yard' | 'living' (MULTIPLAYER-SPEC §8) */
+var myRealmLihat = 'yard'; /* Alam Kerja (17 Nov): alam yang dipakai FILTER tampil pemain lain (mpTerapkanRender). Normal = myRealm. Saat shift kerja = 'kerja-<job>-<id>' (privat) sehingga TIDAK ADA pemain lain yang tampil — di dalam warung hanya dia + pelanggannya. */
 var savedYard = { x: 0, z: 12, rot: Math.PI, camDist: KOSAN_CAM.dist, camYaw: 0, camPitch: 0.25, camTarget: { x: 0, y: 0, z: 12 } }; /* posisi + framing halaman sebelum masuk ruangan (Ronde 10c: yaw/pitch ikut disimpan; Ronde 10d: pitch ikut 0,25 spawn; Ronde 10e: camTarget ikut disimpan — dulu hanya posisi avatar yang dipakai sebagai target bidik, padahal camTarget tertinggal sampai 0,38 m di belakang avatar kalau masuk tepat setelah berhenti jalan -> framing pulih bergeser) */
 
 /* ================= Tahap 2 — aset hero: helper bentuk empuk + tekstur lukis =================
@@ -4627,6 +4635,8 @@ function exitDapur() {
    "Budi Santoso" = 3. Isi SEDERHANA (perintah Ryan 22:33): kasur + meja
    kecil saja — isi kamar tumbuh lewat komen episode, bukan furnishing penuh. */
 function sceneUntukRealm(realm) { /* scene THREE untuk satu alam (dipakai avatar lokal + pemain remote) */
+  if (typeof realm === 'string' && /^kerja-(warung|kafe|ronda)(-|$)/.test(realm)) return jalanScene; /* Alam Kerja (17 Nov): alam kerja warung/kafe/ronda (termasuk privat 'kerja-<job>-<id>') tinggal di jalanScene */
+  if (typeof realm === 'string' && /^kerja-laundry(-|$)/.test(realm)) return dapurScene; /* Alam Kerja (17 Nov): alam kerja laundry tinggal di dapurScene */
   if (realm === 'living') return livingScene;
   if (realm === 'dapur') return dapurScene; /* Tahap 1 Tugas 0: pemain remote di dapur tinggal di dapurScene (dulu ikut scene halaman) */
   if (realm === 'jalan') return jalanScene; /* Tahap 3a: Jalan Kampung (scene dibuat sebelum avatar/pemain remote pertama dipasang) */
@@ -8021,6 +8031,13 @@ function kerjaMulai(id) {
     else { toastKosan(pesanApi(r)); dompetMuat(); }
   });
 }
+function kerjaRealmSiaran() { /* Alam Kerja (17 Nov, FINAL 19:43): realm yang disiarkan di pos/presence — pekerja pertama (id klien terkecil) siaran di alam dasar (kelihatan dunia utama di konter), pekerja ke-2+ siaran di alam PRIVATnya sendiri ('kerja-<job>-<id>') — tidak kelihatan dunia utama maupun satu sama lain */
+  if (!KERJA || KERJA.beres) return myRealm;
+  var ids = [playerId];
+  for (var id in remotePlayers) { var e = remotePlayers[id]; if (e && e.aks && e.aks.kerja === KERJA.id) ids.push(id); }
+  ids.sort();
+  return (ids[0] === playerId) ? myRealm : ('kerja-' + KERJA.id + '-' + playerId);
+}
 function kerjaJalankan(id, shiftId) {
   closeCard(); dompetTutup(); menuTutup(); rupaTutup();
   if (roomPose) bangunDariKasur(true); /* duduk di bale-bale lalu mulai ronda: berdiri dulu (diam) */
@@ -8030,7 +8047,9 @@ function kerjaJalankan(id, shiftId) {
     pesanan: KERJA_PEKERJAAN[id].pesanan, benar: 0, salah: 0, cepatJumlah: 0, cepatN: 0, ke: 0, selesaiTerakhir: 0, fase: 'kerja', beres: false, sibuk: false, hasil: null, tTampil: 0 };
   document.getElementById('kerjaPanel').style.setProperty('--kp-warna', KERJA_WARNA[id]);
   if (id === 'kafe') kafeMulai(); else if (id === 'warung') warungKerjaMulai(); else if (id === 'ronda') rondaMulai(); else laundryMulai();
+  myRealmLihat = 'kerja-' + id + '-' + playerId; /* Alam Kerja (17 Nov, FINAL 19:43): masuk alam kerja PRIVAT milik sendiri — di dalamnya HANYA dia + pelanggannya, tidak ada pekerja lain yang keliatan */
   aksesoriSayaTerapkan(); mpKirimPresence(); mpKirimPos();
+  mpTerapkanRender(); /* sembunyikan pemain biasa segera (bukan tunggu refresh 1 dtk) */
   bunyi('benar');
   toastKosan('💼 Shift ' + KERJA_PEKERJAAN[id].nama + ' mulai' + (KERJA.latihan ? ' (latihan, tanpa gaji)' : '') + ' — semangat!');
   kerjaRender();
@@ -8104,6 +8123,8 @@ function kerjaBersihkan() {
   kafeGelasBuang(); warungBarangBuang(); rondaPenandaSembunyi(); laundryBersihkan();
   if (kerjaJangkar && kerjaJangkar.keluar && myRealm === 'jalan') { avatarPos.x = kerjaJangkar.keluar.x; avatarPos.z = kerjaJangkar.keluar.z; avatar.rotation.y = Math.PI; }
   kerjaJangkar = null; KERJA = null;
+  myRealmLihat = myRealm; /* Alam Kerja (17 Nov): kembali ke alam utama — pemain lain tampil lagi */
+  mpTerapkanRender();
   document.getElementById('kerjaPanel').classList.remove('open');
   document.getElementById('rondaHud').classList.remove('open');
   kerjaLensaHitung(); /* lensa kembali ke tengah (halus) */
@@ -8571,7 +8592,7 @@ function kerjaAngkatRemote(e) {
   /* pemain lain di balik meja bar Kedai Kopi berdiri di lantai teras 0,12 m (pola jangkar lokal). Dipilih
      menurut POSISI, bukan field kerja: field kerja berhenti dikirim di layar hasil shift padahal avatarnya
      masih di teras (dulu kakinya tenggelam 12 cm). Pemain biasa tidak bisa melewati z 6,4 (batas JALAN). */
-  if (e.pose === 'stand' && e.realm === 'jalan' && e.tz > KAFE_KOTAK.minZ && e.tx >= KAFE_KOTAK.minX && e.tx <= KAFE_KOTAK.maxX) e.group.position.y = 0.12;
+  if (e.pose === 'stand' && (e.realm === 'jalan' || (typeof e.realm === 'string' && e.realm.indexOf('kerja-kafe') === 0)) && e.tz > KAFE_KOTAK.minZ && e.tx >= KAFE_KOTAK.minX && e.tx <= KAFE_KOTAK.maxX) e.group.position.y = 0.12; /* Alam Kerja (17 Nov): pekerja kafe di alam privat 'kerja-kafe-<id>' tetap diangkat 0,12 m di teras */
 }
 function kerjaPoseRemote(e) { /* pemain lain yang sedang kerja (field kerja): tangan bergerak pelan saat berdiri diam */
   if (e.pose !== 'stand') return;
@@ -11995,7 +12016,7 @@ function perbaruiLabelDuplikat() { /* akhiran · #XXXX bila nama sama (§2.6) */
   tamuCekBentrok(); /* perbaikan 9: dua tamu dengan Tamu-N sama -> pilih ulang */
 }
 function mpTerapkanRender() { /* 20 terdekat di realm sama (§3.5) */
-  var tampil = mpPilihRender(remotePlayers, avatarPos.x, avatarPos.z, myRealm, MP_MAX_RENDER);
+  var tampil = mpPilihRender(remotePlayers, avatarPos.x, avatarPos.z, myRealmLihat, MP_MAX_RENDER); /* Alam Kerja (17 Nov): filter pakai alam LIHAT (saat kerja = alam privat 'kerja-<job>-<id>' -> tidak ada pemain lain yang tampil) */
   for (var id in remotePlayers) {
     var entri = remotePlayers[id];
     var mau = tampil.indexOf(id) !== -1;
@@ -12006,7 +12027,7 @@ function mpTerapkanRender() { /* 20 terdekat di realm sama (§3.5) */
 }
 function mpKirimPos() {
   if (!entered || !klien || mpStatus !== 'on') return;
-  var msg = mpBangunPos(playerId, visitorName, visitorGender, myRealm,
+  var msg = mpBangunPos(playerId, visitorName, visitorGender, kerjaRealmSiaran(), /* Alam Kerja (17 Nov): siaran di alam dasar (pekerja pertama) atau alam privat 'kerja-<job>-<id>' */
     avatarPos.x, avatarPos.z, avatar.rotation.y, mpMag, Date.now(),
     roomPose || 'stand', /* Ronde 15a — pose ikut dipublish (update reguler + saat berubah) */
     emoteAktifSaya(Date.now()) ? emoteSaya.id : null, emoteAktifSaya(Date.now()) ? emoteSaya.emoteTs : 0, /* Tahap 2 — emote aktif ikut */
@@ -12018,13 +12039,14 @@ function mpKirimPos() {
 function mpKirimPresence() {
   if (!entered || !klien || mpStatus !== 'on') return;
   var r = rupaSaya();
-  var msg = mpBangunPresence(playerId, visitorName, visitorGender, myRealm, Date.now(), r.baju, r.rambut); /* Karakter v2 */
+  var msg = mpBangunPresence(playerId, visitorName, visitorGender, kerjaRealmSiaran(), Date.now(), r.baju, r.rambut); /* Karakter v2 — Alam Kerja (17 Nov): siaran di alam dasar (pekerja pertama) atau alam privat 'kerja-<job>-<id>' */
   mpPasangGaya(msg, rupaMentah()); /* Perabot modern — gaya yang dipilih (field opsional) */
   mpPasangAksesori(msg, aksesoriSayaMp()); /* Kerja & Belanja — aksesori + status kerja (field opsional) */
   try { klien.publish(MP_TOPICS.presence + playerId, JSON.stringify(msg), { retain: true }); } catch (e) {}
   lastPresenceSent = Date.now();
 }
 function mpSaatPindahAlam() { /* kontrak §8.3: realm baru -> publish segera + snap */
+  if (!KERJA) myRealmLihat = myRealm; /* Alam Kerja (17 Nov): pindah alam biasa -> alam lihat ikut alam utama (tanpa ini myRealmLihat basi: habis masuk jalan, filter tetap 'yard' dan pemain jalan tidak tampil) */
   for (var id in remotePlayers) {
     if (remotePlayers[id].realm === myRealm) remotePlayers[id].snapped = false;
   }

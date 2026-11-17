@@ -63,7 +63,7 @@ test('karakter: kabel — avatar sendiri, pemain lain, Ibu Kos, panel Tampilan',
   assert.match(HTML, /ibuAvatar = makeKosanAvatar\('cewek', null, \{ ibu: true \}\)\.g;/);
   assert.ok(!/function makeChibi\(/.test(HTML), 'model Ibu Kos lama dicabut');
   assert.match(fungsi('mpKirimPos'), /rupaSaya\(\)\.baju, rupaSaya\(\)\.rambut/);
-  assert.match(fungsi('mpKirimPresence'), /mpBangunPresence\(playerId, visitorName, visitorGender, myRealm, Date\.now\(\), r\.baju, r\.rambut\)/);
+  assert.match(fungsi('mpKirimPresence'), /mpBangunPresence\(playerId, visitorName, visitorGender, kerjaRealmSiaran\(\), Date\.now\(\), r\.baju, r\.rambut\)/); /* Alam Kerja (17 Nov): presence siaran di alam dasar (pekerja pertama) atau alam privat 'kerja-<job>-<id>' */
   assert.match(fungsi('rupaSet'), /localStorage\.setItem\('kosan3d-rupa'/);
   assert.match(HTML, /id="rupaBtn"/); assert.match(HTML, /id="rupaPanel"/);
   /* proporsi + sendi tidak berubah (pose duduk/tidur tetap pas) */

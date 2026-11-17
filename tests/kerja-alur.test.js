@@ -37,7 +37,7 @@ function misiSelesai(id) { catat.misi.push(id); }
 function kerjaRender() { catat.render++; }
 function kerjaJalankan(id, shift) { KERJA = { id: id, shift: shift, latihan: !shift, realm: id === 'laundry' ? 'dapur' : 'jalan', mulai: Date.now(), pangkat: 0,
   pesanan: KERJA_PEKERJAAN[id].pesanan, benar: 6, salah: 0, cepatJumlah: 3, cepatN: 6, ke: 6, fase: 'kerja', beres: false, sibuk: false, hasil: null, tTampil: 0 }; }
-var entered = true, penghuni = true, myRealm = 'jalan', avatarPos = { x: 3.1, z: 6.2 }, avatar = { rotation: {} }, suasanaKini = { jam: 12 };
+var entered = true, penghuni = true, myRealm = 'jalan', myRealmLihat = 'jalan', avatarPos = { x: 3.1, z: 6.2 }, avatar = { rotation: {} }, suasanaKini = { jam: 12 }; /* Alam Kerja (17 Nov): myRealmLihat = alam filter tampil (kerjaBersihkan meresetnya ke myRealm) */
 function ktaIsResident() { return penghuni; }
 var KERJA = null, kerjaJangkar = null, kerjaMemulai = false, PELANGGAN = [], kerjaGerak = { jenis: null };
 var KERJA_IKON = { kafe: 'kafe', warung: 'warung', ronda: 'kentongan', laundry: 'laundry' };
@@ -50,6 +50,7 @@ var washWM = { active: false, t: 0 }, washDR = { active: false, t: 0 }, wmLed = 
 function layarMesinTulis(L, teks, warna) { catat.layar.push([L.nama, teks, warna]); }
 function dompetHudPerbarui() {} function dekorTerapkan() {} function aksesoriSayaTerapkan() {} function ktaPerbaruiBila() {} function mpKirimPresence() {} function mpKirimPos() {}
 function dompetRender() {} function ibuSewaTombol() {} function pelangganPergi() {} function pelangganBuang() {} function kafeGelasBuang() {} function warungBarangBuang() {}
+function mpTerapkanRender() {} /* Alam Kerja (17 Nov): filter tampil pemain lain (kerjaBersihkan memanggilnya saat mereset myRealmLihat) */
 function rondaPenandaSembunyi() {} function kerjaLensaHitung() {} function pelangganTick() {} function kafeTick() {} function warungKerjaTick() {} function rondaTick() {}
 function laundryTick() {} function rondaKursorTampil() {} function rondaPanahTampil() {} function kerjaRenderWaktu() {} function kerjaAyun() {} function menuTutup() {}
 function closeCard() {} function rupaTutup() {} function kiloanAwal() {} function kiloanLayar() {} function dompetTerbuka() { return false; } function aksesoriSayaMp() { return {}; } function aksesoriPakai() {}
@@ -272,4 +273,11 @@ test('lensa kerja memakai ukuran kanvas (aspect kamera tidak ditimpa ukuran jend
   assert.match(f, /camera\.setViewOffset\(W, H, L\.x, L\.y, W, H\)/);
   assert.match(f, /camera\.clearViewOffset\(\); camera\.aspect = W \/ H; camera\.updateProjectionMatrix\(\);/);
   assert.doesNotMatch(f, /innerWidth|innerHeight/);
+});
+
+test('17 Nov Alam Kerja: kerjaBersihkan mengembalikan alam lihat ke alam utama (tanpa ini myRealmLihat basi)', () => {
+  const W = buatDunia();
+  W.ev("myRealmLihat = 'kerja-warung-pabc123';");
+  W.ev('kerjaBersihkan();');
+  assert.equal(W.ev('myRealmLihat'), 'jalan');
 });
