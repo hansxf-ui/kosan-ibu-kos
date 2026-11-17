@@ -584,3 +584,24 @@ test('Tahap 1 misi: hook gazebo / jemur / ibu terpasang di aksinya', () => {
   assert.match(blok('jemuranAngkat'), /misiSelesai\('jemur'\)/);
   assert.match(blok('showIbuCard'), /misiSelesai\('ibu'\)/);
 });
+
+test('17 Nov: pil MP "N online" global — mpTeksStatus + mpHitungOnline (bukan "pemain di sini")', () => {
+  const teks = ambilFungsi('mpTeksStatus');
+  assert.equal(teks('on', 5), '🟢 5 online');
+  assert.equal(teks('on', 1), '🟢 1 online');
+  assert.equal(teks('on', 0), '🟢 Tersambung'); /* 0 orang -> tetap "Tersambung" (pola lama) */
+  assert.equal(teks('connecting', 0), '🟡 Menghubungkan…');
+  assert.equal(teks('off', 0), '⚪ Sendiri — ketuk untuk coba lagi');
+  assert.equal(teks('solo', 0), '⚪ Sendiri — ketuk untuk coba lagi');
+  /* mpHitungOnline: semua realm dihitung (yard + jalan + kamar + living), bukan cuma realm sendiri */
+  global.remotePlayers = { pa: { realm: 'yard' }, pb: { realm: 'jalan' }, pc: { realm: 'room-5' }, pd: { realm: 'living' } };
+  try {
+    assert.equal(ambilFungsi('mpHitungOnline')(), 4);
+    global.remotePlayers = {};
+    assert.equal(ambilFungsi('mpHitungOnline')(), 0);
+  } finally { delete global.remotePlayers; }
+  /* pil memakai hitung global; teks + fungsi lama hilang */
+  assert.match(HTML, /mpTeksStatus\(mpStatus, mpHitungOnline\(\)\)/);
+  assert.ok(!HTML.includes('pemain di sini'), 'teks lama "pemain di sini" masih ada');
+  assert.ok(!HTML.includes('mpHitungSekitar'), 'fungsi lama mpHitungSekitar masih ada');
+});

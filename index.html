@@ -2063,8 +2063,8 @@ function mpPilihRender(entries, myX, myZ, myRealm, maxN) { /* 20 terdekat di rea
   for (var i = 0; i < arr.length && i < maxN; i++) out.push(arr[i].id);
   return out;
 }
-function mpTeksStatus(status, n) { /* teks pil status (§1.3) */
-  if (status === 'on') return n > 0 ? ('🟢 ' + n + ' pemain di sini') : '🟢 Tersambung';
+function mpTeksStatus(status, n) { /* teks pil status (§1.3) — 17 Nov: hitung ONLINE global, bukan "di sini" */
+  if (status === 'on') return n > 0 ? ('🟢 ' + n + ' online') : '🟢 Tersambung';
   if (status === 'connecting') return '🟡 Menghubungkan…';
   return '⚪ Sendiri — ketuk untuk coba lagi';
 }
@@ -11802,16 +11802,14 @@ function pustakaJaringan() {
   }
   return mqttJanji;
 }
-function mpHitungSekitar() {
-  var n = 0;
-  for (var id in remotePlayers) if (remotePlayers[id].realm === myRealm) n++;
-  return n;
+function mpHitungOnline() { /* 17 Nov — ONLINE global (§1.3): semua peer di remotePlayers, semua realm; diri sendiri tak pernah masuk remotePlayers (ditolak mpValidasiPos/Presence); entri basi (>5 dtk, MP_TIMEOUT_MS) sudah dibuang sweeper */
+  return Object.keys(remotePlayers).length;
 }
 function mpPerbaruiPil() {
   if (!mpPill) return;
   /* UI refresh: emoji bulat di awal teks diganti titik warna CSS
      (tampil sama di semua HP); teks dari mpTeksStatus tetap. */
-  var teksPil = mpTeksStatus(mpStatus, mpHitungSekitar()).replace(/^\S+\s+/, '');
+  var teksPil = mpTeksStatus(mpStatus, mpHitungOnline()).replace(/^\S+\s+/, '');
   mpPill.innerHTML = '<span class="mp-titik mp-' + (mpStatus === 'on' ? 'on' : (mpStatus === 'connecting' ? 'sambung' : 'off')) + '"></span>' + escapeHtml(teksPil);
 }
 function mpSetStatus(s) { mpStatus = s; mpPerbaruiPil(); }
