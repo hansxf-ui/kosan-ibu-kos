@@ -54,6 +54,15 @@ test('karakter: pesan klien lama / tampilan rusak tetap diterima, tampilan = baw
   assert.equal(pres.baju, 6); assert.equal(pres.rambut, -1);
 });
 
+test('karakter: presence membawa foto profil — URL sah lolos, sisanya null (18 Nov)', () => {
+  const dasar = { id: 'pabc1', nama: 'rina', gender: 'cewek', realm: 'yard', ts: 1 };
+  assert.equal(F.mpValidasiPresence(Object.assign({}, dasar, { foto: 'https://foto.test/foto-profil/3' }), 'pdiri').foto, 'https://foto.test/foto-profil/3');
+  assert.equal(F.mpValidasiPresence(Object.assign({}, dasar, { foto: 'http://foto.test/3' }), 'pdiri').foto, null, 'http ditolak');
+  assert.equal(F.mpValidasiPresence(Object.assign({}, dasar, { foto: 'https://x.test/a b.jpg' }), 'pdiri').foto, null, 'spasi ditolak');
+  assert.equal(F.mpValidasiPresence(Object.assign({}, dasar, { foto: 123 }), 'pdiri').foto, null, 'bukan string ditolak');
+  assert.equal(F.mpValidasiPresence(dasar, 'pdiri').foto, null, 'klien lama tanpa foto -> null');
+});
+
 test('karakter: kabel — avatar sendiri, pemain lain, Ibu Kos, panel Tampilan', () => {
   assert.match(fungsi('buildVisitorAvatar'), /makeKosanAvatar\(visitorGender, rupaSaya\(\)\)/);
   /* Perabot modern: pemain lain dibangun dengan warna + GAYA mereka (field opsional potong/atasan/bawahan/alas) */

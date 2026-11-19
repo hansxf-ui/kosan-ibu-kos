@@ -30,6 +30,29 @@ function buatDb({ url, kunci, fetchFn = globalThis.fetch }) {
     return j;
   }
   const rpc = (fn, args) => panggil('rpc/' + fn, { method: 'POST', body: args || {} });
+  /* ---- Foto profil (18 Nov): Supabase Storage, bucket `foto-profil` (public,
+     dibuat via SQL — migrasi 20261118_foto_profil.sql). Server memakai
+     SERVICE ROLE dari env — kunci ini TIDAK PERNAH ada di repo atau browser.
+     File TIDAK lewat Vercel: klien PUT langsung ke signed upload URL. ---- */
+  const dasarStorage = url.replace(/\/+$/, '') + '/storage/v1/';
+  const FOTO_BUCKET = 'foto-profil';
+  const FOTO_MAKS_BYTE = 500 * 1024;
+  async function storagePanggil(path, { method = 'GET', body, headers } = {}) {
+    const h = Object.assign({}, auth, headers || {});
+    if (body !== undefined && !h['Content-Type']) h['Content-Type'] = 'application/json';
+    const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 8000);
+    let r;
+    try { r = await fetchFn(dasarStorage + path, { method, headers: h, body: body === undefined ? undefined : (typeof body === 'string' ? body : JSON.stringify(body)), signal: ctl.signal }); }
+    finally { clearTimeout(t); }
+    return r;
+  }
+  async function storageJson(path, opt) {
+    const r = await storagePanggil(path, opt);
+    const teks = await r.text();
+    let j = null; try { j = teks ? JSON.parse(teks) : null; } catch (e) { j = null; }
+    if (!r.ok) { const e = new Error((j && (j.message || j.error)) || ('storage ' + r.status)); e.status = r.status; throw e; }
+    return j;
+  }
   const angka = (n) => { if (!Number.isInteger(n)) throw new Error('room bukan bilangan bulat'); return n; };
   const hex = (s) => { if (!/^[0-9a-f]{64}$/.test(s)) throw new Error('hash tidak valid'); return s; };
   const uuid = (s) => { if (!/^[0-9a-f-]{36}$/.test(String(s))) throw new Error('id tidak valid'); return s; };
@@ -69,6 +92,9 @@ function buatDb({ url, kunci, fetchFn = globalThis.fetch }) {
        (K21-30) / KOSAND (K31-40) — supabase/migrations/20261115_gedung_c_d.sql.
        kosan_register lama tidak disentuh. */
     registerCd: (args) => rpc('kosan_register_cd', args),
+    /* Gedung E & F (Opsi D, 17 Nov): RPC BARU kosan_register_ef untuk kunci
+       KOSANE (K41-50) / KOSANF (K51-60) — supabase/migrations/20261117_gedung_e_f.sql. */
+    registerEf: (args) => rpc('kosan_register_ef', args),
     sesiBuat: async (row) => {
       const r = await panggil('kosan_sesi', { method: 'POST', body: row, prefer: 'return=representation' });
       return r && r[0];
@@ -96,7 +122,48 @@ function buatDb({ url, kunci, fetchFn = globalThis.fetch }) {
       p_benar: uang(a.benar), p_salah: uang(a.salah), p_min_detik: uang(a.minDetik), p_maks_detik: uang(a.maksDetik), p_keterangan: ket(a.keterangan) }),
     kerjaBatal: async (a) => rpc('kosan_kerja_batal', { p_room: angka(a.room), p_nama: nama(a.nama), p_shift: uuid(a.shift) }),
     beli: async (a) => rpc('kosan_beli', { p_room: angka(a.room), p_nama: nama(a.nama), p_barang: kode(a.barang), p_harga: uang(a.harga), p_unik: a.unik === true, p_keterangan: ket(a.keterangan) }),
-    sewaBayar: async (a) => rpc('kosan_sewa_bayar', { p_room: angka(a.room), p_nama: nama(a.nama), p_bulan: bulan(a.bulan), p_jumlah: uang(a.jumlah), p_keterangan: ket(a.keterangan) })
+    sewaBayar: async (a) => rpc('kosan_sewa_bayar', { p_room: angka(a.room), p_nama: nama(a.nama), p_bulan: bulan(a.bulan), p_jumlah: uang(a.jumlah), p_keterangan: ket(a.keterangan) }),
+    /* ---- Foto profil (18 Nov) — Storage `foto-profil`, kunci objek = nomor kamar ---- */
+    fotoUrlPublik: (room) => url.replace(/\/+$/, '') + '/storage/v1/object/public/' + FOTO_BUCKET + '/' + angka(room),
+    fotoAmbil: async (room) => {
+      const r = await panggil('kosan_foto_profil?room=eq.' + angka(room) + '&select=url,diperbarui');
+      return (Array.isArray(r) && r[0]) || null;
+    },
+    fotoSimpan: (room, urlFoto) => panggil('kosan_foto_profil', { method: 'POST', prefer: 'resolution=merge-duplicates,return=minimal',
+      body: { room: angka(room), url: urlFoto, diperbarui: new Date().toISOString() } }),
+    fotoMintaUrl: async (room) => {
+      /* Bucket dibuat sekali via SQL (migrasi 20261118); kalau belum ada,
+         buat di sini — best-effort, abaikan "sudah ada" (signed URL akan
+         gagal jelas kalau bucket benar-benar tidak ada). */
+      try {
+        const cek = await storagePanggil('bucket/' + FOTO_BUCKET);
+        if (cek.status === 404) {
+          await storageJson('bucket', { method: 'POST', body: { id: FOTO_BUCKET, name: FOTO_BUCKET, public: true,
+            file_size_limit: FOTO_MAKS_BYTE, allowed_mime_types: ['image/jpeg', 'image/png', 'image/webp'] } });
+        }
+      } catch (e) { /* lanjut */ }
+      /* Objek lama WAJIB dihapus dulu: createSignedUploadUrl gagal
+         "The resource already exists" (400) kalau objek sudah ada di path
+         itu — terbukti live 18 Nov (minta 503 5/5 selagi objek yatim
+         foto-profil/41 masih ada; minta lolos saat objek belum ada).
+         Foto lama memang sedang diganti, jadi hapus di sini sudah benar;
+         kalau pengguna batal, kartu kembali ke inisial. */
+      try { await storagePanggil('object/' + FOTO_BUCKET + '/' + angka(room), { method: 'DELETE' }); } catch (e) { /* belum ada = lanjut */ }
+      const j = await storageJson('object/upload/sign/' + FOTO_BUCKET + '/' + angka(room), { method: 'POST', body: { expiresIn: 300 } });
+      let penuh = null;
+      if (j && typeof j.url === 'string' && j.url) penuh = j.url.indexOf('http') === 0 ? j.url : (url.replace(/\/+$/, '') + '/storage/v1/' + j.url.replace(/^\/+/, ''));
+      else if (j && typeof j.token === 'string' && j.token) penuh = url.replace(/\/+$/, '') + '/storage/v1/object/upload/sign/' + FOTO_BUCKET + '/' + angka(room) + '?token=' + j.token;
+      if (!penuh) throw new Error('signed upload URL tidak didapat');
+      return { unggah: penuh };
+    },
+    fotoUnduh: async (room) => {
+      const r = await storagePanggil('object/' + FOTO_BUCKET + '/' + angka(room));
+      if (!r.ok) { const e = new Error('foto tidak ditemukan'); e.status = r.status; throw e; }
+      return Buffer.from(await r.arrayBuffer());
+    },
+    fotoHapus: async (room) => {
+      try { await storagePanggil('object/' + FOTO_BUCKET + '/' + angka(room), { method: 'DELETE' }); } catch (e) { /* 404 = sudah tidak ada */ }
+    }
   };
 }
 

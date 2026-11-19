@@ -31,7 +31,7 @@ const BATAS = { masuk: 20, daftar: 20, kamar: 60 }; /* per jaringan (HMAC IP, IP
 const GERBANG = { maks: 5, jendelaDetik: 15 * 60, kunciDetik: 20 * 60 };
 /* Kerja & Belanja: batas per KAMAR (bukan per IP — penghuni di balik CGNAT operator seluler
    berbagi IP) per jam. Pemakaian wajar jauh di bawahnya (3 shift sehari = 9-12 panggilan). */
-const BATAS_PENGHUNI = { dompet: 600, kerja: 120, belanja: 60 };
+const BATAS_PENGHUNI = { dompet: 600, kerja: 120, belanja: 60, foto: 30 };
 const PESAN_KERJA = {
   belum_daftar: 'Daftar dulu di papan lowongan ya.',
   batas_hari: 'Jatah kerja hari ini sudah habis (' + K.BATAS_KERJA.shiftHari + ' shift). Besok lagi ya!',
@@ -77,13 +77,27 @@ function cekPermintaan(ctx) {
   return null;
 }
 const pinSah = (pin) => typeof pin === 'string' && /^\d{6}$/.test(pin);
+
+/* Validasi foto profil (18 Nov): JPEG/PNG/WebP dari magic bytes, maks 500 KB */
+function fotoValidasi(buf) {
+  if (!buf || !buf.length) return { ok: false, pesan: 'Foto tidak ditemukan — coba unggah ulang.' };
+  if (buf.length > 500 * 1024) return { ok: false, pesan: 'Foto maksimal 500 KB.' };
+  const jpg = buf.length >= 3 && buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF;
+  const png = buf.length >= 8 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47;
+  const webp = buf.length >= 12 && buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46
+    && buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50;
+  if (!jpg && !png && !webp) return { ok: false, pesan: 'Foto harus JPEG, PNG, atau WebP.' };
+  return { ok: true, tipe: jpg ? 'image/jpeg' : (png ? 'image/png' : 'image/webp') };
+}
 /* Perbaikan 11 (M4): pola nama tamu otomatis (Tamu-N) tidak boleh didaftarkan. */
 const namaPolaTamu = (nama) => /^tamu-[0-9]+$/.test(I.normalize(nama));
 const genderDari = (g) => (g === 'Cowok' || g === 'cowok' ? 'cowok' : 'cewek');
 
-/* Gedung C & D (15 Nov): 40 kamar; kunci KOSANC/KOSAND lewat RPC kosan_register_cd. */
-const JUMLAH_KAMAR = 40;
+/* Gedung C & D (15 Nov): 40 kamar; kunci KOSANC/KOSAND lewat RPC kosan_register_cd.
+   Gedung E & F (Opsi D, 17 Nov): 60 kamar; kunci KOSANE/KOSANF lewat RPC kosan_register_ef. */
+const JUMLAH_KAMAR = 60;
 const KUNCI_CD = ['KOSANC', 'KOSAND'];
+const KUNCI_EF = ['KOSANE', 'KOSANF'];
 
 function buatApp({ db, rahasia, sekarang = () => Date.now(), aman = true }) {
   if (!db) throw new Error('db wajib');
@@ -196,8 +210,10 @@ function buatApp({ db, rahasia, sekarang = () => Date.now(), aman = true }) {
       const args = { p_name: username.trim(), p_gender: gender === 'cowok' ? 'Cowok' : 'Cewek',
         p_key: kunciUp, p_pin_hash: pinHash, p_room: I.roomFor(username) };
       /* Gedung C & D: kunci KOSANC/KOSAND -> RPC baru (kamar kosong terendah
-         di K21-30 / K31-40; p_room null). Kunci lain tetap ke kosan_register lama. */
+         di K21-30 / K31-40; p_room null). Gedung E & F: kunci KOSANE/KOSANF
+         -> RPC kosan_register_ef (K41-50 / K51-60). Kunci lain tetap ke kosan_register lama. */
       if (KUNCI_CD.indexOf(kunciUp) !== -1) await db.registerCd(Object.assign(args, { p_room: null }));
+      else if (KUNCI_EF.indexOf(kunciUp) !== -1) await db.registerEf(Object.assign(args, { p_room: null }));
       else await db.register(args);
     } catch (e) {
       /* pesan RPC (mis. "nama sudah terdaftar", "kunci salah", "Gedung B
@@ -309,6 +325,39 @@ function buatApp({ db, rahasia, sekarang = () => Date.now(), aman = true }) {
     return balas(200, bentukDompet(d || {}));
   }
 
+  /* POST /api/foto-profil {aksi: 'lihat'|'minta'|'selesai'} — foto profil
+     penghuni (18 Nov, Ryan 19:31). 'lihat': URL foto sendiri saat ini.
+     'minta': signed upload URL (file TIDAK lewat Vercel — klien PUT langsung
+     ke Storage, karena bacaBody di jalankan.js membatasi body stream 8 KB).
+     'selesai': server mengunduh objek + validasi magic bytes + ukuran
+     (maks 500 KB); kalau tidak valid objek dihapus + 400. Kunci objek =
+     nomor kamar (1 foto per pemain, menimpa yang lama). Hanya sesi
+     penghuni — jadi hanya pemilik yang bisa pasang fotonya sendiri. */
+  async function fotoProfil(ctx) {
+    const tolak = cekPermintaan(ctx); if (tolak) return tolak;
+    const p = await penghuniSesi(ctx, 'foto');
+    if (p.tolak) return p.tolak;
+    const aksi = ctx.body && ctx.body.aksi;
+    if (aksi === 'lihat') {
+      const row = await db.fotoAmbil(p.room);
+      return balas(200, { url: row ? row.url : null });
+    }
+    if (aksi === 'minta') {
+      const u = await db.fotoMintaUrl(p.room);
+      return balas(200, { unggah: u.unggah });
+    }
+    if (aksi === 'selesai') {
+      const buf = await db.fotoUnduh(p.room);
+      const v = fotoValidasi(buf);
+      if (!v.ok) { try { await db.fotoHapus(p.room); } catch (e) {}
+        return galat(400, 'foto_tidak_valid', v.pesan); }
+      const url = db.fotoUrlPublik(p.room) + '?v=' + Date.now();
+      await db.fotoSimpan(p.room, url);
+      return balas(200, { url });
+    }
+    return galat(400, 'format', 'Aksi tidak dikenal.');
+  }
+
   /* POST /api/kerja {aksi: 'daftar'|'mulai'|'selesai'|'batal', pekerjaan?, shift?, hasil?} */
   async function kerja(ctx) {
     const tolak = cekPermintaan(ctx); if (tolak) return tolak;
@@ -374,7 +423,7 @@ function buatApp({ db, rahasia, sekarang = () => Date.now(), aman = true }) {
     }
   }
 
-  return { masuk, setupPin: masuk, daftar, sesi, keluar, kamarMasuk, dompet, kerja, belanja };
+  return { masuk, setupPin: masuk, daftar, sesi, keluar, kamarMasuk, dompet, kerja, belanja, fotoProfil };
 }
 
-module.exports = { buatApp, UMUR_INGAT, UMUR_BIASA, BATAS, GERBANG, PESAN, JUMLAH_KAMAR, KUNCI_CD, BATAS_PENGHUNI, PESAN_KERJA };
+module.exports = { buatApp, UMUR_INGAT, UMUR_BIASA, BATAS, GERBANG, PESAN, JUMLAH_KAMAR, KUNCI_CD, KUNCI_EF, BATAS_PENGHUNI, PESAN_KERJA, fotoValidasi };

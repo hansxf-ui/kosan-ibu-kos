@@ -109,7 +109,7 @@ test('perbaikan 9: tombol tamu tidak membaca kolom nama', () => {
 });
 
 /* ---------- perbaikan 9b (Ryan 14 Nov 15:37): pesan gabungan kosan penuh ---------- */
-const PESAN_GABUNG = 'Nama ini belum terdaftar — dan kosan juga sudah penuh (40 kamar terisi semua). Coba cek ejaan namamu, atau masuk sebagai tamu.';
+const PESAN_GABUNG = 'Nama ini belum terdaftar — dan kosan juga sudah penuh (60 kamar terisi semua). Coba cek ejaan namamu, atau masuk sebagai tamu.';
 /* jalankan masukKosan() ASLI dari index.html dengan dunia tiruan */
 function jalankanMasukKosan({ nama, preview, loginView }) {
   const awal = HTML.indexOf('function masukKosan() {');
@@ -129,7 +129,7 @@ function jalankanMasukKosan({ nama, preview, loginView }) {
   return jejak;
 }
 
-const PESAN_PENUH = 'Kosan sudah penuh (40 kamar terisi semua). Tunggu episode berikutnya ya!'; /* Gedung C & D: 20 -> 40 kamar */
+const PESAN_PENUH = 'Kosan sudah penuh (60 kamar terisi semua). Tunggu episode berikutnya ya!'; /* Gedung E & F: 40 -> 60 kamar */
 test('9c: preview null di mode MASUK -> pesan gabungan, entryLogin tidak jalan', () => {
   const j = jalankanMasukKosan({ nama: 'rinna', preview: null, loginView: true });
   assert.deepEqual(j.error, [PESAN_GABUNG]);
@@ -298,7 +298,7 @@ test('11 M5: login berhasil tapi daftar penghuni gagal dimuat -> pesan "Login be
   jalankanDenganStub({
     entryKosongkanRahasia() {}, setGender() {}, entryName: {}, entrySetBusy() {},
     muatOccupants: () => Promise.resolve(), entryShowError: (m) => j.error.push(m), entryTerapkanSesi: () => { j.sesi++; },
-    masukSebagai: () => { j.masuk++; }, kunciKlaim: () => false, toastKosan() {}
+    masukSebagai: () => { j.masuk++; }, kunciKlaim: () => false, toastKosan() {}, fotoSayaMuat() {} /* Foto profil (18 Nov) — selesaiMasukPenghuni memuat foto sendiri */
   }, ['selesaiMasukPenghuni'], 'var sesiPenghuni = null, OCCUPANTS_OK = false;\n', "\nselesaiMasukPenghuni({ room: 3, name: 'rina', gender: 'cewek' });");
   await new Promise((r) => setTimeout(r, 10));
   assert.deepEqual(j.error, ['Login berhasil, tapi daftar kamar belum termuat — coba ketuk Masuk lagi.']);
@@ -328,7 +328,8 @@ test('Tahap 1 Tugas 0: realm dapur dikenal; realm asing tetap jadi yard', () => 
   assert.equal(kenal('living'), 'living');
   assert.equal(kenal('room-20'), 'room-20');
   assert.equal(kenal('room-40'), 'room-40'); /* Gedung C & D: K21-K40 */
-  for (const r of ['room-41', 'room-0', 'Dapur', '__proto__', '', null, 7]) assert.equal(kenal(r), 'yard', String(r));
+  assert.equal(kenal('room-60'), 'room-60'); /* Gedung E & F: K41-K60 */
+  for (const r of ['room-61', 'room-0', 'Dapur', '__proto__', '', null, 7]) assert.equal(kenal(r), 'yard', String(r));
 });
 
 test('Tahap 1 Tugas 0: sceneUntukRealm menaruh pemain dapur di dapurScene', () => {

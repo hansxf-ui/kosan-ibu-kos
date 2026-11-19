@@ -11,7 +11,9 @@ function buatFakeDb({ penghuni, sekarang = () => Date.now() }) {
   const lama = penghuni.map((p) => ({ room: p.room, name: p.name, gender: p.gender, pin_hash: pinHash(p.pin), gagal: 0, kunci: 0 }));
   const t = { akun: new Map(), sesi: [], log: [], batas: new Map(), gerbang: new Map(),
     /* Kerja & Belanja — meniru tabel supabase/migrations/20261116_kerja_belanja.sql */
-    dompet: new Map(), mutasi: [], pekerjaan: new Map(), shift: [], barang: new Map(), sewa: new Map() };
+    dompet: new Map(), mutasi: [], pekerjaan: new Map(), shift: [], barang: new Map(), sewa: new Map(),
+    /* Foto profil — meniru tabel kosan_foto_profil + objek Storage `foto-profil` (18 Nov) */
+    foto: new Map(), fotoObjek: new Map() };
   const raise = (m) => { const e = new Error(m); e.status = 400; throw e; }; /* RAISE EXCEPTION -> PostgREST 400 */
   const kunciP = (room, nama) => room + '|' + nama;
   let mutasiId = 0;
@@ -89,6 +91,33 @@ function buatFakeDb({ penghuni, sekarang = () => Date.now() }) {
         const lain = key === 'KOSANC' ? [31, 40] : [21, 30];
         const isiLain = lama.filter((x) => x.room >= lain[0] && x.room <= lain[1]).length;
         if (isiLain < 10) tolak(key === 'KOSANC' ? 'Gedung C penuh — kode Gedung D ada di caption video terbaru' : 'Gedung D penuh — kode Gedung C ada di caption video terbaru');
+        tolak('kosan penuh');
+      }
+      lama.push({ room, name: n, gender: a.p_gender, pin_hash: a.p_pin_hash, gagal: 0, kunci: 0 });
+      return room;
+    },
+    /* tiru kosan_register_ef (supabase/migrations/20261117_gedung_e_f.sql):
+       KOSANE -> kamar kosong terendah 41-50, KOSANF -> 51-60; nama unik di
+       semua kamar; pesan penuh menunjuk gedung lain kalau masih ada kamar. */
+    async registerEf(a) {
+      panggilan.push('registerEf');
+      const tolak = (m) => { const e = new Error(m); e.status = 400; throw e; };
+      const key = String(a.p_key || '').trim().toUpperCase();
+      if (key !== 'KOSANE' && key !== 'KOSANF') tolak('kunci salah');
+      const n = normalize(a.p_name);
+      if (!n || n.length > 30) tolak('nama tidak valid');
+      if (!/^[a-z0-9 _.\-]+$/.test(n) || !/[a-z0-9]/.test(n)) tolak('username tidak valid');
+      if (!['Cewek', 'Cowok'].includes(a.p_gender)) tolak('gender tidak valid');
+      if (!/^[0-9a-f]{8}$/.test(a.p_pin_hash)) tolak('pin tidak valid');
+      if (lama.some((x) => normalize(x.name) === n)) tolak('nama sudah terdaftar');
+      const [lo, hi] = key === 'KOSANE' ? [41, 50] : [51, 60];
+      const terisi = new Set(lama.map((x) => x.room));
+      let room = (a.p_room >= lo && a.p_room <= hi && !terisi.has(a.p_room)) ? a.p_room : 0;
+      for (let r = lo; !room && r <= hi; r++) if (!terisi.has(r)) room = r;
+      if (!room) {
+        const lain = key === 'KOSANE' ? [51, 60] : [41, 50];
+        const isiLain = lama.filter((x) => x.room >= lain[0] && x.room <= lain[1]).length;
+        if (isiLain < 10) tolak(key === 'KOSANE' ? 'Gedung E penuh — kode Gedung F ada di caption video terbaru' : 'Gedung F penuh — kode Gedung E ada di caption video terbaru');
         tolak('kosan penuh');
       }
       lama.push({ room, name: n, gender: a.p_gender, pin_hash: a.p_pin_hash, gagal: 0, kunci: 0 });
@@ -232,7 +261,19 @@ function buatFakeDb({ penghuni, sekarang = () => Date.now() }) {
       t.dompet.set(k, saldo - jumlah);
       catatMutasi(room, nama, -jumlah, 'sewa', keterangan, saldo - jumlah);
       return { saldo: saldo - jumlah, bulan };
-    }
+    },
+    /* Foto profil (18 Nov) — kunci objek = nomor kamar; _fotoUnggah menaruh
+       objek seolah sudah di-PUT ke Storage lewat signed URL. */
+    fotoUrlPublik(room) { return 'https://foto.test/foto-profil/' + room; },
+    async fotoAmbil(room) { return t.foto.get(room) || null; },
+    async fotoSimpan(room, url) { t.foto.set(room, { url, diperbarui: iso(sekarang()) }); },
+    async fotoMintaUrl(room) { return { unggah: 'https://foto.test/unggah/' + room + '?token=uji' }; },
+    async fotoUnduh(room) {
+      if (!t.fotoObjek.has(room)) { const e = new Error('foto tidak ditemukan'); e.status = 404; throw e; }
+      return Buffer.from(t.fotoObjek.get(room));
+    },
+    async fotoHapus(room) { t.fotoObjek.delete(room); },
+    _fotoUnggah(room, buf) { t.fotoObjek.set(room, Buffer.from(buf)); }
   };
 }
 

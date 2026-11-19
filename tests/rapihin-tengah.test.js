@@ -76,14 +76,14 @@ test('rapihin: jalur gerbang x 15 tembus gerbang (z 29) sampai plaza (z 14)', ()
 test('rapihin: 2 pohon pindah membingkai jalur gerbang; pohon lain + gazebo + jemuran tetap', () => {
   assert.match(HTML, /tree\(6\.5, 13\); tree\(23\.5, 13\);/);
   assert.ok(!HTML.includes('tree(-4, 15); tree(-8, 15);'), 'pohon lama masih ada');
-  assert.match(HTML, /tree\(-17, 8\); tree\(17\.5, 9\); tree\(-17, -11\.5\);/);
+  assert.match(HTML, /tree\(-17, 13\); tree\(17\.5, 9\); tree\(-17, -11\.5\);/); /* revisi Opsi D 17 Nov: pohon barat pindah (-17, 8) -> (-17, 13), tepi selatan celah */
   /* gazebo tetap (pusat 12, 6,5) + jemuran tetap (AABB tiang) */
   assert.ok(F.PLAZA_SOLIDS.some((s) => JSON.stringify(s) === JSON.stringify({ minX: 11.2, maxX: 12.8, minZ: 6.1, maxZ: 6.9 })), 'gazebo berubah');
   assert.ok(F.PLAZA_SOLIDS.some((s) => JSON.stringify(s) === JSON.stringify({ minX: -16.6, maxX: -16.4, minZ: 0.9, maxZ: 1.1 })), 'jemuran berubah');
   /* gedung + halaman + jumlah kamar tidak berubah */
   assert.deepEqual(F.BUILDING_C, { minX: -14.4, maxX: 12.4, minZ: 18.6, maxZ: 27 });
   assert.deepEqual(F.BUILDING_D, { minX: 17.6, maxX: 44.4, minZ: 18.6, maxZ: 27 });
-  assert.equal(F.JUMLAH_KAMAR, 40);
+  assert.equal(F.JUMLAH_KAMAR, 60);
   assert.equal(F.YARD.maxZ, 28);
 });
 

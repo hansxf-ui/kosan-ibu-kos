@@ -82,21 +82,21 @@ test('C&D: jepit balkon C/D sadar radius (tidak jatuh / tidak menembus pagar kac
   assert.equal(F.clampBalcony(-16, 22).x, -15.25, 'badan 0,3 m dari handrail');
 });
 
-test('C&D: 40 kamar — previewFor kamar kosong pertama s.d. 40, roomFor hash TETAP 1..10', () => {
-  assert.equal(F.JUMLAH_KAMAR, 40);
+test('C&D: 60 kamar — previewFor kamar kosong pertama s.d. 60, roomFor hash TETAP 1..10', () => {
+  assert.equal(F.JUMLAH_KAMAR, 60);
   const occ = []; for (let r = 1; r <= 20; r++) occ.push({ room: r, name: 'p' + r });
   assert.equal(F.previewFor('orangbaru', occ).room, 21);
   occ.push({ room: 21, name: 'p21' });
   assert.equal(F.previewFor('orangbaru', occ).room, 22);
-  for (let r = 22; r <= 40; r++) occ.push({ room: r, name: 'p' + r });
+  for (let r = 22; r <= 60; r++) occ.push({ room: r, name: 'p' + r });
   assert.equal(F.previewFor('orangbaru', occ), null);
   assert.deepEqual(F.previewFor('p33', occ), { room: 33, resident: true, moved: false });
   for (const n of ['rina', 'cici', 'Budi Santoso']) { const h = F.roomFor(n); assert.ok(h >= 1 && h <= 10, n); }
 });
 
-test('C&D: realm room-1..40 dikenal; posisi di halaman selatan baru lolos validasi', () => {
-  for (const r of ['room-1', 'room-20', 'room-21', 'room-39', 'room-40']) assert.equal(F.mpRealmDikenal(r), r);
-  for (const r of ['room-0', 'room-41', 'room-400']) assert.equal(F.mpRealmDikenal(r), 'yard');
+test('C&D: realm room-1..60 dikenal; posisi di halaman selatan baru lolos validasi', () => {
+  for (const r of ['room-1', 'room-20', 'room-21', 'room-39', 'room-40', 'room-41', 'room-60']) assert.equal(F.mpRealmDikenal(r), r);
+  for (const r of ['room-0', 'room-61', 'room-400']) assert.equal(F.mpRealmDikenal(r), 'yard');
   const m = { id: 'pabc1', nama: 'cici', gender: 'cewek', realm: 'yard', x: 0, z: 27.7, rot: 0, gerak: 0, ts: 1, pose: 'stand' };
   assert.ok(F.mpValidasiPos(m, 'pdiri'), 'z 27,7 (lorong belakang C/D) sah');
 });
@@ -107,7 +107,7 @@ test('C&D: pintu K21-K40 dibuat dengan pola A/B (5 bawah lalu 5 atas), kunci + p
   assert.match(g, /floor2 = k >= 5, x = d\.doorX\[k % 5\]/);
   assert.match(g, /door\.userData = \{ card: 'room', room: n \}/);
   assert.match(HTML, /bangunGedungCD\(scene\.children\.slice\(awalGedungAB\), doorXA, doorXB\);/);
-  assert.match(HTML, /var KUNCI_KODE_LIST = \['KOSAN', 'KOSANBARU', 'KOSANC', 'KOSAND'\]/);
+  assert.match(HTML, /var KUNCI_KODE_LIST = \['KOSAN', 'KOSANBARU', 'KOSANC', 'KOSAND', 'KOSANE', 'KOSANF'\]/);
   assert.match(fungsi('daftarPesan'), /Gedung C penuh/); assert.match(fungsi('daftarPesan'), /Gedung D penuh/);
   assert.match(fungsi('updateRoomCount'), /JUMLAH_KAMAR \+ ' kamar · '/);
   assert.match(HTML, /hits = hits\.filter\(function \(h\) \{ return gedungCdTerlihat\(h\.object\); \}\);/);

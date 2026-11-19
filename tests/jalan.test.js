@@ -114,7 +114,7 @@ test('Jalan: realm "jalan" dikenal + pos dari jalan (ujung barat x -25,9, duduk 
   const pos = (realm, x, z) => F.mpValidasiPos(JSON.parse(JSON.stringify(F.mpBangunPos('pabc123', 'rina', 'cewek', realm, x, z, 0, 0, 1, 'stand', null, 0, 0, 0))), 'plain456');
   assert.equal(pos('jalan', 40, 0), null, 'x 40 di jalan ditolak');
   assert.equal(pos('jalan', 0, 20), null, 'z 20 di jalan ditolak');
-  assert.equal(pos('yard', -25.9, 0), null, 'halaman tetap pakai batas YARD');
+  assert.equal(pos('yard', -69.5, 0), null, 'halaman tetap pakai batas YARD (kini ujung barat -68,4, Opsi D revisi)');
   assert.ok(pos('yard', 40, 20), 'halaman x 40 z 20 tetap sah');
 });
 
