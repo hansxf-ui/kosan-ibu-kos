@@ -1173,6 +1173,7 @@
         <button id="dapurBtn" type="button" title="Masuk ke dapur (mesin cuci + pengering)"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="13" r="5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="7" y="6" width="10" height="2" fill="currentColor"/></svg> DAPUR</button>
         <!-- Tahap 3a — alam baru di luar gerbang (boleh untuk tamu: luar ruangan) -->
         <button id="jalanBtn" type="button" title="Keluar gerbang ke Jalan Kampung (warung, Kedai Kopi, pos ronda, si Oyen)"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3L4 21M16 3l4 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 4v3M12 10.5v3M12 17v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> JALAN KAMPUNG</button>
+        <button id="kotaBtn" type="button"><svg class="uicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 21h20M4 21V8h6v13m1 0V3h8v18M6 12h2m5-5h4m-4 4h4m-4 4h4"/></svg> KOTA</button>
       </div>
     </div>
     <!-- Tahap 2 — emote: daftar TETAP 8 (tanpa teks bebas). Isi menu dibangun JS (ikon kanvas). -->
@@ -1971,6 +1972,8 @@ function gedungDariKamar(room) { /* 1-10 A, 11-20 B, 21-30 C, 31-40 D, 41-50 E, 
 }
 function petaLabelLokasi(realm) { /* alam -> nama tempat yang kebaca */
   if (realm === 'yard') return 'Halaman Kosan';
+  if (realm === 'kota') return 'Kota';
+  if (/^kota-(lobi|kafe|toko)$/.test(realm)) return 'Kota · ' + realm.slice(5);
   if (realm === 'jalan') return 'Jalan Kampung';
   if (realm === 'living') return 'Ruang Tamu';
   if (realm === 'dapur') return 'Dapur';
@@ -2029,6 +2032,7 @@ function mpAmbilToken(ember, now) { /* ember: { token, t } -> { ok, ember } */
 
 function mpRealmDikenal(realm) {
   if (realm === 'yard' || realm === 'living' || realm === 'dapur') return realm; /* Tahap 1 Tugas 0: dapur dikenal (dulu jatuh ke yard) */
+  if (/^kota(?:-(?:lobi|kafe|toko))?$/.test(realm)) return realm;
   if (realm === 'jalan') return realm; /* Tahap 3a: Jalan Kampung di luar gerbang (klien lama memetakannya ke yard sampai dimuat ulang) */
   if (typeof realm === 'string' && /^room-(?:[1-9]|[1-5][0-9]|60)$/.test(realm)) return realm; /* Gedung E & F: room-1..60 (dulu ..40 — pemain di K41-60 akan tampak di halaman) */
   if (typeof realm === 'string' && /^kerja-(kafe|warung|ronda|laundry)(-[^/]+)?$/.test(realm)) return realm; /* Alam Kerja (17 Nov): realm kerja per job — 'kerja-<job>' atau privat 'kerja-<job>-<id>' (satu segmen topik, tanpa '/') */
@@ -4860,6 +4864,7 @@ function enterLiving() {
   if (!ktaIsResident()) { toastKosan('Tamu belum bisa masuk ruang tamu — daftar dulu jadi penghuni ya!'); return; }
   if (roomPose) bangunDariKasur(true); /* Tahap 1 — duduk di gazebo lalu pindah alam: bangun dulu (sebelum savedYard) */
   if (myRealm === 'dapur') exitDapur(); /* Ronde 43 — tidak bisa langsung dapur -> ruang tamu; keluar dulu */
+  if (alamKota(myRealm)) exitKota();
   if (myRealm === 'jalan') exitJalan(); /* Tahap 3a — dari Jalan Kampung: balik ke halaman dulu (savedYard = depan gerbang, bukan koordinat jalan) */
   savedYard = { x: avatarPos.x, z: avatarPos.z, rot: avatar.rotation.y, camDist: camDist, camYaw: camYaw, camPitch: camPitch, camTarget: { x: camTarget.x, y: camTarget.y, z: camTarget.z } }; /* Ronde 10c: framing ikut disimpan; Ronde 10e: camTarget ASLI ikut disimpan (bukan posisi avatar) — camTarget tertinggal di belakang avatar saat jalan */
   myRealm = 'living';
@@ -5024,6 +5029,7 @@ function enterDapur() {
   if (roomPose) bangunDariKasur(true); /* Tahap 1 — duduk di gazebo lalu pindah alam: bangun dulu (sebelum savedYard) */
   if (myRealm === 'living') exitLiving(); /* tidak bisa langsung living -> dapur; keluar dulu */
   if (myRealm.indexOf('room-') === 0) exitRoom(); /* tidak bisa langsung kamar -> dapur; keluar dulu */
+  if (alamKota(myRealm)) exitKota();
   if (myRealm === 'jalan') exitJalan(); /* Tahap 3a — dari Jalan Kampung: balik ke halaman dulu */
   savedYard = { x: avatarPos.x, z: avatarPos.z, rot: avatar.rotation.y, camDist: camDist, camYaw: camYaw, camPitch: camPitch, camTarget: { x: camTarget.x, y: camTarget.y, z: camTarget.z } };
   myRealm = 'dapur';
@@ -5074,6 +5080,7 @@ function sceneUntukRealm(realm) { /* scene THREE untuk satu alam (dipakai avatar
   if (typeof realm === 'string' && /^kerja-laundry(-|$)/.test(realm)) return dapurScene; /* Alam Kerja (17 Nov): alam kerja laundry tinggal di dapurScene */
   if (realm === 'living') return livingScene;
   if (realm === 'dapur') return dapurScene; /* Tahap 1 Tugas 0: pemain remote di dapur tinggal di dapurScene (dulu ikut scene halaman) */
+  if (/^kota(?:-(?:lobi|kafe|toko))?$/.test(realm)) return kotaScenes[realm];
   if (realm === 'jalan') return jalanScene; /* Tahap 3a: Jalan Kampung (scene dibuat sebelum avatar/pemain remote pertama dipasang) */
   if (typeof realm === 'string' && realm.indexOf('room-') === 0) return roomScene;
   return scene;
@@ -5391,6 +5398,7 @@ function enterRoom(n) {
   if (roomPose) bangunDariKasur(true); /* Ronde 13b — jaga-jaga: pose tidak boleh nyangkut saat masuk kamar */
   if (myRealm === 'living') exitLiving(); /* tidak bisa langsung living -> room; keluar dulu */
   if (myRealm === 'dapur') exitDapur(); /* Ronde 43 — tidak bisa langsung dapur -> room; keluar dulu */
+  if (alamKota(myRealm)) exitKota();
   if (myRealm === 'jalan') exitJalan(); /* Tahap 3a — dari Jalan Kampung: balik ke halaman dulu */
   savedYard = { x: avatarPos.x, z: avatarPos.z, rot: avatar.rotation.y, camDist: camDist, camYaw: camYaw, camPitch: camPitch, camTarget: { x: camTarget.x, y: camTarget.y, z: camTarget.z }, level: avatarLevel }; /* Fix Bug Tangga/Balkon: level ikut disimpan — keluar kamar dari balkon harus kembali ke balkon (bukan jatuh ke tanah) */
   myRealm = 'room-' + n;
@@ -7548,6 +7556,7 @@ bangunGerbangHalaman();
    bawaan: kamera di barat memandang jalan ke timur (landscape sedikit ke
    selatan supaya warung masuk bingkai; tetap di depan tembok). */
 function enterJalan(lewat) {
+  if (alamKota(myRealm)) exitKota();
   if (myRealm === 'jalan') return;
   if (roomPose) bangunDariKasur(true);
   if (myRealm === 'living') exitLiving(); else if (myRealm === 'dapur') exitDapur(); else if (myRealm.indexOf('room-') === 0) exitRoom();
@@ -7790,6 +7799,1602 @@ function jalanTick(dt, now) {
 function jajanTick(now) { /* dipanggil tiap frame di SEMUA alam: jajan dibawa pulang ke kos tetap habis 90 dtk */
   if (jajanSaya && now - jajanSaya.mulai > JAJAN_DURASI_MS) { toastKosan('😋 ' + jajanSaya.item.nama + ' habis'); jajanLepas(); }
 }
+/* ==== KOTA: koridor pejalan kaki Jalan Lentera ==== */
+const KOTA_JALAN = { minX: -8.15, maxX: 8.15, minZ: -16, maxZ: 26 };
+const KOTA_RUANG = { minX: -4.5, maxX: 4.5, minZ: -3.5, maxZ: 3.5 };
+// Urutan dari pintu masuk ke pelataran jam. Sisi, posisi, tinggi, profil, nama, aksen, interior.
+const KOTA_GEDUNG = [
+  [-1, 21, 19, 'balkon', 'Maison Sora', '#e9bc87', 'lobi'],
+  [1, 21, 25, 'sirip', 'Kopi Bara', '#fa8a66', 'kafe'],
+  [-1, 10, 34, 'teras', 'Galeri Rona', '#eb8eaa', 'toko'],
+  [1, 10, 21, 'pita', 'Lazuardi', '#75dbdc'],
+  [-1, -1, 28, 'rusuk', 'Atrium Nila', '#aaa5f9'],
+  [1, -1, 37, 'mahkota', 'Menara Surya', '#ffd47a'],
+  [-1, -12, 23, 'zigzag', 'Studio Arus', '#6cd4ee'],
+  [1, -12, 30, 'undak', 'Hotel Kirana', '#eea6cf']
+];
+const KOTA_NPC = Array.from({ length: 20 }, (_, i) => ({
+  x: [-4.8, -3.5, -2.3, 2.4, 3.6, 4.9][i % 6] + Math.sin(i) * 0.21,
+  awal: -14 + (i % 4),
+  akhir: 18 + (i % 7),
+  laju: 0.63 + (i % 7) * 0.105,
+  fase: i * 5.37,
+  arah: i % 2 ? 1 : -1
+}));
+function kotaLangkah(p, waktu) {
+  const panjang = p.akhir - p.awal;
+  const t = (((p.fase + p.arah * waktu * p.laju) % (2 * panjang)) + 2 * panjang) % (2 * panjang);
+  return { z: p.awal + (t < panjang ? t : 2 * panjang - t), arah: (t < panjang ? 1 : -1) * p.arah };
+}
+function kotaBatasGerak(asalX, asalZ, x, z, bounds, solids) {
+  // Sapu sumbu satu per satu supaya langkah panjang tertahan dan masih bisa meluncur di sisi benda.
+  x = Math.max(bounds.minX, Math.min(bounds.maxX, x));
+  z = Math.max(bounds.minZ, Math.min(bounds.maxZ, z));
+  for (const box of solids) {
+    if (asalZ <= box.minZ - 0.4 || asalZ >= box.maxZ + 0.4) continue;
+    if (asalX <= box.minX - 0.4) x = Math.min(x, box.minX - 0.4);
+    if (asalX >= box.maxX + 0.4) x = Math.max(x, box.maxX + 0.4);
+  }
+  for (const box of solids) {
+    if (x <= box.minX - 0.4 || x >= box.maxX + 0.4) continue;
+    if (asalZ <= box.minZ - 0.4) z = Math.min(z, box.minZ - 0.4);
+    if (asalZ >= box.maxZ + 0.4) z = Math.max(z, box.maxZ + 0.4);
+  }
+  return { x, z };
+}
+function alamKota(realm) {
+  return realm === 'kota' || /^kota-(lobi|kafe|toko)$/.test(realm);
+}
+const kotaScenes = Object.fromEntries(
+  ['kota', 'kota-lobi', 'kota-kafe', 'kota-toko'].map((key) => [key, new THREE.Scene()])
+);
+const kotaArea = new Map();
+let kotaAsal,
+  kotaJam = 0,
+  kotaKerumunan;
+// Profil putar dengan normal halus untuk porselen, badan lampu dan elemen jahitan.
+function kotaProfil(points, segmen = 24) {
+  return new THREE.LatheGeometry(
+    points.map(([y, r]) => new THREE.Vector2(r, y)),
+    segmen
+  );
+}
+function kotaBantalan() {
+  const bentuk = new THREE.Shape();
+  bentuk.moveTo(-0.38, -0.4);
+  bentuk.lineTo(0.38, -0.4);
+  bentuk.quadraticCurveTo(0.46, -0.4, 0.46, -0.3);
+  bentuk.lineTo(0.46, 0.3);
+  bentuk.quadraticCurveTo(0.46, 0.4, 0.38, 0.4);
+  bentuk.lineTo(-0.38, 0.4);
+  bentuk.quadraticCurveTo(-0.46, 0.4, -0.46, 0.3);
+  bentuk.lineTo(-0.46, -0.3);
+  bentuk.quadraticCurveTo(-0.46, -0.4, -0.38, -0.4);
+  const geo = new THREE.ExtrudeGeometry(bentuk, {
+    depth: 0.82,
+    bevelThickness: 0.07,
+    bevelSize: 0.045,
+    bevelSegments: 3,
+    curveSegments: 4
+  });
+  return geo.center();
+}
+// Lengkung spandrel. Bukaan di bawah busur benar-benar kosong.
+function kotaPelengkung() {
+  const shape = new THREE.Shape();
+  shape.moveTo(-0.5, -0.5);
+  shape.lineTo(-0.43, -0.5);
+  shape.lineTo(-0.43, -0.05);
+  shape.bezierCurveTo(-0.43, 0.48, 0.43, 0.48, 0.43, -0.05);
+  shape.lineTo(0.43, -0.5);
+  shape.lineTo(0.5, -0.5);
+  shape.lineTo(0.5, 0.5);
+  shape.lineTo(-0.5, 0.5);
+  shape.closePath();
+  return new THREE.ExtrudeGeometry(shape, { depth: 1, bevelEnabled: false, curveSegments: 18 }).translate(0, 0, -0.5);
+}
+function kotaDaun() {
+  const pos = [],
+    uv = [],
+    idx = [];
+  // Daun elips mengatup pada tulang tengah dan melendut ke ujung ranting.
+  for (let j = 0; j < 10; j++) {
+    const sisi = j % 2 ? 1 : -1,
+      t = j / 10,
+      base = pos.length / 3;
+    for (let k = 0; k < 6; k++) {
+      const f = k / 5,
+        lebar = 0.055 * Math.sin(Math.PI * f),
+        x = sisi * f * (0.24 - 0.08 * t);
+      const y = t * 0.54 + 0.09 * Math.sin(f * Math.PI) - 0.065 * f,
+        z = t * 0.27 + f * 0.11;
+      for (const edge of [-1, 0, 1]) {
+        pos.push(x, y + (edge === 0 ? 0.017 : 0) * Math.sin(Math.PI * f), z + lebar * edge);
+        uv.push(f, 0.5 + 0.5 * edge);
+      }
+      if (k)
+        for (let edge = 0; edge < 2; edge++) {
+          const n = base + k * 3 + edge;
+          idx.push(n - 3, n - 2, n, n - 2, n + 1, n);
+        }
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  geo.setIndex(idx);
+  geo.computeVertexNormals();
+  return geo;
+}
+const kotaBentuk = {
+  bantal: kotaBantalan(),
+  busur: kotaPelengkung(),
+  daun: kotaDaun(),
+  lembar: new THREE.PlaneGeometry(1, 1),
+  tempayan: kotaProfil([
+    [-0.5, 0.28],
+    [-0.46, 0.33],
+    [-0.35, 0.4],
+    [0.28, 0.48],
+    [0.39, 0.46],
+    [0.43, 0.5],
+    [0.5, 0.5]
+  ]),
+  vas: kotaProfil([
+    [-0.5, 0.28],
+    [-0.47, 0.34],
+    [-0.3, 0.42],
+    [-0.05, 0.5],
+    [0.2, 0.43],
+    [0.33, 0.23],
+    [0.45, 0.17],
+    [0.5, 0.22]
+  ]),
+  kap: kotaProfil([
+    [-0.5, 0.5],
+    [-0.45, 0.5],
+    [-0.35, 0.46],
+    [0.26, 0.3],
+    [0.43, 0.16],
+    [0.5, 0.1]
+  ]),
+  kotak: new THREE.BoxGeometry(1, 1, 1),
+  bulat: new THREE.SphereGeometry(0.5, 10, 8),
+  drum: new THREE.CylinderGeometry(0.5, 0.5, 1, 20),
+  kerucut: new THREE.CylinderGeometry(0.25, 0.5, 1, 12)
+};
+const kotaBahan = new Map();
+const kotaVolumeKetuk = new THREE.MeshBasicMaterial({ visible: false });
+function kotaMat(nama, terang, lukis) {
+  if (!kotaBahan.has(nama)) {
+    const map = lukis ? teksturLukis(512, 512, lukis) : null;
+    const dipoles = ['perunggu', 'granit lentera', 'kenari'].includes(nama);
+    const Jenis = terang ? THREE.MeshBasicMaterial : dipoles ? THREE.MeshPhongMaterial : THREE.MeshLambertMaterial;
+    const props = map ? { map } : {};
+    if (dipoles)
+      Object.assign(props, {
+        shininess: nama === 'perunggu' ? 52 : 23,
+        specular: nama === 'perunggu' ? 0x8e795f : 0x454043
+      });
+    kotaBahan.set(nama, new Jenis(props));
+  }
+  return kotaBahan.get(nama);
+}
+function kotaBatu(c, w, h) {
+  c.fillStyle = '#e9e4de';
+  c.fillRect(0, 0, w, h);
+  const rand = acak(77);
+  for (let i = 0; i < 6500; i++) {
+    c.fillStyle = i % 3 ? '#d6d1cc' : '#f5f2ef';
+    c.fillRect(rand() * w, rand() * h, 1 + rand() * 3, 1);
+  }
+  for (let j = 0; j < 8; j++) {
+    c.fillStyle = '#bdb9b3';
+    c.fillRect(0, j * 64, w, 2);
+    for (let i = -1; i < 5; i++) c.fillRect(i * 128 + (j % 2) * 64, j * 64, 2, 64);
+  }
+}
+// Semua bagian statis yang memakai geometri dan bahan sama dirakit menjadi satu draw call.
+function kotaBangun(S) {
+  const batch = new Map(),
+    dummy = new THREE.Object3D(),
+    solids = [],
+    taps = [];
+  const batu = kotaMat('travertin', false, kotaBatu),
+    metal = kotaPermukaan('perunggu'),
+    led = kotaMat('neon', true);
+  function part(x, y, z, w, h, d, color, mat = metal, shape = 'kotak', rz = 0, ry = 0, rx = 0) {
+    const key = mat.uuid + shape;
+    if (!batch.has(key)) batch.set(key, { mat, geo: kotaBentuk[shape], parts: [] });
+    dummy.position.set(x, y, z);
+    dummy.scale.set(w, h, d);
+    dummy.rotation.set(rx, ry, rz, 'YXZ');
+    dummy.updateMatrix();
+    batch.get(key).parts.push([dummy.matrix.clone(), new THREE.Color(color)]);
+  }
+  function solid(x, z, w, d) {
+    solids.push({ minX: x - w / 2, maxX: x + w / 2, minZ: z - d / 2, maxZ: z + d / 2 });
+  }
+  function tap(x, y, z, w, h, d, aksi) {
+    const m = new THREE.Mesh(kotaBentuk.kotak, kotaVolumeKetuk);
+    m.scale.set(w, h, d);
+    m.position.set(x, y, z);
+    m.userData.kotaAksi = aksi;
+    S.add(m);
+    taps.push(m);
+  }
+  function selesai() {
+    for (const { mat, geo, parts } of batch.values()) {
+      const mesh = new THREE.InstancedMesh(geo, mat, parts.length);
+      parts.forEach(([matrix, color], i) => {
+        mesh.setMatrixAt(i, matrix);
+        mesh.setColorAt(i, color);
+      });
+      S.add(mesh);
+    }
+    kotaArea.set(S, { solids, taps });
+  }
+  return { part, solid, tap, selesai, batu, metal, led };
+}
+function kotaPermukaan(jenis) {
+  return kotaMat(jenis, false, (c, w, h) => {
+    const r = acak(524),
+      kayu = jenis === 'kenari',
+      bata = jenis === 'bata',
+      logam = jenis === 'perunggu';
+    c.fillStyle = kayu ? '#b7987e' : bata ? '#88746b' : logam ? '#e6e3d7' : '#d3d0c7';
+    c.fillRect(0, 0, w, h);
+    if (bata)
+      for (let y = 0; y < h; y += 32)
+        for (let x = -64; x < w; x += 96) {
+          const n = Math.floor(145 + 60 * r());
+          c.fillStyle = 'rgb(' + n + ',' + (n - 22) + ',' + (n - 30) + ')';
+          c.fillRect(x + (y % 64 ? 45 : 0) + 2, y + 2, 93, 29);
+        }
+    for (let i = 0; i < 1400; i++) {
+      const x = r() * w,
+        y = r() * h;
+      c.strokeStyle = i % 3 ? 'rgba(46,30,20,.085)' : 'rgba(255,252,238,.19)';
+      c.beginPath();
+      c.moveTo(x, y);
+      if (kayu) c.bezierCurveTo(x + 50, y - 12, x + 98, y + 6, x + 200 * r(), y + 3);
+      else c.lineTo(x + (logam ? 40 : 3) * r(), y + (logam ? 0 : r() * 3));
+      c.stroke();
+    }
+  });
+}
+// Satu lembar kaca per bukaan. Catatan pantulan tetap ringan tanpa menggambar pemandangan kedua.
+function kotaKacaToko() {
+  if (!kotaBahan.has('kaca butik')) {
+    kotaBahan.set(
+      'kaca butik',
+      new THREE.MeshPhongMaterial({
+        color: 0xa3d8de,
+        transparent: true,
+        opacity: 0.13,
+        specular: 0xffffff,
+        shininess: 96,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      })
+    );
+  }
+  return kotaBahan.get('kaca butik');
+}
+function kotaKacaPanel() {
+  return kotaMat('panel kantor', true, (c, w, h) => {
+    const g = c.createLinearGradient(0, h, w, 0);
+    g.addColorStop(0, '#777f81');
+    g.addColorStop(0.44, '#c2c2b5');
+    g.addColorStop(0.48, '#a2b6bc');
+    g.addColorStop(0.78, '#d4d7cf');
+    g.addColorStop(1, '#f2dfc1');
+    c.fillStyle = g;
+    c.fillRect(0, 0, w, h);
+    for (let i = 0; i < 15; i++) {
+      c.fillStyle = 'rgba(66,71,79,.085)';
+      c.fillRect(i * 37, 0, 4, h);
+    }
+  });
+}
+const KOTA_HURUF = {
+  A: '06 30 66/15 55',
+  B: '06 00 40 61 62 43 03/43 64 65 46 06',
+  C: '60 20 01 05 26 66',
+  D: '06 00 30 61 65 36 06',
+  E: '60 00 06 66/03 43',
+  G: '60 20 01 05 26 66 63 43',
+  H: '00 06/60 66/03 63',
+  I: '30 36',
+  J: '60 65 46 16 05',
+  K: '00 06/60 03 66',
+  L: '00 06 66',
+  M: '06 00 33 60 66',
+  N: '06 00 66 60',
+  O: '20 40 61 65 46 26 05 01 20',
+  P: '06 00 40 61 62 43 03',
+  R: '06 00 40 61 62 43 03/33 66',
+  S: '60 20 01 02 53 64 65 46 06',
+  T: '00 60/30 36',
+  U: '00 05 26 46 65 60',
+  Y: '00 33 60/33 36',
+  Z: '00 60 06 66'
+};
+function kotaHuruf(b, teks, s, z, y, x, warna) {
+  const huruf = teks.toUpperCase().split(''),
+    skala = Math.min(0.091, 0.81 / huruf.length),
+    lebar = 9 * skala;
+  huruf.forEach((ch, i) => {
+    const pola = KOTA_HURUF[ch];
+    if (!pola) return;
+    for (const garis of pola.split('/')) {
+      const titik = garis.split(' ');
+      for (let j = 1; j < titik.length; j++) {
+        const [u, v] = titik[j - 1].split('').map(Number),
+          [a, d] = titik[j].split('').map(Number);
+        const du = (a - u) * s * skala,
+          dy = (v - d) * skala;
+        b.part(
+          x,
+          y + (3 - (v + d) / 2) * skala,
+          z + s * ((i - (huruf.length - 1) / 2) * lebar + ((u + a) / 2 - 3) * skala),
+          0.035,
+          Math.hypot(du, dy) + 0.018,
+          0.035,
+          warna,
+          b.led,
+          'drum',
+          0,
+          0,
+          Math.atan2(du, dy)
+        );
+      }
+    }
+  });
+}
+function kotaBayang() {
+  const mat = kotaMat('bayangan kontak', true, (c, w, h) => {
+    const shade = c.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+    shade.addColorStop(0, 'rgba(42,30,33,.48)');
+    shade.addColorStop(0.5, 'rgba(40,31,38,.20)');
+    shade.addColorStop(1, 'rgba(26,24,31,0)');
+    c.fillStyle = shade;
+    c.fillRect(0, 0, w, h);
+  });
+  mat.transparent = true;
+  mat.depthWrite = false;
+  return mat;
+}
+function kotaPohon(b, x, z, ukuran = 1) {
+  const daun = kotaMat('daun zaitun', false);
+  daun.side = THREE.DoubleSide;
+  const kayu = kotaPermukaan('kenari'),
+    p = (dx, y, dz, w, h, d, col, mat, shape, rz = 0, ry = 0, rx = 0) =>
+      b.part(
+        x + dx * ukuran,
+        y * ukuran,
+        z + dz * ukuran,
+        w * ukuran,
+        h * ukuran,
+        d * ukuran,
+        col,
+        mat,
+        shape,
+        rz,
+        ry,
+        rx
+      );
+  p(0, 0.014, 0, 1.58, 1.58, 1, 'white', kotaBayang(), 'lembar', 0, 0, -Math.PI / 2);
+  p(0, 0.38, 0, 0.96, 0.76, 0.96, '#d6c8b7', b.batu, 'tempayan');
+  p(0, 0.71, 0, 0.82, 0.055, 0.82, '#cfa673', b.metal, 'drum');
+  p(0, 0.745, 0, 0.75, 0.035, 0.75, '#38362c', b.batu, 'drum');
+  p(0.02, 1.57, 0, 0.15, 1.75, 0.14, '#866d56', kayu, 'kerucut', -0.055);
+  for (let j = 0; j < 12; j++) {
+    const a = j * 2.399 + z,
+      level = (j % 4) * 0.26,
+      rad = 0.56 + (j % 3) * 0.15;
+    p(
+      rad * 0.48 * Math.cos(a),
+      2.08 + level,
+      rad * 0.48 * Math.sin(a),
+      0.068,
+      0.87,
+      0.066,
+      '#85725b',
+      kayu,
+      'kerucut',
+      -0.66 * Math.cos(a),
+      0,
+      0.66 * Math.sin(a)
+    );
+    for (let k = 0; k < 7; k++) {
+      const t = a + k * 2.399,
+        dist = (k % 3) * 0.21,
+        size = 1.08 + (k % 3) * 0.15;
+      p(
+        rad * Math.cos(a) + dist * Math.cos(t),
+        2.13 + level + 0.16 * Math.sin(k),
+        rad * Math.sin(a) + dist * Math.sin(t),
+        size,
+        size,
+        size,
+        ['#42694e', '#719666', '#889c68', '#567955'][k % 4],
+        daun,
+        'daun',
+        0.35 * Math.cos(t),
+        t,
+        -0.34
+      );
+    }
+  }
+}
+
+// Ilustrasi cetak untuk tiga layar besar; tiap karya memakai komposisi dan palet sendiri.
+function kotaPoster(c, w, h, nama, aksen, mode) {
+  const tema = nama === 'NILA' ? 1 : nama === 'KIRANA' ? 2 : 0,
+    rand = acak(380 + tema);
+  const warna = [
+    ['#072e42', '#186a70', '#fc9567'],
+    ['#34213d', '#8e557a', '#ffc79e'],
+    ['#143b47', '#668789', '#fdd689']
+  ][tema];
+  const bg = c.createLinearGradient(0, 0, w, h);
+  bg.addColorStop(0, warna[0]);
+  bg.addColorStop(0.64, warna[1]);
+  bg.addColorStop(1, '#151b32');
+  c.fillStyle = bg;
+  c.fillRect(0, 0, w, h);
+  if (tema === 1) {
+    c.save();
+    c.translate(338, 221);
+    c.rotate(-0.4);
+    for (let i = 0; i < 28; i++) {
+      c.rotate(2.4);
+      const r = 113 - i * 2.8;
+      const g = c.createLinearGradient(0, -r, 0, r * 0.35);
+      g.addColorStop(0, '#ffd0a3');
+      g.addColorStop(0.52, '#d07681');
+      g.addColorStop(1, '#602850');
+      c.fillStyle = g;
+      c.beginPath();
+      c.moveTo(0, 22);
+      c.bezierCurveTo(-r, -r * 0.22, -r * 0.55, -r * 1.3, 0, -r);
+      c.bezierCurveTo(r * 0.78, -r * 1.27, r * 0.9, -r * 0.05, 0, 22);
+      c.fill();
+    }
+    c.restore();
+  } else {
+    const cx = 326,
+      cy = 180;
+    const sun = c.createLinearGradient(0, 54, 0, 300);
+    sun.addColorStop(0, '#ffe8aa');
+    sun.addColorStop(1, warna[2]);
+    c.fillStyle = sun;
+    c.beginPath();
+    c.arc(cx, cy, 110, 0, 2 * Math.PI);
+    c.fill();
+    for (let j = 0; j < 6; j++) {
+      const y = 167 + j * 28;
+      c.beginPath();
+      c.moveTo(-10, 380);
+      for (let x = -8; x < w + 9; x += 6)
+        c.lineTo(x, y + Math.sin(x * 0.012 + j * 1.3) * 30 + Math.sin(x * 0.027 - j) * 12 - x * 0.022);
+      c.lineTo(520, 410);
+      c.lineTo(-10, 410);
+      c.fillStyle = ['#aeb7a4', '#87a49a', '#5d8888', '#40717a', '#275966', '#174354'][j];
+      c.fill();
+      c.strokeStyle = 'rgba(255,225,180,.3)';
+      c.lineWidth = 1;
+      c.stroke();
+    }
+    for (let i = 0; i < 9; i++) {
+      const x = 94 + rand() * 132,
+        y = 78 + rand() * 76;
+      c.strokeStyle = '#d5e0cb';
+      c.lineWidth = 1.7;
+      c.beginPath();
+      c.moveTo(x - 8, y - 1);
+      c.quadraticCurveTo(x - 3, y - 2, x, y + 3);
+      c.quadraticCurveTo(x + 4, y - 3, x + 9, y - 4);
+      c.stroke();
+    }
+  }
+  c.fillStyle = '#fff0cd';
+  c.textAlign = 'left';
+  c.font = '17px sans-serif';
+  c.fillText('J A L A N   L E N T E R A', 28, 40);
+  c.font = 'italic 76px Georgia';
+  c.fillText(nama, 24, 433, 456);
+  c.fillRect(28, 450, 453, 2);
+  c.font = '19px sans-serif';
+  c.fillText(mode.toUpperCase(), 30, 482, 449);
+  for (let i = 0; i < 6000; i++) {
+    c.fillStyle = i % 2 ? 'rgba(255,248,211,.07)' : 'rgba(0,0,0,.055)';
+    c.fillRect(rand() * w, rand() * h, 1, 1);
+  }
+}
+function kotaCeruk() {
+  return kotaMat('cahaya di ceruk', true, (c, w, h) => {
+    const bg = c.createLinearGradient(0, 0, 0, h);
+    bg.addColorStop(0, '#fff0c9');
+    bg.addColorStop(0.18, '#c9a77e');
+    bg.addColorStop(1, '#7a7469');
+    c.fillStyle = bg;
+    c.fillRect(0, 0, w, h);
+    for (let i = 0; i < 45; i++) {
+      c.fillStyle = 'rgba(68,48,43,.18)';
+      c.fillRect(i * 12, 0, 2, h);
+    }
+    for (const x of [135, 375]) {
+      const g = c.createRadialGradient(x, -5, 4, x, 55, 256);
+      g.addColorStop(0, 'rgba(255,247,204,.95)');
+      g.addColorStop(1, 'rgba(255,213,157,0)');
+      c.fillStyle = g;
+      c.fillRect(0, 0, w, h);
+    }
+  });
+}
+
+function kotaAffiche(nom, accent, mode = 'marque') {
+  return kotaMat(nom + accent + mode, true, (c, w, h) => {
+    if (['OPAL', 'NILA', 'KIRANA', 'Spektrum'].includes(nom)) return kotaPoster(c, w, h, nom, accent, mode);
+    const g = c.createLinearGradient(0, 0, w, h);
+    g.addColorStop(0, '#101529');
+    g.addColorStop(0.56, '#20354a');
+    g.addColorStop(1, accent);
+    c.fillStyle = g;
+    c.fillRect(0, 0, w, h);
+    c.strokeStyle = accent;
+    c.lineWidth = 2;
+    for (let n = 0; n < 28; n++) {
+      c.beginPath();
+      c.moveTo(-10, 400 + n * 5);
+      c.bezierCurveTo(140, 440 - n * 8, 240, -80 + n * 9, 530, 70 + n * 7);
+      c.stroke();
+    }
+    c.fillStyle = '#fcf2d8';
+    c.textAlign = 'center';
+    c.font = '18px sans-serif';
+    c.fillText('K O T A    /    L E N T E R A', 256, 52);
+    c.font = 'bold 58px Georgia';
+    c.fillText(nom, 256, 275, 470);
+    c.fillRect(209, 300, 94, 2);
+    c.font = '21px sans-serif';
+    c.fillText(mode.toUpperCase(), 256, 351, 460);
+    c.fillStyle = 'rgba(0,0,0,.1)';
+    for (let y = 0; y < h; y += 5) c.fillRect(0, y, w, 1);
+  });
+}
+function kotaPantulan() {
+  const mat = kotaPaving();
+  // Proyeksikan arah pandang yang terpantul pada dua deret vitrin. Kekasaran nat
+  // dan serat granit memecah sorotan tanpa render target kedua di ponsel.
+  mat.onBeforeCompile = (shader) => {
+    const malam = (shader.uniforms.kotaMalam = { value: 0 });
+    mat.userData.malam = malam;
+    shader.vertexShader =
+      'varying vec3 kotaDunia;\n' +
+      shader.vertexShader.replace(
+        '#include <project_vertex>',
+        '#include <project_vertex>\nkotaDunia=(modelMatrix*instanceMatrix*vec4(transformed,1.)).xyz;'
+      );
+    shader.fragmentShader =
+      'varying vec3 kotaDunia; uniform float kotaMalam;\n' +
+      shader.fragmentShader.replace(
+        '#include <opaque_fragment>',
+        `
+      vec3 ray = reflect(normalize(kotaDunia-cameraPosition),vec3(0.,1.,0.));
+      float t = (sign(ray.x)*9.0-kotaDunia.x) / (sign(ray.x+.00001)*max(.01,abs(ray.x)));
+      vec2 facade = kotaDunia.yz+ray.yz*t;
+      float grain=texture2D(map,vMapUv*4.).r;
+      float ripple=.15*sin(kotaDunia.z*41.)+.18*sin(kotaDunia.z*93.+kotaDunia.x*2.);
+      float bay=abs(fract((facade.y+ripple)/3.5)-.5);
+      float vitrin=(1.-smoothstep(.27,.5,bay))*(1.-smoothstep(3.0,5.6,facade.x));
+      float trim=exp(-1.4*abs(facade.x-3.7-ripple));
+      vec3 copper=mix(vec3(1.,.46,.16),vec3(.24,.71,.95),smoothstep(-.5,.5,sin(facade.y*.35+sign(ray.x))));
+      outgoingLight+=copper*(.055+.56*kotaMalam)*(vitrin+.7*trim)*(.52+.48*smoothstep(.18,.6,grain))*smoothstep(.012,.19,abs(ray.x));
+      #include <opaque_fragment>`
+      );
+  };
+  return mat;
+}
+
+function kotaPaving() {
+  return kotaMat('granit lentera', false, (c, w, h) => {
+    c.fillStyle = '#b0a4a9';
+    c.fillRect(0, 0, w, h);
+    const r = acak(802);
+    for (let y = 0; y < h; y += 32)
+      for (let x = -64; x < w; x += 64) {
+        const v = 150 + Math.floor(r() * 24);
+        c.fillStyle = 'rgb(' + v + ',' + (v - 4) + ',' + (v + 2) + ')';
+        c.fillRect(x + (y % 64 ? 32 : 0) + 1, y + 1, 63, 31);
+      }
+    for (let y = 24; y < h; y += 125)
+      for (const x of [65, 445]) {
+        const g = c.createRadialGradient(x, y, 1, x, y, 95);
+        g.addColorStop(0, x < 200 ? 'rgba(255,181,123,.71)' : 'rgba(123,209,237,.65)');
+        g.addColorStop(1, 'rgba(182,159,184,0)');
+        c.fillStyle = g;
+        c.fillRect(x - 96, y - 96, 192, 192);
+      }
+    for (let j = 0; j < 3500; j++) {
+      c.fillStyle = j % 2 ? 'rgba(255,242,220,.14)' : 'rgba(68,68,80,.11)';
+      c.fillRect(r() * w, r() * h, 1 + r() * 4, 1);
+    }
+  });
+}
+
+function kotaMenara(b, g, i) {
+  const [s, z, h, profil, nama, aksen, ruang] = g;
+  const { part, batu, metal, led } = b,
+    kenari = kotaPermukaan('kenari'),
+    semen = kotaPermukaan('semen');
+  const dasar = ['#dfc4a6', '#ba7463', '#b6cbc6', '#86a9ad', '#af99ad', '#d4bf91', '#7c9baf', '#cda497'][i];
+  // Koordinat lokal: u di sepanjang fasad, v positif menjorok ke dalam toko.
+  function panel(u, y, v, w, tinggi, tebal, col, mat = metal, shape = 'kotak', putar = 0) {
+    part(s * (8.92 + v), y, z + s * u, w, tinggi, tebal, col, mat, shape, putar, (-s * Math.PI) / 2);
+  }
+  panel(0, 2.05, 3.65, 10.65, 4.1, 2.7, dasar, i === 1 ? kotaPermukaan('bata') : semen);
+  panel(0, 0.12, 1.05, 10.7, 0.24, 2.65, '#e4d3b6', batu);
+  panel(0, 3.94, 1.14, 10.7, 0.28, 2.95, '#806b5e', kenari);
+  // Dua vitrin sedalam 2 m, masing-masing dengan alas, dinding, rel lampu dan barang fisik.
+  for (const arah of [-1, 1]) {
+    const u = arah * 3.29;
+    panel(u, 1.85, 2.22, 3.67, 3.35, 0.16, '#d9b59c', kenari);
+    panel(u, 1.83, 2.1, 3.39, 3.08, 0.09, i % 2 ? '#ffe4c6' : '#d6f0df', kotaCeruk());
+    for (const edge of [-1, 1]) {
+      panel(u + edge * 1.78, 1.88, 1.1, 0.15, 3.55, 2.08, '#b6a08e', kenari);
+      panel(u + edge * 1.68, 1.84, 1.64, 0.045, 2.94, 0.06, '#ffdf9a', led);
+      panel(u + edge * 1.75, 1.86, 0.055, 0.055, 3.31, 0.12, '#cbaa76');
+    }
+    panel(u, 0.4, 1.12, 3.38, 0.33, 1.94, '#ddbea9', batu);
+    for (let k = 0; k < 3; k++) {
+      const off = u + (k - 1) * 0.92,
+        height = 0.32 + (k % 2) * 0.29;
+      panel(off, 0.57 + height / 2, 1.02, 0.72, height, 0.68, '#c8a98a', batu, 'drum');
+      const y = 0.57 + height;
+      if (i % 3 === 1) {
+        panel(off, y + 0.13, 1, 0.42, 0.25, 0.38, '#d49f65', kenari, 'tempayan');
+        panel(off, y + 0.26, 1, 0.38, 0.045, 0.34, '#f0cc92', metal, 'drum');
+        for (let n = 0; n < 3; n++)
+          panel(off + (n - 1) * 0.09, y + 0.32, 1.01, 0.12, 0.12, 0.13, '#eebc84', batu, 'bulat');
+      } else if (i % 3 === 2) {
+        panel(off, y + 0.35, 1, 0.52, 0.7, 0.52, k % 2 ? '#dfaa81' : '#547c79', metal, 'vas');
+        panel(off, y + 0.71, 1, 0.17, 0.04, 0.17, '#d7b07b', metal, 'drum');
+      } else {
+        panel(off, y + 0.24, 1, 0.35, 0.48, 0.23, k % 2 ? '#a96857' : '#446f72', metal, 'bantal');
+        panel(off, y + 0.53, 1, 0.14, 0.13, 0.13, '#d8b377', metal, 'drum');
+        panel(off, y + 0.26, 0.875, 0.18, 0.13, 0.012, '#f2dfb4', batu);
+      }
+      panel(off, 3.49, 0.85, 0.21, 0.06, 0.21, '#ffdc9c', led, 'drum');
+    }
+    panel(u, 3.62, 1, 3.48, 0.06, 1.77, '#ffe3ad', led);
+    panel(u, 1.94, 0.14, 3.44, 3.18, 1, 'white', kotaKacaToko(), 'lembar');
+    if (i % 3 !== 1) panel(u, 2.04, -0.02, 3.68, 3.58, 0.31, dasar, batu, 'busur');
+    else for (let n = 0; n < 5; n++) panel(u - 1.47 + n * 0.73, 3.33, -0.13, 0.055, 0.94, 0.52, '#caac83', metal);
+  }
+  // Vestibul berada di belakang muka etalase, dengan kusen, plint, daun pintu dan gagang tersendiri.
+  panel(0, 1.65, 1.52, 2.45, 3.12, 0.17, '#335255', metal);
+  for (const u of [-1.26, 0, 1.26]) panel(u, 1.68, 1.38, 0.085, 3.16, 0.19, '#e3bf88');
+  for (const u of [-0.22, 0.22]) panel(u, 1.36, 1.2, 0.045, 0.65, 0.065, '#ffe0a8', led, 'drum');
+  for (const u of [-1.42, 1.42]) {
+    panel(u, 1.9, 0.49, 0.21, 3.8, 1.84, '#af8b6b', batu);
+    for (const dx of [-0.07, 0, 0.07]) panel(u + dx, 1.92, -0.44, 0.03, 3.42, 0.08, '#e0c194', metal, 'drum');
+  }
+  panel(0, 3.55, -0.44, 10.65, 0.23, 1.48, '#44454b', metal);
+  panel(0, 3.53, -1.17, 10.68, 0.065, 0.07, aksen, led);
+  for (let u = -4.85; u < 5; u += 0.32) panel(u, 3.39, -0.54, 0.055, 0.095, 1.22, '#b78e6c', kenari);
+  panel(0, 4.05, -0.03, 10.68, 0.84, 0.47, '#283538', metal);
+  kotaHuruf(b, nama, s, z, 4.06, s * 8.6, '#fff0c3');
+  if (i % 2 === 0 || i === 1) {
+    const blade = ['SORA', 'BARA', 'RONA', '', 'NILA', '', 'ARUS'][i],
+      place = z + s * 4.35;
+    const enamel = kotaMat('enamel ' + blade, true, (c, w, h) => {
+      c.fillStyle = ['#6c352a', '#284747', '#60415d'][i % 3];
+      c.fillRect(0, 0, w, h);
+      c.strokeStyle = '#dfc295';
+      c.lineWidth = 6;
+      c.strokeRect(22, 12, w - 44, h - 24);
+      c.fillStyle = '#ffedc6';
+      c.textAlign = 'center';
+      c.font = 'bold 112px Georgia';
+      blade.split('').forEach((ch, j) => c.fillText(ch, w / 2, 112 + j * 115));
+    });
+    for (const y of [3.94, 6.08]) part(s * 8.25, y, place, 1.65, 0.085, 0.1, '#ab8867');
+    part(s * 7.8, 5, place, 0.9, 2.27, 0.21, '#bb985e');
+    for (const face of [-1, 1])
+      part(s * 7.8, 5, place + face * 0.113, 0.82, 2.16, 1, 'white', enamel, 'lembar', 0, face === 1 ? 0 : Math.PI);
+  }
+  if (ruang) b.tap(s * 8.2, 2, z, 0.65, 4.6, 4, () => kotaMasukRuang(g));
+
+  // Lesung tiap lantai: inti di belakang, kaca di ceruk, kemudian ambang, kusen dan pilaster di depan.
+  const baris = Math.round(h / 2.85),
+    step = h / baris,
+    cols = i % 3 === 0 ? 4 : 5,
+    bay = 10.4 / cols;
+  panel(0, 4.55 + h / 2, 4.82, 10.35, h, 6.65, dasar, semen);
+  for (let r = 0; r < baris; r++) {
+    const y = 4.55 + r * step,
+      vy = y + step / 2;
+    panel(0, y + 0.13, 3.95, 10.7, 0.28, 7.94, dasar, batu);
+    for (let j = 0; j < cols; j++) {
+      const u = -5.2 + (j + 0.5) * bay;
+      const tint = ['#426c83', '#ffc797', '#395767', '#8fb1bf', '#ffe0a4'][(i * 7 + r * 11 + j * 13) % 5];
+      panel(u, vy, 0.82, bay - 0.18, step - 0.35, 0.1, tint, kotaKacaPanel());
+      panel(u, vy, 0.64, 0.052, step - 0.36, 0.23, '#b4b1a1');
+      panel(u, vy + 0.52, 0.64, bay - 0.16, 0.06, 0.23, '#889493');
+      panel(u, y + 0.3, 0.45, bay - 0.13, 0.16, 0.86, '#c6bdac', batu);
+      panel(u - bay / 2 + 0.04, vy, 0.43, 0.18, step, 0.89, dasar, metal);
+    }
+    // Bingkai diteruskan ke kedua sisi gedung yang terlihat dari jalan.
+    for (const bord of [-1, 1]) {
+      for (let j = 0; j < 4; j++) {
+        panel(bord * 5.2, vy, 1.1 + j * 1.84, 0.1, step - 0.42, 1.62, '#8eaaa8', kotaKacaPanel());
+        panel(bord * 5.29, vy, 1.97 + j * 1.84, 0.18, step, 0.15, dasar, metal);
+      }
+    }
+    if (profil === 'balkon' || profil === 'teras' || profil === 'pita') {
+      const span = profil === 'teras' ? 5 + (r % 3) : 9.95;
+      panel(0, y + 0.07, -0.45, span, 0.2, 1.18, '#d7c6ab', batu);
+      panel(0, y + 1.02, -1, span, 0.075, 0.085, aksen, metal);
+      panel(0, y + 0.48, -1, span, 0.045, 0.055, '#aaa795', metal);
+      for (let k = -span / 2; k <= span / 2; k += 0.53) panel(k, y + 0.56, -1, 0.045, 0.87, 0.055, '#bdad99');
+    } else if (profil === 'zigzag') {
+      panel(0, vy, -0.18, Math.hypot(9.4, step), 0.13, 0.16, aksen, led, (r % 2 ? 1 : -1) * Math.atan(step / 9.4));
+    }
+  }
+  if (['rusuk', 'mahkota', 'sirip', 'undak'].includes(profil))
+    for (let k = -4; k <= 4; k++) {
+      const tinggi = h + (profil === 'mahkota' ? (4 - Math.abs(k)) * 0.65 : 0);
+      panel(k, 4.62 + tinggi / 2, -0.09, 0.095, tinggi, 0.58, '#bca786');
+      if (k % 2 === 0) panel(k, 4.62 + tinggi / 2, -0.4, 0.047, tinggi, 0.04, aksen, led);
+    }
+  if ([3, 4, 7].includes(i)) {
+    const poster = kotaAffiche(['', '', '', 'OPAL', 'NILA', '', '', 'KIRANA'][i], aksen, 'festival cahaya');
+    panel(0, 9.42, -0.82, 6.25, 7.42, 0.46, '#32353a');
+    panel(0, 9.42, -1.06, 6.06, 7.22, 1, 'white', poster, 'lembar');
+  }
+  // Siluet: lentera atap, teras bertingkat, kisi mahkota, sirip atau kubah tembaga.
+  const top = h + 4.55;
+  for (let t = 0; t < 1 + (i % 3); t++) {
+    panel(
+      0,
+      top + 0.65 + t * 1.25,
+      4,
+      8.7 - t * 1.85,
+      1.25,
+      6.7 - t * 1.65,
+      '#87979a',
+      i % 2 ? metal : batu,
+      i % 4 === 3 ? 'drum' : 'kotak'
+    );
+    panel(
+      0,
+      top + 1.29 + t * 1.25,
+      4,
+      8.82 - t * 1.85,
+      0.085,
+      6.82 - t * 1.65,
+      aksen,
+      led,
+      i % 4 === 3 ? 'drum' : 'kotak'
+    );
+  }
+  for (let j = -2; j <= 2; j++)
+    panel(j * 1.34, top + 1.48, 3.7, 0.12, 3 + (i % 4) * 0.56 - Math.abs(j) * 0.45, 3.65, dasar, metal);
+  if (i % 3 === 1) panel(0, top + 3.24, 4, 4.3, 3.15, 3.7, '#8d9e9a', metal, 'vas');
+}
+function kotaMenaraJauh(b, x, z, w, h, i) {
+  const warna = ['#697f87', '#777487', '#71888a', '#8f877e'][i % 4];
+  const floors = Math.max(5, Math.round(h / 1.65)),
+    cols = 5 + (i % 3);
+  // Lantai atas mundur bertahap; jarak kolom tetap terbaca dari halaman.
+  for (let r = 0; r < floors; r++) {
+    const step = h / floors,
+      y = (r + 0.5) * step,
+      retreat = r / floors > 0.77 ? 0.77 : r / floors > 0.6 && i % 3 === 0 ? 0.91 : 1;
+    const width = w * retreat,
+      depth = 4.7 * retreat;
+    b.part(x, y, z, width, step + 0.01, depth, warna, b.batu);
+    b.part(x, y - step * 0.4, z, width + 0.15, 0.15, depth + 0.17, '#899997', b.metal);
+    for (let k = 0; k < cols; k++) {
+      const u = (k + 0.5) / cols - 0.5;
+      const tint = ['#73939f', '#efc48c', '#b4c5b6', '#536b82', '#c9b3a2'][(i + k * 7 + r * 13) % 5];
+      b.part(
+        x + u * width,
+        y + 0.09,
+        z + depth / 2 + 0.01,
+        (width / cols) * 0.82,
+        step * 0.7,
+        0.045,
+        tint,
+        kotaKacaPanel()
+      );
+    }
+    for (const side of [-1, 1])
+      b.part(x + width * 0.505 * side, y + 0.09, z, 0.05, step * 0.63, depth * 0.84, '#94a5aa', kotaKacaPanel());
+  }
+  const top = h + 0.7 + (i % 3) * 0.62;
+  if (i % 5 === 1) {
+    b.part(x, h + 1.42, z, w * 0.88, 2.82, 4.3, '#72918c', b.metal, 'kap');
+    for (let n = 0; n < 12; n++) {
+      const a = (n * Math.PI) / 6;
+      b.part(
+        x + Math.cos(a) * w * 0.37,
+        h + 1.16,
+        z + Math.sin(a) * 1.79,
+        0.07,
+        2.72,
+        0.07,
+        '#edc999',
+        b.led,
+        'drum',
+        0.24 * Math.cos(a),
+        0,
+        -0.24 * Math.sin(a)
+      );
+    }
+  } else if (i % 5 === 0) {
+    for (let n = 0; n < 5; n++)
+      b.part(x - w * 0.26 + n * w * 0.13, h + 0.55 + n * 0.3, z, w * 0.12, 1.1 + n * 0.6, 3.1, '#acaba1', b.metal);
+  } else if (i % 5 === 3) {
+    b.part(x, h + 1.2, z, w * 0.65, 2.4, 3.8, '#a29b91', b.metal, 'drum');
+    b.part(x, h + 2.86, z, w * 0.59, 1.45, 3.4, '#9ca2a0', b.metal, 'kap');
+  }
+  b.part(x, (h + top) / 2, z, w * 0.62, top - h, 3.25, warna, b.metal, i % 3 === 1 ? 'drum' : 'kotak');
+  b.part(x, top + 0.04, z, w * 0.65, 0.09, 3.38, i % 2 ? '#f1bd91' : '#95cfd4', b.led, i % 3 === 1 ? 'drum' : 'kotak');
+  if (i % 4 === 0) b.part(x, top + 1.8, z, 0.14, 3.6, 0.14, '#b3ada6', b.metal, 'kerucut');
+}
+function kotaSkyline() {
+  const b = kotaBangun(scene);
+  const distrik = [
+    [-84, -70, 6, 19],
+    [-74, -80, 8, 33],
+    [-66, -59, 5, 22],
+    [-57, -70, 7, 28],
+    [-49, -64, 5, 15],
+    [-36, -77, 8.5, 36],
+    [-31, -59, 5, 19],
+    [-23, -70, 6.5, 30],
+    [-13, -65, 7.8, 39],
+    [-8, -56, 4, 14],
+    [1, -75, 7.5, 28],
+    [8, -63, 6, 24],
+    [14, -77, 8.5, 42],
+    [22, -66, 6, 33],
+    [28, -57, 4, 17],
+    [38, -79, 9, 35],
+    [46, -72, 6, 26],
+    [57, -61, 7.5, 23],
+    [68, -75, 7, 34]
+  ];
+  distrik.forEach(([x, z, w, h], i) => kotaMenaraJauh(b, x, z, w, h, i));
+  b.selesai();
+}
+
+const KOTA_AKSI = [
+  ['Spektrum', 'Festival Cahaya', 'Biru Samudra', '#bf75f2', '#56d9ef', 0, -15],
+  ['Soda', 'Leci dingin', 'Jeruk soda', '#ef7382', '#efb756', 6.7, 6],
+  ['Pancuran', 'Pancuran menari', 'Riak tenang', '#70cfe2', '#ae8ee6', 0, 4],
+  ['Kios Saji', 'Menu: dimsum', 'Menu: bakpao', '#f4ac61', '#f17769', -6.8, -5],
+  ['Studio Foto', 'Cahaya potret: senja', 'Cahaya potret: fajar', '#e691b2', '#f9cd90', -6.7, 15]
+];
+function kotaInstalasi(b, def, i) {
+  const [nama, a, c, aksen, alternatif, x, z] = def;
+  const { part, batu, led } = b;
+  const w = [6.4, 1.4, 2.35, 2.3, 2.5][i],
+    h = [4.5, 2.1, 1.4, 2.6, 2.8][i];
+  part(x, 0.14, z, w + 0.32, 0.28, i === 2 ? w + 0.3 : 1.25, '#b1ada8', batu, i === 2 ? 'drum' : 'kotak');
+  let muka;
+  if (i === 2) {
+    part(x, 0.44, z, w, 0.45, w, '#8d918c', batu, 'drum');
+    part(x, 0.68, z, w * 0.88, 0.04, w * 0.88, aksen, led, 'drum');
+    for (let n = 0; n < 9; n++) {
+      const t = (n * Math.PI * 2) / 9;
+      part(x + Math.cos(t) * 0.68, 0.94, z + Math.sin(t) * 0.68, 0.07, 0.54, 0.07, '#c1f3fc', led, 'kerucut');
+    }
+    muka = new THREE.Mesh(kotaBentuk.bulat, new THREE.MeshBasicMaterial({ color: aksen }));
+    muka.scale.set(0.44, 1.3, 0.44);
+    muka.position.set(x, 1.28, z);
+  } else {
+    part(x, h / 2 + 0.25, z, w, h, 0.74, '#343a46');
+    for (const s of [-1, 1]) part(x + s * (w / 2 - 0.035), h / 2 + 0.25, z + 0.39, 0.06, h, 0.05, aksen, led);
+    part(x, h + 0.3, z, w + 0.16, 0.18, 1, '#c6a982');
+    muka = new THREE.Mesh(kotaBentuk.kotak, kotaAffiche(nama, aksen, a));
+    muka.position.set(x, h * 0.59 + 0.25, z + 0.39);
+    muka.scale.set(w * 0.9, h * 0.72, 0.06);
+    if (i === 1) {
+      part(x, 0.52, z + 0.43, 0.78, 0.23, 0.12, '#111e2c');
+      part(x + 0.48, 1.08, z + 0.44, 0.12, 0.2, 0.1, '#b1fbec', led);
+    }
+    if (i === 3) {
+      part(x, 1, z + 0.63, w + 0.24, 0.1, 0.68, '#e0c8aa', batu);
+      for (const dx of [-0.6, 0, 0.6]) part(x + dx, 1.14, z + 0.68, 0.34, 0.18, 0.34, '#eecf9b', batu, 'drum');
+    }
+    if (i === 4)
+      for (const dx of [-1, 1])
+        for (let j = 0; j < 7; j++) part(x + dx, 0.55 + j * 0.32, z + 0.45, 0.13, 0.13, 0.13, '#fff2c9', led, 'bulat');
+  }
+  if (i === 2) {
+    for (let j = 0; j < 28; j++) {
+      const ang = (j * Math.PI) / 14;
+      part(
+        x + Math.cos(ang) * 1.09,
+        0.66,
+        z + Math.sin(ang) * 1.09,
+        0.22,
+        0.095,
+        0.12,
+        '#cfb990',
+        b.metal,
+        'bantal',
+        0,
+        -ang
+      );
+    }
+    for (let j = 0; j < 3; j++)
+      part(x, 0.65 + j * 0.23, z, 0.68 - j * 0.13, 0.19, 0.68 - j * 0.13, '#d5ba98', batu, 'tempayan');
+  } else if (i === 4) {
+    part(x, 0.31, z + 0.49, w * 0.88, 0.08, 0.87, '#ad8569', batu, 'bantal');
+    for (const dx of [-0.86, 0.86]) {
+      part(x + dx, 1.92, z + 0.48, 0.07, 2.16, 0.09, '#ac856a', b.metal, 'drum');
+      part(x + dx, 2.68, z + 0.46, 0.52, 0.52, 0.14, '#8b6a54', b.metal, 'bantal', 0.64);
+      part(x + dx, 2.68, z + 0.54, 0.45, 0.45, 0.04, '#ffe2b7', led, 'bantal', 0.64);
+    }
+  } else if (i === 3) {
+    for (const dx of [-0.97, 0.97]) part(x + dx, 1.7, z + 0.66, 0.055, 1.38, 0.055, '#c19d69', b.metal, 'drum');
+    for (let n = 0; n < 11; n++)
+      part(
+        x - 1.05 + n * 0.21,
+        2.67,
+        z + 0.35,
+        0.22,
+        0.095,
+        1.31,
+        n % 2 ? '#dca976' : '#854638',
+        b.batu,
+        'bantal',
+        0,
+        0,
+        0.12
+      );
+  } else if (i === 1) {
+    muka.scale.set(0.49, 1.4, 0.06);
+    muka.position.x = x + 0.37;
+    part(x - 0.27, 1.37, z + 0.409, 0.73, 1.44, 0.035, '#d4c9a6', b.led);
+    for (let row = 0; row < 3; row++) {
+      for (let col = 0; col < 4; col++) {
+        const bx = x - 0.53 + col * 0.169,
+          by = 0.87 + row * 0.4;
+        part(
+          bx,
+          by,
+          z + 0.5,
+          0.127,
+          0.28,
+          0.126,
+          ['#c16857', '#e1b471', '#699b88', '#c5d7bd'][(col + row) % 4],
+          b.metal,
+          'drum'
+        );
+        part(bx, by + 0.146, z + 0.5, 0.124, 0.016, 0.124, '#d6cbb9', b.metal, 'drum');
+      }
+      part(x - 0.27, 0.71 + row * 0.4, z + 0.49, 0.74, 0.046, 0.22, '#7f807e', b.metal);
+    }
+    part(x - 0.27, 1.33, z + 0.61, 0.76, 1.44, 1, 'white', kotaKacaToko(), 'lembar');
+  }
+  kotaScenes.kota.add(muka);
+  let aktif = false;
+  b.tap(x, h / 2 + 0.25, z, w + 0.25, h + 0.55, i === 2 ? w : 1.4, () => {
+    aktif = !aktif;
+    if (i === 2) {
+      muka.scale.y = aktif ? 2.15 : 1.3;
+      muka.material.color.set(aktif ? alternatif : aksen);
+    } else muka.material = kotaAffiche(nama, aktif ? alternatif : aksen, aktif ? c : a);
+    toastKosan(nama + ' — ' + (aktif ? c : a));
+    bunyi('toast');
+  });
+  b.solid(x, z, w + 0.32, i === 2 ? w + 0.3 : 1.55);
+}
+function kotaBangunJalan() {
+  const S = kotaScenes.kota,
+    b = kotaBangun(S),
+    { part, batu, led } = b;
+  const paving = kotaPantulan();
+  S.onBeforeRender = () => {
+    if (paving.userData.malam) paving.userData.malam.value = 1 - suasanaKini.terang;
+  };
+  for (let z = -19; z < 30; z += 6) part(0, -0.16, z + 3, 18, 0.28, 6, 'white', paving);
+  // Jalan berlanjut secara visual ke distrik di belakang monumen.
+  part(0, -0.19, -33, 57, 0.28, 28, '#9d969b', batu);
+  for (let i = 0; i < 13; i++) {
+    const x = (i - 6) * 5.4,
+      z = -39 - (i % 3) * 4,
+      h = 8 + ((i * 13) % 21);
+    kotaMenaraJauh(b, x, z, 4.4, h, i);
+  }
+  for (const s of [-1, 1]) {
+    part(s * 6.9, -0.06, 5, 3.8, 0.12, 49, '#e0cfc3', batu);
+    for (let z = -18; z < 29; z += 1.15) {
+      part(s * 5.04, 0.028, z, 0.18, 0.09, 1.12, '#b9ac98', batu, 'bantal');
+      part(s * 4.81, -0.009, z, 0.23, 0.018, 1.15, '#454948', b.metal);
+      for (let n = 0; n < 7; n++) part(s * 4.81, 0.005, z - 0.48 + n * 0.157, 0.215, 0.018, 0.034, '#ad9c82', b.metal);
+    }
+    for (const z of [-11, 0, 11, 22]) {
+      const x = s * 6.5;
+      part(x, 0.16, z, 0.55, 0.32, 0.55, '#57535b', batu, 'drum');
+      part(x, 2.35, z, 0.11, 4.5, 0.11, '#684e45', b.metal, 'drum');
+      part(x - s * 0.38, 4.47, z, 0.86, 0.11, 0.13, '#aa8c62');
+      part(x - s * 0.73, 4.18, z, 0.42, 0.52, 0.42, '#ffe1ac', led, 'kerucut');
+      part(x - s * 0.73, 4.46, z, 0.5, 0.09, 0.5, '#6f594a', b.metal, 'drum');
+      b.solid(x, z, 0.55, 0.55);
+      kotaPohon(b, x, z + 1.38);
+      b.solid(x, z + 1.38, 1, 1);
+      if (KOTA_AKSI.some((a) => Math.abs(a[5] - x) < 2 && Math.abs(a[6] - z - 3.15) < 2)) continue;
+      for (let j = 0; j < 4; j++)
+        part(x - 0.3 + j * 0.17, 0.53, z + 3.15, 0.14, 0.1, 1.65, '#b28a6a', kotaPermukaan('kenari'), 'bantal');
+      for (const dz of [-0.54, 0.54]) {
+        for (const dx of [-0.24, 0.24])
+          part(x + dx, 0.28, z + 3.15 + dz, 0.065, 0.48, 0.08, '#665f55', b.metal, 'drum', -dx * 0.43);
+        part(x, 0.11, z + 3.15 + dz, 0.58, 0.06, 0.08, '#796856', b.metal, 'bantal');
+      }
+      for (const dz of [-0.54, 0.54]) part(x + s * 0.31, 0.71, z + 3.15 + dz, 0.052, 0.62, 0.052, '#746550');
+      for (const y of [0.81, 0.96])
+        part(x + s * 0.32, y, z + 3.15, 0.09, 0.1, 1.63, '#b5916d', kotaPermukaan('kenari'), 'bantal');
+      b.solid(x, z + 3.15, 0.72, 1.7);
+    }
+  }
+  for (let n = -5; n <= 5; n++) part(n * 0.85, 0.003, 12, 0.43, 0.022, 2.25, '#f4e8d3', batu);
+  part(-6.5, 3.55, 22, 2.3, 0.6, 0.12, 'white', kotaAffiche('Jl. Lentera', '#94d8cd', 'promenade'));
+  KOTA_GEDUNG.forEach((g, i) => kotaMenara(b, g, i));
+  KOTA_AKSI.forEach((a, i) => kotaInstalasi(b, a, i));
+  // Menara jam di ujung sumbu boulevard; gelang kuningan dan dial empat sisi.
+  part(0, 0.55, -21, 5, 1.1, 5, '#ada6a3', batu, 'drum');
+  part(0, 4.9, -21, 2.1, 8.4, 2.1, '#d8c8a8', batu, 'kerucut');
+  part(0, 10, -21, 2.8, 2.8, 2.8, '#aa8860');
+  for (let j = 0; j < 12; j++) {
+    const a = (j * Math.PI) / 6;
+    part(Math.cos(a) * 0.9, 4.78, -21 + Math.sin(a) * 0.9, 0.16, 7.65, 0.16, '#bea887', batu, 'drum');
+  }
+  for (const y of [1.24, 1.57, 8.31, 8.6, 11.52]) part(0, y, -21, 2.83, 0.16, 2.83, '#c2a579', batu);
+  const jam = kotaMat('dial', true, (c, w, h) => {
+    c.fillStyle = '#242c3a';
+    c.fillRect(0, 0, w, h);
+    c.translate(256, 256);
+    c.fillStyle = '#ffdf9f';
+    c.beginPath();
+    c.arc(0, 0, 228, 0, Math.PI * 2);
+    c.fill();
+    for (let i = 0; i < 12; i++) {
+      c.rotate(Math.PI / 6);
+      c.fillStyle = '#534d4c';
+      c.fillRect(-5, -203, 10, 27);
+    }
+    c.strokeStyle = '#303847';
+    c.lineWidth = 14;
+    c.beginPath();
+    c.moveTo(-90, -58);
+    c.lineTo(0, 0);
+    c.lineTo(125, -102);
+    c.stroke();
+  });
+  part(0, 10, -21, 2.83, 2.62, 2.83, 'white', jam);
+  part(0, 11.6, -21, 3.2, 0.32, 3.2, '#f8ce88', led);
+  part(0, 12.55, -21, 2, 1.7, 2, '#788886', b.metal, 'kerucut');
+  part(0, 14.1, -21, 0.12, 1.6, 0.12, '#ffe1aa', led);
+  // Cahaya etalase yang menyebar memberi warna hangat pada pejalan kaki dan ornamen.
+  for (const [x, z, col] of [
+    [-7.7, 18, 0xffb476],
+    [7.7, 14, 0xffcf96],
+    [-7.7, -0.5, 0xeab4c8]
+  ]) {
+    const lamp = new THREE.PointLight(col, 32, 11, 2);
+    lamp.position.set(x, 2.74, z);
+    S.add(lamp);
+  }
+  const pantulToko = new THREE.HemisphereLight(0xffe4cb, 0xba979c, 0.44);
+  S.add(pantulToko);
+  b.selesai();
+  kotaKerumunan = kotaBuatKerumunan(S);
+}
+// Siluet pakaian berpola dari penampang jahitan (bahu, pinggang, panggul), bukan bola untuk badan.
+function kotaBusana(rings) {
+  const pos = [],
+    uv = [],
+    idx = [],
+    n = 16;
+  rings.forEach(([y, rx, rz, dz = 0], row) => {
+    for (let i = 0; i <= n; i++) {
+      const a = (i / n) * 2 * Math.PI;
+      pos.push(rx * Math.sin(a), y, dz + rz * Math.cos(a));
+      uv.push(i / n, row / (rings.length - 1));
+      if (row && i) {
+        const k = row * (n + 1) + i;
+        idx.push(k - n - 2, k - n - 1, k - 1, k - n - 1, k, k - 1);
+      }
+    }
+  });
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  geo.setIndex(idx);
+  geo.computeVertexNormals();
+  return geo;
+}
+function kotaBuatKerumunan(S) {
+  const kain = kotaMat('kain kota', false, lukisKain),
+    kulit = kotaMat('kulit', false);
+  const badan = kotaBusana([
+    [0, 0.115, 0.078],
+    [0.035, 0.16, 0.102],
+    [0.15, 0.149, 0.105],
+    [0.29, 0.18, 0.113],
+    [0.39, 0.21, 0.112],
+    [0.43, 0.195, 0.087],
+    [0.478, 0.079, 0.066],
+    [0.48, 0, 0]
+  ]);
+  const rok = kotaBusana([
+    [0, 0.214, 0.155],
+    [0.018, 0.217, 0.157],
+    [0.15, 0.198, 0.134],
+    [0.35, 0.141, 0.097],
+    [0.36, 0, 0]
+  ]);
+  const mantel = kotaBusana([
+    [0, 0.198, 0.149],
+    [0.02, 0.2, 0.147],
+    [0.22, 0.174, 0.124],
+    [0.34, 0.143, 0.105],
+    [0.49, 0.175, 0.121],
+    [0.59, 0.206, 0.115],
+    [0.63, 0.197, 0.089],
+    [0.675, 0.079, 0.07],
+    [0.677, 0, 0]
+  ]);
+  const wajah = kotaBusana([
+    [0, 0.046, 0.063, 0.01],
+    [0.033, 0.082, 0.078, 0.011],
+    [0.115, 0.103, 0.093],
+    [0.19, 0.099, 0.099, -0.003],
+    [0.235, 0.088, 0.091, -0.009],
+    [0.265, 0.046, 0.059],
+    [0.269, 0, 0]
+  ]);
+  const rambut = kotaBusana([
+    [0, 0.085, 0.082],
+    [0.032, 0.11, 0.102],
+    [0.092, 0.112, 0.105],
+    [0.142, 0.084, 0.087],
+    [0.162, 0.044, 0.056],
+    [0.169, 0, 0]
+  ]);
+  const limb = kotaProfil(
+    [
+      [-0.5, 0.24],
+      [-0.45, 0.39],
+      [-0.17, 0.5],
+      [0.28, 0.44],
+      [0.49, 0.33],
+      [0.5, 0.26]
+    ],
+    12
+  );
+  const batch = new Map(),
+    dummy = new THREE.Object3D(),
+    v = new THREE.Vector3(),
+    up = new THREE.Vector3(0, 1, 0);
+  const coat = ['#bd795f', '#a6afb6', '#e8b657', '#577a7b', '#964c60', '#e3ccad', '#8299ad'];
+  const tones = ['#bc8767', '#e1b596', '#98684e', '#e4bf9e', '#c68f71'];
+  const hair = ['#32292b', '#493934', '#704a36', '#302c30'];
+  const models = KOTA_NPC.map((p, i) => ({
+    p,
+    i,
+    h: 0.94 + (i % 5) * 0.032,
+    skin: tones[i % 5],
+    cloth: coat[i % 7],
+    hair: hair[i % 4],
+    pants: ['#364551', '#48444c', '#62554e'][i % 3]
+  }));
+  const shadows = new THREE.InstancedMesh(kotaBentuk.lembar, kotaBayang(), models.length);
+  shadows.frustumCulled = false;
+  shadows.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  S.add(shadows);
+  let membuat = true;
+  function gambar(t) {
+    for (const g of batch.values()) g.used = 0;
+    for (const { p, i, h, skin, cloth, hair: r, pants } of models) {
+      const { z, arah } = kotaLangkah(p, t),
+        fase = t * p.laju * 6.1 + i,
+        step = Math.sin(fase);
+      const bob = 0.024 * Math.cos(2 * fase),
+        sway = 0.022 * step,
+        yaw = arah < 0 ? Math.PI : 0;
+      dummy.position.set(p.x, -0.005, z);
+      dummy.rotation.set(-Math.PI / 2, 0, 0);
+      dummy.scale.set(0.67, 0.91, 1);
+      dummy.updateMatrix();
+      shadows.setMatrixAt(i, dummy.matrix);
+      function push(geo, mat, col) {
+        if (!batch.has(geo)) batch.set(geo, { mat, colors: [], matrices: [], used: 0 });
+        const g = batch.get(geo);
+        dummy.updateMatrix();
+        if (membuat) {
+          g.matrices.push(dummy.matrix.clone());
+          g.colors.push(new THREE.Color(col));
+        } else g.mesh.setMatrixAt(g.used, dummy.matrix);
+        g.used++;
+      }
+      function piece(geo, mat, col, x, y, d, w = 1, hh = 1, depth = 1, tilt = 0, roll = 0) {
+        dummy.position.set(p.x + x * h * arah, y * h, z + d * h * arah);
+        dummy.rotation.set(tilt, yaw, roll, 'YXZ');
+        dummy.scale.set(w * h, hh * h, depth * h);
+        push(geo, mat, col);
+      }
+      function seg(ax, ay, az, bx, by, bz, width, dep, col) {
+        v.set((bx - ax) * arah, by - ay, (bz - az) * arah);
+        dummy.scale.set(width * h, v.length() * h, dep * h);
+        dummy.quaternion.setFromUnitVectors(up, v.normalize());
+        dummy.position.set(p.x + (ax + bx) * 0.5 * h * arah, (ay + by) * 0.5 * h, z + (az + bz) * 0.5 * h * arah);
+        push(limb, kain, col);
+      }
+      const long = i % 4 === 0,
+        skirt = i % 4 === 2;
+      piece(long ? mantel : badan, kain, cloth, sway, (long ? 0.755 : 0.953) + bob, 0, 1, 1, 1, 0.028, step * 0.025);
+      if (skirt) piece(rok, kain, cloth, sway, 0.67 + bob, 0);
+      piece(limb, kain, skin, sway, 1.465 + bob, 0, 0.127, 0.145, 0.125);
+      piece(wajah, kulit, skin, sway, 1.48 + bob, 0.009);
+      piece(rambut, kain, r, sway, 1.625 + bob, -0.004, 1.04, 1, 1.05, 0, (i % 3) * 0.08);
+      if (i % 3 === 0) piece(kotaBentuk.bulat, kain, r, sway, 1.6 + bob, -0.078, 0.205, 0.33, 0.142, -0.17);
+      if (i % 3 === 1) piece(kotaBentuk.bulat, kain, r, sway + 0.023, 1.739 + bob, -0.086, 0.113, 0.11, 0.1);
+      for (const s of [-1, 1]) {
+        piece(kotaBentuk.bulat, kulit, '#392e30', sway + s * 0.043, 1.62 + bob, 0.093, 0.022, 0.012, 0.01);
+        piece(kotaBentuk.bulat, kulit, skin, sway + s * 0.102, 1.6 + bob, 0, 0.029, 0.054, 0.025);
+      }
+      piece(kotaBentuk.bulat, kulit, skin, sway, 1.596 + bob, 0.103, 0.037, 0.051, 0.035);
+      piece(kotaBentuk.bulat, kulit, '#aa7063', sway, 1.553 + bob, 0.09, 0.045, 0.011, 0.012);
+      for (const s of [-1, 1]) {
+        const swing = step * s,
+          bend = Math.max(0, -Math.cos(fase) * s);
+        const hx = s * 0.093 + sway,
+          hy = 1.0 + bob,
+          kx = s * 0.098,
+          ky = 0.55 + 0.045 * bend,
+          kz = swing * 0.134 + 0.08 * bend;
+        const fy = 0.103 + 0.115 * bend,
+          fz = swing * 0.235 - 0.075 * bend;
+        seg(hx, hy, 0, kx, ky, kz, 0.175, 0.19, pants);
+        seg(kx, ky + 0.022, kz, s * 0.11, fy + 0.034, fz, 0.122, 0.136, skirt ? skin : pants);
+        piece(
+          kotaBentuk.bantal,
+          kain,
+          i % 2 ? '#ddcfc0' : '#493c39',
+          s * 0.11,
+          fy - 0.044,
+          fz + 0.045,
+          0.137,
+          0.105,
+          0.25,
+          0.14 * bend
+        );
+        const ax = s * 0.19 + sway,
+          ey = 1.17 + bob,
+          ez = -swing * 0.105 - 0.023,
+          wz = -swing * 0.21 + 0.052;
+        seg(ax, 1.368 + bob, 0, s * 0.235, ey, ez, 0.128, 0.136, cloth);
+        seg(s * 0.235, ey, ez, s * 0.245, 0.97 + bob, wz, 0.094, 0.098, long ? cloth : skin);
+        piece(kotaBentuk.bulat, kulit, skin, s * 0.245, 0.94 + bob, wz, 0.076, 0.104, 0.073);
+      }
+      // Kerah silang dan tas mengikuti ayunan tubuh.
+      for (const s of [-1, 1])
+        seg(
+          sway + s * 0.071,
+          1.417 + bob,
+          0.057,
+          sway + s * 0.02,
+          1.238 + bob,
+          0.118,
+          0.039,
+          0.025,
+          i % 2 ? '#d8c7ab' : '#383f47'
+        );
+      if (i % 3 !== 1) {
+        seg(sway - 0.145, 1.38 + bob, 0.071, sway + 0.16, 1.001 + bob, 0.109, 0.033, 0.028, '#805d45');
+        piece(kotaBentuk.bantal, kain, '#976a4e', sway + 0.159, 0.987 + bob, 0.095, 0.19, 0.164, 0.093, 0, -0.09);
+      }
+    }
+    shadows.instanceMatrix.needsUpdate = true;
+    if (membuat) {
+      for (const [geo, g] of batch) {
+        g.mesh = new THREE.InstancedMesh(geo, g.mat, g.used);
+        g.mesh.frustumCulled = false;
+        g.mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+        g.matrices.forEach((m, i) => {
+          g.mesh.setMatrixAt(i, m);
+          g.mesh.setColorAt(i, g.colors[i]);
+        });
+        S.add(g.mesh);
+        delete g.colors;
+        delete g.matrices;
+      }
+      membuat = false;
+    } else for (const g of batch.values()) g.mesh.instanceMatrix.needsUpdate = true;
+  }
+  gambar(0);
+  return gambar;
+}
+
+function kotaCetakan(id) {
+  return kotaMat('cetakan ' + id, false, (c, w, h) => {
+    const bg = id === 'kafe' ? '#263a36' : '#dbcca9';
+    c.fillStyle = bg;
+    c.fillRect(0, 0, w, h);
+    if (id === 'kafe') {
+      c.fillStyle = '#f2dec1';
+      c.textAlign = 'center';
+      c.font = 'italic 61px Georgia';
+      c.fillText('Kopi Bara', 256, 110);
+      c.font = '17px sans-serif';
+      c.fillText('R O A S T E R Y    /    E S T.   1 9 8 6', 256, 157);
+      c.fillRect(63, 185, 386, 2);
+      c.font = '31px Georgia';
+      c.textAlign = 'left';
+      ['Espresso', 'Kopi susu', 'Cokelat pala', 'Teh melati'].forEach((s, i) => {
+        c.fillText(s, 65, 246 + i * 57);
+        c.fillText(['22', '28', '32', '24'][i], 410, 246 + i * 57);
+      });
+    } else {
+      c.fillStyle = '#c47252';
+      c.beginPath();
+      c.arc(318, 172, 97, 0, Math.PI * 2);
+      c.fill();
+      for (let i = 0; i < 13; i++) {
+        c.strokeStyle = i % 3 === 0 ? '#446965' : '#765c55';
+        c.lineWidth = 6;
+        c.beginPath();
+        c.moveTo(-24, 275 + i * 12);
+        c.bezierCurveTo(160, 490 + i * 5, 239, 87 + i * 12, 540, 242 + i * 10);
+        c.stroke();
+      }
+      c.fillStyle = '#453f39';
+      c.font = '21px Georgia';
+      c.fillText('L E N T E R A   /   No. 08', 43, 474);
+    }
+  });
+}
+function kotaBangunRuang(g) {
+  const [, , , , nama, aksen, id] = g,
+    S = kotaScenes['kota-' + id],
+    b = kotaBangun(S),
+    { part, batu, metal, led } = b;
+  const kayu = kotaPermukaan('kenari'),
+    beton = kotaPermukaan('semen'),
+    kain = kotaMat('wol tenun', false, lukisKain);
+  const kopi = id === 'kafe',
+    hotel = id === 'lobi',
+    walnut = kopi ? '#a77a57' : '#876a54',
+    dinding = kopi ? '#9b8b72' : hotel ? '#cab8a1' : '#b6bbb5';
+  S.background = new THREE.Color('#575149');
+  const sekitar = new THREE.HemisphereLight(0xfff0d8, 0xc1a68d, 1.82);
+  S.add(sekitar);
+  for (const x of [-2.13, 2.13]) {
+    const lamp = new THREE.PointLight(0xffce8e, 16, 8, 2);
+    lamp.position.set(x, 2.54, -1.42);
+    S.add(lamp);
+  }
+  const key = new THREE.DirectionalLight(0xffeed5, 1.72);
+  key.position.set(-2.7, 4.1, 3);
+  S.add(key);
+  S.onBeforeRender = () => {
+    key.intensity = 0.65 + 1.3 * suasanaKini.terang;
+    sekitar.intensity = 1.3 + 0.58 * suasanaKini.terang;
+  };
+  part(0, -0.1, 0, 10, 0.2, 8, '#d8cabe', batu);
+  for (const x of [-4.52, 4.52]) part(x, 0.005, 0, 0.045, 0.013, 7.9, '#ae9366', metal);
+  part(0, 2, -4.1, 10, 4.1, 0.25, dinding, beton);
+  part(0, 4.13, 0, 10.3, 0.24, 8.4, '#d8ccb4', beton);
+  for (const x of [-4.82, 4.82]) {
+    part(x, 3.88, 0, 0.4, 0.26, 8.1, walnut, kayu);
+    part(x, 3.74, 0, 0.22, 0.036, 7.94, '#ffe1ac', led);
+  }
+  for (let z = -3.6; z <= 4; z += 0.56) part(0, 3.99, z, 9.75, 0.075, 0.085, walnut, kayu);
+  for (const s of [-1, 1]) {
+    part(s * 5.03, 2, 0, 0.23, 4.06, 8, dinding, beton);
+    part(s * 4.89, 0.1, 0, 0.09, 0.19, 8, walnut, kayu);
+    for (const z of [-2.4, 0.1, 2.6]) {
+      part(s * 4.88, 1.96, z, 0.15, 2.98, 1.94, '#9e8265', metal);
+      part(s * 4.77, 1.96, z, 0.08, 2.83, 1.8, '#e5d8c1', batu);
+      part(s * 4.71, 1.96, z, 0.045, 2.36, 1.53, 'white', kotaCetakan(hotel ? 'lobi' : 'toko'));
+    }
+    for (let n = 0; n < 10; n++) part(s * (3.42 + n * 0.145), 1.98, -3.91, 0.067, 3.92, 0.18, walnut, kayu);
+    // Suspensi bertumpu pada roset kuningan di bawah plafon.
+    const x = s * 2.13;
+    part(x, 3.99, -1.42, 0.3, 0.085, 0.3, '#99744f', metal, 'drum');
+    part(x, 3.53, -1.42, 0.025, 0.94, 0.025, '#73614f', metal, 'drum');
+    part(x, 3.03, -1.42, 0.16, 0.13, 0.16, '#b29565', metal, 'drum');
+    part(x, 2.84, -1.42, 0.63, 0.33, 0.63, '#ceaa71', metal, 'kap');
+    part(x, 2.69, -1.42, 0.52, 0.05, 0.52, '#fff2cb', led, 'drum');
+  }
+  for (let j = -2; j <= 2; j++) {
+    part(j * 1.7, 3.94, 1.72, 0.21, 0.1, 0.21, '#735e4a', metal, 'drum');
+    part(j * 1.7, 3.874, 1.72, 0.145, 0.035, 0.145, '#ffedc4', led, 'drum');
+  }
+  // Meja layanan beralur dengan kaki masuk, tepi membulat dan bibir batu.
+  part(0, 0.14, -2.7, 3.72, 0.24, 1.05, '#514940', metal, 'bantal');
+  part(0, 0.64, -2.7, 3.96, 0.96, 1.15, walnut, kayu, 'bantal');
+  for (let n = -18; n <= 18; n++) part(n * 0.1, 0.66, -2.116, 0.044, 0.82, 0.068, '#bb9474', kayu, 'drum');
+  part(0, 1.15, -2.7, 4.13, 0.16, 1.26, '#efe3ca', batu, 'bantal');
+  b.solid(0, -2.7, 4.13, 1.26);
+  part(0, 2.67, -3.91, 3.63, 1.86, 0.16, '#aa8a5f', metal);
+  part(0, 2.67, -3.8, 3.52, 1.75, 0.085, 'white', kopi ? kotaCetakan('kafe') : kotaAffiche(nama, aksen, id));
+  for (const s of [-1, 1]) {
+    // Relung kayu dengan tiga rak dan koleksi masing-masing usaha.
+    const nicheX = s * 2.55;
+    part(nicheX, 2.26, -3.89, 1.26, 2.08, 0.14, '#635449', kayu);
+    for (const y of [1.48, 2.09, 2.7]) {
+      part(nicheX, y, -3.7, 1.18, 0.075, 0.37, walnut, kayu);
+      part(nicheX, y - 0.05, -3.54, 1.02, 0.023, 0.022, '#ffda9b', led);
+      for (let j = -1; j <= 1; j++) {
+        const xx = nicheX + j * 0.33;
+        part(
+          xx,
+          y + 0.21,
+          -3.66,
+          0.22,
+          0.34,
+          0.2,
+          kopi ? (j ? '#c19d70' : '#568073') : j ? '#8ba18e' : '#c28d72',
+          metal,
+          kopi ? 'bantal' : 'vas'
+        );
+        if (kopi) part(xx, y + 0.2, -3.55, 0.14, 0.095, 0.012, '#f2d2a9', batu);
+      }
+    }
+    const x = s * 2.85;
+    part(x, 0.006, 0.4, 2.25, 2.25, 1, 'white', kotaBayang(), 'lembar', 0, 0, -Math.PI / 2);
+    if (kopi) {
+      part(x, 0.81, 0.4, 0.99, 0.09, 0.99, '#e5c7a4', batu, 'drum');
+      part(x, 0.41, 0.4, 0.17, 0.73, 0.17, '#9e7952', metal, 'vas');
+      part(x, 0.07, 0.4, 0.52, 0.09, 0.52, '#7e684e', metal, 'drum');
+      for (const dz of [-0.84, 0.84]) {
+        const z = 0.4 + dz,
+          f = Math.sign(dz);
+        for (const dx of [-0.21, 0.21])
+          for (const k of [-1, 1])
+            part(x + dx, 0.24, z + k * 0.19, 0.05, 0.44, 0.05, walnut, kayu, 'drum', -dx * 0.39, 0, k * 0.12);
+        part(x, 0.46, z, 0.55, 0.12, 0.53, '#47736a', kain, 'bantal');
+        for (const dx of [-0.23, 0.23]) part(x + dx, 0.67, z + f * 0.22, 0.052, 0.44, 0.05, walnut, kayu, 'drum');
+        part(x, 0.84, z + f * 0.22, 0.54, 0.23, 0.1, walnut, kayu, 'bantal');
+      }
+      for (const dx of [-0.22, 0.22]) {
+        part(x + dx, 0.87, 0.4, 0.22, 0.025, 0.22, '#efdfbc', batu, 'drum');
+        part(x + dx, 0.94, 0.4, 0.145, 0.13, 0.145, '#e6d8b9', metal, 'tempayan');
+        part(x + dx, 1.002, 0.4, 0.117, 0.012, 0.117, '#5f3829', metal, 'drum');
+      }
+      b.solid(x, 0.4, 1, 2.3);
+    } else if (hotel) {
+      for (const dx of [-0.7, 0.7])
+        for (const dz of [-0.31, 0.31]) part(x + dx, 0.135, 0.4 + dz, 0.09, 0.26, 0.09, '#ae895c', metal, 'drum');
+      part(x, 0.32, 0.4, 1.8, 0.22, 0.91, walnut, kayu, 'bantal');
+      part(x, 0.78, -0.01, 1.76, 0.71, 0.23, '#576c68', kain, 'bantal', 0, 0, -0.13);
+      for (const dx of [-0.415, 0.415]) {
+        part(x + dx, 0.53, 0.42, 0.81, 0.24, 0.76, '#668179', kain, 'bantal');
+        part(x + dx, 0.86, 0.13, 0.74, 0.42, 0.19, dx * s > 0 ? '#b88e70' : '#738d83', kain, 'bantal', 0.065, 0, -0.18);
+      }
+      for (const dx of [-0.83, 0.83]) part(x + dx, 0.64, 0.39, 0.18, 0.39, 0.84, '#59746c', kain, 'bantal');
+      b.solid(x, 0.4, 1.9, 0.95);
+    } else {
+      for (const dx of [-0.61, 0.61])
+        for (const dz of [-0.37, 0.37]) part(x + dx, 0.53, 0.4 + dz, 0.065, 1.05, 0.065, '#b49366', metal, 'drum');
+      for (const y of [0.27, 0.82, 1.33]) part(x, y, 0.4, 1.52, 0.075, 1.02, walnut, kayu, 'bantal');
+      for (let n = 0; n < 3; n++) {
+        const dx = (n - 1) * 0.39;
+        part(x + dx, 1.63, 0.4, 0.31, 0.58, 0.31, ['#718e84', '#cf967b', '#d7b789'][n], metal, 'vas');
+        part(x + dx, 1, 0.4, 0.24, 0.3, 0.24, '#ab8260', metal, 'tempayan');
+      }
+      b.solid(x, 0.4, 1.58, 1.1);
+    }
+    kotaPohon(b, 4.12 * s, -3.28, 0.63);
+  }
+  // Lampu baca serta properti meja khusus tiap usaha.
+  part(1.53, 1.25, -2.67, 0.29, 0.05, 0.29, '#ac895c', metal, 'drum');
+  part(1.53, 1.44, -2.67, 0.032, 0.37, 0.032, '#aa865e', metal, 'drum');
+  part(1.53, 1.71, -2.67, 0.4, 0.24, 0.4, '#ffe6ad', led, 'kap');
+  if (kopi) {
+    part(-0.95, 1.49, -2.68, 0.88, 0.52, 0.48, '#58766a', metal, 'bantal');
+    part(-0.95, 1.47, -2.42, 0.72, 0.22, 0.06, '#303a37');
+    for (const dx of [-0.22, 0.22]) {
+      part(-0.95 + dx, 1.36, -2.32, 0.08, 0.12, 0.09, '#c7b592', metal, 'drum');
+      part(-0.95 + dx, 1.27, -2.32, 0.12, 0.105, 0.12, '#d6c4a3', batu, 'tempayan');
+    }
+  } else
+    for (let n = 0; n < 3; n++)
+      part(
+        -1.29,
+        1.25 + n * 0.05,
+        -2.65,
+        0.39,
+        0.048,
+        0.29,
+        n % 2 ? '#5d766f' : '#c4a890',
+        kayu,
+        'bantal',
+        0,
+        n * 0.06
+      );
+  for (const x of [-3.21, -1.79]) part(x, 1.37, 3.82, 0.09, 2.74, 0.17, '#a38767', metal);
+  part(-2.5, 2.68, 3.82, 1.52, 0.12, 0.17, '#aa8a64', metal);
+  part(-2.5, 1.34, 3.82, 1.33, 2.58, 1, 'white', kotaKacaToko(), 'lembar', 0, Math.PI);
+  part(-2.05, 1.33, 3.73, 0.04, 0.48, 0.05, '#cbb08a', metal, 'drum');
+  part(-2.5, 2.3, 3.76, 0.86, 0.32, 0.06, 'white', kotaAffiche('Keluar', aksen, 'jalan lentera'));
+  b.tap(-2.5, 1.35, 3.82, 1.65, 2.8, 0.4, kotaKeluarRuang);
+  b.selesai();
+}
+
+function kotaPindah(realm, x, z, yaw, jarak) {
+  myRealm = realm;
+  avatarLevel = 0;
+  (alamKota(realm) ? kotaScenes[realm] : scene).add(avatar);
+  avatarPos.x = x;
+  avatarPos.z = z;
+  avatar.position.set(x, 0, z);
+  avatar.rotation.y = yaw + Math.PI;
+  camTarget.set(x, 0, z);
+  camYaw = yaw;
+  camPitch = 0.1;
+  camDist = jarak;
+  flyTarget = null;
+  flyKeep = false;
+  closeCard();
+  document.getElementById('exitBtn').style.display = realm === 'yard' ? 'none' : 'inline-block';
+  mpSaatPindahAlam();
+}
+function enterKota() {
+  if (myRealm === 'kota') return;
+  if (alamKota(myRealm)) {
+    kotaKeluarRuang();
+    return;
+  }
+  if (KERJA) {
+    toastKosan('Selesaikan shift sebelum pergi ke Kota.');
+    return;
+  }
+  if (roomPose) bangunDariKasur(true);
+  if (myRealm === 'jalan') exitJalan();
+  else if (myRealm === 'living') exitLiving();
+  else if (myRealm === 'dapur') exitDapur();
+  else if (myRealm.startsWith('room-')) exitRoom();
+  kotaAsal = { x: avatarPos.x, z: avatarPos.z, yaw: camYaw, jarak: camDist, pitch: camPitch, rot: avatar.rotation.y };
+  if (!kotaArea.has(kotaScenes.kota)) kotaBangunJalan();
+  kotaPindah('kota', 0.85, 22.8, 0.11, 7.3);
+  toastKosan('Jalan Lentera — ketuk etalase dan pintu berlampu.');
+}
+function kotaMasukRuang(g) {
+  const realm = 'kota-' + g[6];
+  if (!kotaArea.has(kotaScenes[realm])) kotaBangunRuang(g);
+  kotaPindah(realm, 0, 2.3, 0, 3.6);
+  toastKosan(g[4]);
+}
+function kotaKeluarRuang() {
+  const g = KOTA_GEDUNG.find((g) => 'kota-' + g[6] === myRealm);
+  if (g) kotaPindah('kota', g[0] * 7.65, g[1], (-g[0] * Math.PI) / 2, 5);
+}
+function exitKota() {
+  kotaPindah('yard', kotaAsal.x, kotaAsal.z, kotaAsal.yaw, kotaAsal.jarak);
+  camPitch = kotaAsal.pitch;
+  avatar.rotation.y = kotaAsal.rot;
+}
+kotaScenes.kota.background = new THREE.Color(0x8ec9ee);
+kotaScenes.kota.fog = new THREE.Fog(0x8ec9ee, 35, 108);
+kotaScenes.kota.add(new THREE.HemisphereLight(0xffecdf, 0xbfa5a1, 1.35));
+const kotaSurya = new THREE.DirectionalLight(0xffe6cf, 1.25);
+kotaSurya.position.set(-9, 24, 16);
+kotaScenes.kota.add(kotaSurya);
+kotaSkyline();
+document.getElementById('kotaBtn').addEventListener('click', enterKota);
+/* ==== KOTA END ==== */
+
 /* ================= Kedai Kopi (Kerja & Belanja, Ryan 16 Nov) =================
    Pengganti rumah krem x -1..7 di Jalan Kampung (perintah langsung Ryan "bisa bekerja, seperti di
    cafe", pola warung; BUKAN di area palang "SEGERA DIBUKA" yang dicadangkan untuk voting penonton).
@@ -10941,7 +12546,7 @@ if (entryKeluarAkun) entryKeluarAkun.addEventListener('click', function () {
    adalah halaman utama, tidak ada lagi yang dituju "Web Utama".)
    Ronde 55 — listener "Ganti karakter" dihapus bersama tombolnya. */
 /* Ronde 11b — pil "Keluar" keluar dari alam dalam mana pun (ruang tamu / kamar). */
-document.getElementById('exitBtn').addEventListener('click', function () { if (myRealm === 'living') exitLiving(); else if (myRealm === 'dapur') exitDapur(); else if (myRealm.indexOf('room-') === 0) exitRoom(); else if (myRealm === 'jalan') exitJalan(); /* Tahap 3a */ });
+document.getElementById('exitBtn').addEventListener('click', function () { if (myRealm === 'living') exitLiving(); else if (myRealm === 'dapur') exitDapur(); else if (myRealm.indexOf('room-') === 0) exitRoom(); else if (myRealm === 'jalan') exitJalan(); else if (myRealm === 'kota') exitKota(); else if (alamKota(myRealm)) kotaKeluarRuang(); /* Tahap 3a */ });
 /* Ronde 13b — tombol HUD "Bangun" (muncul saat tidur/duduk di kasur). */
 document.getElementById('wakeBtn').addEventListener('click', function () { bangunDariKasur(); });
 /* Ronde 15c — menu garis tiga / dropdown header: ketuk ☰ buka/tutup;
@@ -11579,6 +13184,7 @@ function kamarSaya() { /* kamar pemain sendiri: HANYA penghuni (sesi); tamu -> 0
    shift/sejak kapan tidak dibagikan server, jadi tidak ada di kartu.
    Gaya SENGAJA BEDA dari KTA/room card (koreksi Ryan 19:08). */
 function sceneAktifSekarang() { /* scene yang sedang di-render (cermin baris renderer.render) */
+  if (alamKota(myRealm)) return kotaScenes[myRealm];
   return myRealm === 'living' ? livingScene : (myRealm === 'dapur' ? dapurScene : (myRealm.indexOf('room-') === 0 ? roomScene : (myRealm === 'jalan' ? jalanScene : scene)));
 }
 function ketukPemain() { /* raycast pemain (remote + sendiri) di scene aktif; null kalau tidak kena */
@@ -11881,6 +13487,7 @@ function flyToDoor(n) {
      dalam ruang tamu, keluar dulu ke halaman baru terbang.
      Ronde 11b — sama untuk kamar (keluar dari 'room-N' dulu). */
   if (myRealm === 'living') exitLiving(); else if (myRealm === 'dapur') exitDapur(); else if (myRealm.indexOf('room-') === 0) exitRoom();
+  else if (alamKota(myRealm)) exitKota();
   else if (myRealm === 'jalan') exitJalan(); /* Tahap 3a — pintu kamar ada di halaman */
   var p = ROOM_DOORS[n].pos;
   var flyDist = Math.hypot(6, 1.9);
@@ -12126,6 +13733,7 @@ function canvasTap(e, wasPinch) {
   /* Ronde 10b — ketuk hanya ke target alam aktif (halaman / ruang tamu).
      Ronde 11b — sama untuk kamar ('room-N' -> roomClickables). */
   var targets = myRealm === 'living' ? livingClickables : (myRealm === 'dapur' ? dapurClickables : (myRealm.indexOf('room-') === 0 ? roomClickables : (myRealm === 'jalan' ? jalanClickables : clickables)));
+  if (alamKota(myRealm)) targets = kotaArea.get(kotaScenes[myRealm]).taps;
   var hits = raycaster.intersectObjects(targets, false);
   hits = hits.filter(function (h) { return gedungCdTerlihat(h.object); }); /* Gedung C & D: grup yang disembunyikan tidak bisa diketuk */
   if (!hits.length) {
@@ -12136,6 +13744,7 @@ function canvasTap(e, wasPinch) {
     return;
   }
   var ud = hits[0].object.userData;
+  if (ud.kotaAksi) { ud.kotaAksi(); return; }
   /* Ronde 13b — 'interact' dicek DULU sebelum cabang 'card': kasur/lampu
      punya card 'room-in' juga, tapi ketukannya harus ke interaksi. */
   if (ud.interact === 'bed') { showBedCard(); return; }
@@ -13529,6 +15138,11 @@ function suasanaSiapkan() {
     });
     SU.latar.push({ s: S, near: S.fog.near, far: S.fog.far });
   });
+  const kota = kotaScenes.kota;
+  SU.latar.push({ s:kota, near:kota.fog.near, far:kota.fog.far });
+  for (const lampu of kota.children.filter(o => o.isLight)) {
+    SU.lampu.push({ o:lampu, jenis:lampu.isHemisphereLight?'hemi':'isi', i:lampu.intensity, c:lampu.color.clone(), g:lampu.groundColor?.clone() });
+  }
   /* bahan luar ruangan yang perlu ikut malam (bahan yang juga dipakai di dalam ruangan tidak disentuh) */
   var dalam = new Set(), lihat = new Set(), tokoh = new Set();
   [livingScene, dapurScene, roomScene].forEach(function (S) { S.traverse(function (o) { if (o.material) [].concat(o.material).forEach(function (m) { dalam.add(m); }); }); });
@@ -13647,6 +15261,7 @@ function suasanaSiapkan() {
 }
 function suasanaPasangLangit() { /* langit + hujan ikut scene luar yang aktif; di dalam ruangan disembunyikan */
   var luar = myRealm === 'yard' ? scene : (myRealm === 'jalan' ? jalanScene : null);
+  if (myRealm === 'kota') luar = kotaScenes.kota;
   if (luar && SU.scene !== luar) {
     luar.add(SU.langit); luar.add(SU.hujan); SU.scene = luar;
     var pg = luar === scene ? SU.petaHalaman : SU.petaJalan; /* peta genangan scene ini */
@@ -13842,9 +15457,13 @@ function animate() {
        Ronde 13b — pose tidur/duduk: blok ini DILEWATI total, jadi tabrakan
        AABB kasur tidak mendorong avatar yang sengaja di dalam footprint. */
     var bounds = myRealm === 'living' ? LIVING : (myRealm === 'dapur' ? DAPUR : (myRealm.indexOf('room-') === 0 ? ROOM : (myRealm === 'jalan' ? JALAN : YARD)));
+    if (alamKota(myRealm)) bounds = myRealm === 'kota' ? KOTA_JALAN : KOTA_RUANG;
     var nx = Math.max(bounds.minX, Math.min(bounds.maxX, avatarPos.x + dir.x * move * dt));
     var nz = Math.max(bounds.minZ, Math.min(bounds.maxZ, avatarPos.z + dir.z * move * dt));
-    if (myRealm === 'jalan') {
+    if (alamKota(myRealm)) {
+      const pos = kotaBatasGerak(avatarPos.x,avatarPos.z,nx,nz,bounds,kotaArea.get(kotaScenes[myRealm]).solids);
+      nx=pos.x; nz=pos.z;
+    } else if (myRealm === 'jalan') {
       /* Tahap 3a — tiang listrik + tong sampah di trotoar: AABB padat (pola
          meja/bedeng). Warung, pos ronda, pagar rumah, palang ada di LUAR
          batas JALAN, jadi batas sudah menahan avatar di depannya. */
@@ -13983,6 +15602,12 @@ function animate() {
   var cp = cameraPos(camTarget, camYaw, camPitch, camDist);
   /* Ronde 12d — jepit kamera 12a DICABUT (vonis Ryan 09:07: view nyekik,
      karakter gede); kamera kembali rumus langsung pra-12a. */
+  if (alamKota(myRealm)) {
+    const interior = myRealm !== 'kota';
+    const tepi = interior ? 4.8 : 8.3;
+    cp.x = Math.max(-tepi, Math.min(tepi, cp.x));
+    if (interior) cp.z = Math.max(-3.8, cp.z);
+  }
   camera.position.set(cp.x, cp.y, cp.z);
   if (myRealm === 'yard') gedungCdPerbarui(cp, avatarPos.x, avatarPos.z, avatarLevel); /* Gedung C & D: sembunyi saat kamera di dalam/belakang */
   camera.lookAt(camTarget.x, camTarget.y + 1.5, camTarget.z);
@@ -14045,7 +15670,8 @@ function animate() {
   kerjaTick(dt, Date.now()); /* Kerja & Belanja — shift berjalan (pembeli NPC, mesin kiloan, ronda) + angka panel kerja */
   /* Suasana — siang/malam ikut jam WIB, hujan, pelangi, kunang-kunang, suara alam (semua alam) */
   suasanaTick(dt, Date.now());
-  renderer.render(myRealm === 'living' ? livingScene : (myRealm === 'dapur' ? dapurScene : (myRealm.indexOf('room-') === 0 ? roomScene : (myRealm === 'jalan' ? jalanScene : scene))), camera);
+  if (myRealm === 'kota') { kotaJam += dt; kotaKerumunan(kotaJam); }
+  renderer.render(alamKota(myRealm) ? kotaScenes[myRealm] : myRealm === 'living' ? livingScene : (myRealm === 'dapur' ? dapurScene : (myRealm.indexOf('room-') === 0 ? roomScene : (myRealm === 'jalan' ? jalanScene : scene))), camera);
 }
 animate();
 </script>
