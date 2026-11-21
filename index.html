@@ -7608,13 +7608,16 @@ const KOTA_GEDUNG = [
   [1, -12, 30, 'undak', 'Hotel Kirana', '#eea6cf']
 ];
 const KOTA_NPC = Array.from({ length: 20 }, (_, i) => ({
-  x: [-4.8, -3.5, -2.3, 2.4, 3.6, 4.9][i % 6] + Math.sin(i) * .21,
-  awal: -14 + i % 4, akhir: 18 + i % 7, laju: .63 + i % 7 * .105,
-  fase: i * 5.37, arah: i % 2 ? 1 : -1
+  x: [-4.8, -3.5, -2.3, 2.4, 3.6, 4.9][i % 6] + Math.sin(i) * 0.21,
+  awal: -14 + (i % 4),
+  akhir: 18 + (i % 7),
+  laju: 0.63 + (i % 7) * 0.105,
+  fase: i * 5.37,
+  arah: i % 2 ? 1 : -1
 }));
 function kotaLangkah(p, waktu) {
   const panjang = p.akhir - p.awal;
-  const t = ((p.fase + p.arah * waktu * p.laju) % (2 * panjang) + 2 * panjang) % (2 * panjang);
+  const t = (((p.fase + p.arah * waktu * p.laju) % (2 * panjang)) + 2 * panjang) % (2 * panjang);
   return { z: p.awal + (t < panjang ? t : 2 * panjang - t), arah: (t < panjang ? 1 : -1) * p.arah };
 }
 function kotaBatasGerak(asalX, asalZ, x, z, bounds, solids) {
@@ -7622,28 +7625,35 @@ function kotaBatasGerak(asalX, asalZ, x, z, bounds, solids) {
   x = Math.max(bounds.minX, Math.min(bounds.maxX, x));
   z = Math.max(bounds.minZ, Math.min(bounds.maxZ, z));
   for (const box of solids) {
-    if (asalZ <= box.minZ-.4 || asalZ >= box.maxZ+.4) continue;
-    if (asalX <= box.minX-.4) x = Math.min(x, box.minX-.4);
-    if (asalX >= box.maxX+.4) x = Math.max(x, box.maxX+.4);
+    if (asalZ <= box.minZ - 0.4 || asalZ >= box.maxZ + 0.4) continue;
+    if (asalX <= box.minX - 0.4) x = Math.min(x, box.minX - 0.4);
+    if (asalX >= box.maxX + 0.4) x = Math.max(x, box.maxX + 0.4);
   }
   for (const box of solids) {
-    if (x <= box.minX-.4 || x >= box.maxX+.4) continue;
-    if (asalZ <= box.minZ-.4) z = Math.min(z, box.minZ-.4);
-    if (asalZ >= box.maxZ+.4) z = Math.max(z, box.maxZ+.4);
+    if (x <= box.minX - 0.4 || x >= box.maxX + 0.4) continue;
+    if (asalZ <= box.minZ - 0.4) z = Math.min(z, box.minZ - 0.4);
+    if (asalZ >= box.maxZ + 0.4) z = Math.max(z, box.maxZ + 0.4);
   }
   return { x, z };
 }
-function alamKota(realm) { return realm === 'kota' || /^kota-(lobi|kafe|toko)$/.test(realm); }
-const kotaScenes = Object.fromEntries(['kota', 'kota-lobi', 'kota-kafe', 'kota-toko'].map(key => [key, new THREE.Scene()]));
+function alamKota(realm) {
+  return realm === 'kota' || /^kota-(lobi|kafe|toko)$/.test(realm);
+}
+const kotaScenes = Object.fromEntries(
+  ['kota', 'kota-lobi', 'kota-kafe', 'kota-toko'].map((key) => [key, new THREE.Scene()])
+);
 const kotaArea = new Map();
-let kotaAsal, kotaJam = 0, kotaKerumunan;
+let kotaAsal,
+  kotaJam = 0,
+  kotaKerumunan;
 const kotaBentuk = {
   kotak: new THREE.BoxGeometry(1, 1, 1),
-  bulat: new THREE.SphereGeometry(.5, 10, 8),
-  drum: new THREE.CylinderGeometry(.5, .5, 1, 20),
-  kerucut: new THREE.CylinderGeometry(.25, .5, 1, 12)
+  bulat: new THREE.SphereGeometry(0.5, 10, 8),
+  drum: new THREE.CylinderGeometry(0.5, 0.5, 1, 20),
+  kerucut: new THREE.CylinderGeometry(0.25, 0.5, 1, 12)
 };
 const kotaBahan = new Map();
+const kotaVolumeKetuk = new THREE.MeshBasicMaterial({ visible: false });
 function kotaMat(nama, terang, lukis) {
   if (!kotaBahan.has(nama)) {
     const map = lukis ? teksturLukis(512, 512, lukis) : null;
@@ -7653,416 +7663,641 @@ function kotaMat(nama, terang, lukis) {
   return kotaBahan.get(nama);
 }
 function kotaBatu(c, w, h) {
-  c.fillStyle = '#e9e4de'; c.fillRect(0, 0, w, h);
+  c.fillStyle = '#e9e4de';
+  c.fillRect(0, 0, w, h);
   const rand = acak(77);
   for (let i = 0; i < 6500; i++) {
-    c.fillStyle = i % 3 ? '#d6d1cc' : '#f5f2ef'; c.fillRect(rand()*w, rand()*h, 1+rand()*3, 1);
+    c.fillStyle = i % 3 ? '#d6d1cc' : '#f5f2ef';
+    c.fillRect(rand() * w, rand() * h, 1 + rand() * 3, 1);
   }
   for (let j = 0; j < 8; j++) {
-    c.fillStyle = '#bdb9b3'; c.fillRect(0, j*64, w, 2);
-    for (let i = -1; i < 5; i++) c.fillRect(i*128+(j%2)*64, j*64, 2, 64);
+    c.fillStyle = '#bdb9b3';
+    c.fillRect(0, j * 64, w, 2);
+    for (let i = -1; i < 5; i++) c.fillRect(i * 128 + (j % 2) * 64, j * 64, 2, 64);
   }
 }
 // Semua bagian statis yang memakai geometri dan bahan sama dirakit menjadi satu draw call.
 function kotaBangun(S) {
-  const batch = new Map(), dummy = new THREE.Object3D(), solids = [], taps = [];
-  const batu = kotaMat('travertin', false, kotaBatu), metal = kotaMat('logam', false), led = kotaMat('neon', true);
-  function part(x,y,z,w,h,d,color,mat=metal,shape='kotak',rz=0,ry=0) {
+  const batch = new Map(),
+    dummy = new THREE.Object3D(),
+    solids = [],
+    taps = [];
+  const batu = kotaMat('travertin', false, kotaBatu),
+    metal = kotaMat('logam', false),
+    led = kotaMat('neon', true);
+  function part(x, y, z, w, h, d, color, mat = metal, shape = 'kotak', rz = 0, ry = 0) {
     const key = mat.uuid + shape;
     if (!batch.has(key)) batch.set(key, { mat, geo: kotaBentuk[shape], parts: [] });
-    dummy.position.set(x,y,z); dummy.scale.set(w,h,d); dummy.rotation.set(0,ry,rz); dummy.updateMatrix();
-    batch.get(key).parts.push([dummy.matrix.clone(),new THREE.Color(color)]);
+    dummy.position.set(x, y, z);
+    dummy.scale.set(w, h, d);
+    dummy.rotation.set(0, ry, rz);
+    dummy.updateMatrix();
+    batch.get(key).parts.push([dummy.matrix.clone(), new THREE.Color(color)]);
   }
-  function solid(x,z,w,d) { solids.push({minX:x-w/2,maxX:x+w/2,minZ:z-d/2,maxZ:z+d/2}); }
-  function tap(x,y,z,w,h,d,aksi) {
-    const m = new THREE.Mesh(kotaBentuk.kotak,metal);
-    m.scale.set(w,h,d); m.position.set(x,y,z); m.visible = false;
-    m.userData.kotaAksi = aksi; S.add(m); taps.push(m);
+  function solid(x, z, w, d) {
+    solids.push({ minX: x - w / 2, maxX: x + w / 2, minZ: z - d / 2, maxZ: z + d / 2 });
+  }
+  function tap(x, y, z, w, h, d, aksi) {
+    const m = new THREE.Mesh(kotaBentuk.kotak, kotaVolumeKetuk);
+    m.scale.set(w, h, d);
+    m.position.set(x, y, z);
+    m.userData.kotaAksi = aksi;
+    S.add(m);
+    taps.push(m);
   }
   function selesai() {
-    for (const {mat,geo,parts} of batch.values()) {
-      const mesh = new THREE.InstancedMesh(geo,mat,parts.length);
-      parts.forEach(([matrix,color],i) => { mesh.setMatrixAt(i,matrix); mesh.setColorAt(i,color); });
+    for (const { mat, geo, parts } of batch.values()) {
+      const mesh = new THREE.InstancedMesh(geo, mat, parts.length);
+      parts.forEach(([matrix, color], i) => {
+        mesh.setMatrixAt(i, matrix);
+        mesh.setColorAt(i, color);
+      });
       S.add(mesh);
     }
-    kotaArea.set(S,{ solids,taps });
+    kotaArea.set(S, { solids, taps });
   }
-  return {part,solid,tap,selesai,batu,metal,led};
+  return { part, solid, tap, selesai, batu, metal, led };
 }
 // Kaca opak: bingkai, tirai, langit terpantul dan lampu kantor dilukis pada permukaan yang sama.
 function kotaKaca(i) {
-  return kotaMat('kaca'+i,true,(c,w,h) => {
-    const rand = acak(400+i), grad = c.createLinearGradient(0,0,w,h);
-    grad.addColorStop(0,'#477286'); grad.addColorStop(.47,'#172d45'); grad.addColorStop(1,'#4d384c');
-    c.fillStyle=grad; c.fillRect(0,0,w,h);
-    const cols=5+i%4, rows=8+i%5;
-    for(let r=0;r<rows;r++) for(let k=0;k<cols;k++) {
-      const x=k*w/cols,y=r*h/rows,a=w/cols,b=h/rows;
-      c.fillStyle='#101e30'; c.fillRect(x,y,a,4); c.fillRect(x,y,3,b);
-      if(rand()>.43) {
-        const g=c.createLinearGradient(0,y,0,y+b);
-        g.addColorStop(0,rand()>.5?'#ffe1a6':'#a8d7dd'); g.addColorStop(1,'#615666');
-        c.fillStyle=g;c.fillRect(x+5,y+6,a-9,b-11);
-        c.fillStyle='#494652'; c.fillRect(x+a*.62,y+8,2,b-13);
-        c.fillRect(x+8,y+b*.76,a*.32,4);
+  return kotaMat('kaca' + i, true, (c, w, h) => {
+    const rand = acak(400 + i),
+      grad = c.createLinearGradient(0, 0, w, h);
+    grad.addColorStop(0, '#477286');
+    grad.addColorStop(0.47, '#172d45');
+    grad.addColorStop(1, '#4d384c');
+    c.fillStyle = grad;
+    c.fillRect(0, 0, w, h);
+    const cols = 5 + (i % 4),
+      rows = 8 + (i % 5);
+    for (let r = 0; r < rows; r++)
+      for (let k = 0; k < cols; k++) {
+        const x = (k * w) / cols,
+          y = (r * h) / rows,
+          a = w / cols,
+          b = h / rows;
+        c.fillStyle = '#101e30';
+        c.fillRect(x, y, a, 4);
+        c.fillRect(x, y, 3, b);
+        if (rand() > 0.43) {
+          const g = c.createLinearGradient(0, y, 0, y + b);
+          g.addColorStop(0, rand() > 0.5 ? '#ffe1a6' : '#a8d7dd');
+          g.addColorStop(1, '#615666');
+          c.fillStyle = g;
+          c.fillRect(x + 5, y + 6, a - 9, b - 11);
+          c.fillStyle = '#494652';
+          c.fillRect(x + a * 0.62, y + 8, 2, b - 13);
+          c.fillRect(x + 8, y + b * 0.76, a * 0.32, 4);
+        }
+        c.fillStyle = 'rgba(208,227,225,.25)';
+        c.fillRect(x + 5, y + 7, a - 9, 2);
       }
-      c.fillStyle='rgba(208,227,225,.25)'; c.fillRect(x+5,y+7,a-9,2);
-    }
   });
 }
 // Papan LED dengan garis kontur, tipografi dan kisi piksel.
-function kotaAffiche(nom,accent,mode='marque') {
-  return kotaMat(nom+accent+mode,true,(c,w,h) => {
-    const g=c.createLinearGradient(0,0,w,h);
-    g.addColorStop(0,'#101529');g.addColorStop(.56,'#20354a');g.addColorStop(1,accent);
-    c.fillStyle=g;c.fillRect(0,0,w,h);
-    c.strokeStyle=accent; c.lineWidth=2;
-    for(let n=0;n<28;n++) {
-      c.beginPath();c.moveTo(-10,400+n*5);
-      c.bezierCurveTo(140,440-n*8,240,-80+n*9,530,70+n*7);c.stroke();
+function kotaAffiche(nom, accent, mode = 'marque') {
+  return kotaMat(nom + accent + mode, true, (c, w, h) => {
+    const g = c.createLinearGradient(0, 0, w, h);
+    g.addColorStop(0, '#101529');
+    g.addColorStop(0.56, '#20354a');
+    g.addColorStop(1, accent);
+    c.fillStyle = g;
+    c.fillRect(0, 0, w, h);
+    c.strokeStyle = accent;
+    c.lineWidth = 2;
+    for (let n = 0; n < 28; n++) {
+      c.beginPath();
+      c.moveTo(-10, 400 + n * 5);
+      c.bezierCurveTo(140, 440 - n * 8, 240, -80 + n * 9, 530, 70 + n * 7);
+      c.stroke();
     }
-    c.fillStyle='#fcf2d8'; c.textAlign='center';
-    c.font='18px sans-serif';c.fillText('K O T A    /    L E N T E R A',256,52);
-    c.font='bold 58px Georgia';c.fillText(nom,256,275,470);
-    c.fillRect(209,300,94,2);c.font='21px sans-serif';c.fillText(mode.toUpperCase(),256,351,460);
-    c.fillStyle='rgba(0,0,0,.1)';for(let y=0;y<h;y+=5)c.fillRect(0,y,w,1);
+    c.fillStyle = '#fcf2d8';
+    c.textAlign = 'center';
+    c.font = '18px sans-serif';
+    c.fillText('K O T A    /    L E N T E R A', 256, 52);
+    c.font = 'bold 58px Georgia';
+    c.fillText(nom, 256, 275, 470);
+    c.fillRect(209, 300, 94, 2);
+    c.font = '21px sans-serif';
+    c.fillText(mode.toUpperCase(), 256, 351, 460);
+    c.fillStyle = 'rgba(0,0,0,.1)';
+    for (let y = 0; y < h; y += 5) c.fillRect(0, y, w, 1);
   });
 }
 // Diorama etalase: perspektif ceruk marmer, sorot lampu, pajangan dan pantulan kaca.
 function kotaEtalase(i, aksen) {
-  return kotaMat('etalase'+i,true,(c,w,h)=>{
-    const latar=c.createLinearGradient(0,0,w,h);
-    latar.addColorStop(0,'#342e36'); latar.addColorStop(.53,aksen); latar.addColorStop(1,'#826960');
-    c.fillStyle=latar;c.fillRect(0,0,w,h);
-    function bidang(titik,warna) {
-      c.beginPath();titik.forEach(([x,y],n)=>n?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.fillStyle=warna;c.fill();
+  return kotaMat('etalase' + i, true, (c, w, h) => {
+    const latar = c.createLinearGradient(0, 0, w, h);
+    latar.addColorStop(0, '#342e36');
+    latar.addColorStop(0.53, aksen);
+    latar.addColorStop(1, '#826960');
+    c.fillStyle = latar;
+    c.fillRect(0, 0, w, h);
+    function bidang(titik, warna) {
+      c.beginPath();
+      titik.forEach(([x, y], n) => (n ? c.lineTo(x, y) : c.moveTo(x, y)));
+      c.closePath();
+      c.fillStyle = warna;
+      c.fill();
     }
-    bidang([[0,0],[80,63],[80,387],[0,512]],'#675551');
-    bidang([[512,0],[438,63],[438,387],[512,512]],'#796963');
-    bidang([[0,512],[80,387],[438,387],[512,512]],'#e8ccac');
-    for(let x=91;x<431;x+=17){c.fillStyle='rgba(79,50,42,.18)';c.fillRect(x,65,4,320);}
-    for(const x of [151,354]){
-      const g=c.createRadialGradient(x,165,3,x,165,132);g.addColorStop(0,'rgba(255,227,163,.8)');g.addColorStop(1,'rgba(255,226,166,0)');
-      c.fillStyle=g;c.fillRect(x-135,40,270,260);
-      c.fillStyle='#fff1b8';c.fillRect(x-19,55,38,6);
+    bidang(
+      [
+        [0, 0],
+        [80, 63],
+        [80, 387],
+        [0, 512]
+      ],
+      '#675551'
+    );
+    bidang(
+      [
+        [512, 0],
+        [438, 63],
+        [438, 387],
+        [512, 512]
+      ],
+      '#796963'
+    );
+    bidang(
+      [
+        [0, 512],
+        [80, 387],
+        [438, 387],
+        [512, 512]
+      ],
+      '#e8ccac'
+    );
+    for (let x = 91; x < 431; x += 17) {
+      c.fillStyle = 'rgba(79,50,42,.18)';
+      c.fillRect(x, 65, 4, 320);
     }
-    for(const [j,x] of [172,328].entries()){
-      const y=313+j*16;
-      c.fillStyle='#f0ddc2';c.fillRect(x-48,y,96,89);
-      bidang([[x+48,y],[x+66,y-8],[x+66,389],[x+48,402]],'#ae9789');
-      c.fillStyle=j?'#9b5947':'#396565';
-      c.beginPath();c.moveTo(x-15,y-136);c.bezierCurveTo(x+59,y-104,x+51,y-46,x+7,y-12);
-      c.bezierCurveTo(x-51,y-48,x-61,y-109,x-15,y-136);c.fill();
-      c.strokeStyle='#eed2a3';c.lineWidth=4;c.beginPath();c.moveTo(x-13,y-125);c.quadraticCurveTo(x+28,y-62,x+6,y-18);c.stroke();
-      c.fillStyle='#594d49';c.fillRect(x-24,y-10,48,10);
+    for (const x of [151, 354]) {
+      const g = c.createRadialGradient(x, 165, 3, x, 165, 132);
+      g.addColorStop(0, 'rgba(255,227,163,.8)');
+      g.addColorStop(1, 'rgba(255,226,166,0)');
+      c.fillStyle = g;
+      c.fillRect(x - 135, 40, 270, 260);
+      c.fillStyle = '#fff1b8';
+      c.fillRect(x - 19, 55, 38, 6);
     }
-    bidang([[0,0],[96,0],[512,335],[512,408]],'rgba(209,241,250,.09)');
-    c.fillStyle='#f3d29a';c.fillRect(0,485,w,5);
+    for (const [j, x] of [172, 328].entries()) {
+      const y = 313 + j * 16;
+      c.fillStyle = '#f0ddc2';
+      c.fillRect(x - 48, y, 96, 89);
+      bidang(
+        [
+          [x + 48, y],
+          [x + 66, y - 8],
+          [x + 66, 389],
+          [x + 48, 402]
+        ],
+        '#ae9789'
+      );
+      c.fillStyle = j ? '#9b5947' : '#396565';
+      c.beginPath();
+      c.moveTo(x - 15, y - 136);
+      c.bezierCurveTo(x + 59, y - 104, x + 51, y - 46, x + 7, y - 12);
+      c.bezierCurveTo(x - 51, y - 48, x - 61, y - 109, x - 15, y - 136);
+      c.fill();
+      c.strokeStyle = '#eed2a3';
+      c.lineWidth = 4;
+      c.beginPath();
+      c.moveTo(x - 13, y - 125);
+      c.quadraticCurveTo(x + 28, y - 62, x + 6, y - 18);
+      c.stroke();
+      c.fillStyle = '#594d49';
+      c.fillRect(x - 24, y - 10, 48, 10);
+    }
+    bidang(
+      [
+        [0, 0],
+        [96, 0],
+        [512, 335],
+        [512, 408]
+      ],
+      'rgba(209,241,250,.09)'
+    );
+    c.fillStyle = '#f3d29a';
+    c.fillRect(0, 485, w, 5);
   });
 }
 // Pantulan lembut dilukis langsung pada granit.
 function kotaPaving() {
-  return kotaMat('granit lentera',false,(c,w,h)=>{
-    c.fillStyle='#b0a4a9';c.fillRect(0,0,w,h);
-    const r=acak(802);
-    for(let y=0;y<h;y+=32)for(let x=-64;x<w;x+=64){
-      const v=150+Math.floor(r()*24);
-      c.fillStyle='rgb('+v+','+(v-4)+','+(v+2)+')';
-      c.fillRect(x+(y%64?32:0)+1,y+1,63,31);
+  return kotaMat('granit lentera', false, (c, w, h) => {
+    c.fillStyle = '#b0a4a9';
+    c.fillRect(0, 0, w, h);
+    const r = acak(802);
+    for (let y = 0; y < h; y += 32)
+      for (let x = -64; x < w; x += 64) {
+        const v = 150 + Math.floor(r() * 24);
+        c.fillStyle = 'rgb(' + v + ',' + (v - 4) + ',' + (v + 2) + ')';
+        c.fillRect(x + (y % 64 ? 32 : 0) + 1, y + 1, 63, 31);
+      }
+    for (let y = 24; y < h; y += 125)
+      for (const x of [65, 445]) {
+        const g = c.createRadialGradient(x, y, 1, x, y, 95);
+        g.addColorStop(0, x < 200 ? 'rgba(255,181,123,.71)' : 'rgba(123,209,237,.65)');
+        g.addColorStop(1, 'rgba(182,159,184,0)');
+        c.fillStyle = g;
+        c.fillRect(x - 96, y - 96, 192, 192);
+      }
+    for (let j = 0; j < 3500; j++) {
+      c.fillStyle = j % 2 ? 'rgba(255,242,220,.14)' : 'rgba(68,68,80,.11)';
+      c.fillRect(r() * w, r() * h, 1 + r() * 4, 1);
     }
-    for(let y=24;y<h;y+=125)for(const x of [65,445]){
-      const g=c.createRadialGradient(x,y,1,x,y,95);
-      g.addColorStop(0,x<200?'rgba(255,181,123,.71)':'rgba(123,209,237,.65)');
-      g.addColorStop(1,'rgba(182,159,184,0)');c.fillStyle=g;c.fillRect(x-96,y-96,192,192);
-    }
-    for(let j=0;j<3500;j++){c.fillStyle=j%2?'rgba(255,242,220,.14)':'rgba(68,68,80,.11)';c.fillRect(r()*w,r()*h,1+r()*4,1);}
   });
 }
 
-function kotaMenara(b,g,i) {
-  const [s,z,h,profil,nama,aksen,ruang] = g, x=s*13, muka=s*8.65;
-  const {part,batu,metal,led}=b, kaca=kotaKaca(i);
-  part(x,2,z,8.4,4,10.5,'#d6c5ae',batu);
-  part(x,h/2+3.5,z,7.9,h,9.8,'white',kaca);
-  part(x,h+3.55,z,8.2,.26,10,aksen,led);
+function kotaMenara(b, g, i) {
+  const [s, z, h, profil, nama, aksen, ruang] = g,
+    x = s * 13,
+    muka = s * 8.65;
+  const { part, batu, metal, led } = b,
+    kaca = kotaKaca(i);
+  part(x, 2, z, 8.4, 4, 10.5, '#d6c5ae', batu);
+  part(x, h / 2 + 3.5, z, 7.9, h, 9.8, 'white', kaca);
+  part(x, h + 3.55, z, 8.2, 0.26, 10, aksen, led);
   // Lantai dasar: etalase bercahaya dalam bingkai kuningan dan kanopi berlapis.
-  part(muka,1.75,z,.3,3.3,10.2,'#253246',metal);
-  for (const offset of [-3.85,-2.35,2.35,3.85]) {
-    part(muka-s*.18,1.63,z+offset,.12,2.75,1.34,'white',kotaEtalase(i,aksen));
-    part(muka-s*.26,1.64,z+offset+.69,.12,2.9,.055,'#d4b184');
+  part(muka, 1.75, z, 0.3, 3.3, 10.2, '#253246', metal);
+  for (const offset of [-3.85, -2.35, 2.35, 3.85]) {
+    part(muka - s * 0.18, 1.63, z + offset, 0.12, 2.75, 1.34, 'white', kotaEtalase(i, aksen));
+    part(muka - s * 0.26, 1.64, z + offset + 0.69, 0.12, 2.9, 0.055, '#d4b184');
   }
-  if(i===3 || i===4 || i===7) {
-    const poster=kotaAffiche(['','','','OPAL','NILA','','','KIRANA'][i],aksen,'festival cahaya');
-    part(muka-s*.36,9.4,z,.48,7.1,7.3,'#282437');
-    part(muka-s*.62,9.4,z,.08,6.8,7.05,'white',poster);
+  if (i === 3 || i === 4 || i === 7) {
+    const poster = kotaAffiche(['', '', '', 'OPAL', 'NILA', '', '', 'KIRANA'][i], aksen, 'festival cahaya');
+    part(muka - s * 0.36, 9.4, z, 0.48, 7.1, 7.3, '#282437');
+    part(muka - s * 0.62, 9.4, z, 0.08, 6.8, 7.05, 'white', poster);
   }
-  part(muka-s*.24,1.4,z,.21,2.8,2.65,'#263b48');
-  for(const o of [-1.33,0,1.33]) part(muka-s*.38,1.4,z+o,.075,2.8,.065,'#f0c997');
-  part(muka-s*.37,1.15,z+.22,.09,.55,.06,aksen,led);
-  part(muka-s*.4,3.3,z,1.3,.22,10.55,'#77624e');
-  part(muka-s*1.02,3.26,z,.08,.075,10.4,aksen,led);
-  part(muka-s*.28,4.18,z,.24,1.53,7.9,'white',kotaAffiche(nama,aksen,ruang?'pintu masuk':'boulevard'));
-  if(ruang) b.tap(muka-s*.45,2,z,.65,4.6,4,()=>kotaMasukRuang(g));
-  if(profil==='balkon'||profil==='teras'||profil==='pita') {
-    for(let y=6;y<h+2;y+=profil==='pita'?2.2:4) {
-      const lebar=profil==='teras'?9-(y/h)*4:10;
-      part(muka,y,z,1.2,.26,lebar,'#d6c7ac',batu);
-      part(muka-s*.55,y+.36,z,.08,.45,lebar,profil==='pita'?aksen:'#596b70',profil==='pita'?led:metal);
+  part(muka - s * 0.24, 1.4, z, 0.21, 2.8, 2.65, '#263b48');
+  for (const o of [-1.33, 0, 1.33]) part(muka - s * 0.38, 1.4, z + o, 0.075, 2.8, 0.065, '#f0c997');
+  part(muka - s * 0.37, 1.15, z + 0.22, 0.09, 0.55, 0.06, aksen, led);
+  part(muka - s * 0.4, 3.3, z, 1.3, 0.22, 10.55, '#77624e');
+  part(muka - s * 1.02, 3.26, z, 0.08, 0.075, 10.4, aksen, led);
+  part(
+    muka - s * 0.28,
+    4.18,
+    z,
+    0.24,
+    1.53,
+    7.9,
+    'white',
+    kotaAffiche(nama, aksen, ruang ? 'pintu masuk' : 'boulevard')
+  );
+  if (ruang) b.tap(muka - s * 0.45, 2, z, 0.65, 4.6, 4, () => kotaMasukRuang(g));
+  if (profil === 'balkon' || profil === 'teras' || profil === 'pita') {
+    for (let y = 6; y < h + 2; y += profil === 'pita' ? 2.2 : 4) {
+      const lebar = profil === 'teras' ? 9 - (y / h) * 4 : 10;
+      part(muka, y, z, 1.2, 0.26, lebar, '#d6c7ac', batu);
+      part(
+        muka - s * 0.55,
+        y + 0.36,
+        z,
+        0.08,
+        0.45,
+        lebar,
+        profil === 'pita' ? aksen : '#596b70',
+        profil === 'pita' ? led : metal
+      );
     }
-  } else if(profil==='zigzag') {
-    for(let y=7;y<h;y+=4) for(const o of [-2.35,2.35])
-      part(muka,y,z+o,.16,6.2,.15,aksen,led,0,0);
-    for(let y=6;y<h;y+=4) {
-      for(const sign of [-1,1]) {
-        part(muka,y+1.6,z+sign*2.25,6,.15,.12,aksen,led,sign*.70,Math.PI/2);
+  } else if (profil === 'zigzag') {
+    for (let y = 7; y < h; y += 4)
+      for (const o of [-2.35, 2.35]) part(muka, y, z + o, 0.16, 6.2, 0.15, aksen, led, 0, 0);
+    for (let y = 6; y < h; y += 4) {
+      for (const sign of [-1, 1]) {
+        part(muka, y + 1.6, z + sign * 2.25, 6, 0.15, 0.12, aksen, led, sign * 0.7, Math.PI / 2);
       }
     }
   } else {
-    for(let k=-4;k<=4;k+=profil==='sirip'?1:2) {
-      const top=h+(profil==='mahkota'?4-Math.abs(k):0);
-      part(muka,top/2+2.9,z+k,.6,top,.14,profil==='rusuk'?'#d9c299':'#7993a0');
-      if(k%2===0)part(muka-s*.32,top/2+2.9,z+k,.045,top,.045,aksen,led);
+    for (let k = -4; k <= 4; k += profil === 'sirip' ? 1 : 2) {
+      const top = h + (profil === 'mahkota' ? 4 - Math.abs(k) : 0);
+      part(muka, top / 2 + 2.9, z + k, 0.6, top, 0.14, profil === 'rusuk' ? '#d9c299' : '#7993a0');
+      if (k % 2 === 0) part(muka - s * 0.32, top / 2 + 2.9, z + k, 0.045, top, 0.045, aksen, led);
     }
   }
-  const couronnes=profil==='undak'||profil==='teras'?3:1;
-  for(let j=0;j<couronnes;j++){
-    part(x,h+4.2+j*1.35,z,6.8-j*1.5,1.35,8-j*1.5,'white',kaca);
-    part(x,h+4.86+j*1.35,z,6.95-j*1.5,.09,8.15-j*1.5,aksen,led);
+  const couronnes = profil === 'undak' || profil === 'teras' ? 3 : 1;
+  for (let j = 0; j < couronnes; j++) {
+    part(x, h + 4.2 + j * 1.35, z, 6.8 - j * 1.5, 1.35, 8 - j * 1.5, 'white', kaca);
+    part(x, h + 4.86 + j * 1.35, z, 6.95 - j * 1.5, 0.09, 8.15 - j * 1.5, aksen, led);
   }
 }
 function kotaSkyline() {
-  const b=kotaBangun(scene);
-  for(let i=0;i<19;i++) {
-    const x=-89+i*8.2,z=-62-(i%3)*7,h=14+(i*17)%30,w=4+i%4;
-    b.part(x,h/2,z,w,h,5,'#b8c5ce',kotaKaca(i%2));
-    b.part(x,h+1,z,w*.72,2,3.8,'#bfccd2',kotaKaca(i%2));
-    b.part(x,h+2.04,z,w*.74,.1,3.9,i%2?'#fac992':'#98cfef',b.led);
+  const b = kotaBangun(scene);
+  for (let i = 0; i < 19; i++) {
+    const x = -89 + i * 8.2,
+      z = -62 - (i % 3) * 7,
+      h = 14 + ((i * 17) % 30),
+      w = 4 + (i % 4);
+    b.part(x, h / 2, z, w, h, 5, '#b8c5ce', kotaKaca(i % 2));
+    b.part(x, h + 1, z, w * 0.72, 2, 3.8, '#bfccd2', kotaKaca(i % 2));
+    b.part(x, h + 2.04, z, w * 0.74, 0.1, 3.9, i % 2 ? '#fac992' : '#98cfef', b.led);
   }
   b.selesai();
 }
 const KOTA_AKSI = [
-  ['Spektrum','Festival Cahaya','Biru Samudra','#bf75f2','#56d9ef',0,-15],
-  ['Soda','Leci dingin','Jeruk soda','#ef7382','#efb756',6.7,6],
-  ['Pancuran','Pancuran menari','Riak tenang','#70cfe2','#ae8ee6',0,4],
-  ['Kios Saji','Menu: dimsum','Menu: bakpao','#f4ac61','#f17769',-6.8,-5],
-  ['Studio Foto','Cahaya potret: senja','Cahaya potret: fajar','#e691b2','#f9cd90',-6.7,15]
+  ['Spektrum', 'Festival Cahaya', 'Biru Samudra', '#bf75f2', '#56d9ef', 0, -15],
+  ['Soda', 'Leci dingin', 'Jeruk soda', '#ef7382', '#efb756', 6.7, 6],
+  ['Pancuran', 'Pancuran menari', 'Riak tenang', '#70cfe2', '#ae8ee6', 0, 4],
+  ['Kios Saji', 'Menu: dimsum', 'Menu: bakpao', '#f4ac61', '#f17769', -6.8, -5],
+  ['Studio Foto', 'Cahaya potret: senja', 'Cahaya potret: fajar', '#e691b2', '#f9cd90', -6.7, 15]
 ];
-function kotaInstalasi(b,def,i) {
-  const [nama,a,c,aksen,alternatif,x,z]=def;
-  const {part,batu,led}=b;
-  const w=[6.4,1.4,2.35,2.3,2.5][i], h=[4.5,2.1,1.4,2.6,2.8][i];
-  part(x,.14,z,w+.32,.28,i===2?w+.3:1.25,'#b1ada8',batu,i===2?'drum':'kotak');
+function kotaInstalasi(b, def, i) {
+  const [nama, a, c, aksen, alternatif, x, z] = def;
+  const { part, batu, led } = b;
+  const w = [6.4, 1.4, 2.35, 2.3, 2.5][i],
+    h = [4.5, 2.1, 1.4, 2.6, 2.8][i];
+  part(x, 0.14, z, w + 0.32, 0.28, i === 2 ? w + 0.3 : 1.25, '#b1ada8', batu, i === 2 ? 'drum' : 'kotak');
   let muka;
-  if(i===2) {
-    part(x,.44,z,w,.45,w,'#8d918c',batu,'drum');
-    part(x,.68,z,w*.88,.04,w*.88,aksen,led,'drum');
-    for(let n=0;n<9;n++) {
-      const t=n*Math.PI*2/9;
-      part(x+Math.cos(t)*.68,.94,z+Math.sin(t)*.68,.07,.54,.07,'#c1f3fc',led,'kerucut');
+  if (i === 2) {
+    part(x, 0.44, z, w, 0.45, w, '#8d918c', batu, 'drum');
+    part(x, 0.68, z, w * 0.88, 0.04, w * 0.88, aksen, led, 'drum');
+    for (let n = 0; n < 9; n++) {
+      const t = (n * Math.PI * 2) / 9;
+      part(x + Math.cos(t) * 0.68, 0.94, z + Math.sin(t) * 0.68, 0.07, 0.54, 0.07, '#c1f3fc', led, 'kerucut');
     }
-    muka=new THREE.Mesh(kotaBentuk.bulat,new THREE.MeshBasicMaterial({color:aksen}));
-    muka.scale.set(.44,1.3,.44);muka.position.set(x,1.28,z);
+    muka = new THREE.Mesh(kotaBentuk.bulat, new THREE.MeshBasicMaterial({ color: aksen }));
+    muka.scale.set(0.44, 1.3, 0.44);
+    muka.position.set(x, 1.28, z);
   } else {
-    part(x,h/2+.25,z,w,h,.74,'#343a46');
-    for(const s of [-1,1])part(x+s*(w/2-.035),h/2+.25,z+.39,.06,h,.05,aksen,led);
-    part(x,h+.3,z,w+.16,.18,1,'#c6a982');
-    muka=new THREE.Mesh(kotaBentuk.kotak,kotaAffiche(nama,aksen,a));
-    muka.position.set(x,h*.59+.25,z+.39);muka.scale.set(w*.90,h*.72,.06);
-    if(i===1) { part(x,.52,z+.43,.78,.23,.12,'#111e2c');part(x+.48,1.08,z+.44,.12,.2,.1,'#b1fbec',led); }
-    if(i===3) { part(x,1,z+.63,w+.24,.1,.68,'#e0c8aa',batu);for(const dx of [-.6,0,.6])part(x+dx,1.14,z+.68,.34,.18,.34,'#eecf9b',batu,'drum'); }
-    if(i===4) for(const dx of [-1,1]) for(let j=0;j<7;j++)part(x+dx,.55+j*.32,z+.45,.13,.13,.13,'#fff2c9',led,'bulat');
+    part(x, h / 2 + 0.25, z, w, h, 0.74, '#343a46');
+    for (const s of [-1, 1]) part(x + s * (w / 2 - 0.035), h / 2 + 0.25, z + 0.39, 0.06, h, 0.05, aksen, led);
+    part(x, h + 0.3, z, w + 0.16, 0.18, 1, '#c6a982');
+    muka = new THREE.Mesh(kotaBentuk.kotak, kotaAffiche(nama, aksen, a));
+    muka.position.set(x, h * 0.59 + 0.25, z + 0.39);
+    muka.scale.set(w * 0.9, h * 0.72, 0.06);
+    if (i === 1) {
+      part(x, 0.52, z + 0.43, 0.78, 0.23, 0.12, '#111e2c');
+      part(x + 0.48, 1.08, z + 0.44, 0.12, 0.2, 0.1, '#b1fbec', led);
+    }
+    if (i === 3) {
+      part(x, 1, z + 0.63, w + 0.24, 0.1, 0.68, '#e0c8aa', batu);
+      for (const dx of [-0.6, 0, 0.6]) part(x + dx, 1.14, z + 0.68, 0.34, 0.18, 0.34, '#eecf9b', batu, 'drum');
+    }
+    if (i === 4)
+      for (const dx of [-1, 1])
+        for (let j = 0; j < 7; j++) part(x + dx, 0.55 + j * 0.32, z + 0.45, 0.13, 0.13, 0.13, '#fff2c9', led, 'bulat');
   }
   kotaScenes.kota.add(muka);
-  let aktif=false;
-  b.tap(x,h/2+.25,z,w+.25,h+.55,i===2?w:1.4,()=>{
-    aktif=!aktif;
-    if(i===2) { muka.scale.y=aktif?2.15:1.3;muka.material.color.set(aktif?alternatif:aksen); }
-    else muka.material=kotaAffiche(nama,aktif?alternatif:aksen,aktif?c:a);
-    toastKosan(nama+' — '+(aktif?c:a));bunyi('toast');
+  let aktif = false;
+  b.tap(x, h / 2 + 0.25, z, w + 0.25, h + 0.55, i === 2 ? w : 1.4, () => {
+    aktif = !aktif;
+    if (i === 2) {
+      muka.scale.y = aktif ? 2.15 : 1.3;
+      muka.material.color.set(aktif ? alternatif : aksen);
+    } else muka.material = kotaAffiche(nama, aktif ? alternatif : aksen, aktif ? c : a);
+    toastKosan(nama + ' — ' + (aktif ? c : a));
+    bunyi('toast');
   });
-  b.solid(x,z,w+.32,i===2?w+.3:1.55);
+  b.solid(x, z, w + 0.32, i === 2 ? w + 0.3 : 1.55);
 }
 function kotaBangunJalan() {
-  const S=kotaScenes.kota,b=kotaBangun(S),{part,batu,led}=b;
-  for(let z=-19;z<30;z+=6)part(0,-.16,z+3,18,.28,6,'white',kotaPaving());
+  const S = kotaScenes.kota,
+    b = kotaBangun(S),
+    { part, batu, led } = b;
+  for (let z = -19; z < 30; z += 6) part(0, -0.16, z + 3, 18, 0.28, 6, 'white', kotaPaving());
   // Jalan berlanjut secara visual ke distrik di belakang monumen.
-  part(0,-.19,-33,57,.28,28,'#9d969b',batu);
-  for(let i=0;i<13;i++) {
-    const x=(i-6)*5.4,z=-39-i%3*4,h=8+i*13%21;
-    part(x,h/2,z,4.4,h,4.7,'#c4c4d1',kotaKaca(i%3));
-    part(x,h+.65,z,3.35,1.3,3.75,'#bbbfca',kotaKaca(i%3));
-    part(x,h+1.32,z,3.45,.06,3.85,i%2?'#f1c38b':'#8fc1cf',led);
+  part(0, -0.19, -33, 57, 0.28, 28, '#9d969b', batu);
+  for (let i = 0; i < 13; i++) {
+    const x = (i - 6) * 5.4,
+      z = -39 - (i % 3) * 4,
+      h = 8 + ((i * 13) % 21);
+    part(x, h / 2, z, 4.4, h, 4.7, '#c4c4d1', kotaKaca(i % 3));
+    part(x, h + 0.65, z, 3.35, 1.3, 3.75, '#bbbfca', kotaKaca(i % 3));
+    part(x, h + 1.32, z, 3.45, 0.06, 3.85, i % 2 ? '#f1c38b' : '#8fc1cf', led);
   }
-  for(const s of [-1,1]) {
-    part(s*6.9,-.06,5,3.8,.12,49,'#e0cfc3',batu);
-    part(s*5.1,.022,5,.08,.035,49,'#ae9167');
-    for(const z of [-11,0,11,22]) {
-      const x=s*6.5;
-      part(x,.16,z,.55,.32,.55,'#57535b',batu,'drum');
-      part(x,2.35,z,.11,4.5,.11,'#684e45',b.metal,'drum');
-      part(x-s*.38,4.47,z,.86,.11,.13,'#aa8c62');
-      part(x-s*.73,4.18,z,.42,.52,.42,'#ffe1ac',led,'kerucut');
-      part(x-s*.73,4.46,z,.50,.09,.5,'#6f594a',b.metal,'drum');
-      b.solid(x,z,.55,.55);
-      part(x,.4,z+1.38,.95,.8,.95,'#ae9e92',batu,'kerucut');
-      for(let n=0;n<5;n++)part(x+Math.cos(n*2.4)*.22,1.04+n%2*.23,z+1.38+Math.sin(n*2.4)*.22,.6,.7,.58,n%2?'#417467':'#72996b',b.metal,'bulat');
-      b.solid(x,z+1.38,1,1);
-      if (KOTA_AKSI.some(a=>Math.abs(a[5]-x)<2 && Math.abs(a[6]-z-3.15)<2)) continue;
-      for(let j=0;j<4;j++)part(x-.3+j*.17,.53,z+3.15,.14,.10,1.65,'#997152',batu);
-      for(const dz of [-.54,.54])part(x,.26,z+3.15+dz,.68,.46,.12,'#484c51');
-      b.solid(x,z+3.15,.72,1.7);
+  for (const s of [-1, 1]) {
+    part(s * 6.9, -0.06, 5, 3.8, 0.12, 49, '#e0cfc3', batu);
+    part(s * 5.1, 0.022, 5, 0.08, 0.035, 49, '#ae9167');
+    for (const z of [-11, 0, 11, 22]) {
+      const x = s * 6.5;
+      part(x, 0.16, z, 0.55, 0.32, 0.55, '#57535b', batu, 'drum');
+      part(x, 2.35, z, 0.11, 4.5, 0.11, '#684e45', b.metal, 'drum');
+      part(x - s * 0.38, 4.47, z, 0.86, 0.11, 0.13, '#aa8c62');
+      part(x - s * 0.73, 4.18, z, 0.42, 0.52, 0.42, '#ffe1ac', led, 'kerucut');
+      part(x - s * 0.73, 4.46, z, 0.5, 0.09, 0.5, '#6f594a', b.metal, 'drum');
+      b.solid(x, z, 0.55, 0.55);
+      part(x, 0.4, z + 1.38, 0.95, 0.8, 0.95, '#ae9e92', batu, 'kerucut');
+      for (let n = 0; n < 5; n++)
+        part(
+          x + Math.cos(n * 2.4) * 0.22,
+          1.04 + (n % 2) * 0.23,
+          z + 1.38 + Math.sin(n * 2.4) * 0.22,
+          0.6,
+          0.7,
+          0.58,
+          n % 2 ? '#417467' : '#72996b',
+          b.metal,
+          'bulat'
+        );
+      b.solid(x, z + 1.38, 1, 1);
+      if (KOTA_AKSI.some((a) => Math.abs(a[5] - x) < 2 && Math.abs(a[6] - z - 3.15) < 2)) continue;
+      for (let j = 0; j < 4; j++) part(x - 0.3 + j * 0.17, 0.53, z + 3.15, 0.14, 0.1, 1.65, '#997152', batu);
+      for (const dz of [-0.54, 0.54]) part(x, 0.26, z + 3.15 + dz, 0.68, 0.46, 0.12, '#484c51');
+      b.solid(x, z + 3.15, 0.72, 1.7);
     }
   }
-  for(let n=-5;n<=5;n++)part(n*.85,.003,12,.43,.022,2.25,'#f4e8d3',batu);
-  part(-6.5,3.55,22,2.3,.6,.12,'white',kotaAffiche('Jl. Lentera','#94d8cd','promenade'));
-  KOTA_GEDUNG.forEach((g,i)=>kotaMenara(b,g,i));
-  KOTA_AKSI.forEach((a,i)=>kotaInstalasi(b,a,i));
+  for (let n = -5; n <= 5; n++) part(n * 0.85, 0.003, 12, 0.43, 0.022, 2.25, '#f4e8d3', batu);
+  part(-6.5, 3.55, 22, 2.3, 0.6, 0.12, 'white', kotaAffiche('Jl. Lentera', '#94d8cd', 'promenade'));
+  KOTA_GEDUNG.forEach((g, i) => kotaMenara(b, g, i));
+  KOTA_AKSI.forEach((a, i) => kotaInstalasi(b, a, i));
   // Menara jam di ujung sumbu boulevard; gelang kuningan dan dial empat sisi.
-  part(0,.55,-21,5,1.1,5,'#ada6a3',batu,'drum');
-  part(0,4.9,-21,2.1,8.4,2.1,'#d8c8a8',batu,'kerucut');
-  part(0,10,-21,2.8,2.8,2.8,'#aa8860');
-  const jam=kotaMat('dial',true,(c,w,h)=>{
-    c.fillStyle='#242c3a';c.fillRect(0,0,w,h);c.translate(256,256);
-    c.fillStyle='#ffdf9f';c.beginPath();c.arc(0,0,228,0,Math.PI*2);c.fill();
-    for(let i=0;i<12;i++){c.rotate(Math.PI/6);c.fillStyle='#534d4c';c.fillRect(-5,-203,10,27);}
-    c.strokeStyle='#303847';c.lineWidth=14;c.beginPath();c.moveTo(-90,-58);c.lineTo(0,0);c.lineTo(125,-102);c.stroke();
+  part(0, 0.55, -21, 5, 1.1, 5, '#ada6a3', batu, 'drum');
+  part(0, 4.9, -21, 2.1, 8.4, 2.1, '#d8c8a8', batu, 'kerucut');
+  part(0, 10, -21, 2.8, 2.8, 2.8, '#aa8860');
+  const jam = kotaMat('dial', true, (c, w, h) => {
+    c.fillStyle = '#242c3a';
+    c.fillRect(0, 0, w, h);
+    c.translate(256, 256);
+    c.fillStyle = '#ffdf9f';
+    c.beginPath();
+    c.arc(0, 0, 228, 0, Math.PI * 2);
+    c.fill();
+    for (let i = 0; i < 12; i++) {
+      c.rotate(Math.PI / 6);
+      c.fillStyle = '#534d4c';
+      c.fillRect(-5, -203, 10, 27);
+    }
+    c.strokeStyle = '#303847';
+    c.lineWidth = 14;
+    c.beginPath();
+    c.moveTo(-90, -58);
+    c.lineTo(0, 0);
+    c.lineTo(125, -102);
+    c.stroke();
   });
-  part(0,10,-21,2.83,2.62,2.83,'white',jam);
-  part(0,11.6,-21,3.2,.32,3.2,'#f8ce88',led);
-  part(0,12.55,-21,2,1.7,2,'#788886',b.metal,'kerucut');
-  part(0,14.1,-21,.12,1.6,.12,'#ffe1aa',led);
-  b.selesai(); kotaKerumunan=kotaBuatKerumunan(S);
+  part(0, 10, -21, 2.83, 2.62, 2.83, 'white', jam);
+  part(0, 11.6, -21, 3.2, 0.32, 3.2, '#f8ce88', led);
+  part(0, 12.55, -21, 2, 1.7, 2, '#788886', b.metal, 'kerucut');
+  part(0, 14.1, -21, 0.12, 1.6, 0.12, '#ffe1aa', led);
+  b.selesai();
+  kotaKerumunan = kotaBuatKerumunan(S);
 }
 function kotaBuatKerumunan(S) {
-  const kain=kotaMat('kain kota',false,lukisKain), dummy=new THREE.Object3D();
-  const pakaian=['#ad515c','#e1b879','#49969b','#6c699e','#ddd1bc','#4e647d','#cd947b'];
-  const kulit=['#bd8867','#d39e7c','#97684d','#edbf99'];
-  const kaki='#333749', sepatu='#57494a';
+  const kain = kotaMat('kain kota', false, lukisKain),
+    dummy = new THREE.Object3D();
+  const pakaian = ['#ad515c', '#e1b879', '#49969b', '#6c699e', '#ddd1bc', '#4e647d', '#cd947b'];
+  const kulit = ['#bd8867', '#d39e7c', '#97684d', '#edbf99'];
+  const kaki = '#333749',
+    sepatu = '#57494a';
   // Satu batch untuk kepala, rambut, jaket, tas selempang dan anggota badan seluruh pejalan kaki.
-  const orang=new THREE.InstancedMesh(kotaBentuk.bulat,kain,KOTA_NPC.length*18);
-  orang.frustumCulled=false;orang.instanceMatrix.setUsage(THREE.DynamicDrawUsage);S.add(orang);
-  function gambar(t,warna) {
-    let idx=0;
-    KOTA_NPC.forEach((p,i)=>{
-      const pos=kotaLangkah(p,t), langkah=Math.sin(t*p.laju*7+i);
-      const x=p.x,z=pos.z,f=pos.arah,tinggi=.93+i%4*.043;
-      const badan=pakaian[i%pakaian.length],wajah=kulit[i%4];
-      function sendi(dx,y,dz,w,h,d,c,putar=0) {
-        dummy.position.set(x+dx*f,y*tinggi,z+dz*f);dummy.scale.set(w,h*tinggi,d);
-        dummy.rotation.set(putar*f,0,0);dummy.updateMatrix();orang.setMatrixAt(idx,dummy.matrix);
-        if(warna)orang.setColorAt(idx,new THREE.Color(c));idx++;
+  const orang = new THREE.InstancedMesh(kotaBentuk.bulat, kain, KOTA_NPC.length * 18);
+  orang.frustumCulled = false;
+  orang.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  S.add(orang);
+  function gambar(t, warna) {
+    let idx = 0;
+    KOTA_NPC.forEach((p, i) => {
+      const pos = kotaLangkah(p, t),
+        langkah = Math.sin(t * p.laju * 7 + i);
+      const x = p.x,
+        z = pos.z,
+        f = pos.arah,
+        tinggi = 0.93 + (i % 4) * 0.043;
+      const badan = pakaian[i % pakaian.length],
+        wajah = kulit[i % 4];
+      function sendi(dx, y, dz, w, h, d, c, putar = 0) {
+        dummy.position.set(x + dx * f, y * tinggi, z + dz * f);
+        dummy.scale.set(w, h * tinggi, d);
+        dummy.rotation.set(putar * f, 0, 0);
+        dummy.updateMatrix();
+        orang.setMatrixAt(idx, dummy.matrix);
+        if (warna) orang.setColorAt(idx, new THREE.Color(c));
+        idx++;
       }
-      sendi(0,1.45,0,.30,.36,.28,wajah);
-      for(const s of [-1,1])sendi(s*.066,1.47,.128,.033,.041,.027,'#3a3032');
-      sendi(.002,1.412,.145,.06,.025,.02,'#995c53');
-      sendi(.012,1.44,.14,.052,.055,.058,wajah);
-      sendi(0,1.58,-.025,.32,.20,.31,i%3?'#413339':'#79523d');
-      sendi(0,1.05,0,.46,.60,.29,badan);
-      sendi(0,.8,0,.4,.23,.27,kaki);
-      sendi(.19,.85,.08,.16,.23,.14,'#bd8c5e');
-      sendi(0,1.22,.13,.34,.06,.045,'#e1d5c7');
-      for(const s of [-1,1]){
-        const v=langkah*s;
-        sendi(s*.245,1.03,-v*.08,.135,.4,.145,badan,-v*.35);
-        sendi(s*.255,.82,-v*.15,.115,.17,.12,wajah);
-        sendi(s*.116,.46,v*.095,.165,.67,.185,kaki,v*.39);
-        sendi(s*.116,.095,v*.21+.05,.17,.15,.29,sepatu);
+      sendi(0, 1.45, 0, 0.3, 0.36, 0.28, wajah);
+      for (const s of [-1, 1]) sendi(s * 0.066, 1.47, 0.128, 0.033, 0.041, 0.027, '#3a3032');
+      sendi(0.002, 1.412, 0.145, 0.06, 0.025, 0.02, '#995c53');
+      sendi(0.012, 1.44, 0.14, 0.052, 0.055, 0.058, wajah);
+      sendi(0, 1.58, -0.025, 0.32, 0.2, 0.31, i % 3 ? '#413339' : '#79523d');
+      sendi(0, 1.05, 0, 0.46, 0.6, 0.29, badan);
+      sendi(0, 0.8, 0, 0.4, 0.23, 0.27, kaki);
+      sendi(0.19, 0.85, 0.08, 0.16, 0.23, 0.14, '#bd8c5e');
+      sendi(0, 1.22, 0.13, 0.34, 0.06, 0.045, '#e1d5c7');
+      for (const s of [-1, 1]) {
+        const v = langkah * s;
+        sendi(s * 0.245, 1.03, -v * 0.08, 0.135, 0.4, 0.145, badan, -v * 0.35);
+        sendi(s * 0.255, 0.82, -v * 0.15, 0.115, 0.17, 0.12, wajah);
+        sendi(s * 0.116, 0.46, v * 0.095, 0.165, 0.67, 0.185, kaki, v * 0.39);
+        sendi(s * 0.116, 0.095, v * 0.21 + 0.05, 0.17, 0.15, 0.29, sepatu);
       }
     });
-    orang.instanceMatrix.needsUpdate=true;
+    orang.instanceMatrix.needsUpdate = true;
   }
-  gambar(0,true);return gambar;
+  gambar(0, true);
+  return gambar;
 }
 function kotaBangunRuang(g) {
-  const [, , , ,nama,aksen,id]=g,S=kotaScenes['kota-'+id],b=kotaBangun(S),{part,batu,led}=b;
-  S.background=new THREE.Color('#302f40');
-  S.add(new THREE.HemisphereLight(0xffeacf,0xa7999c,1.9));
-  part(0,-.1,0,10,.2,8,'#ded0bb',batu);
-  part(0,1.95,-4.13,10,3.9,.22,'#64545b',batu);
-  for(const s of [-1,1]){
-    part(s*5,1.8,0,.22,3.6,8,'#a1958c',batu);
-    for(let j=-3;j<=3;j+=1.5) {
-      part(s*4.86,1.8,j,.08,3.4,.075,'#c39e71');
-      part(s*4.77,2.38,j,.14,.65,.2,'#ffe2b2',led);
+  const [, , , , nama, aksen, id] = g,
+    S = kotaScenes['kota-' + id],
+    b = kotaBangun(S),
+    { part, batu, led } = b;
+  S.background = new THREE.Color('#302f40');
+  S.add(new THREE.HemisphereLight(0xffeacf, 0xa7999c, 1.9));
+  part(0, -0.1, 0, 10, 0.2, 8, '#ded0bb', batu);
+  part(0, 1.95, -4.13, 10, 3.9, 0.22, '#64545b', batu);
+  for (const s of [-1, 1]) {
+    part(s * 5, 1.8, 0, 0.22, 3.6, 8, '#a1958c', batu);
+    for (let j = -3; j <= 3; j += 1.5) {
+      part(s * 4.86, 1.8, j, 0.08, 3.4, 0.075, '#c39e71');
+      part(s * 4.77, 2.38, j, 0.14, 0.65, 0.2, '#ffe2b2', led);
     }
   }
-  part(0,2.65,-3.97,5,1.7,.1,'white',kotaAffiche(nama,aksen,id));
-  part(0,1,-2.7,3.9,1.8,1.1,'#8f705e',batu);
-  part(0,1.94,-2.7,4.13,.12,1.26,'#f1dac1',batu);
-  part(0,1.54,-2.12,3.7,.06,.05,aksen,led);
-  b.solid(0,-2.7,4.13,1.26);
-  for(const s of [-1,1]) {
-    const x=s*2.85;
-    if(id==='kafe'){
-      part(x,.82,.4,1,.12,1,'#b28c73',batu,'drum');part(x,.39,.4,.15,.77,.15,'#927758',b.metal,'drum');
-      for(const dz of [-.84,.84]) {
-        part(x,.47,.4+dz,.58,.17,.58,'#98766a',batu,'drum');
-        part(x,.24,.4+dz,.29,.45,.29,'#61626b',b.metal,'drum');
+  part(0, 2.65, -3.97, 5, 1.7, 0.1, 'white', kotaAffiche(nama, aksen, id));
+  part(0, 1, -2.7, 3.9, 1.8, 1.1, '#8f705e', batu);
+  part(0, 1.94, -2.7, 4.13, 0.12, 1.26, '#f1dac1', batu);
+  part(0, 1.54, -2.12, 3.7, 0.06, 0.05, aksen, led);
+  b.solid(0, -2.7, 4.13, 1.26);
+  for (const s of [-1, 1]) {
+    const x = s * 2.85;
+    if (id === 'kafe') {
+      part(x, 0.82, 0.4, 1, 0.12, 1, '#b28c73', batu, 'drum');
+      part(x, 0.39, 0.4, 0.15, 0.77, 0.15, '#927758', b.metal, 'drum');
+      for (const dz of [-0.84, 0.84]) {
+        part(x, 0.47, 0.4 + dz, 0.58, 0.17, 0.58, '#98766a', batu, 'drum');
+        part(x, 0.24, 0.4 + dz, 0.29, 0.45, 0.29, '#61626b', b.metal, 'drum');
       }
-      b.solid(x,.4,1,2.3);
-      part(x,1,.4,.19,.24,.19,'#faf0df',batu,'drum');
-    } else if(id==='toko'){
-      part(x,.59,.4,1.48,1.18,1,'#c9bba7',batu);
-      part(x,1.26,.4,1.58,.12,1.1,'#c7a56b');
-      part(x,1.73,.4,.65,.84,.65,aksen,b.metal,'kerucut');
-      part(x,2.17,.4,.32,.12,.32,'#e9d6b5',led,'drum');
-      b.solid(x,.4,1.58,1.1);
+      b.solid(x, 0.4, 1, 2.3);
+      part(x, 1, 0.4, 0.19, 0.24, 0.19, '#faf0df', batu, 'drum');
+    } else if (id === 'toko') {
+      part(x, 0.59, 0.4, 1.48, 1.18, 1, '#c9bba7', batu);
+      part(x, 1.26, 0.4, 1.58, 0.12, 1.1, '#c7a56b');
+      part(x, 1.73, 0.4, 0.65, 0.84, 0.65, aksen, b.metal, 'kerucut');
+      part(x, 2.17, 0.4, 0.32, 0.12, 0.32, '#e9d6b5', led, 'drum');
+      b.solid(x, 0.4, 1.58, 1.1);
     } else {
-      part(x,.46,.4,1.75,.6,.9,'#b68474',batu);
-      part(x,.9,-.02,1.8,.65,.23,'#a47267',batu);
-      for(const dx of [-.83,.83])part(x+dx,.72,.4,.18,.31,.88,'#ae8b70',batu);
-      b.solid(x,.4,1.9,.95);
+      part(x, 0.46, 0.4, 1.75, 0.6, 0.9, '#b68474', batu);
+      part(x, 0.9, -0.02, 1.8, 0.65, 0.23, '#a47267', batu);
+      for (const dx of [-0.83, 0.83]) part(x + dx, 0.72, 0.4, 0.18, 0.31, 0.88, '#ae8b70', batu);
+      b.solid(x, 0.4, 1.9, 0.95);
     }
-    part(s*2,3.6,-2.65,.03,.8,.03,'#a68a6b');
-    part(s*2,3.08,-2.65,.65,.34,.65,'#ffe4b1',led,'kerucut');
+    part(s * 2, 3.6, -2.65, 0.03, 0.8, 0.03, '#a68a6b');
+    part(s * 2, 3.08, -2.65, 0.65, 0.34, 0.65, '#ffe4b1', led, 'kerucut');
   }
   // Sisi selatan terbuka untuk kamera. Penanda pintu juga bisa diketuk dari dalam.
-  part(-2.5,1.35,3.82,1.45,2.7,.18,'white',kotaAffiche('Keluar',aksen,'jalan lentera'));
-  b.tap(-2.5,1.35,3.82,1.65,2.8,.4,kotaKeluarRuang);
+  part(-2.5, 1.35, 3.82, 1.45, 2.7, 0.18, 'white', kotaAffiche('Keluar', aksen, 'jalan lentera'));
+  b.tap(-2.5, 1.35, 3.82, 1.65, 2.8, 0.4, kotaKeluarRuang);
   b.selesai();
 }
-function kotaPindah(realm,x,z,yaw,jarak) {
-  myRealm=realm;avatarLevel=0;
-  (alamKota(realm)?kotaScenes[realm]:scene).add(avatar);
-  avatarPos.x=x;avatarPos.z=z;avatar.position.set(x,0,z);avatar.rotation.y=yaw+Math.PI;
-  camTarget.set(x,0,z);camYaw=yaw;camPitch=.10;camDist=jarak;
-  flyTarget=null;flyKeep=false;closeCard();
-  document.getElementById('exitBtn').style.display=realm==='yard'?'none':'inline-block';
+function kotaPindah(realm, x, z, yaw, jarak) {
+  myRealm = realm;
+  avatarLevel = 0;
+  (alamKota(realm) ? kotaScenes[realm] : scene).add(avatar);
+  avatarPos.x = x;
+  avatarPos.z = z;
+  avatar.position.set(x, 0, z);
+  avatar.rotation.y = yaw + Math.PI;
+  camTarget.set(x, 0, z);
+  camYaw = yaw;
+  camPitch = 0.1;
+  camDist = jarak;
+  flyTarget = null;
+  flyKeep = false;
+  closeCard();
+  document.getElementById('exitBtn').style.display = realm === 'yard' ? 'none' : 'inline-block';
   mpSaatPindahAlam();
 }
 function enterKota() {
-  if(myRealm==='kota')return;
-  if(alamKota(myRealm)){kotaKeluarRuang();return;}
-  if(KERJA){toastKosan('Selesaikan shift sebelum pergi ke Kota.');return;}
-  if(roomPose)bangunDariKasur(true);
-  if(myRealm==='jalan')exitJalan();
-  else if(myRealm==='living')exitLiving();
-  else if(myRealm==='dapur')exitDapur();
-  else if(myRealm.startsWith('room-'))exitRoom();
-  kotaAsal={x:avatarPos.x,z:avatarPos.z,yaw:camYaw,jarak:camDist,pitch:camPitch,rot:avatar.rotation.y};
-  if(!kotaArea.has(kotaScenes.kota))kotaBangunJalan();
-  kotaPindah('kota',.85,22.8,.11,7.3);toastKosan('Jalan Lentera — ketuk etalase dan pintu berlampu.');
+  if (myRealm === 'kota') return;
+  if (alamKota(myRealm)) {
+    kotaKeluarRuang();
+    return;
+  }
+  if (KERJA) {
+    toastKosan('Selesaikan shift sebelum pergi ke Kota.');
+    return;
+  }
+  if (roomPose) bangunDariKasur(true);
+  if (myRealm === 'jalan') exitJalan();
+  else if (myRealm === 'living') exitLiving();
+  else if (myRealm === 'dapur') exitDapur();
+  else if (myRealm.startsWith('room-')) exitRoom();
+  kotaAsal = { x: avatarPos.x, z: avatarPos.z, yaw: camYaw, jarak: camDist, pitch: camPitch, rot: avatar.rotation.y };
+  if (!kotaArea.has(kotaScenes.kota)) kotaBangunJalan();
+  kotaPindah('kota', 0.85, 22.8, 0.11, 7.3);
+  toastKosan('Jalan Lentera — ketuk etalase dan pintu berlampu.');
 }
 function kotaMasukRuang(g) {
-  const realm='kota-'+g[6];
-  if(!kotaArea.has(kotaScenes[realm]))kotaBangunRuang(g);
-  kotaPindah(realm,0,2.3,0,3.6);toastKosan(g[4]);
+  const realm = 'kota-' + g[6];
+  if (!kotaArea.has(kotaScenes[realm])) kotaBangunRuang(g);
+  kotaPindah(realm, 0, 2.3, 0, 3.6);
+  toastKosan(g[4]);
 }
 function kotaKeluarRuang() {
-  const g=KOTA_GEDUNG.find(g=>'kota-'+g[6]===myRealm);
-  if(g)kotaPindah('kota',g[0]*7.65,g[1],-g[0]*Math.PI/2,5);
+  const g = KOTA_GEDUNG.find((g) => 'kota-' + g[6] === myRealm);
+  if (g) kotaPindah('kota', g[0] * 7.65, g[1], (-g[0] * Math.PI) / 2, 5);
 }
 function exitKota() {
-  kotaPindah('yard',kotaAsal.x,kotaAsal.z,kotaAsal.yaw,kotaAsal.jarak);
-  camPitch=kotaAsal.pitch;avatar.rotation.y=kotaAsal.rot;
+  kotaPindah('yard', kotaAsal.x, kotaAsal.z, kotaAsal.yaw, kotaAsal.jarak);
+  camPitch = kotaAsal.pitch;
+  avatar.rotation.y = kotaAsal.rot;
 }
-kotaScenes.kota.background=new THREE.Color(0x8ec9ee);
-kotaScenes.kota.fog=new THREE.Fog(0x8ec9ee,35,108);
-kotaScenes.kota.add(new THREE.HemisphereLight(0xffecdf,0xbfa5a1,1.35));
-const kotaSurya=new THREE.DirectionalLight(0xffe6cf,1.25);
-kotaSurya.position.set(-9,24,16);kotaScenes.kota.add(kotaSurya);
+kotaScenes.kota.background = new THREE.Color(0x8ec9ee);
+kotaScenes.kota.fog = new THREE.Fog(0x8ec9ee, 35, 108);
+kotaScenes.kota.add(new THREE.HemisphereLight(0xffecdf, 0xbfa5a1, 1.35));
+const kotaSurya = new THREE.DirectionalLight(0xffe6cf, 1.25);
+kotaSurya.position.set(-9, 24, 16);
+kotaScenes.kota.add(kotaSurya);
 kotaSkyline();
-document.getElementById('kotaBtn').addEventListener('click',enterKota);
+document.getElementById('kotaBtn').addEventListener('click', enterKota);
 /* ==== KOTA END ==== */
 
 function jalanPemainDuduk() {
