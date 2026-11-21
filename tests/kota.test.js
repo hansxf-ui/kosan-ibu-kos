@@ -15,7 +15,8 @@ before(async () => {
     'document',
     'teksturLukis',
     'lukisKain',
-    blok +
+    html.slice(html.indexOf('function krGabung(list)'), html.indexOf('var krM4')) +
+      blok +
       `
     kotaBangunJalan();
     const interior = KOTA_GEDUNG.filter(g => g[6]);
@@ -68,10 +69,12 @@ test('Pejalan kaki bergerak dalam kedua arah di jalur berbeda dan geometri diren
     for (let t = 0; t < 135; t += 1.7) {
       const { z } = kota.langkah(p, t);
       assert.ok(z >= p.awal && z <= p.akhir);
+      const wx = p.melintang ? z : p.x,
+        wz = p.melintang ? -p.x : z;
       assert.ok(
         kota.area
           .get(kota.street)
-          .solids.every((s) => p.x < s.minX - 0.23 || p.x > s.maxX + 0.23 || z < s.minZ - 0.23 || z > s.maxZ + 0.23)
+          .solids.every((s) => wx < s.minX - 0.23 || wx > s.maxX + 0.23 || wz < s.minZ - 0.23 || wz > s.maxZ + 0.23)
       );
     }
   }
@@ -95,4 +98,44 @@ test('Halangan jalan dan perabot interior menahan sapuan panjang dari keempat si
     const pos = kota.gerak(0, 0, 1000, -1000, bounds, area.solids);
     assert.ok(pos.x <= bounds.maxX && pos.z >= bounds.minZ);
   }
+});
+
+test('Promenade dapat dilintasi dari terminal ke terminal dan seluruh pintu terhubung ke plaza', () => {
+  const area = kota.area.get(kota.street);
+  const langkah = (a, b, x, z) => kota.gerak(a, b, x, z, kota.jalan, area.solids);
+  const z = 6.8;
+  assert.deepEqual(langkah(-46, z, 34, z), { x: 34, z });
+  assert.deepEqual(langkah(34, z, -46, z), { x: -46, z });
+  // Koridor menyempit di kedua ujung. Swept collision juga menahan langkah besar.
+  for (const x of [-40, 30]) {
+    assert.ok(langkah(x, z, x, 25).z < 8.2);
+    assert.ok(langkah(x, z, x, -16).z > -0.18);
+  }
+  const queue = [[0, 25]],
+    seen = new Set(['0,25']);
+  for (let i = 0; i < queue.length; i++) {
+    const [x, z] = queue[i];
+    for (const [dx, dz] of [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1]
+    ]) {
+      const nx = x + dx,
+        nz = z + dz,
+        key = nx + ',' + nz;
+      if (seen.has(key)) continue;
+      const pos = langkah(x, z, nx, nz);
+      if (pos.x === nx && pos.z === nz) {
+        seen.add(key);
+        queue.push([nx, nz]);
+      }
+    }
+  }
+  for (const obj of area.taps)
+    assert.ok(
+      queue.some(([x, z]) => Math.hypot(x - obj.position.x, z - obj.position.z) < 4),
+      'area ketuk dapat didekati'
+    );
+  for (const key of ['-46,4', '33,4', '-17,5', '17,5', '0,-16']) assert.ok(seen.has(key), key);
 });
