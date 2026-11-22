@@ -3486,11 +3486,7 @@ function buildWorld() {
      pagar putih menutup celah + papan SEGERA DIBUKA (pola palang Jalan Kampung)
      supaya avatar TIDAK BISA jalan kaki ke Komplek Tetangga. CABUT blok ini
      + solid PLAZA_SOLIDS-nya saat Ryan buka E&F. */
-  fenceRun(-20, 8, -20, 12);
-  (function () {
-    var papanKunci = jalanPapan('SEGERA DIBUKA', 'komen di video @ibu__kos', '#e67e22', 2.6);
-    papanKunci.position.set(-19.9, 1.75, 10); papanKunci.rotation.y = Math.PI / 2; scene.add(papanKunci); /* menghadap halaman (timur) */
-  })();
+  fenceRun(-20, 8, -20, 12); /* 22 Nov: papan oranye SEGERA DIBUKA dicabut atas perintah pemilik — pagar tetap mengunci */
   /* (Tahap 3a — 2 tiang pagar putih di celah gerbang diganti gerbang batu +
      papan "JALAN KAMPUNG": bangunGerbangHalaman() di blok Jalan Kampung.) */
   /* jalan setapak gerbang -> alun-alun lewat celah C-D: kini selasar andesit
