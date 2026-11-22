@@ -43,8 +43,8 @@ test('E&F: PLAZA_SOLIDS — pagar barat padat TERMASUK celah (KUNCI E&F 19 Nov),
   const ada = (k) => F.PLAZA_SOLIDS.some((s) => s.minX === k.minX && s.maxX === k.maxX && s.minZ === k.minZ && s.maxZ === k.maxZ);
   assert.ok(ada({ minX: -20.15, maxX: -19.85, minZ: -18, maxZ: 8 }), 'pagar barat utara (padat)');
   assert.ok(ada({ minX: -20.15, maxX: -19.85, minZ: 12, maxZ: 29 }), 'pagar barat selatan (padat)');
-  /* KUNCI E&F 19 Nov — celah z 8..12 DITUTUP palang sementara (dulu: bebas). */
-  assert.ok(ada({ minX: -20.15, maxX: -19.85, minZ: 8, maxZ: 12 }), 'celah z 8..12 TERTUTUP palang sementara');
+  /* 22 Nov — palang celah dicabut: celah z 8..12 BEBAS (jalan kaki ke Komplek Tetangga dibuka; daftar tetap terkunci di server). */
+  assert.ok(!ada({ minX: -20.15, maxX: -19.85, minZ: 8, maxZ: 12 }), 'celah z 8..12 bebas (palang dicabut)');
   assert.ok(ada({ minX: -17.6, maxX: -16.4, minZ: 12.4, maxZ: 13.6 }), 'pohon (-17, 13) padat ±0,6 m (pindah dari (-17, 8))');
   /* lampu jalan kiri-kanan: 4 per sisi (x -22/-27/-32/-37), utara z 7,7 + selatan z 12,3 */
   for (const lx of [-22, -27, -32, -37]) {
@@ -338,30 +338,23 @@ test('Ronde 8: PLAZA_SOLIDS — bedeng/pagar/pohon/bangku taman + tiang net + ba
   assert.ok(dorongTiangS.x !== -30 || dorongTiangS.z !== 23.1, 'tiang net selatan mendorong keluar (padat)');
 });
 
-/* KUNCI E&F 19 Nov — dulu tes ini jalan kaki LEWAT celah sampai halaman
-   komplek sebelah; kini celah ditutup palang sementara, jadi tes dibalik:
-   avatar HARUS tertahan di pagar barat dan tidak bisa masuk komplek sebelah.
-   Saat Ryan buka E&F (palang dicabut), kembalikan tes jalan-tembus ini. */
-test('KUNCI E&F 19 Nov: jalan kaki lewat celah TERTAHAN palang (tidak bisa masuk halaman komplek sebelah)', () => {
+/* 22 Nov — palang celah dicabut: avatar jalan kaki LEWAT celah sampai halaman
+   Komplek Tetangga (pendaftaran E&F tetap terkunci di server). */
+test('Jalan kaki lewat celah pagar barat TEMBUS ke halaman Komplek Tetangga (palang dicabut 22 Nov)', () => {
   const solids = F.PLAZA_SOLIDS.concat(F.STAIR_SOLIDS);
   const dorong = (x, z) => {
     const c = F.collideBuilding(x, z); x = c.x; z = c.z;
     for (const s of solids) { const r = F.resolveAABB(x, z, s, 0.4, F.YARD); x = r.x; z = r.z; }
     return { x, z };
   };
-  let x = -12, z = 10, langkah = 0, mentok = 0;
-  while (langkah < 600 && mentok < 30) {
+  let x = -12, z = 10, langkah = 0;
+  while (x > -45 && langkah < 600) {
     langkah++;
     const maju = dorong(x - 0.3, z);
-    if (maju.x < x - 0.01) { x = maju.x; z = maju.z; mentok = 0; }
-    else { /* macet di sumbu x — geser menyamping (coba cari celah) */
-      mentok++;
-      const geser = dorong(x, z + (z <= 10 ? -0.3 : 0.3));
-      z = geser.z;
-    }
+    assert.ok(maju.x < x - 0.01, 'tidak macet di x=' + x.toFixed(1) + ', z=' + z.toFixed(1));
+    x = maju.x; z = maju.z;
   }
-  assert.ok(x > -20, 'tertahan di pagar barat (x=' + x.toFixed(1) + ') — tidak masuk komplek sebelah');
-  assert.ok(x < -12, 'sempat maju ke arah celah sebelum tertahan');
+  assert.ok(x <= -45, 'sampai halaman Komplek Tetangga (x=' + x.toFixed(1) + ')');
 });
 
 test('Ronde 8: jalan kaki melintasi lapangan utara-selatan — permukaan bisa dilalui, tiang net padat di samping', () => {

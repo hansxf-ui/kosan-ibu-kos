@@ -1613,7 +1613,6 @@ var PLAZA_SOLIDS = [
      didorong masuk celah oleh sumbu penetrasi terkecil). */
   { minX: -20.15, maxX: -19.85, minZ: -18, maxZ: 8 },
   { minX: -20.15, maxX: -19.85, minZ: 12, maxZ: 29 },
-  { minX: -20.15, maxX: -19.85, minZ: 8, maxZ: 12 }, /* KUNCI E&F 19 Nov — palang sementara menutup celah z 8..12; CABUT saat Ryan buka E&F */
   /* Pohon (-17, 13) di tepi SELATAN celah (revisi 17 Nov: pindah dari
      (-17, 8) supaya papan KOMPLEK TETANGGA terbaca penuh dari yard) — AABB
      kecil ±0,6 m supaya jadi penanda gerbang yang padat (avatar tidak
@@ -3486,7 +3485,7 @@ function buildWorld() {
      pagar putih menutup celah + papan SEGERA DIBUKA (pola palang Jalan Kampung)
      supaya avatar TIDAK BISA jalan kaki ke Komplek Tetangga. CABUT blok ini
      + solid PLAZA_SOLIDS-nya saat Ryan buka E&F. */
-  fenceRun(-20, 8, -20, 12); /* 22 Nov: papan oranye SEGERA DIBUKA dicabut atas perintah pemilik — pagar tetap mengunci */
+  /* 22 Nov: palang celah + papan SEGERA DIBUKA DICABUT atas perintah pemilik — orang boleh jalan kaki ke Komplek Tetangga; pendaftaran E&F TETAP terkunci di server (flag gedung_ef_open) */
   /* (Tahap 3a — 2 tiang pagar putih di celah gerbang diganti gerbang batu +
      papan "JALAN KAMPUNG": bangunGerbangHalaman() di blok Jalan Kampung.) */
   /* jalan setapak gerbang -> alun-alun lewat celah C-D: kini selasar andesit
