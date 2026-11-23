@@ -20,7 +20,7 @@ const F = new Function(antara('/* ==== PURE-START ==== */', '/* ==== PURE-END ==
   + '\nreturn { KOTA, KOTA_SPAWN, KOTA_JALAN, KOTA_GEDUNG, KOTA_PADAT, KOTA_PINTU, KOTA_OBJEK, KOTA_KURSI, KOTA_NPC, KOTA_RUTE, KOTA_LAMPU_PLAZA, KOTA_R,'
   + ' KOTA_NPC_RANGKA, KOTA_RUANG, KOTA_RUANG_OBJEK, KOTA_RUANG_STAF, kotaBebas, kotaDorong, kotaZonaPintu, kotaDepanPintu, kotaRutePosisi, kotaRuteSiklus,'
   + ' kotaNpcKeadaan, kotaRuteCari, kotaKursiPilih, kotaKursiWarga, kotaRuangBatas, kotaPadatRuang, kotaRuangSpawn, kotaRuangZonaKeluar,'
-  + ' mpRealmDikenal, mpRealmDasar, mpValidasiPos, MP_BATAS_KOTA, KOTA_POHON, KOTA_LAMPU, KOTA_HALANG_KAMERA, kotaKameraFaktor, kotaKamKotak, KOTA_BANGKU, KOTA_RAGAM_TOKO, KOTA_MEREK_LINGKAR, kotaRagamPilih, KOTA_LINGKAR_LANTAI, KOTA_POT, kotaDiLingkar, KOTA_PANDANG, kotaPandangLuar,'
+  + ' mpRealmDikenal, mpRealmDasar, mpValidasiPos, MP_BATAS_KOTA, KOTA_POHON, KOTA_LAMPU, KOTA_HALANG_KAMERA, kotaKameraFaktor, kotaKamKotak, KOTA_BANGKU, KOTA_RAGAM_TOKO, KOTA_MEREK_LINGKAR, kotaRagamPilih, KOTA_LINGKAR_LANTAI, KOTA_POT, kotaDiLingkar, kotaRuangKeLuar,'
   + ' KOTA_SPANDUK_TEKS, KOTA_SPANDUK_PX, kotaSpandukUkuran, KOTA_DUDUKAN, KOTA_DUDUK_Y, kotaNpcDudukY };')();
 const R = F.KOTA_R; /* radius badan avatar (kotaDorong di animate) */
 
@@ -345,23 +345,60 @@ test('papan menu Kafe Bulan: teks tidak sebidang dengan bingkai (jarak >= 2 cm)'
   assert.ok(+m[1] >= 0.05, 'teks menu >= 2 cm di depan muka bingkai 0,03 (dapat ' + m[1] + ')');
 });
 
-test('intip + latar keluar: lukisan interior per tempat, potret Kota asli dari depan pintu', () => {
+test('intip + pemandangan keluar: lukisan interior per tempat; dari dalam yang terlihat = Kota ASLI lewat kamera pemain (dua lintasan), bukan potret di panel', () => {
   for (const id of ['hotel', 'kafe', 'butik', 'arkade']) assert.ok(new RegExp("intip: \\{ id: '" + id + "'|IA = \\{ id: '" + id + "'").test(BLOK_KOTA), 'lukisan intip dipakai: ' + id);
   assert.match(fungsi('kotaDindingLengkung'), /if \(o\.intip\) B\.teks\.fkuad\(/, 'bukaan lengkung: lukisan (Basic) menggantikan bidang polos');
   assert.match(fungsi('kotaPintuKaca'), /if \(o\.intip\) B\.teks\.fkuad\(/);
-  /* latar keluar: titik mata di LUAR ambang, arah tengah = normal pintu, 3 arah menyapu 180 derajat */
+  /* setiap interior yang bisa dimasuki punya pintu + pemetaan ke Kota */
+  assert.deepEqual(F.KOTA_PINTU.map((p) => p.id).sort(), Object.keys(F.KOTA_RUANG).sort(), 'tiap ruang punya pintu di Kota');
   for (const p of F.KOTA_PINTU) {
-    const P = F.kotaPandangLuar(p.id);
-    assert.ok((P.x - p.x) * p.nx + (P.z - p.z) * p.nz > 0.3, p.id + ': mata di luar pintu');
-    assert.ok(Math.abs(P.arah[1][0] - p.nx) < 1e-9 && Math.abs(P.arah[1][1] - p.nz) < 1e-9, p.id + ': arah tengah = keluar pintu');
-    for (const a of P.arah) { assert.ok(Math.abs(Math.hypot(a[0], a[1]) - 1) < 1e-9); assert.ok(a[0] * p.nx + a[1] * p.nz > 0.49, 'semua arah menghadap keluar'); }
-    assert.ok(Math.abs(P.arah[0][0] * P.arah[2][0] + P.arah[0][1] * P.arah[2][1] - Math.cos(2 * Math.PI / 3)) < 1e-9, 'kiri-kanan terpisah 120 derajat');
+    const D = F.KOTA_RUANG[p.id].D, a = F.kotaRuangKeLuar(p.id, 0, D / 2), b = F.kotaRuangKeLuar(p.id, 0, D / 2 + 5), c = F.kotaRuangKeLuar(p.id, 3, D / 2), o = F.kotaRuangKeLuar(p.id, 0, 0);
+    assert.ok(Math.hypot(a.x - p.x, a.z - p.z) < 1e-9, p.id + ': ambang pintu ruang = titik pintu di Kota');
+    assert.ok(Math.abs((b.x - a.x) - 5 * p.nx) < 1e-9 && Math.abs((b.z - a.z) - 5 * p.nz) < 1e-9, p.id + ': keluar pintu ruang = normal pintu di Kota (skala 1 : 1)');
+    assert.ok(Math.abs(Math.hypot(c.x - a.x, c.z - a.z) - 3) < 1e-9 && Math.abs((c.x - a.x) * p.nx + (c.z - a.z) * p.nz) < 1e-9, p.id + ': kiri-kanan tegak lurus normal, tanpa skala');
+    assert.ok(Math.abs(Math.sin(o.rot) - p.nx) < 1e-9 && Math.abs(Math.cos(o.rot) - p.nz) < 1e-9, p.id + ': sudut putar ruang');
+    assert.equal(F.kotaBebas(a.x + p.nx * 1.2, a.z + p.nz * 1.2, R), true, p.id + ': 1,2 m di luar ambang = lantai jalan Kota yang bisa diinjak (lantai dalam = lantai luar, y 0)');
   }
-  assert.ok(!fungsi('kotaBangunRuang').includes('kotaLatarLuar('), 'latar generik (aspal bermarka) tidak dipakai lagi');
-  assert.match(fungsi('kotaBangunRuang'), /S\.add\(kotaLatarPanel\(R\)\)/);
-  assert.match(fungsi('kotaMasukRuang'), /kotaLatarPotret\(id\)/, 'potret diambil saat masuk');
-  assert.match(fungsi('kotaRuangTick'), /kotaLatarPotret\(R\)/, 'potret ikut siang / malam');
-  assert.match(fungsi('kotaLatarPotret'), /renderer\.render\(kotaScene, L\.cam\)/, 'yang dipotret = Kota asli');
+  assert.equal(F.kotaRuangKeLuar('tidak-ada', 0, 0), null);
+  /* mekanisme lama (potret render-ke-tekstur di 3 panel 14 m) harus hilang seluruhnya */
+  assert.ok(!fungsi('kotaBangunRuang').includes('kotaLatarLuar('), 'latar generik (aspal bermarka) tidak dipakai');
+  for (const n of ['kotaLatarPanel', 'kotaLatarPotret', 'kotaLatarBahan', 'KOTA_LATAR =', 'KOTA_PANDANG']) assert.ok(!BLOK_KOTA.includes(n), 'sisa mekanisme lama: ' + n);
+  const rr = fungsi('kotaRuangRender');
+  assert.match(rr, /c\.matrix\.multiplyMatrices\(L\.m, camera\.matrixWorld\)/, 'kamera Kota = kamera pemain dipindah ke koordinat Kota (sudut apa pun: mata, atas, samping)');
+  assert.match(rr, /kotaRuangKeLuar\(id, 0, 0\)/);
+  assert.ok(!/setY|position\.y\s*[+-]?=|scale\.set\(/.test(rr.replace(/lg\.scale\.setScalar\([^)]*\)/g, '')), 'tanpa geser tinggi / skala: lantai + ukuran warga 1 : 1');
+  assert.match(rr, /L\.bidang\.distanceToPoint\(c\.position\) < -0\.05/, 'bidang potong miring hanya saat kamera di belakang fasad');
+  assert.match(rr, /pe\[2\] = v\.x; pe\[6\] = v\.y; pe\[10\] = v\.z \+ 1; pe\[14\] = v\.w;/, 'gedung asli di belakang fasad tidak ikut tergambar (tidak menutup pintu / etalase dari dalam)');
+  assert.match(BLOK_KOTA, /var KOTA_TEMBUS = \{ cam: null, m: null, id: null, potong: 0\.3 \};/);
+  assert.match(fungsi('kotaBangunRuang'), /alas\.name = 'kota-alas-luar'/, 'sekeliling ruang = alas gelap, bukan langit');
+  const i1 = rr.indexOf('renderer.render(kotaScene, c)'), i2 = rr.indexOf('renderer.clearDepth()'), i3 = rr.indexOf('renderer.render(S, camera)');
+  assert.ok(i1 > 0 && i2 > i1 && i3 > i2, 'urutan: Kota asli -> bersihkan depth -> ruang di atasnya');
+  assert.match(rr, /S\.background = null; renderer\.autoClear = false/, 'ruang tidak menghapus Kota di belakangnya');
+  assert.match(rr, /renderer\.autoClear = ac; S\.background = bg;/, 'keadaan renderer dipulihkan');
+  assert.match(HTML, /if \(kotaRuangKini && myRealm\.indexOf\('kota-'\) === 0\) kotaRuangRender\(\);/, 'animate memakai render dua lintasan di interior Kota');
+  assert.match(fungsi('kotaRuangTick'), /kotaNpcTick\(dt, now\); kotaLedTick\(performance\.now\(\)\); kotaAnimTick\(performance\.now\(\)\);/, 'Kota di balik pintu tetap hidup');
+});
+
+test('teks kanvas Kota: papan MRT muat di kiri logo M; pembantu kotaTeksMuat; spanduk tegak, poster, menu kios, muka jam tidak saling timpa / meluber', () => {
+  const muat = new Function(fungsi('kotaTeksMuat') + '\nreturn kotaTeksMuat;')();
+  const ctx = { font: '', measureText(s) { const px = +/(\d+)px/.exec(this.font)[1]; return { width: String(s).length * px * 0.62 }; } };
+  assert.equal(muat(ctx, 'ABCDEFGHIJ', 800, 48, 1000, 'X'), 48, 'cukup lebar: ukuran penuh');
+  const px = muat(ctx, 'KE PERON  ·  ARAH KOSAN', 800, 48, 442, 'X');
+  assert.ok(px < 48 && 23 * px * 0.62 <= 442 && 23 * (px + 1) * 0.62 > 442, 'ukuran terbesar yang muat: ' + px);
+  assert.equal(muat(ctx, 'X'.repeat(500), 800, 48, 100, 'X'), 8, 'batas bawah 8 px');
+  const st = fungsi('kotaGedungStasiun'), m = /kotaAtlas\((\d+), (\d+), function \(ctx, w, h\) \{ \/\* papan 12 x 2,4 m[^]*?\}\)\);/.exec(st);
+  assert.ok(m, 'papan KE PERON');
+  assert.equal(+m[1] / +m[2], 12 / 2.4, 'rasio kanvas = rasio papan (huruf tidak gepeng)');
+  assert.match(m[0], /var rM = 42, xM = w - 28 - rM;/);
+  assert.match(m[0], /kotaTeksMuat\(ctx, 'KE PERON  ·  ARAH KOSAN', 800, 48, xM - rM - 20 - 28\)/, 'teks diukur: berhenti >= 20 px di kiri lingkaran M');
+  assert.ok(m[0].indexOf('ctx.arc(xM') > m[0].indexOf("fillText('KE PERON"), 'logo digambar sesudah teks, tapi teks sudah dijamin tidak sampai ke sana');
+  assert.ok(!/'800 44px ' \+ KOTA_FONT; ctx\.textAlign = 'left'/.test(st), 'ukuran mati 44 px sudah hilang');
+  assert.match(BLOK_KOTA, /Math\.max\(18, Math\.min\(54, Math\.floor\(\(lang - 4\) \/ 0\.66\)\)\)/, 'spanduk tegak: ukuran huruf ikut langkah');
+  for (const n of [4, 5, 6, 8]) { const lang = (Math.round((n * 0.62 + 0.5) * 40) - 20) / n, f = Math.max(18, Math.min(54, Math.floor((lang - 4) / 0.66))); assert.ok(f * 0.65 <= lang - 3.5, 'huruf ' + f + ' px muat di langkah ' + lang.toFixed(1)); }
+  assert.match(fungsi('kotaPoster'), /yJ = h \* 0\.76 - Math\.max\(0, kataJ\.length - 2\) \* 28/, 'poster: judul 3 kata naik, tidak menimpa baris kaki');
+  assert.match(fungsi('kotaKios'), /kotaTeksMuat\(ctx, 'Sate kambing  20rb', 700, 15, w - 20/, 'menu kios diukur');
+  assert.match(fungsi('kotaLukisMukaJam'), /ctx\.save\(\); ctx\.scale\(w \/ 256, w \/ 256\); w = 256;[^]*ctx\.restore\(\);/, 'muka jam diskala utuh di ukuran atlas apa pun');
+  assert.match(BLOK_KOTA, /document\.fonts\.load\('700 18px "Caveat"'\)/, 'font tulisan tangan dimuat sebelum Kota dibangun');
 });
 
 test('spanduk tiang: semua teks muat di antara dua garis emas dengan napas', () => {
@@ -456,7 +493,7 @@ function kotaBangunDiNode() { /* -> { luar: ember, ruang: { id: ember } } dibang
     const br = fungsi('kotaBangunRuang'), oa = br.indexOf('var opsi = '), ob = br.indexOf('[id];', oa); assert.ok(oa > 0 && ob > oa, 'opsi kotaBangunRuang');
     const src = antara('/* ==== PURE-START ==== */', '/* ==== PURE-END ==== */') + antara('/* ==== MP-PURE-START ==== */', '/* ==== MP-PURE-END ==== */') + fungsi('acak') + BLOK_KOTA
       + '\nreturn { luar: function () { KOTA_ATLAS = { cv: kotaKanvas(2048, 2048), langit: null, tinggi: 0 }; KOTA_ATLAS.ctx = KOTA_ATLAS.cv.getContext("2d"); KB = __T(); var B = kotaEmber(); KOTA_TOKO_LINGKAR.length = 0;'
-      + ' kotaBangunTanah(B); kotaBangunSemuaGedung(B); kotaBangunTugu(B); kotaBangunPerabot(B); kotaBangunCakrawala(B); return B; },'
+      + ' kotaBangunTanah(B); kotaBangunSemuaGedung(B); kotaBangunTugu(B); kotaBangunPerabot(B); kotaBangunCakrawala(B); B.naung = KOTA_NAUNG; B.tajuk = KOTA_TAJUK; return B; },'
       + ' ruang: function (id) { var R = KOTA_RUANG[id], B = kotaEmber(); B.dinding = new KotaGeo("dinding"); B.dinding.petak = R.H; B.helai = new KotaGeo("helai");'
       + ' var opsi = (' + br.slice(oa + 11, ob) + ')[id]; kotaKulitRuang(B, id, R, opsi); ({ hotel: kotaIsiHotel, kafe: kotaIsiKafe, butik: kotaIsiButik, arkade: kotaIsiArkade })[id](B, R); return B; } };';
     const stub = []; let luar = null, ruang = null, galat = null;
@@ -517,4 +554,39 @@ test('anti-kedip ronde 2: pengaudit benar-benar menangkap muka ganda (kontrol po
   assert.ok(Math.abs(luas - (1.2 * 96 - 0.6 * 72)) < 1e-6, 'luas sisa: ' + luas);
   sisa.forEach((r) => { assert.ok(!(r[1] > 50 + 1e-6 && (r[2] < -12 - 1e-6 || r[3] > 12 + 1e-6)), 'tidak ada sisa di dalam lubang: ' + r); });
   assert.deepEqual(pk([0, 1, 0, 1], []), [[0, 1, 0, 1]]);
+});
+
+test('pohon vs kanopi + papan nama: tajuk tidak menembus kanopi mana pun; HOTEL KENCANA terbaca utuh dari plaza; bak depan hotel = taman rendah', async () => {
+  const K = await kotaBangunDiNode(), N = K.luar.naung, T = K.luar.tajuk;
+  assert.ok(N.filter((n) => n.jenis === 'kanopi').length >= 20 && N.filter((n) => n.jenis === 'papan').length >= 8 && T.length >= 150, 'registri terisi: ' + N.length + ' / ' + T.length);
+  /* 1) setiap gugus tajuk (elipsoid r x r*q, + 12% benjolan) berjarak >= 0,15 m dari setiap kotak kanopi / papan */
+  const tabrak = [];
+  for (const k of N) for (const b of T) {
+    const r = b.r * 1.12, ry = r * (b.q || 1), dx = b.x - k.ox, dz = b.z - k.oz, s = dx * k.ux + dz * k.uz, w = dx * k.nx + dz * k.nz;
+    const ds = Math.max(k.s0 - s, 0, s - k.s1), dw = Math.max(k.w0 - w, 0, w - k.w1), dy = Math.max(k.y0 - b.y, 0, b.y - k.y1);
+    if (Math.sqrt((ds * ds + dw * dw) / ((r + 0.15) * (r + 0.15)) + dy * dy / ((ry + 0.15) * (ry + 0.15))) < 1) tabrak.push(k.gedung + ' ' + k.jenis + ' ' + k.teks + ' vs pohon ' + b.px + ',' + b.pz);
+  }
+  assert.deepEqual([...new Set(tabrak)], [], 'tajuk menembus / menempel kanopi');
+  /* 2) bak depan hotel: rendah, tanpa tajuk; dua bak besar lain tetap berpohon */
+  const bak = F.KOTA_POHON.filter((p) => p.r >= 2);
+  assert.deepEqual(bak.map((p) => !!p.rendah), [true, false, false]);
+  assert.equal(T.filter((b) => b.px === bak[0].x && b.pz === bak[0].z).length, 0, 'bak rendah tanpa tajuk');
+  assert.match(fungsi('kotaPohon'), /if \(p\.rendah\) \{ B\.nyala\.cincin\([^]*?return; \}/, 'taman rendah berhenti sebelum batang + tajuk');
+  assert.ok(F.KOTA_HALANG_KAMERA[F.KOTA_POHON.indexOf(bak[0])].h <= 2.3, 'penghalang kamera bak rendah = setinggi topiari');
+  /* 3) garis pandang ke HOTEL KENCANA: dari SEMUA titik bebas di kerucut depan (<= 35 derajat, 6-30 m), kamera 1,6 m dan 3 m: 0 garis kena tajuk */
+  const h = N.find((n) => n.teks === 'HOTEL KENCANA'); assert.ok(h);
+  const lebar = 'HOTEL KENCANA'.length * 0.62 * 0.95, sm = (h.s0 + h.s1) / 2, ym = (h.y0 + h.y1) / 2; /* lebar atas (stub kanvas node tidak mengukur font) */
+  let titik = 0, kena = 0;
+  for (let x = -60; x <= 30; x += 1.5) for (let z = -60; z <= 30; z += 1.5) {
+    const px = h.ox + h.ux * sm + h.nx * h.w1, pz = h.oz + h.uz * sm + h.nz * h.w1, d = Math.hypot(x - px, z - pz), dn = (x - px) * h.nx + (z - pz) * h.nz;
+    if (d < 6 || d > 30 || dn / d < 0.82 || !F.kotaBebas(x, z, R)) continue;
+    titik++;
+    for (const e of [1.6, 3.0]) for (const u of [-0.5, -0.25, 0, 0.25, 0.5]) for (const yy of [h.y0 + 0.1, ym, h.y1 - 0.1]) {
+      const s = sm + u * lebar, qx = h.ox + h.ux * s + h.nx * h.w1, qz = h.oz + h.uz * s + h.nz * h.w1, vx = qx - x, vy = yy - e, vz = qz - z;
+      for (const b of T) { const r = b.r * 1.12, k = 1 / (b.q || 1), ax = x - b.x, ay = (e - b.y) * k, az = z - b.z, by = vy * k, A = vx * vx + by * by + vz * vz, Bq = 2 * (ax * vx + ay * by + az * vz), C = ax * ax + ay * ay + az * az - r * r, Dq = Bq * Bq - 4 * A * C;
+        if (Dq > 0) { const t1 = (-Bq - Math.sqrt(Dq)) / (2 * A), t2 = (-Bq + Math.sqrt(Dq)) / (2 * A); if (t2 > 0 && t1 < 1) { kena++; break; } } }
+    }
+  }
+  assert.ok(titik >= 60, 'titik pandang di plaza: ' + titik);
+  assert.equal(kena, 0, 'garis pandang ke HOTEL KENCANA yang kena tajuk');
 });
