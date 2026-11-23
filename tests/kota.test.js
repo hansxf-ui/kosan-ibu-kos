@@ -155,8 +155,9 @@ test('Kota: kabel ke game — tombol Pergi ke KOTA, scene per realm, animate, ke
   assert.ok(fungsi('canvasTap').includes('if (ud.kota) { kotaKetuk(ud); return; }'), 'ketuk objek Kota');
   /* aset dibangun HANYA saat pertama masuk */
   const panggil = HTML.split('buildKota();').length - 1; /* panggilan (definisi 'function buildKota() {' tidak dihitung) */
-  assert.equal(panggil, 1, 'buildKota() dipanggil sekali (di enterKota)');
-  assert.ok(fungsi('enterKota').includes('if (!KOTA_SIAP) buildKota();'));
+  assert.equal(panggil, 1, 'buildKota() dipanggil sekali (di kotaMasukSekarang: jaring pengaman)');
+  assert.ok(fungsi('kotaMasukSekarang').includes('if (!KOTA_SIAP) buildKota();'));
+  assert.ok(fungsi('enterKota').includes("if (!KOTA_SIAP || !kotaPanasBeres) { kotaMuatMulai(); return; }"), 'pertama masuk: bertahap di balik layar Menuju Kota');
   assert.ok(fungsi('kotaMasukRuang').includes('if (!kotaRuangSiap[id]) kotaBangunRuang(id);'), 'interior dibangun saat dimasuki');
   /* keluar = kembali ke tempat asal */
   const keluar = fungsi('exitKota');
@@ -628,10 +629,84 @@ test('Kota malam terang: langit malam tidak lagi dipotong 60%, genangan lampu le
   }
   const sorot = fungsi('kotaLampuSorot');
   assert.ok(/B\.nyala\.kotak\(/.test(sorot) && !/emissive|PointLight|SpotLight/.test(sorot), 'lensa sorot = bahan nyala (MeshBasicMaterial), tanpa lampu dinamis');
-  assert.ok(fungsi('kotaBangunPerabot').includes('KOTA_SOROT.forEach(function (p) { kotaLampuSorot(B, p.x, p.z, p.rot); });'));
+  assert.ok(fungsi('kotaPerabotTahap').includes('KOTA_SOROT.forEach(function (p) { kotaLampuSorot(B, p.x, p.z, p.rot); });'));
   /* daun: sisipan khusus benar-benar mengubah shader (string sasaran ada di kotaSuntikMalam) */
   const inti = fungsi('kotaSuntikMalam'), daun = fungsi('kotaSuntikMalamDaun');
   for (const m of daun.matchAll(/\.replace\('([^']+)',/g)) assert.ok(inti.includes(m[1]), 'sasaran sisipan daun ada di kotaSuntikMalam: ' + m[1]);
   assert.ok(/daun: \(function \(\) \{ var m = lambert\([^;]+; m\.onBeforeCompile = kotaSuntikMalamDaun; m\.customProgramCacheKey = kotaKunciSuntik\('malam-daun'\)/.test(HTML), 'bahan daun Kota memakai sisipan daun + kunci program sendiri');
   assert.ok(inti.includes('kotaMalam > 0.002'), 'sisipan malam mati total di siang (kotaMalam 0)');
+});
+
+/* ================= Masuk Kota bertahap + layar "Menuju Kota" (23 Nov) ================= */
+test('Masuk Kota bertahap: tahap kecil berurutan, hasil = pembangunan serentak, layar Menuju Kota, input dikunci, batal bersih', async () => {
+  /* 1) susunan tahap: urutan pekerjaan sama dengan buildKota lama */
+  const tahap = fungsi('kotaTahapBangun');
+  const urut = ["kotaPra(p[0])", 'kotaTahapCahaya(S)', 'KOTA_TOKO_LINGKAR.length = 0', 'kotaBangunTanah(B)', 'kotaBangunGedungSatu(B, g, pembangun)', 'kotaBangunTugu(B)', 'kotaPerabotTahap(B)', 'kotaBangunCakrawala(B)',
+    'kotaMeshDaftar = []', 'kotaPasangEmberSatu(B, kunciEmber[q], S, hasilEmber, kotaMeshDaftar)', "['capit', 'kaleng', 'kilat', 'uap', 'not']", 'kotaBangunLed(S)', 'kotaJamPerbarui(S)', 'kotaNpcBangun(S)',
+    'kotaPasangSasaran()', 'kotaPetaCahaya()', 'kotaSuasanaDaftar()', 'KOTA_SIAP = true'];
+  let pos = -1;
+  for (const u of urut) { const i = tahap.indexOf(u, pos + 1); assert.ok(i > pos, 'urutan tahap: ' + u); pos = i; }
+  assert.ok(tahap.includes('KOTA_GEDUNG.forEach(function (g) { t('), 'satu gedung = satu tahap');
+  assert.ok(tahap.includes('if (kotaBangunSt) return kotaBangunSt;'), 'daftar tahap dibuat sekali (dilanjutkan, bukan diulang)');
+  const serentak = fungsi('buildKota');
+  assert.ok(serentak.includes('if (KOTA_SIAP) return;') && serentak.includes('while (T.i < T.L.length)'), 'buildKota = jalankan tahap yang tersisa');
+  /* 2) pelari: jatah waktu kecil, napas antar giliran, batal / pindah alam = tutup tanpa masuk */
+  const jalan = fungsi('kotaMuatJalan');
+  const jatah = +/var KOTA_MUAT_JATAH = (\d+);/.exec(HTML)[1];
+  assert.ok(jatah >= 4 && jatah <= 16, 'jatah kerja per giliran <= 16 ms: ' + jatah);
+  assert.ok(jalan.includes('if (performance.now() - t0 >= KOTA_MUAT_JATAH) break;') && jalan.includes('setTimeout(kotaMuatJalan, 0)'), 'napas ke browser antar giliran');
+  assert.ok(jalan.includes('if (M.batal || myRealm !== M.asal) { kotaMuatTutup(false); return; }'), 'batal / pindah alam: tidak jadi masuk');
+  assert.ok(jalan.indexOf('kotaMasukSekarang();') > jalan.indexOf('kotaPanasBeres = true;'), 'masuk Kota hanya sesudah bangun + pemanasan beres');
+  assert.ok(!/toastKosan|exitLiving|exitDapur|exitRoom|myRealm =/.test(fungsi('kotaMuatMulai')), 'selama layar muat keadaan pemain tidak diubah');
+  /* 3) kait di animate: input dikunci, alam asal tidak digambar di balik layar muat */
+  const animate = fungsi('animate');
+  assert.ok(animate.includes('if (kotaMuat) mag = 0;'), 'gerak dikunci selama layar Menuju Kota');
+  assert.ok(animate.includes('else if (kotaMuat && !kotaMuat.masuk) {'), 'bingkai alam asal dilewati selama membangun');
+  assert.ok(fungsi('enterKota').startsWith('function enterKota() {\n  if (kotaRealmIni(myRealm) || kotaMuat) return;'), 'ketuk KOTA berulang selama memuat diabaikan');
+  /* 4) layar: ada, tanpa teks teknis, animasi = transform / opacity saja (kompositor) */
+  const a = HTML.indexOf('<div id="kotaMuat"'), b = HTML.indexOf('<!-- Layar masuk (Ronde 10b)', a); assert.ok(a > 0 && b > a, 'elemen layar');
+  const layar = HTML.slice(a, b), teksLayar = layar.replace(/<svg[\s\S]*?<\/svg>/g, '').replace(/<[^>]+>/g, ' ');
+  for (const id of ['kotaMuatIsi', 'kotaMuatBar', 'kotaMuatTeks', 'kotaMuatBatal']) assert.ok(layar.includes('id="' + id + '"'), id);
+  assert.ok(/Menuju Kota/.test(teksLayar));
+  for (const k of ['load-awan load-awan-1', 'load-tanah', 'load-gedung', 'class="load-bar"', 'km-kereta', 'km-roda']) assert.ok(layar.includes(k), 'sekeluarga dengan layar muat awal + ada kereta: ' + k); /* v2 24 Nov */
+  const semuaTeks = teksLayar + ' ' + /var KOTA_MUAT_TEKS = \[([^\]]*)\]/.exec(HTML)[1];
+  assert.ok(!/\d\s*%|shader|tekstur|texture|mesh|geometri|aset|asset|loading|memuat|tahap|render|kompil|ms\b/i.test(semuaTeks), 'tanpa teks teknis: ' + semuaTeks.replace(/\s+/g, ' ').trim());
+  const css = antara('/* Layar "Menuju Kota" (23 Nov)', '</style>');
+  const kf = css.match(/@keyframes km\w+ \{[^@]*\}\s*\}/g) || [];
+  assert.ok(kf.length >= 5, 'animasi layar: ' + kf.length);
+  for (const k of kf) assert.ok(!/(^|[\s{;])(left|top|width|height|margin|background)[^:]*:/.test(k.replace(/@keyframes km\w+ \{/, '')), 'animasi hanya transform / opacity: ' + k.slice(0, 40));
+  assert.ok(/#kotaMuat \{[^}]*z-index: 60/.test(css), 'di atas HUD + kartu (z 40/45), di bawah layar muat awal (100)');
+  /* 5) huruf 3D: kanvas baca-balik CPU (akar macet terpanjang) */
+  assert.ok(fungsi('kotaHurufBalok').includes("getContext('2d', { willReadFrequently: true })"));
+  /* 6) hasil bertahap = hasil serentak (isi ember bita demi bita), dijalankan oleh kode Kota asli */
+  const THREE = await import(require('node:url').pathToFileURL(path.join(__dirname, '..', 'vendor', 'three', 'three.module.js')).href);
+  const ctx = new Proxy({}, { get: (t, k) => k === 'measureText' ? (s) => ({ width: String(s).length * 10 }) : k === 'canvas' ? { width: 2048, height: 2048 }
+    : (k === 'createLinearGradient' || k === 'createRadialGradient') ? () => ({ addColorStop() {} }) : k === 'getImageData' ? (x, y, w, h) => ({ data: new Uint8ClampedArray(w * h * 4) })
+    : (typeof k === 'string' ? function () {} : undefined), set: () => true });
+  const dokumen = { createElement: () => ({ width: 0, height: 0, style: {}, getContext: () => ctx }) };
+  const tiruan = () => { const f = function () { return f; }; return new Proxy(f, { get: (t, k) => k === Symbol.toPrimitive ? () => 0 : (k === 'length' ? 0 : f), apply: () => f, construct: () => f, set: () => true }); };
+  const awal = 'KOTA_ATLAS = { cv: kotaKanvas(2048, 2048), langit: null, tinggi: 0 }; KOTA_ATLAS.ctx = KOTA_ATLAS.cv.getContext("2d"); KB = __T(); KOTA_NAUNG.length = 0; KOTA_TAJUK.length = 0; KOTA_TOKO_LINGKAR.length = 0; var B = kotaEmber();';
+  const src = antara('/* ==== PURE-START ==== */', '/* ==== PURE-END ==== */') + antara('/* ==== MP-PURE-START ==== */', '/* ==== MP-PURE-END ==== */') + fungsi('acak') + BLOK_KOTA
+    + '\nreturn { serentak: function () { ' + awal + ' kotaBangunTanah(B); kotaBangunSemuaGedung(B); kotaBangunTugu(B); kotaBangunPerabot(B); kotaBangunCakrawala(B); return B; },'
+    + ' bertahap: function () { ' + awal + ' var n = 0; kotaBangunTanah(B); n++; var pb = kotaPembangunGedung(); KOTA_GEDUNG.forEach(function (g) { kotaBangunGedungSatu(B, g, pb); n++; }); kotaBangunTugu(B); n++;'
+    + ' kotaPerabotTahap(B).forEach(function (f) { f(); n++; }); kotaBangunCakrawala(B); n++; B.__n = n; return B; }, nGedung: KOTA_GEDUNG.length, nPohon: KOTA_POHON.length, nPot: KOTA_POT.length };';
+  const stub = []; let M = null, galat = null;
+  for (let it = 0; it < 40 && !M; it++) {
+    try { M = new Function('THREE', 'document', 'window', '__T', ...stub, src)(THREE, dokumen, { console }, tiruan, ...stub.map(tiruan)); M.serentak(); }
+    catch (e) { M = null; galat = e; const m = /^(\w+) is not defined/.exec(e.message); if (!m || stub.includes(m[1])) break; stub.push(m[1]); }
+  }
+  assert.ok(M, 'kode Kota jalan di Node: ' + (galat && galat.message));
+  const A = M.serentak(), Bt = M.bertahap();
+  assert.ok(Bt.__n >= M.nGedung + M.nPohon + 6, 'jumlah tahap geometri: ' + Bt.__n);
+  let verteks = 0;
+  for (const k of Object.keys(A)) {
+    const x = A[k], y = Bt[k];
+    assert.equal(y.nv, x.nv, 'verteks ' + k); assert.equal(y.ni, x.ni, 'indeks ' + k); verteks += x.nv;
+    for (const f of ['pos', 'nor', 'col', 'uv', 'idx']) {
+      if (!x[f]) continue;
+      const n = f === 'idx' ? x.ni : x.nv * (f === 'uv' ? 2 : 3);
+      assert.ok(Buffer.from(x[f].buffer, x[f].byteOffset, n * x[f].BYTES_PER_ELEMENT).equals(Buffer.from(y[f].buffer, y[f].byteOffset, n * y[f].BYTES_PER_ELEMENT)), 'isi ember ' + k + '.' + f + ' identik');
+    }
+  }
+  assert.ok(verteks > 500000, 'Kota terbangun penuh: ' + verteks + ' verteks');
 });

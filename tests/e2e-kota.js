@@ -51,7 +51,8 @@ const cek = (nama, ok, info) => { hasil.push({ nama, ok: !!ok }); console.log((o
     await H.page.click('#masukBtn'); await H.page.waitForTimeout(250);
     const t0 = Date.now();
     await H.page.click('#kotaBtn');
-    await H.page.waitForFunction(() => window.__ev('myRealm') === 'kota', null, { timeout: 120000 });
+    /* masuk bertahap (23 Nov): tunggu sampai sudah di Kota DAN layar "Menuju Kota" sudah tertutup (dipantau lewat evaluate: eval di callback halaman diblokir CSP) */
+    while (Date.now() - t0 < 400000) { if (await H.ev("myRealm === 'kota' && !kotaMuat")) break; await H.page.waitForTimeout(80); }
     return Date.now() - t0;
   }
   const info = (H) => H.ev('(function(){ renderer.info.autoReset = true; renderer.render(kotaRealmIni(myRealm) ? kotaSceneUntuk(myRealm) : scene, camera); return { calls: renderer.info.render.calls, tri: renderer.info.render.triangles }; })()');
