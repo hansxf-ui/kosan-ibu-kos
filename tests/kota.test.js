@@ -20,7 +20,7 @@ const F = new Function(antara('/* ==== PURE-START ==== */', '/* ==== PURE-END ==
   + '\nreturn { KOTA, KOTA_SPAWN, KOTA_JALAN, KOTA_GEDUNG, KOTA_PADAT, KOTA_PINTU, KOTA_OBJEK, KOTA_KURSI, KOTA_NPC, KOTA_RUTE, KOTA_LAMPU_PLAZA, KOTA_R,'
   + ' KOTA_NPC_RANGKA, KOTA_RUANG, KOTA_RUANG_OBJEK, KOTA_RUANG_STAF, kotaBebas, kotaDorong, kotaZonaPintu, kotaDepanPintu, kotaRutePosisi, kotaRuteSiklus,'
   + ' kotaNpcKeadaan, kotaRuteCari, kotaKursiPilih, kotaKursiWarga, kotaRuangBatas, kotaPadatRuang, kotaRuangSpawn, kotaRuangZonaKeluar,'
-  + ' mpRealmDikenal, mpRealmDasar, mpValidasiPos, MP_BATAS_KOTA };')();
+  + ' mpRealmDikenal, mpRealmDasar, mpValidasiPos, MP_BATAS_KOTA, KOTA_POHON, KOTA_LAMPU, KOTA_HALANG_KAMERA, kotaKameraFaktor, kotaKamKotak };')();
 const R = F.KOTA_R; /* radius badan avatar (kotaDorong di animate) */
 
 /* BFS kisi: sel bebas (badan r tidak menyentuh padat, di dalam batas) yang terhubung ke titik awal */
@@ -171,4 +171,73 @@ test('Kota: bahan — semua yang menyala MeshBasicMaterial (tanpa emissive), ang
   assert.ok(!/\.emissive\b|emissive\s*:/.test(BLOK_KOTA), 'tidak ada emissive di Kota');
   assert.ok(!/new THREE\.(PointLight|SpotLight)\(/.test(antara('function buildKota()', 'function kotaPetaCahaya()')), 'jalan Kota tanpa lampu titik / sorot (genangan = peta cahaya)');
   assert.ok(!/supabase|mqtt|kosan_occupants/i.test(BLOK_KOTA), 'Kota tidak menyentuh Supabase / MQTT');
+});
+
+test('Kota: kamera — garis tengah bulevar + jalan lingkar bebas batang / tiang, penghindar kamera hanya bekerja saat perlu', () => {
+  /* kamera orbit bawaan (cameraPos di index.html): di belakang pemain, landscape 9 m / portrait 13 m, pitch 0,2 */
+  const kam = (x, z, yaw, d) => ({ x: x + Math.sin(yaw) * d * Math.cos(0.2), y: Math.sin(0.2) * d + 1.2, z: z + Math.cos(yaw) * d * Math.cos(0.2) });
+  const tengah = [ /* [x0, z0, x1, z1] garis tengah: bulevar (di luar plaza) + 4 jalan lingkar */
+    [-88, 0, -13, 0], [13, 0, 90, 0], [-54, -52, -54, 52], [54, -52, 54, 52], [-54, -52, 54, -52], [-54, 52, 54, 52]];
+  const tiang = F.KOTA_POHON.concat(F.KOTA_LAMPU.filter((l) => !F.KOTA_LAMPU_PLAZA.some((q) => q.x === l.x && q.z === l.z)));
+  assert.equal(F.KOTA_HALANG_KAMERA.length, F.KOTA_POHON.length + F.KOTA_LAMPU.length, 'semua pohon + tiang terdaftar sebagai penghalang kamera');
+  for (const [x0, z0, x1, z1] of tengah) {
+    const L = Math.hypot(x1 - x0, z1 - z0), ux = (x1 - x0) / L, uz = (z1 - z0) / L;
+    for (const o of tiang) { /* tidak ada pohon / tiang jalan dalam koridor 2 m kiri-kanan garis tengah */
+      const s = (o.x - x0) * ux + (o.z - z0) * uz; if (s < 0 || s > L) continue;
+      const d = Math.abs((o.x - x0) * uz - (o.z - z0) * ux);
+      assert.ok(d >= 2, 'penghalang di garis tengah: ' + JSON.stringify(o) + ' jarak ' + d.toFixed(2));
+    }
+    for (const arah of [1, -1]) for (const dist of [9, 13]) for (let s = 0; s <= L; s += 0.5) { /* jalan lurus dua arah: penghindar diam (faktor 1) */
+      const x = x0 + ux * s, z = z0 + uz * s, yaw = Math.atan2(-ux * arah, -uz * arah), c = kam(x, z, yaw, dist);
+      const fk = F.kotaKameraFaktor(c.x, c.y, c.z, x, 1.5, z, dist);
+      const K = F.kotaKamKotak(z), dalam = (q) => q.x >= K.x0 - 1e-9 && q.x <= K.x1 + 1e-9 && q.z >= K.z0 - 1e-9 && q.z <= K.z1 + 1e-9;
+      if (dalam(c)) assert.equal(fk, 1, 'kamera terganggu di ' + x.toFixed(1) + ',' + z.toFixed(1));
+      else { /* ujung jalan: kamera ditahan di depan fasad gedung penutup (paling dekat 1,6 m dari pemain) */
+        const k2 = { x: x + (c.x - x) * fk, z: z + (c.z - z) * fk };
+        assert.ok(fk < 1 && (fk * dist <= 1.6 + 1e-9 || dalam(k2)), 'kamera masuk gedung ujung di ' + x.toFixed(1) + ',' + z.toFixed(1));
+      }
+    }
+  }
+  /* tiang tepat di antara kamera dan pemain, dekat kamera -> kamera didekatkan sampai lewat tiang, tidak lebih dekat dari 60% */
+  const t = F.KOTA_LAMPU.find((l) => Math.abs(l.z) === 5.7), yaw = -Math.PI / 2, px = t.x + 7, c = kam(px, t.z, yaw, 9);
+  const f = F.kotaKameraFaktor(c.x, c.y, c.z, px, 1.5, t.z, 9);
+  assert.ok(f < 1 && f >= 0.6, 'faktor ' + f);
+  assert.ok(px - 9 * f * Math.cos(0.2) > t.x + 0.3, 'kamera baru berada di sisi pemain dari tiang');
+  for (let geser = 0; geser <= 1.2; geser += 0.02) { /* mulus: geser menyamping sedikit -> faktor berubah sedikit (tanpa lompat) */
+    const a = F.kotaKameraFaktor(c.x, c.y, c.z + geser, px, 1.5, t.z + geser, 9), b = F.kotaKameraFaktor(c.x, c.y, c.z + geser + 0.02, px, 1.5, t.z + geser + 0.02, 9);
+    assert.ok(Math.abs(a - b) < 0.05, 'lompat di geser ' + geser.toFixed(2));
+  }
+  assert.equal(F.kotaKameraFaktor(c.x, c.y, c.z + 1.5, px, 1.5, t.z + 1.5, 9), 1, 'tiang di samping (1,5 m) tidak mengubah kamera');
+  /* kabel: hanya di alam Kota (kotaTick cabang myRealm === "kota"), kamera alam lain tidak disentuh */
+  const tick = fungsi('kotaTick');
+  assert.ok(tick.indexOf('kotaKameraTick(dt)') > tick.indexOf("if (myRealm === 'kota')") && tick.indexOf('kotaKameraTick(dt)') < tick.indexOf('} else if'), 'penghindar hanya di cabang Kota');
+  assert.equal(HTML.split('kotaKameraTick(').length - 1, 2, 'kotaKameraTick: definisi + satu panggilan');
+});
+
+test('Kota: tanaman — tidak ada lagi semak / pot "bola bersegi"; pagar teras menyambung; tanaman interior = helai berbentuk + pot bubut', () => {
+  /* ikosahedron detail 0 (20 muka datar) + kerucut 4 sisi dulu dipakai untuk semak pot, bunga, dan daun: sekarang gugus halus */
+  const iko0 = BLOK_KOTA.split('\n').filter((b) => /IcosahedronGeometry\([^)]*,\s*0\)/.test(b) && !/B\.bayang\.geo\(new THREE\.IcosahedronGeometry/.test(b));
+  assert.equal(iko0.length, 0, 'tidak ada ikosahedron detail 0 di blok Kota (kecuali bayangan tajuk di tanah)');
+  assert.ok(!/ConeGeometry\([^)]*,\s*4\)[^;]*kotaW\((0x3f7f3f|0x4f8a45|0x5a9a4c|KC\.daun)/.test(BLOK_KOTA), 'tidak ada daun kerucut 4 sisi');
+  assert.ok(!/IcosahedronGeometry\([^)]*\)[^;]*kotaW\(KC\.daun(Muda)?\)/.test(BLOK_KOTA), 'tidak ada bola ikosahedron hijau');
+  const teras = BLOK_KOTA.slice(BLOK_KOTA.indexOf('KOTA_TERAS.forEach('));
+  assert.match(teras.slice(0, 900), /kotaPagarDaun\(B\.daun,/, 'pagar teras kafe = pagar tanaman menyambung di ember daun');
+  /* tanaman interior (23 Nov): tanaman hias sungguhan — bukan semak gugus ("brokoli"), bukan bola / kerucut */
+  const hias = antara('/* ---- tanaman hias interior "hero"', 'function kotaLampuGantung(');
+  assert.ok(!/kotaSemak\(|kotaGugusDaun\(|IcosahedronGeometry|ConeGeometry/.test(hias), 'tanaman interior tanpa gugus bola / kerucut');
+  for (const f of ['kotaFicus', 'kotaPalem', 'kotaStrelitzia', 'kotaKuntum', 'kotaRangkaianBunga', 'kotaTanamanGantung']) assert.match(fungsi(f), /kotaHelai\(B\.helai,/, f + ': daun / kelopak = helai berbentuk di ember helai');
+  assert.match(fungsi('kotaTanamanPot'), /kotaPotMewah\(B, x, z, s, o\)/, 'tanaman pot interior berdiri di pot bubut');
+  for (const m of hias.matchAll(/kotaPutar\(B\.kilap,[\s\S]*?\], (\d+), c[A-Z]\);/g)) assert.ok(+m[1] >= 24, 'pot / vas bubut minimal 24 sisi (dapat ' + m[1] + ')');
+  assert.equal([...hias.matchAll(/kotaPutar\(B\.kilap,[\s\S]*?\], (\d+), c[A-Z]\);/g)].length, 3, 'pot lantai, vas lobi, pot gantung = benda putar');
+  assert.ok(!/silinder\([^;]*, (\d|1\d|2[0-3]), kotaW\((0xb8644a|0xc9d6e0)\)/.test(antara('function kotaIsiHotel(', 'function kotaKabinet(')), 'tidak ada lagi pot / vas silinder bersegi di interior');
+  assert.match(fungsi('kotaIsiHotel'), /kotaRangkaianBunga\(B, 0, 0\.96, 0\)/, 'vas lobi hotel = rangkaian bunga berkelopak');
+  assert.match(fungsi('kotaIsiKafe'), /kotaTanamanGantung\(B, p\[0\], p\[1\], H\)/, 'tanaman gantung kafe');
+  assert.match(fungsi('kotaIsiHotel'), /'palem' : 'ficus'/, 'lobi hotel: palem + ficus');
+  assert.match(fungsi('kotaIsiButik'), /'strelitzia', potB\)[\s\S]*'ficus', potB\)/, 'butik: strelitzia + ficus');
+  /* satu bahan helai (Lambert dua sisi, tidak menyala) dipakai semua ruang -> +1 draw call per ruang bertanaman, bukan per tanaman */
+  assert.equal(BLOK_KOTA.split("helai.name = 'kota-dalam-helai'").length - 1, 1, 'satu bahan helai');
+  assert.match(fungsi('kotaBahanUmum'), /var helai = new THREE\.MeshLambertMaterial\(\{ map: teksturLukis\(256, 512, kotaLukisHelai\), vertexColors: true, side: THREE\.DoubleSide \}\)/, 'bahan helai Lambert dua sisi');
+  assert.equal(BLOK_KOTA.split("new KotaGeo('helai')").length - 1, 1, 'satu ember helai per ruang (kotaBangunRuang)');
+  assert.match(fungsi('kotaBalkonDeret'), /kotaSemak\(B\.daun,/, 'pot balkon: semak halus di ember daun');
+  assert.match(fungsi('kotaSemak'), /kotaGugusDaun\(/, 'semak memakai gugus daun yang sama dengan semak bak pohon');
 });

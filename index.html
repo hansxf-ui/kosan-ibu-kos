@@ -13387,19 +13387,23 @@ var KOTA_GEDUNG = [
 /* ---- perabot jalan (padat) ---- */
 var KOTA_AIR = { x: 0, z: 0, r: 8.6 }; /* kolam air mancur + Tugu Jam di tengah plaza (bibir kolam duduk-able 0,5 m) */
 var KOTA_LAMPU_PLAZA = [0, 1, 2, 3, 4, 5, 6, 7].map(function (i) { var a = Math.PI / 8 + i * Math.PI / 4; return { x: Math.round(Math.cos(a) * 15 * 100) / 100, z: Math.round(Math.sin(a) * 15 * 100) / 100 }; });
-var KOTA_PULAU_X = [-70, -42, 42, 70]; /* pulau tengah bulevar: pohon + 2 bangku ganda + 2 lampu */
-var KOTA_POHON = KOTA_PULAU_X.map(function (x) { return { x: x, z: 0, r: 1.55 }; }).concat(
-  [[-6, -40], [6, -40], [-6, 40], [6, 40], [-6, -50.5], [6, -50.5], [-6, 50.5], [6, 50.5]].map(function (p) { return { x: p[0], z: p[1], r: 1.15 }; }),
+/* pulau TEPI bulevar (cermin utara-selatan, z +-5,7): pohon + 2 bangku ganda + 2 lampu. Garis tengah bulevar (z = 0)
+   sengaja kosong: kamera orbit di belakang pemain yang jalan lurus tidak pernah tertutup batang / tiang. */
+var KOTA_PULAU_X = [-70, -42, 42, 70], KOTA_PULAU_Z = 5.7, KOTA_PULAU = [];
+KOTA_PULAU_X.forEach(function (x) { [-1, 1].forEach(function (s) { KOTA_PULAU.push({ x: x, z: s * KOTA_PULAU_Z }); }); });
+var KOTA_POHON = KOTA_PULAU.map(function (q) { return { x: q.x, z: q.z, r: 1.55 }; }).concat(
+  [[-6, -40], [6, -40], [-6, 40], [6, 40], [-6, -24], [6, -24], [-6, 24], [6, 24]].map(function (p) { return { x: p[0], z: p[1], r: 1.15 }; }), /* (z +-24: dulu di +-50,5 = di dalam simpang jalan lingkar, 1,5 m dari garis tengahnya) */
   [[-16, -16], [16, -16], [16, 16]].map(function (p) { return { x: p[0], z: p[1], r: 2.4 }; }) /* bak tanaman bundar + bibir duduk di segitiga plaza (barat daya = piano) */
 );
-var KOTA_LAMPU = KOTA_PULAU_X.map(function (x) { return [{ x: x - 6.2, z: 0 }, { x: x + 6.2, z: 0 }]; }).reduce(function (a, b) { return a.concat(b); }, [])
+/* lampu jalan lingkar berdiri di TEPI jalan (1,6 m dari fasad, selang-seling sisi luar / dalam, cermin), bukan di garis tengah */
+var KOTA_LAMPU = KOTA_PULAU.map(function (q) { return [{ x: q.x - 6.2, z: q.z }, { x: q.x + 6.2, z: q.z }]; }).reduce(function (a, b) { return a.concat(b); }, [])
   .concat(KOTA_LAMPU_PLAZA)
-  .concat([[-5.6, -30], [5.6, -30], [-5.6, 30], [5.6, 30], [-54, -40], [-54, -22], [-54, 22], [-54, 40], [54, -40], [54, -22], [54, 22], [54, 40],
-    [-36, -52], [-20, -52], [20, -52], [36, -52], [-36, 52], [-20, 52], [20, 52], [36, 52]].map(function (p) { return { x: p[0], z: p[1] }; }));
-/* bangku ganda (punggung ketemu punggung) di pulau bulevar + bangku tunggal di Jalan Raya. rot = arah hadap duduk (0 = +z). */
+  .concat([[-5.6, -30], [5.6, -30], [-5.6, 30], [5.6, 30], [-56.4, -40], [-51.6, -22], [-51.6, 22], [-56.4, 40], [56.4, -40], [51.6, -22], [51.6, 22], [56.4, 40],
+    [-36, -54.4], [-20, -49.6], [20, -49.6], [36, -54.4], [-36, 54.4], [-20, 49.6], [20, 49.6], [36, 54.4]].map(function (p) { return { x: p[0], z: p[1] }; }));
+/* bangku ganda (punggung ketemu punggung) di pulau tepi bulevar + bangku tunggal di Jalan Raya. rot = arah hadap duduk (0 = +z). */
 var KOTA_BANGKU = [];
-KOTA_PULAU_X.forEach(function (x, i) {
-  [-1, 1].forEach(function (s) { KOTA_BANGKU.push({ id: 'pulau' + i + (s < 0 ? 'b' : 't'), x: x + s * 3.3, z: 0, rot: 0, panjang: 2.2, ganda: true }); });
+KOTA_PULAU.forEach(function (q, i) {
+  [-1, 1].forEach(function (s) { KOTA_BANGKU.push({ id: 'pulau' + i + (s < 0 ? 'b' : 't'), x: q.x + s * 3.3, z: q.z, rot: 0, panjang: 2.2, ganda: true }); });
 });
 [[-6, -45.2], [6, -45.2], [-6, 45.2], [6, 45.2]].forEach(function (p, i) { KOTA_BANGKU.push({ id: 'raya' + i, x: p[0], z: p[1], rot: p[0] < 0 ? Math.PI / 2 : -Math.PI / 2, panjang: 2.0, ganda: false }); });
 /* kursi (dudukan 0,48 m = POSE_SIT): bangku ganda 3 + 3, bangku tunggal 3, bibir bak tanaman plaza 6 melingkar */
@@ -13639,7 +13643,7 @@ var KOTA_NPC = (function () {
   });
   /* teras kafe: 3 tamu duduk di kursi meja bundar (kursi 0,62 m di utara / selatan meja) */
   [[0, -1], [1, 1], [3, -1]].forEach(function (q) { var m = KOTA_TERAS_MEJA[q[0]]; tambah({ jenis: 'duduk', kursi: null, x: m[0], z: m[1] + q[1] * 0.62, rot: q[1] < 0 ? 0 : Math.PI }); });
-  [[[-27.4, -2.6], [-26.1, -1.4], [-26.4, -3.3]], [[27.6, 2.4], [28.9, 1.4]], [[-60.5, -4.8], [-59.2, -5.6]], [[62.5, 5.2], [63.7, 4.3], [63.9, 5.9]]].forEach(function (g) {
+  [[[-27.4, -2.6], [-26.1, -1.4], [-26.4, -3.3]], [[27.6, 2.4], [28.9, 1.4]], [[-60.5, -4.8], [-59.2, -5.6]], [[59.5, 5.2], [60.7, 4.3], [60.9, 5.9]]].forEach(function (g) {
     var cx = 0, cz = 0; g.forEach(function (p) { cx += p[0] / g.length; cz += p[1] / g.length; });
     g.forEach(function (p) { tambah({ jenis: 'ngobrol', x: p[0], z: p[1], rot: Math.atan2(cx - p[0], cz - p[1]) }); });
   });
@@ -13653,6 +13657,35 @@ function kotaNpcKeadaan(npc, tDetik) { /* -> { x, z, rot, gerak, pose: 'jalan' |
   return { x: npc.x, z: npc.z, rot: npc.rot, gerak: 0, pose: npc.jenis };
 }
 function kotaKursiWarga() { return KOTA_NPC.filter(function (n) { return n.jenis === 'duduk' && n.kursi; }).map(function (n) { return { x: n.x, z: n.z }; }); }
+/* ---- penghindar kamera (khusus alam Kota, luar ruang) ----
+   Batang pohon + tiang lampu = lingkaran XZ + tinggi. Kalau salah satunya berdiri DEKAT kamera (<= 2,8 m) tepat di garis
+   kamera -> pemain, kamera didekatkan sampai lewat penghalang itu. Hasil = faktor jarak (1 = tidak diubah), tidak pernah
+   lebih dekat dari 60% jarak pilihan pemain (atau 3 m). Analitik (tanpa raycast mesh); pelunakan waktu di kotaKameraTick. */
+var KOTA_HALANG_KAMERA = KOTA_POHON.map(function (p) { return { x: p.x, z: p.z, r: p.r >= 2 ? 0.36 : 0.26, h: 4.4 }; })
+  .concat(KOTA_LAMPU.map(function (p) { return { x: p.x, z: p.z, r: 0.12, h: 6.2 }; }));
+function kotaKamKotak(tz) { /* kotak tempat kamera boleh berada: 0,3 m di depan fasad penutup; di luar bulevar (|z| > 12) batas timur-barat = sisi luar jalan lingkar */
+  var bul = Math.abs(tz) <= 12; return { x0: bul ? KOTA.minX + 0.3 : -57.7, x1: bul ? KOTA.maxX - 0.3 : 57.7, z0: -55.7, z1: 55.7 };
+}
+function kotaKameraFaktor(cx, cy, cz, tx, ty, tz, jarak) {
+  var dx = tx - cx, dz = tz - cz, L = Math.hypot(dx, dz), f = 1;
+  if (L < 1.5) return 1;
+  var ux = dx / L, uz = dz / L, fMin = Math.max(0.6, Math.min(1, 3 / Math.max(0.01, jarak)));
+  for (var i = 0; i < KOTA_HALANG_KAMERA.length; i++) {
+    var o = KOTA_HALANG_KAMERA[i], s = (o.x - cx) * ux + (o.z - cz) * uz;
+    if (s < -0.3 || s > 2.8 || s > L - 1.2) continue;
+    var d = Math.abs((o.x - cx) * uz - (o.z - cz) * ux), lebar = o.r + 0.55;
+    if (d >= lebar) continue;
+    if (cy + (ty - cy) * Math.max(0, s) / L > o.h + 0.3) continue; /* garis pandang lewat di atas penghalang */
+    var w = Math.min(1, (lebar - d) / 0.35); w = w * w * (3 - 2 * w);
+    f = Math.min(f, 1 - w * (1 - Math.max(fMin, (L - s - 0.7) / L)));
+  }
+  /* ujung jalan: kamera tidak boleh mundur masuk gedung penutup (Stasiun / Menara Kembar di ujung bulevar, gedung luar di pojok jalan lingkar + ujung Jalan Raya) */
+  var K = kotaKamKotak(tz), g = 1;
+  if (cx < K.x0 && tx - cx > 1e-6) g = Math.min(g, (tx - K.x0) / (tx - cx)); else if (cx > K.x1 && cx - tx > 1e-6) g = Math.min(g, (K.x1 - tx) / (cx - tx));
+  if (cz < K.z0 && tz - cz > 1e-6) g = Math.min(g, (tz - K.z0) / (tz - cz)); else if (cz > K.z1 && cz - tz > 1e-6) g = Math.min(g, (K.z1 - tz) / (cz - tz));
+  if (g < 1) f = Math.min(f, Math.max(g, Math.min(1, 1.6 / Math.max(0.01, jarak))));
+  return f;
+}
 /* ==== KOTA-END ==== */
 /* ---------- KOTA runtime: penulis geometri cepat (typed array, satu draw call per bahan) ----------
    Semua aset Kota dibangun SAAT PERTAMA masuk Kota (buildKota), bukan saat halaman kosan dimuat.
@@ -13971,6 +14004,23 @@ function kotaLukisHalus(ctx, w, h) { /* permukaan cat / logam / beton halus: bin
   for (var i = 0; i < 2600; i++) { var g = 200 + Math.floor(r() * 55); ctx.fillStyle = 'rgba(' + g + ',' + g + ',' + g + ',0.25)'; ctx.fillRect(r() * w, r() * h, 1, 1); }
   for (var k = 0; k < 6; k++) { ctx.fillStyle = 'rgba(255,255,255,0.05)'; ctx.fillRect(0, r() * h, w, 2 + r() * 6); }
 }
+function kotaLukisDaun(ctx, w, h) { /* dedaunan rapat (ubin mulus): helai lonjong acak terang-gelap + urat; dikalikan warna verteks gugus tajuk */
+  var r = acak(7741);
+  ctx.fillStyle = '#b4c0a2'; ctx.fillRect(0, 0, w, h);
+  for (var i = 0; i < 2600; i++) {
+    var x = r() * w, y = r() * h, a = r() * Math.PI, pj = (10 + r() * 13) * w / 512, lb = pj * (0.42 + r() * 0.2), t = r(), g = Math.floor(150 + t * 105);
+    var isi = 'rgb(' + Math.floor(g * 0.93) + ',' + g + ',' + Math.floor(g * 0.86) + ')', urat = 'rgba(255,255,255,' + (0.1 + t * 0.14) + ')';
+    for (var ox = -1; ox <= 1; ox++) for (var oy = -1; oy <= 1; oy++) {
+      var px = x + ox * w, py = y + oy * h;
+      if (px < -pj || px > w + pj || py < -pj || py > h + pj) continue;
+      ctx.save(); ctx.translate(px, py); ctx.rotate(a);
+      ctx.fillStyle = 'rgba(40,52,36,0.34)'; ctx.beginPath(); ctx.ellipse(1.5, 2, pj, lb, 0, 0, Math.PI * 2); ctx.fill(); /* bayangan helai */
+      ctx.fillStyle = isi; ctx.beginPath(); ctx.moveTo(-pj, 0); ctx.quadraticCurveTo(0, -lb * 1.5, pj, 0); ctx.quadraticCurveTo(0, lb * 1.5, -pj, 0); ctx.fill();
+      ctx.strokeStyle = urat; ctx.lineWidth = Math.max(1, w / 512); ctx.beginPath(); ctx.moveTo(-pj * 0.9, 0); ctx.lineTo(pj * 0.9, 0); ctx.stroke();
+      ctx.restore();
+    }
+  }
+}
 function kotaLukisLantai(ctx, w, h) { /* granit paving 0,8 x 0,4 m (petak 4,8 m: 6 x 12), ikatan setengah, nada acak + bintik */
   var r = acak(3301), nx = 6, ny = 12, bw = w / nx, bh = h / ny;
   ctx.fillStyle = '#5c5f63'; ctx.fillRect(0, 0, w, h);
@@ -14043,6 +14093,7 @@ function kotaBahan() {
     batu: lambert({ map: batu, vertexColors: true }, 'batu'),
     halus: lambert({ map: halus, vertexColors: true }, 'halus'),
     lantai: lambert({ map: lantai, vertexColors: true }, 'lantai'),
+    daun: lambert({ map: teksturLukis(512, 512, kotaLukisDaun, [1, 1]), vertexColors: true }, 'daun'),
     kilap: (function () { var m = new THREE.MeshPhongMaterial({ vertexColors: true, specular: 0x9a9a9a, shininess: 64 }); m.onBeforeCompile = kotaSuntikMalam; m.customProgramCacheKey = kotaKunciSuntik('malam'); m.name = 'kota-kilap'; return m; })(),
     kaca: (function () { var m = new THREE.MeshBasicMaterial({ map: kaca, vertexColors: true }); m.onBeforeCompile = kotaSuntikKaca; m.customProgramCacheKey = kotaKunciSuntik('kaca'); m.name = 'kota-kaca'; return m; })(),
     etalase: new THREE.MeshBasicMaterial({ color: 0xd8ecff, transparent: true, opacity: 0.17, depthWrite: false, name: 'kota-etalase' }),
@@ -14066,7 +14117,7 @@ var KC = { /* palet bahan (hex sRGB) */
 };
 function kotaEmber() { /* ember geometri baru (satu set per kelompok mesh) */
   var B = {};
-  ['batu', 'halus', 'kilap', 'kaca', 'etalase', 'nyala', 'teks', 'air', 'bayang', 'lantai'].forEach(function (k) { B[k] = new KotaGeo(k); });
+  ['batu', 'halus', 'kilap', 'kaca', 'etalase', 'nyala', 'teks', 'air', 'bayang', 'lantai', 'daun'].forEach(function (k) { B[k] = new KotaGeo(k); });
   B.batu.petak = 2.4; B.halus.petak = 1.0; B.lantai.petak = 4.8; B.batu.aoTanah = true; B.halus.aoTanah = true;
   return B;
 }
@@ -14349,7 +14400,7 @@ function kotaBangunTanah(B) {
       var F = S.F; L.fk(F, 0, S.panjang, -0.05, 0.008, 0, 0.6, cTepi, KM_PY);
     });
   });
-  [[-88, -14, -4.6], [-88, -14, 4.6], [14, 90, -4.6], [14, 90, 4.6]].forEach(function (g) { L.kotakMM(g[0], g[1], -0.05, 0.01, g[2] - 0.15, g[2] + 0.15, cKuning, KM_PY); });
+  [[-88, -14, -3.4], [-88, -14, 3.4], [14, 90, -3.4], [14, 90, 3.4]].forEach(function (g) { L.kotakMM(g[0], g[1], -0.05, 0.01, g[2] - 0.15, g[2] + 0.15, cKuning, KM_PY); });
   [[-54, -30], [30, 54]].forEach(function (g) { L.kotakMM(-0.15, 0.15, -0.05, 0.01, g[0], g[1], cKuning, KM_PY); });
   /* tutup saluran air (logam berkisi) memanjang di dua sisi bulevar */
   [-10.2, 10.2].forEach(function (z) { for (var x = -86; x < 88; x += 8) if (Math.abs(x) > 30) B.kilap.kotakMM(x, x + 6, -0.02, 0.015, z - 0.18, z + 0.18, kotaW(0x3a3c40), KM_PY); });
@@ -14466,7 +14517,7 @@ function kotaBalkonDeret(B, F, s0, s1, y0, y1, o) { /* hunian: pintu kaca geser 
       if (o.selang && (k + j) % 2) continue;
       var a = s0 + k * b + 0.25, c = s0 + (k + 1) * b - 0.25;
       kotaBalkon(B, F, a, c, y, o.dalam || 1.3, { pelat: o.pelat || KC.putih, kaca: o.pagarKaca !== false });
-      if (j < 7 && r() < 0.3) { var p = kotaBidangTitik(F, a + 0.4, 0.5); B.halus.silinder(p[0], y, p[1], 0.18, 0.14, 0.35, 6, kotaW(0xb8644a), true); B.halus.geo(new THREE.IcosahedronGeometry(0.3, 0), kotaMatriks(p[0], y + 0.6, p[1]), kotaW(KC.daun)); }
+      if (j < 7 && r() < 0.3) { var p = kotaBidangTitik(F, a + 0.4, 0.5); B.halus.silinder(p[0], y, p[1], 0.18, 0.14, 0.35, 6, kotaW(0xb8644a), true); kotaSemak(B.daun, p[0], y + 0.33, p[1], 0.3, Math.round(p[0] * 7 + p[1] * 13 + y * 3) + 57, { detail: 1, sisi: 0, q: 0.9, lantaiY: y + 0.34 }); }
     }
   }
 }
@@ -14545,7 +14596,10 @@ function kotaPerlengkapanAtap(B, poli, y, o) { /* unit AC, ruang lift, tangki, a
 function kotaPohonKecil(B, x, y, z, s) { /* pohon pot di teras atap */
   B.halus.kotak(x, y + 0.35 * s, z, 0.55 * s, 0.35 * s, 0.55 * s, 0, kotaW(0x8a8f94), KM_SEMUA);
   B.halus.silinder(x, y + 0.7 * s, z, 0.07 * s, 0.05 * s, 1.0 * s, 6, kotaW(0x5a4030), false);
-  B.halus.geo(new THREE.IcosahedronGeometry(0.75 * s, 1), kotaMatriks(x, y + 2.0 * s, z, 0, 0, 0, 1, 0.85, 1), kotaW(KC.daun));
+  var r = acak(Math.round(x * 7 + z * 13) + 31), hijau = [kotaW(0x3f7f3f), kotaW(0x5a9a4c), kotaW(0x4c8c45)], G = [];
+  G.push({ x: x, y: y + 2.0 * s, z: z, r: 0.62 * s, q: 0.86, detail: y > 30 ? 1 : 2, warna: hijau[0], f: [r() * 6, r() * 6, r() * 6, r() * 6, r() * 6] });
+  for (var k = 0; k < 2; k++) { var a = k * 3.1416 + r() * 0.8; G.push({ x: x + Math.cos(a) * 0.42 * s, y: y + (1.85 + r() * 0.4) * s, z: z + Math.sin(a) * 0.42 * s, r: (0.42 + r() * 0.1) * s, q: 0.84, detail: 1, warna: hijau[1 + k % 2], f: [r() * 6, r() * 6, r() * 6, r() * 6, r() * 6] }); }
+  kotaGugusDaun(B.daun, G, [x, y + 2.0 * s, z], 0.9 * s, 2);
 }
 /* ---- mahkota menara ---- */
 function kotaMahkotaLentera(B, x, z, y, r, h, o) { /* lentera segi delapan kaca menyala + kubah emas + puncak runcing */
@@ -14647,7 +14701,7 @@ var KOTA_ISI = {
   permata: function () { return function (B, F, s0, s1, y, w) { var L = s1 - s0, n = Math.max(2, Math.round(L / 0.9)); for (var i = 0; i < n; i++) { var s = s0 + L * (i + 0.5) / n, h = 0.5 + (i % 3) * 0.18; B.halus.fk(F, s - 0.18, s + 0.18, y, y + h, w + 0.3, w + 0.66, kotaW(0x1c1f3a), KM_PZ | KM_PY | KM_PX | KM_NX); B.halus.fgeo(F, new THREE.CylinderGeometry(0.03, 0.09, 0.24, 10), s, y + h + 0.12, w + 0.48, 0, 0, 0, 1, 1, 1, kotaW(0x24284a)); B.nyala.fgeo(F, new THREE.TorusGeometry(0.07, 0.014, 3, 10), s, y + h + 0.3, w + 0.48, 0, 0, 0, 1, 1, 1, kotaW(i % 2 ? 0xfff0b8 : 0xe8f4ff)); B.nyala.fgeo(F, new THREE.OctahedronGeometry(0.035), s, y + h + 0.38, w + 0.48, 0, 0, 0, 1, 1, 1, kotaW(0xffffff)); } }; },
   tekno: function () { return function (B, F, s0, s1, y, w) { var L = s1 - s0, n = Math.max(1, Math.round(L / 2.2)); for (var i = 0; i < n; i++) { var s = s0 + L * (i + 0.5) / n; B.halus.fk(F, s - 0.8, s + 0.8, y, y + 0.5, w + 0.5, w + 1.3, kotaW(0xe9e6e0), KM_PZ | KM_PY | KM_PX | KM_NX); for (var k = -1; k <= 1; k++) { B.kilap.fk(F, s + k * 0.5 - 0.09, s + k * 0.5 + 0.09, y + 0.5, y + 0.52, w + 0.75, w + 1.05, kotaW(0x2a2c30), KM_PY | KM_PZ); B.nyala.fk(F, s + k * 0.5 - 0.08, s + k * 0.5 + 0.08, y + 0.52, y + 0.525, w + 0.77, w + 1.03, kotaW(k ? 0x7fc4ff : 0xffa8d8), KM_PY); } } }; },
   kue: function () { return function (B, F, s0, s1, y, w) { var L = s1 - s0, n = Math.max(2, Math.round(L / 0.7)), warna = [0xf6d2dc, 0x7a4a2a, 0xfff4e0, 0xe8b04a, 0x9fd6b0]; B.kilap.fk(F, s0 + 0.1, s1 - 0.1, y + 0.55, y + 0.58, w + 0.25, w + 0.85, kotaW(KC.kuningan), KM_PY | KM_PZ); for (var i = 0; i < n; i++) { var s = s0 + L * (i + 0.5) / n; B.halus.silinder(kotaBidangTitik(F, s, w + 0.5)[0], y + 0.58, kotaBidangTitik(F, s, w + 0.5)[1], 0.16, 0.16, 0.14 + (i % 2) * 0.06, 9, kotaW(warna[i % 5]), true); B.halus.silinder(kotaBidangTitik(F, s, w + 0.55)[0], y, kotaBidangTitik(F, s, w + 0.55)[1], 0.15, 0.15, 0.25 + (i % 2) * 0.1, 9, kotaW(warna[(i + 2) % 5]), true); } }; },
-  bunga: function () { return function (B, F, s0, s1, y, w) { var L = s1 - s0, n = Math.max(2, Math.round(L / 0.6)), warna = [0xe84a6f, 0xf6c344, 0xffffff, 0xb36bd6, 0xff8c42]; for (var i = 0; i < n; i++) { var s = s0 + L * (i + 0.5) / n, p = kotaBidangTitik(F, s, w + 0.5 + (i % 2) * 0.3); B.halus.silinder(p[0], y, p[1], 0.16, 0.12, 0.3, 7, kotaW(0x8a5a3a), true); B.halus.geo(new THREE.IcosahedronGeometry(0.24, 0), kotaMatriks(p[0], y + 0.5, p[1]), kotaW(0x3f7f3f)); B.halus.geo(new THREE.OctahedronGeometry(0.12), kotaMatriks(p[0] + 0.08, y + 0.66, p[1]), kotaW(warna[i % 5])); } }; },
+  bunga: function () { return function (B, F, s0, s1, y, w) { var L = s1 - s0, n = Math.max(2, Math.round(L / 1.2)), warna = [0xe84a6f, 0xf6c344, 0xffffff, 0xb36bd6, 0xff8c42]; for (var i = 0; i < n; i++) { var s = s0 + L * (i + 0.5) / n, p = kotaBidangTitik(F, s, w + 0.5 + (i % 2) * 0.3); B.halus.silinder(p[0], y, p[1], 0.19, 0.14, 0.3, 10, kotaW(0x8a5a3a), true); kotaSemak(B.daun, p[0], y + 0.27, p[1], 0.25, Math.round(p[0] * 7 + p[1] * 13) + 73, { detail: 1, sisi: 0, q: 0.9, lantaiY: y + 0.3, warna: [i % 2 ? 0x4f8a45 : 0x3d7a3c] }); B.halus.geo(new THREE.SphereGeometry(0.085, 7, 4), kotaMatriks(p[0] + 0.07, y + 0.71, p[1] - 0.02, 0, 0, 0, 1, 0.85, 1), kotaW(warna[i % 5])); } }; },
   buku: function () { return function (B, F, s0, s1, y, w) { var L = s1 - s0, warna = [0xc0392b, 0x2e6b9e, 0xe8b04a, 0x3f7f3f, 0x5a3a26, 0xf3efe8]; for (var r = 0; r < 3; r++) { B.halus.fk(F, s0 + 0.1, s1 - 0.1, y + r * 0.62, y + r * 0.62 + 0.04, w + 0.05, w + 0.4, kotaW(KC.kayuGelap), KM_PY | KM_PZ); for (var x = s0 + 0.15; x < s1 - 0.2; x += 0.11 + ((x * 31) % 3) * 0.01) B.halus.fk(F, x, x + 0.09, y + r * 0.62 + 0.04, y + r * 0.62 + 0.3 + ((x * 17) % 5) * 0.03, w + 0.08, w + 0.34, kotaW(warna[Math.floor(x * 13) % 6]), KM_PZ | KM_PY); } }; },
   kopi: function () { return function (B, F, s0, s1, y, w) { var L = s1 - s0; B.halus.fk(F, s0 + 0.2, s1 - 0.2, y, y + 0.7, w + 0.3, w + 0.9, kotaW(KC.kayuGelap), KM_PZ | KM_PY); B.kilap.fk(F, s0 + 0.15, s1 - 0.15, y + 0.7, y + 0.74, w + 0.25, w + 0.95, kotaW(KC.marmer), KM_PY | KM_PZ); var p = kotaBidangTitik(F, s0 + L * 0.3, w + 0.6); B.kilap.kotak(p[0], y + 0.95, p[1], 0.22, 0.22, 0.18, F.rot, kotaW(KC.krom), KM_SEMUA); for (var i = 0; i < 4; i++) { var q = kotaBidangTitik(F, s0 + L * (0.55 + i * 0.1), w + 0.6); B.halus.silinder(q[0], y + 0.74, q[1], 0.05, 0.06, 0.12, 8, kotaW(0xf3efe8), true); } }; }
 };
@@ -14855,7 +14909,7 @@ function kotaGedungKafe(B) {
   /* teras: pagar tanaman rendah, meja bundar marmer + 2 kursi bistro, payung (dibaca di KOTA_TERAS / KOTA_TERAS_MEJA) */
   KOTA_TERAS.forEach(function (t) {
     B.halus.kotakMM(t.minX, t.maxX, 0, 0.62, t.maxZ - 0.42, t.maxZ, kotaW(0x5a5e62), KM_SEMUA);
-    for (var x = t.minX + 0.3; x < t.maxX - 0.2; x += 0.55) B.halus.geo(new THREE.IcosahedronGeometry(0.3, 1), kotaMatriks(x, 0.8, t.maxZ - 0.21, 0, 0, 0, 1, 0.7, 0.75), kotaW(KC.daunMuda));
+    kotaPagarDaun(B.daun, t.minX + 0.04, t.maxX - 0.04, t.maxZ - 0.21, 0.62, 0.46, 0.46, Math.round(t.minX * 7) + 211); /* pagar tanaman rapi menyambung (dulu deretan bola) */
   });
   KOTA_TERAS_MEJA.forEach(function (m, i) {
     B.kilap.silinder(m[0], 0, m[1], 0.22, 0.22, 0.03, 14, kotaW(KC.besiHitam), true);
@@ -15608,22 +15662,181 @@ function kotaBangunCakrawala(B) {
 /* ---------- KOTA: perabot jalan + objek interaktif (posisi dari blok murni KOTA_*) ---------- */
 var KOTA_GLOBE = null; /* rentang verteks bola lampu taman plaza di mesh nyala (warna diganti saat diketuk) */
 var KOTA_ANIM = {}; /* mesh kecil beranimasi: capit, kaleng, kilat foto, uap kios, not piano */
-function kotaPohon(B, p) { /* bak tanaman granit (bibir duduk) + tanah + batang + tajuk bundar berlapis */
-  var tinggiBak = p.r >= 2 ? 0.48 : 0.55, cBak = kotaW(p.r >= 2 ? 0xa7aaae : 0x8d9095), cTepi = kotaW(0xc4c6c9), r = acak(Math.round(p.x * 7 + p.z * 13) + 99);
-  B.batu.silinder(p.x, 0, p.z, p.r, p.r, tinggiBak, 32, cBak, false);
+/* ---- pohon kota "hero": tajuk = gugus bola halus yang dibenjolkan (normal halus dihitung dari benjolannya), batang sapuan
+   berpangkal lebar + cabang masuk ke tajuk. Semua masuk ember bersama (daun / halus) -> tanpa draw call per pohon. ---- */
+var KOTA_BOLA = {};
+function kotaBolaDasar(detail) { /* bola satuan (ikosahedron dibagi): posisi + uv bawaan THREE (jahitan uv sudah dirapikan) */
+  if (!KOTA_BOLA[detail]) { var g = new THREE.IcosahedronGeometry(1, detail); KOTA_BOLA[detail] = { p: g.attributes.position.array, u: g.attributes.uv.array, n: g.attributes.position.count }; }
+  return KOTA_BOLA[detail];
+}
+function kotaBenjol(x, y, z, f) { /* -1..1: benjolan lembut di permukaan bola (arah satuan) */
+  return 0.6 * Math.sin(x * 3.1 + f[0]) * Math.sin(y * 2.7 + f[1]) * Math.sin(z * 3.3 + f[2]) + 0.4 * Math.sin(x * 5.3 + y * 4.1 + f[3]) * Math.sin(z * 5.9 - y * 3.7 + f[4]);
+}
+/* daftar gugus { x, y, z, r, q (pipih y), detail, warna [r,g,b] linear, f [5 fase] } -> G. Segitiga yang seluruhnya terbenam di
+   gugus lain (atau di bawah lantaiY) tidak ditulis (hemat tris, tidak pernah terlihat). pusat + jari = tajuk utuh (bagian dalam / bawah lebih gelap). */
+function kotaGugusDaun(G, daftar, pusat, jari, uvSk, lantaiY) {
+  var AMP = 0.12, E = 0.04, BATAS = 0.86 * 0.86;
+  for (var k = 0; k < daftar.length; k++) {
+    var g = daftar[k], D = kotaBolaDasar(g.detail), n = D.n, P = new Float32Array(n * 3), N = new Float32Array(n * 3), C = new Float32Array(n * 3), q = g.q || 1;
+    for (var i = 0; i < n; i++) {
+      var dx = D.p[i * 3], dy = D.p[i * 3 + 1], dz = D.p[i * 3 + 2], hl = Math.hypot(dx, dz);
+      var ax = hl > 1e-4 ? -dz / hl : 1, az = hl > 1e-4 ? dx / hl : 0; /* tangen 1 (datar) */
+      var bx = dy * az, by = dz * ax - dx * az, bz = -dy * ax; /* tangen 2 = d x a */
+      var b0 = kotaBenjol(dx, dy, dz, g.f), rr = 1 + AMP * b0;
+      var ga = (kotaBenjol(dx + ax * E, dy, dz + az * E, g.f) - kotaBenjol(dx - ax * E, dy, dz - az * E, g.f)) / (2 * E) * AMP;
+      var gb = (kotaBenjol(dx + bx * E, dy + by * E, dz + bz * E, g.f) - kotaBenjol(dx - bx * E, dy - by * E, dz - bz * E, g.f)) / (2 * E) * AMP;
+      var nx = dx * rr - ax * ga - bx * gb, ny = (dy * rr - by * gb) / q, nz = dz * rr - az * ga - bz * gb, nl = Math.hypot(nx, ny, nz) || 1;
+      nx /= nl; ny /= nl; nz /= nl;
+      var px = g.x + dx * rr * g.r, py = g.y + dy * rr * g.r * q, pz = g.z + dz * rr * g.r;
+      P[i * 3] = px; P[i * 3 + 1] = py; P[i * 3 + 2] = pz; N[i * 3] = nx; N[i * 3 + 1] = ny; N[i * 3 + 2] = nz;
+      var jauh = Math.min(1, Math.hypot(px - pusat[0], py - pusat[1], pz - pusat[2]) / jari);
+      var t = 1.45 * (0.55 + 0.55 * (ny * 0.5 + 0.5)) * (0.7 + 0.3 * jauh) * (0.92 + 0.16 * kotaBenjol(dz * 1.7, dx * 1.9, dy * 1.3, g.f)) * (1 + 0.35 * Math.max(0, b0)); /* pucuk benjolan lebih terang */
+      C[i * 3] = g.warna[0] * t; C[i * 3 + 1] = g.warna[1] * t; C[i * 3 + 2] = g.warna[2] * t;
+    }
+    for (var s = 0; s < n; s += 3) {
+      var benam = lantaiY !== undefined && P[s * 3 + 1] < lantaiY && P[s * 3 + 4] < lantaiY && P[s * 3 + 7] < lantaiY; /* terkubur di bawah mulsa */
+      for (var j = 0; j < daftar.length && !benam; j++) {
+        if (j === k) continue;
+        var o = daftar[j], oq = o.q || 1, dalam = true;
+        for (var v = s; v < s + 3 && dalam; v++) { var ex = (P[v * 3] - o.x) / o.r, ey = (P[v * 3 + 1] - o.y) / (o.r * oq), ez = (P[v * 3 + 2] - o.z) / o.r; if (ex * ex + ey * ey + ez * ez > BATAS) dalam = false; }
+        benam = dalam;
+      }
+      if (benam) continue;
+      G.siap(3, 3);
+      var a0 = -1;
+      for (var w = s; w < s + 3; w++) { var id = G.v(P[w * 3], P[w * 3 + 1], P[w * 3 + 2], N[w * 3], N[w * 3 + 1], N[w * 3 + 2], D.u[w * 2] * uvSk, D.u[w * 2 + 1] * uvSk, [C[w * 3], C[w * 3 + 1], C[w * 3 + 2]]); if (a0 < 0) a0 = id; }
+      G.tri(a0, a0 + 1, a0 + 2);
+    }
+  }
+}
+/* tabung sapuan sepanjang titik [[x,y,z],...] dengan jari per titik (rangka angkut-paralel: tanpa puntiran), normal halus */
+function kotaTabung(G, titik, jari, seg, warna) {
+  var n = titik.length, dasar, ux = 1, uy = 0, uz = 0;
+  G.siap(n * (seg + 1), (n - 1) * seg * 6);
+  dasar = G.nv;
+  for (var i = 0; i < n; i++) {
+    var a = titik[Math.max(0, i - 1)], b = titik[Math.min(n - 1, i + 1)], tx = b[0] - a[0], ty = b[1] - a[1], tz = b[2] - a[2], tl = Math.hypot(tx, ty, tz) || 1;
+    tx /= tl; ty /= tl; tz /= tl;
+    var d = ux * tx + uy * ty + uz * tz; ux -= tx * d; uy -= ty * d; uz -= tz * d;
+    var ul = Math.hypot(ux, uy, uz);
+    if (ul < 1e-3) { ux = Math.abs(ty) < 0.9 ? 0 : 1; uy = Math.abs(ty) < 0.9 ? 1 : 0; uz = 0; d = ux * tx + uy * ty + uz * tz; ux -= tx * d; uy -= ty * d; uz -= tz * d; ul = Math.hypot(ux, uy, uz); }
+    ux /= ul; uy /= ul; uz /= ul;
+    var wx = ty * uz - tz * uy, wy = tz * ux - tx * uz, wz = tx * uy - ty * ux; /* w = t x u  ->  u x w = t */
+    for (var j = 0; j <= seg; j++) {
+      var th = j / seg * Math.PI * 2, c = Math.cos(th), sn = Math.sin(th), ox = ux * c + wx * sn, oy = uy * c + wy * sn, oz = uz * c + wz * sn;
+      var kulit = 0.82 + 0.3 * Math.abs(Math.sin((j % seg) * 2.4 + i * 0.7)); /* alur kulit kayu (jahitan j = seg sama dengan j = 0) */
+      var gelap = kulit * (0.7 + 0.3 * Math.min(1, i / 2));
+      G.v(titik[i][0] + ox * jari[i], titik[i][1] + oy * jari[i], titik[i][2] + oz * jari[i], ox, oy, oz, j / seg * 2, titik[i][1] * 0.6, [warna[0] * gelap, warna[1] * gelap, warna[2] * gelap]);
+    }
+  }
+  for (var r = 0; r < n - 1; r++) for (var k = 0; k < seg; k++) {
+    var A = dasar + r * (seg + 1) + k, Bv = A + 1, Cv = A + seg + 1, Dv = Cv + 1;
+    G.tri(A, Bv, Cv); G.tri(Bv, Dv, Cv);
+  }
+}
+/* ---- semak, pagar tanaman, tanaman pot: satu gaya dengan semak bak pohon (gugus halus dibenjolkan, normal halus, nada hijau
+   beragam). Ditulis ke ember yang sudah ada (daun di luar, halus di dalam ruang) -> tanpa draw call baru. ---- */
+function kotaFase(r) { return [r() * 6.28, r() * 6.28, r() * 6.28, r() * 6.28, r() * 6.28]; }
+/* (x, y, z) = pusat dasar semak, r = jari gugus utama. o: { warna [hex..], kuat (pengali warna: ember bertekstur terang ~0,6),
+   detail, sisi (jumlah gugus samping), detailSisi, q (pipih / lonjong y), lantaiY (potong yang terbenam), uv } */
+function kotaSemak(G, x, y, z, r, benih, o) {
+  o = o || {};
+  var rr = acak(benih), hex = o.warna || [0x4f8a45, 0x6aa055, 0x3d7a3c], kuat = o.kuat || 1, d = o.detail === undefined ? 2 : o.detail, ds = o.detailSisi === undefined ? d : o.detailSisi;
+  var n = o.sisi === undefined ? 2 : o.sisi, q = o.q || 0.82, L = [], a0 = rr() * 6.28;
+  L.push({ x: x, y: y + r * q * 0.78, z: z, r: r, q: q, detail: d, warna: kotaWKali(hex[0], kuat), f: kotaFase(rr) });
+  for (var k = 0; k < n; k++) {
+    var a = a0 + k / n * Math.PI * 2 + (rr() - 0.5) * 0.6, rs = r * (0.6 + rr() * 0.14);
+    L.push({ x: x + Math.cos(a) * r * 0.62, y: y + rs * q * 0.72, z: z + Math.sin(a) * r * 0.62, r: rs, q: q, detail: ds, warna: kotaWKali(hex[1 + k % (hex.length - 1)], kuat), f: kotaFase(rr) });
+  }
+  kotaGugusDaun(G, L, [x, y - r * 0.2, z], r * 1.7, o.uv || 1, o.lantaiY);
+}
+/* pagar tanaman rapi menyambung sepanjang X (x0..x1) di atas bak: penampang lengkung-kotak disapu, puncak bergelombang lembut +
+   benjolan daun, kedua ujung membulat menutup. Normal halus dihitung dari kisi; sisi bawah (tertanam di bak) tidak ditulis. */
+function kotaPagarDaun(G, x0, x1, z, y0, lebar, tinggi, benih) {
+  var rr = acak(benih), f = [rr() * 6.28, rr() * 6.28, rr() * 6.28, rr() * 6.28, rr() * 6.28, rr() * 6.28], hijau = [kotaW(0x4f8a45), kotaW(0x6aa055), kotaW(0x3d7a3c)];
+  var M = 10, hw = lebar / 2, e = Math.min(0.32, (x1 - x0) / 4), X = [], ujung = [0, 0.1, 0.3, 0.62], nT = Math.max(1, Math.round((x1 - x0 - 2 * e) / 0.24)), i, j;
+  ujung.forEach(function (t) { X.push(x0 + e * t); });
+  for (i = 0; i <= nT; i++) X.push(x0 + e + (x1 - x0 - 2 * e) * i / nT);
+  for (i = ujung.length - 1; i >= 0; i--) X.push(x1 - e * ujung[i]);
+  var nS = X.length, P = new Float32Array(nS * (M + 1) * 3), bj = new Float32Array(nS * (M + 1));
+  for (i = 0; i < nS; i++) {
+    var x = X[i], dE = Math.min(x - x0, x1 - x) / e, c = dE >= 1 ? 1 : Math.sqrt(Math.max(0, 1 - (1 - dE) * (1 - dE))); /* profil ujung membulat */
+    var h = tinggi * (0.6 + 0.4 * c) * (1 + 0.07 * Math.sin(x * 5.3 + f[0]) + 0.04 * Math.sin(x * 2.1 + f[1])), w = hw * c * (1 + 0.06 * Math.sin(x * 4.1 + f[2]));
+    for (j = 0; j <= M; j++) {
+      var th = j / M * Math.PI, cs = Math.cos(th), sn = Math.sin(th), b = 0.6 * Math.sin(x * 7.1 + f[3]) * Math.sin(th * 3.3 + f[4]) + 0.4 * Math.sin(x * 12.3 + th * 2.1 + f[5]) * Math.sin(th * 5.1 - x * 4.7 + f[0]);
+      var k = (i * (M + 1) + j) * 3, am = 0.035 * c * b;
+      P[k] = x; P[k + 1] = y0 - 0.05 + (h + 0.05) * Math.sqrt(sn) + sn * am; P[k + 2] = z + w * (cs < 0 ? -1 : 1) * Math.sqrt(Math.abs(cs)) + cs * am;
+      bj[i * (M + 1) + j] = b;
+    }
+  }
+  G.siap(nS * (M + 1), (nS - 1) * M * 6);
+  var dasar = G.nv, at = function (a, bq) { return (Math.max(0, Math.min(nS - 1, a)) * (M + 1) + Math.max(0, Math.min(M, bq))) * 3; };
+  for (i = 0; i < nS; i++) for (j = 0; j <= M; j++) {
+    var p = at(i, j), a1 = at(i + 1, j), a0 = at(i - 1, j), b1 = at(i, j + 1), b0 = at(i, j - 1), t2 = j / M * Math.PI, sn2 = Math.sin(t2), cs2 = Math.cos(t2);
+    var ux = P[a1] - P[a0], uy = P[a1 + 1] - P[a0 + 1], uz = P[a1 + 2] - P[a0 + 2], vx = P[b1] - P[b0], vy = P[b1 + 1] - P[b0 + 1], vz = P[b1 + 2] - P[b0 + 2];
+    var nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx, nl = Math.hypot(nx, ny, nz);
+    if (i === 0 || i === nS - 1 || nl < 1e-7) { nx = i === 0 ? -1 : (i === nS - 1 ? 1 : 0); ny = 0.35 + sn2; nz = cs2 * 0.4; nl = Math.hypot(nx, ny, nz); } /* cincin ujung (mengatup jadi garis) */
+    else if (ny * sn2 + nz * cs2 < 0) { nx = -nx; ny = -ny; nz = -nz; }
+    nx /= nl; ny /= nl; nz /= nl;
+    var m1 = 0.5 + 0.5 * Math.sin(P[p] * 1.9 + f[4]), m2 = 0.5 + 0.5 * Math.sin(P[p] * 3.7 + t2 * 1.1 + f[5]) , bb = bj[i * (M + 1) + j];
+    var t = 1.45 * (0.55 + 0.55 * (ny * 0.5 + 0.5)) * (0.78 + 0.22 * sn2) * (1 + 0.35 * Math.max(0, bb)), wr = [0, 0, 0];
+    for (var q = 0; q < 3; q++) { var dsr = hijau[0][q] + (hijau[1][q] - hijau[0][q]) * m1; wr[q] = (dsr + (hijau[2][q] - dsr) * 0.4 * m2) * t; }
+    G.v(P[p], P[p + 1], P[p + 2], nx, ny, nz, P[p] / 1.4, j / M, wr);
+  }
+  for (i = 0; i < nS - 1; i++) for (j = 0; j < M; j++) {
+    var A = dasar + i * (M + 1) + j, Bq = A + 1, C = A + M + 1, D = C + 1;
+    G.tri(A, C, Bq); G.tri(Bq, C, D);
+  }
+}
+function kotaPohon(B, p) { /* bak tanam granit berlis kuningan (bibir duduk) + mulsa + semak + batang bercabang + tajuk rimbun bergugus */
+  var besar = p.r >= 2, sedang = !besar && p.r > 1.3;
+  var tinggiBak = besar ? 0.48 : 0.55, cBak = kotaW(besar ? 0xa7aaae : 0x8d9095), cTepi = kotaW(0xc4c6c9), r = acak(Math.round(p.x * 7 + p.z * 13) + 99);
+  var fase = function () { return [r() * 6.28, r() * 6.28, r() * 6.28, r() * 6.28, r() * 6.28]; };
+  B.batu.silinder(p.x, 0, p.z, p.r + 0.06, p.r + 0.06, 0.07, 32, kotaW(0x5d6066), false); /* plint gelap */
+  B.batu.cincin(p.x, 0.07, p.z, p.r - 0.02, p.r + 0.06, 32, kotaW(0x5d6066));
+  B.batu.silinder(p.x, 0.07, p.z, p.r, p.r, tinggiBak - 0.07, 32, cBak, false);
+  B.kilap.silinder(p.x, tinggiBak - 0.2, p.z, p.r + 0.012, p.r + 0.012, 0.04, 32, kotaW(KC.kuningan), false); /* lis kuningan */
   B.batu.cincin(p.x, tinggiBak, p.z, p.r - 0.36, p.r + 0.02, 32, cTepi);
   B.batu.silinder(p.x, tinggiBak - 0.04, p.z, p.r + 0.02, p.r + 0.02, 0.06, 32, cTepi, false);
-  B.halus.cincin(p.x, tinggiBak - 0.08, p.z, 0, p.r - 0.36, 20, kotaW(0x3b2e22));
-  for (var g = 0; g < Math.round(p.r * 5); g++) { var a = r() * Math.PI * 2, d = 0.3 + r() * (p.r - 0.8); B.halus.geo(new THREE.IcosahedronGeometry(0.22 + r() * 0.12, 0), kotaMatriks(p.x + Math.cos(a) * d, tinggiBak + 0.05, p.z + Math.sin(a) * d, 0, r() * 3, 0, 1, 0.6, 1), kotaW(r() < 0.5 ? 0x4f8a45 : 0x6aa055)); }
-  var H = p.r >= 2 ? 6.2 : (p.r > 1.3 ? 5.4 : 6.6), rt = p.r >= 2 ? 0.26 : 0.18;
-  B.halus.silinder(p.x, tinggiBak - 0.1, p.z, rt, rt * 0.7, H * 0.55, 8, kotaW(0x6b5a4a), false);
-  var tajuk = p.r >= 2 ? 6 : (p.r > 1.3 ? 4 : 3), rT = p.r >= 2 ? 2.4 : (p.r > 1.3 ? 1.9 : 1.5), hijau = [0x3f7f3f, 0x4c8c45, 0x5a9a4c, 0x356f37];
-  B.halus.geo(new THREE.IcosahedronGeometry(rT, 1), kotaMatriks(p.x, tinggiBak + H * 0.68, p.z, 0, r(), 0, 1, 0.82, 1), kotaW(hijau[0]));
-  for (var k = 0; k < tajuk; k++) { var b = k / tajuk * Math.PI * 2 + r(), dd = rT * 0.62; B.halus.geo(new THREE.IcosahedronGeometry(rT * (0.5 + r() * 0.18), 1), kotaMatriks(p.x + Math.cos(b) * dd, tinggiBak + H * (0.6 + r() * 0.2), p.z + Math.sin(b) * dd, 0, r() * 3, 0, 1, 0.85, 1), kotaW(hijau[(k + 1) % 4])); }
-  B.halus.geo(new THREE.IcosahedronGeometry(rT * 0.6, 1), kotaMatriks(p.x, tinggiBak + H * 0.88, p.z, 0, 0, 0, 1, 0.8, 1), kotaW(hijau[2]));
-  B.bayang.geo(new THREE.IcosahedronGeometry(rT * 1.05, 0), kotaMatriks(p.x, tinggiBak + H * 0.7, p.z, 0, 0, 0, 1, 0.8, 1), [1, 1, 1]);
-  B.bayang.kotak(p.x, tinggiBak + H * 0.28, p.z, rt * 0.7, H * 0.28, rt * 0.7, 0, [1, 1, 1], KM_SEMUA);
-  B.nyala.cincin(p.x, tinggiBak - 0.07, p.z, 0.32, 0.44, 12, kotaW(0xfff0c8)); /* lampu sorot ke tajuk (malam) */
+  B.halus.cincin(p.x, tinggiBak - 0.03, p.z, 0, p.r - 0.36, 24, kotaW(0x3b2e22)); /* mulsa rata bibir (tanpa celah dinding dalam) */
+  /* semak penutup tanah: gugus rendah melingkar (bukan bongkah bersegi) */
+  var semak = [], nS = besar ? 5 : 3, hijauS = [kotaW(0x4f8a45), kotaW(0x6aa055), kotaW(0x3d7a3c)];
+  for (var g = 0; g < nS; g++) {
+    var a = g / nS * Math.PI * 2 + r() * 0.5, d = (p.r - 0.36) * (0.5 + r() * 0.1), rs = (besar ? 0.5 : (sedang ? 0.42 : 0.34)) + r() * 0.08;
+    semak.push({ x: p.x + Math.cos(a) * d, y: tinggiBak + rs * 0.28, z: p.z + Math.sin(a) * d, r: rs, q: 0.72, detail: 2, warna: hijauS[g % 3], f: fase() });
+  }
+  kotaGugusDaun(B.daun, semak, [p.x, tinggiBak - 0.4, p.z], p.r, 1, tinggiBak - 0.03);
+  /* ukuran tajuk: sisi bawah tajuk > 4,3 m (kamera orbit bawaan lewat di bawahnya) */
+  var Rc = besar ? 3.3 : (sedang ? 2.5 : 2.1), yc = besar ? 6.7 : (sedang ? 6.1 : 5.7), rt = besar ? 0.3 : (sedang ? 0.21 : 0.18);
+  var y0 = tinggiBak - 0.05, yF = yc - Rc * 0.62, cKayu = kotaW(0x6b5a4a), lx = (r() - 0.5) * 0.3, lz = (r() - 0.5) * 0.3;
+  var fr = [0, 0.05, 0.13, 0.32, 0.58, 0.82, 1], jr = [1.95, 1.45, 1.14, 1.0, 0.9, 0.82, 0.76], T = [], J = [];
+  for (var i = 0; i < fr.length; i++) { var u = fr[i], lengkung = Math.sin(u * Math.PI) * 0.5 + u * 0.5; T.push([p.x + lx * lengkung, y0 + (yF - y0) * u, p.z + lz * lengkung]); J.push(rt * jr[i]); }
+  kotaTabung(B.halus, T, J, 10, cKayu);
+  var fx = T[T.length - 1][0], fz = T[T.length - 1][2], nC = besar ? 4 : 3, a0 = r() * 6.28;
+  for (var c = 0; c < nC; c++) { /* cabang utama: melengkung keluar-naik, ujungnya terbenam di gugus */
+    var ac = a0 + c / nC * Math.PI * 2 + (r() - 0.5) * 0.5, jx = Math.cos(ac) * Rc * 0.5, jz = Math.sin(ac) * Rc * 0.5, ty = yc + Rc * 0.05 - yF, Tc = [], Jc = [];
+    for (var m = 0; m <= 3; m++) { var um = m / 3, kel = Math.pow(um, 0.8); Tc.push([fx + jx * kel, yF - 0.12 + (ty + 0.12) * (um * 0.62 + um * um * 0.38), fz + jz * kel]); Jc.push(rt * (0.56 - 0.38 * um)); }
+    kotaTabung(B.halus, Tc, Jc, 6, cKayu);
+  }
+  kotaTabung(B.halus, [[fx, yF - 0.1, fz], [fx, yF + Rc * 0.35, fz], [fx + lx * 0.3, yc + Rc * 0.2, fz + lz * 0.3]], [rt * 0.7, rt * 0.5, rt * 0.2], 6, cKayu); /* pucuk batang */
+  /* tajuk: inti + cincin gugus besar + pucuk + gugus kecil menjuntai; hijau tiap gugus berbeda */
+  var hijau = [kotaW(0x3d7d3a), kotaW(0x4a8f3f), kotaW(0x5aa047), kotaW(0x6db053), kotaW(0x82bd5c), kotaW(0x4f9358)], tajuk = [], dR = (besar || sedang) ? 3 : 2; /* kepadatan gugus ikut ukuran: panjang sisi segitiga setara di semua pohon */
+  tajuk.push({ x: fx, y: yc, z: fz, r: Rc * 0.62, q: 0.86, detail: 1, warna: hijau[1], f: fase() }); /* inti: hampir seluruhnya tertutup gugus lain -> detail rendah (hemat anggaran) */
+  var nR = besar ? 5 : 4, aR = r() * 6.28;
+  for (var k = 0; k < nR; k++) {
+    var b = aR + k / nR * Math.PI * 2 + (r() - 0.5) * 0.35, dd = Rc * (0.5 + r() * 0.1), rk = Rc * (0.5 + r() * 0.08);
+    tajuk.push({ x: fx + Math.cos(b) * dd, y: yc + Rc * (-0.1 + r() * 0.28), z: fz + Math.sin(b) * dd, r: rk, q: 0.84 + r() * 0.1, detail: dR, warna: hijau[(k * 2 + 2) % 6], f: fase() });
+  }
+  tajuk.push({ x: fx + (r() - 0.5) * Rc * 0.3, y: yc + Rc * 0.5, z: fz + (r() - 0.5) * Rc * 0.3, r: Rc * 0.46, q: 0.88, detail: 2, warna: hijau[4], f: fase() });
+  var nK = besar ? 4 : 3, aK = r() * 6.28;
+  for (var e = 0; e < nK; e++) {
+    var be = aK + e / nK * Math.PI * 2 + (r() - 0.5) * 0.5, de = Rc * (0.78 + r() * 0.1);
+    tajuk.push({ x: fx + Math.cos(be) * de, y: yc - Rc * (0.16 + r() * 0.1), z: fz + Math.sin(be) * de, r: Rc * (0.27 + r() * 0.06), q: 0.9, detail: 2, warna: hijau[(e * 2 + 3) % 6], f: fase() });
+  }
+  kotaGugusDaun(B.daun, tajuk, [fx, yc - Rc * 0.1, fz], Rc * 1.05, besar ? 4 : 3);
+  B.bayang.geo(new THREE.IcosahedronGeometry(Rc * 1.0, 0), kotaMatriks(fx, yc + Rc * 0.05, fz, 0, 0, 0, 1, 0.72, 1), [1, 1, 1]);
+  B.bayang.kotak(p.x, (y0 + yF) / 2, p.z, rt * 0.8, (yF - y0) / 2, rt * 0.8, 0, [1, 1, 1], KM_SEMUA);
+  B.nyala.cincin(p.x, tinggiBak - 0.015, p.z, 0.42, 0.54, 12, kotaW(0xfff0c8)); /* lampu sorot ke tajuk (malam) */
 }
 function kotaLampuJalan(B, x, z, rot, spanduk) { /* tiang besi hitam berlengan ganda + 2 kepala lentera + spanduk festival */
   var cB = kotaW(KC.besiHitam), cE = kotaW(KC.emas);
@@ -15784,7 +15997,7 @@ function kotaBangunPerabot(B) {
   KOTA_POHON.forEach(function (p) { kotaPohon(B, p); });
   KOTA_LAMPU_PLAZA.forEach(function (p) { kotaLampuPlaza(B, p.x, p.z); });
   var plaza = {}; KOTA_LAMPU_PLAZA.forEach(function (p) { plaza[p.x + ',' + p.z] = true; });
-  KOTA_LAMPU.forEach(function (p, i) { if (plaza[p.x + ',' + p.z]) return; kotaLampuJalan(B, p.x, p.z, Math.abs(Math.abs(p.z) - 52) < 1 ? 0 : Math.PI / 2, i % 3 === 0); }); /* lengan sejajar arah jalan */
+  KOTA_LAMPU.forEach(function (p, i) { if (plaza[p.x + ',' + p.z]) return; kotaLampuJalan(B, p.x, p.z, Math.abs(Math.abs(p.z) - 52) < 3 ? 0 : Math.PI / 2, i % 3 === 0); }); /* lengan sejajar arah jalan */
   KOTA_BANGKU.forEach(function (b) { kotaBangku(B, b); });
   kotaMesinMinuman(B, 31.95, -11.1, 0xc0392b, 0); kotaMesinMinuman(B, 33.25, -11.1, 0x1f5fa8, 1);
   kotaPhotobooth(B);
@@ -16294,7 +16507,8 @@ function kotaBahanUmum() { /* batu/halus/kilap interior: tanpa sisipan genangan 
   kotaBahan();
   var lam = function (map, n) { var m = new THREE.MeshLambertMaterial({ map: map, vertexColors: true }); m.name = 'kota-dalam-' + n; return m; };
   var kilap = new THREE.MeshPhongMaterial({ vertexColors: true, specular: 0xa0a0a0, shininess: 70 }); kilap.name = 'kota-dalam-kilap';
-  KD.umum = { batu: lam(KB.batu.map, 'batu'), halus: lam(KB.halus.map, 'halus'), kilap: kilap };
+  var helai = new THREE.MeshLambertMaterial({ map: teksturLukis(256, 512, kotaLukisHelai), vertexColors: true, side: THREE.DoubleSide }); helai.name = 'kota-dalam-helai'; /* daun + kelopak tanaman hias (satu lapis, dua sisi) */
+  KD.umum = { batu: lam(KB.batu.map, 'batu'), halus: lam(KB.halus.map, 'halus'), kilap: kilap, helai: helai };
   return KD.umum;
 }
 function kotaBahanRuang(id) {
@@ -16303,7 +16517,7 @@ function kotaBahanRuang(id) {
   var lantai = new THREE.MeshPhongMaterial({ map: teksturLukis(512, 512, kotaLukisLantaiDalam(id), [1, 1]), vertexColors: true, specular: id === 'arkade' ? 0x000000 : 0x3a3a3a, shininess: id === 'arkade' ? 4 : 46 });
   lantai.name = 'kota-dalam-lantai-' + id;
   var dinding = new THREE.MeshLambertMaterial({ map: teksturLukis(512, 512, kotaLukisDinding(id), [1, 1]), vertexColors: true }); dinding.name = 'kota-dalam-dinding-' + id;
-  KD[id] = { batu: U.batu, halus: U.halus, kilap: U.kilap, lantai: lantai, dinding: dinding,
+  KD[id] = { batu: U.batu, halus: U.halus, kilap: U.kilap, helai: U.helai, lantai: lantai, dinding: dinding,
     kaca: KB.kaca, etalase: KB.etalase, nyala: KB.nyala, teks: KB.teks, bayang: KB.bayang, air: KB.air };
   return KD[id];
 }
@@ -16312,7 +16526,7 @@ function kotaBahanLuar() { /* pemandangan di balik etalase: warna dikalikan tera
   kotaBahan();
   var lam = function (map, n) { var m = new THREE.MeshLambertMaterial({ map: map || null, vertexColors: true }); m.name = 'kota-luar-' + n; return m; };
   KD.luar = { batu: lam(KB.batu.map, 'batu'), halus: lam(KB.halus.map, 'halus'), lantai: lam(KB.lantai.map, 'lantai'), kilap: lam(null, 'kilap'),
-    kaca: KB.kaca, etalase: KB.etalase, nyala: KB.nyala, teks: KB.teks, bayang: KB.bayang, air: KB.air };
+    daun: lam(KB.daun.map, 'daun'), kaca: KB.kaca, etalase: KB.etalase, nyala: KB.nyala, teks: KB.teks, bayang: KB.bayang, air: KB.air };
   return KD.luar;
 }
 function kotaPasangEmberBahan(B, scn, bahan, awalan) {
@@ -16415,7 +16629,237 @@ function kotaSofa(B, x, z, panjang, rot, warna) { /* sofa beludru: alas + duduka
 }
 function kotaMejaKopi(B, x, z, r, tinggi) { B.batu.silinder(x, tinggi - 0.05, z, r, r, 0.05, 24, kotaW(KC.marmer), true); B.kilap.silinder(x, 0.03, z, r * 0.3, r * 0.15, tinggi - 0.08, 10, kotaW(KC.kuningan), false); B.kilap.silinder(x, 0, z, r * 0.6, r * 0.6, 0.03, 16, kotaW(KC.kuningan), true); }
 function kotaKarpet(B, x, z, w, d, warna, tepi) { B.halus.kotakMM(x - w / 2, x + w / 2, 0, 0.012, z - d / 2, z + d / 2, kotaW(tepi || 0xc9a24a), KM_PY); B.halus.kotakMM(x - w / 2 + 0.25, x + w / 2 - 0.25, 0, 0.016, z - d / 2 + 0.25, z + d / 2 - 0.25, kotaW(warna), KM_PY); }
-function kotaTanamanPot(B, x, z, s) { B.batu.silinder(x, 0, z, 0.35 * s, 0.28 * s, 0.7 * s, 14, kotaW(0xf3efe8), true); B.halus.cincin(x, 0.68 * s, z, 0, 0.3 * s, 10, kotaW(0x3b2e22)); for (var k = 0; k < 9; k++) { var a = k * 0.7; B.halus.geo(new THREE.ConeGeometry(0.09 * s, 0.9 * s, 4), kotaMatriks(x + Math.cos(a) * 0.12 * s, 1.1 * s, z + Math.sin(a) * 0.12 * s, Math.cos(a) * 0.5, 0, -Math.sin(a) * 0.5), kotaW(k % 2 ? 0x3f7f3f : 0x5a9a4c)); } }
+/* ---- tanaman hias interior "hero": pot bubut halus (profil putar 32 sisi, bibir gulung, plint, gelang logam) + helai daun
+   berbentuk (tulang melengkung, penampang cekung, urat dari tekstur helai) + kuntum berkelopak berlapis. Semua helai satu ruang
+   masuk SATU ember (B.helai, bahan Lambert dua sisi) -> +1 draw call per ruang bertanaman, tanpa bola / kerucut. ---- */
+function kotaLukisHelai(ctx, w, h) { /* satu helai: tulang tengah + urat menyirip ke ujung (v = 1 = ujung = atas kanvas); dikalikan warna verteks */
+  var r = acak(9127), i, g = ctx.createLinearGradient(0, 0, w, 0);
+  g.addColorStop(0, '#bcc8b2'); g.addColorStop(0.5, '#eef2e8'); g.addColorStop(1, '#bcc8b2');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  for (i = 0; i < 900; i++) { var t = 200 + Math.floor(r() * 55); ctx.fillStyle = 'rgba(' + t + ',' + t + ',' + t + ',0.12)'; ctx.fillRect(r() * w, r() * h, 2, 6); }
+  for (i = 0; i < 13; i++) {
+    var y = h * (i + 0.8) / 13, naik = h * 0.07;
+    [-1, 1].forEach(function (s) {
+      ctx.strokeStyle = 'rgba(58,74,50,0.34)'; ctx.lineWidth = Math.max(2, w / 80); ctx.beginPath(); ctx.moveTo(w / 2, y); ctx.quadraticCurveTo(w / 2 + s * w * 0.28, y - naik * 0.45, w / 2 + s * w * 0.5, y - naik); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = Math.max(1, w / 170); ctx.beginPath(); ctx.moveTo(w / 2, y - 3); ctx.quadraticCurveTo(w / 2 + s * w * 0.28, y - naik * 0.45 - 3, w / 2 + s * w * 0.5, y - naik - 3); ctx.stroke();
+    });
+  }
+  ctx.strokeStyle = 'rgba(52,68,46,0.4)'; ctx.lineWidth = Math.max(4, w / 32); ctx.beginPath(); ctx.moveTo(w / 2 + 2, 0); ctx.lineTo(w / 2 + 2, h); ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = Math.max(2, w / 60); ctx.beginPath(); ctx.moveTo(w / 2, 0); ctx.lineTo(w / 2, h); ctx.stroke();
+}
+/* benda putar (bubut): profil = [[r, y, warna?], ...] dari bawah-luar naik lalu masuk ke dalam; null = tepi tajam (jalur halus baru).
+   Normal halus dihitung dari garis singgung profil -> tidak pernah terbaca bersegi. */
+function kotaPutar(G, x, y0, z, profil, seg, warna) {
+  var jalur = [[]];
+  profil.forEach(function (p) { if (!p) jalur.push([]); else jalur[jalur.length - 1].push(p); });
+  jalur.forEach(function (P) {
+    var n = P.length, k, j; if (n < 2) return;
+    G.siap(n * (seg + 1), (n - 1) * seg * 6);
+    var dasar = G.nv;
+    for (k = 0; k < n; k++) {
+      var a = P[Math.max(0, k - 1)], b = P[Math.min(n - 1, k + 1)], tr = b[0] - a[0], ty = b[1] - a[1], tl = Math.hypot(tr, ty) || 1, nr = ty / tl, ny = -tr / tl, c = P[k][2] || warna;
+      for (j = 0; j <= seg; j++) {
+        var th = j / seg * Math.PI * 2, cs = Math.cos(th), sn = Math.sin(th);
+        G.v(x + cs * P[k][0], y0 + P[k][1], z + sn * P[k][0], cs * nr, ny, sn * nr, th * 0.3 / G.petak, (y0 + P[k][1]) / G.petak, c);
+      }
+    }
+    for (k = 0; k < n - 1; k++) for (j = 0; j < seg; j++) { var A = dasar + k * (seg + 1) + j, Bv = A + 1, C = A + seg + 1, D = C + 1; G.tri(A, C, Bv); G.tri(Bv, C, D); }
+  });
+}
+/* tulang helai: titik sepanjang lengkung dari p; arah awal = h cos(el) + U sin(el) (h, U satuan saling tegak lurus), membelok
+   `lentur` rad ke arah -U sepanjang L (lentur negatif = menguncup ke +U). KOTA_HELAI_BATAS = kotak dinding ruang: helai yang
+   mengarah ke dinding dibuat lebih tegak + pendek (kotaHelaiJangkau), tidak menembus dinding. */
+var KOTA_HELAI_BATAS = null;
+function kotaHelaiJangkau(x, z, h) { /* jarak mendatar dari (x, z) ke dinding ruang searah h (tak hingga bila tanpa batas) */
+  var b = KOTA_HELAI_BATAS, d = 1e9; if (!b) return d;
+  if (h[0] > 1e-6) d = Math.min(d, (b.x1 - x) / h[0]); else if (h[0] < -1e-6) d = Math.min(d, (b.x0 - x) / h[0]);
+  if (h[2] > 1e-6) d = Math.min(d, (b.z1 - z) / h[2]); else if (h[2] < -1e-6) d = Math.min(d, (b.z0 - z) / h[2]);
+  return Math.max(0, d);
+}
+function kotaTulang(p, h, U, el, L, lentur, n, pangkat) {
+  var T = [[p[0], p[1], p[2]]], E = [], x = p[0], y = p[1], z = p[2], d = L / n;
+  for (var i = 0; i < n; i++) {
+    var e = el - lentur * Math.pow((i + 0.5) / n, pangkat || 1.4), c = Math.cos(e), s = Math.sin(e);
+    x += (h[0] * c + U[0] * s) * d; y += (h[1] * c + U[1] * s) * d; z += (h[2] * c + U[2] * s) * d;
+    T.push([x, y, z]); E.push(e);
+  }
+  return { T: T, E: E };
+}
+var KOTA_BENTUK = { /* setengah lebar relatif 0..1 sepanjang helai (t = 0 pangkal, 1 ujung) */
+  biola: function (t) { return Math.pow(Math.max(0, Math.sin(Math.PI * Math.pow(t, 0.8) * 0.965)), 0.6) * (0.6 + 0.4 * t) * 1.08; },
+  lonjong: function (t) { return Math.pow(Math.max(0, Math.sin(Math.PI * t)), 0.7); },
+  dayung: function (t) { return Math.pow(Math.max(0, Math.sin(Math.PI * Math.pow(t, 0.62) * 0.985)), 0.5); },
+  lanset: function (t) { return Math.pow(Math.max(0, Math.sin(Math.PI * Math.pow(t, 0.8))), 0.6) * (1 - 0.25 * t); },
+  hati: function (t) { return Math.pow(Math.max(0, Math.sin(Math.PI * Math.pow(t, 0.5))), 0.75); },
+  kelopak: function (t) { return Math.pow(Math.max(0, Math.sin(Math.PI * Math.pow(t, 1.5) * 0.9)), 0.55); }
+};
+/* helai daun / kelopak sepanjang tulang (kotaTulang) dengan rangka h, U yang sama. W = setengah lebar maksimum.
+   o: { bentuk, m (titik melintang 3 | 5), lipat (naik tepi relatif lebar), cekung (true: mangkuk, false: lipatan V), guling (rad),
+   warna [r,g,b] linear, ujung (pengali warna di ujung) }. Normal halus dari kisi; ditulis satu lapis (bahan dua sisi). */
+function kotaHelai(G, tul, h, U, W, o) {
+  var T = tul.T, n = T.length - 1, m = o.m || 5, f = KOTA_BENTUK[o.bentuk || 'lonjong'], lipat = o.lipat === undefined ? 0.25 : o.lipat, gl = o.guling || 0, c = o.warna, ku = o.ujung || 1.2;
+  var sx = h[1] * U[2] - h[2] * U[1], sy = h[2] * U[0] - h[0] * U[2], sz = h[0] * U[1] - h[1] * U[0]; /* samping = h x U */
+  var P = new Float32Array((n + 1) * m * 3), Bn = new Float32Array((n + 1) * 3), cg = Math.cos(gl), sg = Math.sin(gl), i, j;
+  for (i = 0; i <= n; i++) {
+    var a = T[Math.max(0, i - 1)], b = T[Math.min(n, i + 1)], tx = b[0] - a[0], ty = b[1] - a[1], tz = b[2] - a[2], tl = Math.hypot(tx, ty, tz) || 1;
+    tx /= tl; ty /= tl; tz /= tl;
+    var nx = sy * tz - sz * ty, ny = sz * tx - sx * tz, nz = sx * ty - sy * tx; /* muka atas helai = samping x singgung */
+    var ax = sx * cg + nx * sg, ay = sy * cg + ny * sg, az = sz * cg + nz * sg, bx = nx * cg - sx * sg, by = ny * cg - sy * sg, bz = nz * cg - sz * sg;
+    var w = W * f(i / n);
+    Bn[i * 3] = bx; Bn[i * 3 + 1] = by; Bn[i * 3 + 2] = bz;
+    for (j = 0; j < m; j++) {
+      var u = j / (m - 1) * 2 - 1, k = (i * m + j) * 3, nk = lipat * w * (o.cekung ? u * u : Math.abs(u));
+      P[k] = T[i][0] + ax * u * w + bx * nk; P[k + 1] = T[i][1] + ay * u * w + by * nk; P[k + 2] = T[i][2] + az * u * w + bz * nk;
+    }
+  }
+  G.siap((n + 1) * m, n * (m - 1) * 6);
+  var dasar = G.nv, at = function (q, r) { return (Math.max(0, Math.min(n, q)) * m + Math.max(0, Math.min(m - 1, r))) * 3; };
+  for (i = 0; i <= n; i++) for (j = 0; j < m; j++) {
+    var p = at(i, j), u1 = at(i, j + 1), u0 = at(i, j - 1), t1 = at(i + 1, j), t0 = at(i - 1, j);
+    var ux = P[u1] - P[u0], uy = P[u1 + 1] - P[u0 + 1], uz = P[u1 + 2] - P[u0 + 2], vx = P[t1] - P[t0], vy = P[t1 + 1] - P[t0 + 1], vz = P[t1 + 2] - P[t0 + 2];
+    var qx = uy * vz - uz * vy, qy = uz * vx - ux * vz, qz = ux * vy - uy * vx, ql = Math.hypot(qx, qy, qz);
+    if (ql < 1e-9) { qx = Bn[i * 3]; qy = Bn[i * 3 + 1]; qz = Bn[i * 3 + 2]; ql = 1; }
+    var tt = i / n, uu = j / (m - 1), k2 = (1 + (ku - 1) * tt) * (1 - 0.14 * Math.abs(uu * 2 - 1));
+    G.v(P[p], P[p + 1], P[p + 2], qx / ql, qy / ql, qz / ql, uu, tt, [c[0] * k2, c[1] * k2, c[2] * k2]);
+  }
+  for (i = 0; i < n; i++) for (j = 0; j < m - 1; j++) { var A = dasar + i * m + j, Bv = A + 1, C = A + m, D = C + 1; G.tri(A, Bv, C); G.tri(Bv, D, C); }
+}
+/* pot keramik berkelas: plint gelap, badan mengecil ke bawah (cembung lembut), gelang logam, bibir gulung, tanah di dalam bibir */
+function kotaPotMewah(B, x, z, s, o) {
+  o = o || {};
+  var q = 0.88 * s, cB = kotaW(o.badan || 0xefe9dc), cP = kotaW(o.plint || 0x2c2d31), S = function (r, y, c) { return c ? [r * q, y * s, c] : [r * q, y * s]; };
+  kotaPutar(B.kilap, x, 0, z, [S(0.305, 0, cP), S(0.305, 0.04, cP), S(0.29, 0.052, cP), null,
+    S(0.262, 0.052), S(0.268, 0.085), S(0.29, 0.17), S(0.318, 0.3), S(0.343, 0.42), S(0.36, 0.52), S(0.368, 0.585), null,
+    S(0.368, 0.585), S(0.386, 0.6), S(0.392, 0.625), S(0.386, 0.648), S(0.366, 0.657), S(0.346, 0.648), S(0.337, 0.625), S(0.335, 0.6)], 32, cB);
+  B.kilap.silinder(x, 0.5 * s, z, 0.3565 * q + 0.004, 0.3615 * q + 0.004, 0.03 * s, 32, kotaW(o.gelang || KC.kuningan), false);
+  B.halus.cincin(x, 0.612 * s, z, 0, 0.336 * q, 24, kotaW(0x33271d));
+  B.bayang.silinder(x, 0, z, 0.3 * q, 0.38 * q, 0.65 * s, 10, [1, 1, 1], true);
+  return 0.612 * s;
+}
+function kotaFicus(B, x, y, z, s, benih, hadap) { /* ficus lyrata (daun biola): batang ramping meliuk + helai lebar berpilin naik, pucuk tegak */
+  var r = acak(benih), hijau = [0x2f6b34, 0x3d7a3c, 0x4f8a45, 0x356f38], U = [0, 1, 0], Tt = 1.5 * s, lx = (r() - 0.5) * 0.2 * s, lz = (r() - 0.5) * 0.2 * s, T = [], J = [], i;
+  for (i = 0; i <= 6; i++) { var t = i / 6; T.push([x + lx * Math.sin(t * 2.6), y - 0.03 + Tt * t, z + lz * Math.sin(t * 2.2 + 0.7)]); J.push((0.036 - 0.018 * t) * s); }
+  kotaTabung(B.halus, T, J, 8, kotaWKali(0x6b5a4a, 0.66));
+  for (i = 0; i < 20; i++) {
+    var q = i / 19, tt = (0.26 + 0.74 * q) * 6, k = Math.min(5, Math.floor(tt)), fr = tt - k, p = [T[k][0] + (T[k + 1][0] - T[k][0]) * fr, T[k][1] + (T[k + 1][1] - T[k][1]) * fr, T[k][2] + (T[k + 1][2] - T[k][2]) * fr];
+    var az = i * 2.39996 + r() * 0.5, ke = 0.74 + 0.26 * (0.5 + 0.5 * Math.cos(az - hadap)), h = [Math.cos(az), 0, Math.sin(az)];
+    var L = (0.4 + r() * 0.1) * s * ke * (1 - 0.3 * q * q), el = 0.15 + 1.05 * q + (r() - 0.5) * 0.2, f = Math.min(1, kotaHelaiJangkau(p[0], p[2], h) / (L + 0.14 * s));
+    L *= 0.45 + 0.55 * f; el += (1.35 - el) * (1 - f) * 0.8;
+    var tk = kotaTulang(p, h, U, el + 0.25, 0.08 * s, 0, 1);
+    kotaTabung(B.halus, tk.T, [0.008 * s, 0.006 * s], 4, kotaWKali(0x6f8a45, 0.6));
+    kotaHelai(B.helai, kotaTulang(tk.T[1], h, U, el, L, 0.5 + r() * 0.55, 6, 1.5), h, U, L * 0.34, { bentuk: 'biola', lipat: 0.14, cekung: true, guling: (r() - 0.5) * 0.5, warna: kotaWKali(hijau[i % 4], 0.7), ujung: 1.18 });
+  }
+}
+function kotaPalem(B, x, y, z, s, benih, hadap) { /* palem kentia: pelepah melengkung anggun dari pangkal, anak daun lanset berpasangan menjuntai */
+  var r = acak(benih), U = [0, 1, 0], hijau = [0x3d7a3c, 0x4f8a45, 0x2f6b34], nP = 9;
+  for (var i = 0; i < nP; i++) {
+    var az = i * 2.39996 + r() * 0.4, ke = 0.68 + 0.32 * (0.5 + 0.5 * Math.cos(az - hadap)), tengah = i < 2;
+    var L = (tengah ? 1.7 : (1.3 + r() * 0.4) * ke) * s, el = tengah ? 1.5 - r() * 0.08 : 1.32 - (i / nP) * 0.27 - r() * 0.1, lentur = tengah ? 0.45 + r() * 0.3 : 1.0 + r() * 0.5;
+    var h = [Math.cos(az), 0, Math.sin(az)], f = Math.min(1, kotaHelaiJangkau(x, z, h) / (0.62 * L + 0.22 * s));
+    L *= 0.72 + 0.28 * f; el += (1.52 - el) * (1 - f); lentur *= f * f;
+    var tul = kotaTulang([x + h[0] * 0.03 * s, y - 0.03, z + h[2] * 0.03 * s], h, U, el, L, lentur, 12, 1.9), J = [], c = kotaWKali(hijau[i % 3], 0.7);
+    for (var k = 0; k <= 12; k++) J.push((0.017 - 0.012 * k / 12) * s);
+    kotaTabung(B.halus, tul.T, J, 5, kotaWKali(0x5f8a45, 0.6));
+    for (var g = 2.6; g <= 12.01; g += 0.55) {
+      var k0 = Math.min(11, Math.floor(g)), fr = g - k0, pt = [tul.T[k0][0] + (tul.T[k0 + 1][0] - tul.T[k0][0]) * fr, tul.T[k0][1] + (tul.T[k0 + 1][1] - tul.T[k0][1]) * fr, tul.T[k0][2] + (tul.T[k0 + 1][2] - tul.T[k0][2]) * fr];
+      var e = tul.E[k0], tx = h[0] * Math.cos(e), ty = Math.sin(e), tz = h[2] * Math.cos(e), q = (g - 2.6) / 9.4, buka = 1.0 - 0.5 * q, pj = 0.4 * s * Math.pow(Math.sin(Math.PI * (0.12 + 0.8 * q)), 0.7) * (0.85 + r() * 0.3);
+      for (var sisi = -1; sisi <= 1; sisi += 2) {
+        var dx = tx * Math.cos(buka) - h[2] * sisi * Math.sin(buka), dy = ty * Math.cos(buka) - 0.12, dz = tz * Math.cos(buka) + h[0] * sisi * Math.sin(buka), hl = Math.hypot(dx, dz) || 1, dl = Math.hypot(dx, dy, dz);
+        var hh = [dx / hl, 0, dz / hl];
+        kotaHelai(B.helai, kotaTulang(pt, hh, U, Math.asin(Math.max(-1, Math.min(1, dy / dl))), pj, 0.55 + r() * 0.5, 3, 1.3), hh, U, 0.03 * s, { bentuk: 'lanset', m: 3, lipat: 0.4, guling: sisi * 0.25, warna: c, ujung: 1.25 });
+      }
+    }
+  }
+}
+function kotaStrelitzia(B, x, y, z, s, benih, hadap) { /* strelitzia (burung surga): tangkai panjang tegak + helai dayung lebar melengkung */
+  var r = acak(benih), U = [0, 1, 0], hijau = [0x2f6b34, 0x3d7a3c, 0x447f40], nD = 10;
+  for (var i = 0; i < nD; i++) {
+    var az = i * 2.39996 + r() * 0.4, ke = 0.72 + 0.28 * (0.5 + 0.5 * Math.cos(az - hadap)), h = [Math.cos(az), 0, Math.sin(az)];
+    var el = 1.5 - 0.055 * i - r() * 0.06, Lt = (0.62 + r() * 0.4) * s * ke, Lb = (0.6 + r() * 0.14) * s * ke;
+    var f = Math.min(1, kotaHelaiJangkau(x, z, h) / (0.3 * Lt + 0.85 * Lb + 0.05 * s)), lt = (0.45 + r() * 0.65) * f;
+    el += (1.53 - el) * (1 - f); Lb *= 0.8 + 0.2 * f;
+    var tk = kotaTulang([x + h[0] * 0.04 * s, y - 0.03, z + h[2] * 0.04 * s], h, U, el, Lt, (0.1 + r() * 0.12) * f, 4, 1);
+    kotaTabung(B.halus, tk.T, [0.017 * s, 0.015 * s, 0.013 * s, 0.011 * s, 0.009 * s], 6, kotaWKali(0x5f8a45, 0.6));
+    kotaHelai(B.helai, kotaTulang(tk.T[4], h, U, tk.E[3], Lb, lt, 7, 1.6), h, U, Lb * 0.27, { bentuk: 'dayung', lipat: 0.2, cekung: true, guling: (r() - 0.5) * 0.4, warna: kotaWKali(hijau[i % 3], 0.7), ujung: 1.15 });
+  }
+}
+/* tanaman pot interior: jenis 'palem' | 'ficus' | 'strelitzia'. o: { badan, plint, gelang (warna pot), batas (kotak dinding ruang) } */
+function kotaTanamanPot(B, x, z, s, jenis, o) {
+  o = o || {};
+  var yT = kotaPotMewah(B, x, z, s, o), benih = Math.round(x * 7 + z * 13) + 41, hadap = Math.atan2(-z, -x);
+  KOTA_HELAI_BATAS = o.batas || null;
+  ({ palem: kotaPalem, ficus: kotaFicus, strelitzia: kotaStrelitzia })[jenis || 'palem'](B, x, yT, z, s, benih, hadap);
+  KOTA_HELAI_BATAS = null;
+}
+/* kuntum (mawar / peoni): 3 lingkar kelopak mangkuk mengelilingi sumbu d, makin ke dalam makin menguncup */
+function kotaKuntum(B, p, d, R, hex, r) {
+  var a = Math.abs(d[1]) > 0.92 ? [1, 0, 0] : [0, 1, 0], e1 = [d[1] * a[2] - d[2] * a[1], d[2] * a[0] - d[0] * a[2], d[0] * a[1] - d[1] * a[0]], l1 = Math.hypot(e1[0], e1[1], e1[2]);
+  e1 = [e1[0] / l1, e1[1] / l1, e1[2] / l1];
+  var e2 = [d[1] * e1[2] - d[2] * e1[1], d[2] * e1[0] - d[0] * e1[2], d[0] * e1[1] - d[1] * e1[0]], f0 = r() * 6.28;
+  [[6, 0.2, -0.8, 1, 0.62, 1], [5, 0.72, -0.62, 0.82, 0.56, 0.9], [4, 1.18, -0.36, 0.6, 0.5, 0.78]].forEach(function (g, gi) {
+    for (var j = 0; j < g[0]; j++) {
+      var ph = f0 + gi * 0.6 + j / g[0] * Math.PI * 2, cs = Math.cos(ph), sn = Math.sin(ph), h = [e1[0] * cs + e2[0] * sn, e1[1] * cs + e2[1] * sn, e1[2] * cs + e2[2] * sn];
+      var L = R * g[3] * (0.92 + r() * 0.16), pk = [p[0] + h[0] * R * 0.07, p[1] + h[1] * R * 0.07, p[2] + h[2] * R * 0.07];
+      kotaHelai(B.helai, kotaTulang(pk, h, d, g[1], L, g[2], 3, 1), h, d, L * g[4], { bentuk: 'kelopak', m: 3, lipat: 0.38, cekung: true, warna: kotaWKali(hex, 0.64 * g[5]), ujung: 1.22 });
+    }
+  });
+}
+/* rangkaian bunga besar di vas porselen (meja bundar lobi): kuntum berkelopak di kubah + daun menjuntai + tangkai tinggi berdaun kecil */
+function kotaRangkaianBunga(B, x, y, z) {
+  var cV = kotaW(0xf2efe8), cE = kotaW(KC.emas), U = [0, 1, 0], r = acak(1807), i;
+  kotaPutar(B.kilap, x, y, z, [[0.2, 0, cE], [0.2, 0.028, cE], [0.165, 0.044, cE], null,
+    [0.118, 0.044], [0.128, 0.1], [0.195, 0.22], [0.295, 0.4], [0.342, 0.55], [0.33, 0.68], [0.262, 0.79], [0.212, 0.855], [0.2, 0.9], null,
+    [0.2, 0.9, cE], [0.238, 0.94, cE], [0.256, 0.957, cE], [0.246, 0.968, cE], [0.222, 0.955, cE], [0.196, 0.9, cE]], 32, cV);
+  B.kilap.silinder(x, y + 0.845, z, 0.221, 0.211, 0.03, 32, cE, false);
+  B.halus.cincin(x, y + 0.9, z, 0, 0.197, 24, kotaW(0x1f2a1c));
+  var warna = [0xf6f1ee, 0xf2b8c6, 0xd94a6f, 0xf6f1ee, 0xf4c9a0, 0x9b2242, 0xf2b8c6];
+  for (i = 0; i < 17; i++) { /* kuntum: spiral emas di kubah (pucuk -> hampir mendatar) */
+    var ct = 1 - (i + 0.35) / 17 * 0.9, st = Math.sqrt(1 - ct * ct), az = i * 2.39996, d = [st * Math.cos(az), ct, st * Math.sin(az)], pj = 0.5 + 0.16 * r() - 0.12 * st, R = 0.15 + r() * 0.035;
+    var p0 = [x + d[0] * 0.08, y + 0.86, z + d[2] * 0.08], p1 = [x + d[0] * pj, y + 0.93 + d[1] * pj, z + d[2] * pj];
+    kotaTabung(B.halus, [p0, [(p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2 + 0.03, (p0[2] + p1[2]) / 2], p1], [0.007, 0.007, 0.006], 4, kotaWKali(0x4f8a45, 0.5));
+    kotaKuntum(B, p1, d, R, warna[i % 7], r);
+    B.halus.geo(new THREE.SphereGeometry(R * 0.17, 8, 5), kotaMatriks(p1[0] + d[0] * R * 0.2, p1[1] + d[1] * R * 0.2, p1[2] + d[2] * R * 0.2), kotaWKali(0xe8b640, 0.6));
+  }
+  var hijau = [0x3d7a3c, 0x4f8a45, 0x2f6b34];
+  for (i = 0; i < 18; i++) { /* daun pengisi: menjuntai keluar dari bibir vas */
+    var a2 = i * 2.39996 + 0.9, h = [Math.cos(a2), 0, Math.sin(a2)], bawah = i % 3 === 0, L = (bawah ? 0.5 : 0.36) + r() * 0.1;
+    kotaHelai(B.helai, kotaTulang([x + h[0] * 0.14, y + 0.94, z + h[2] * 0.14], h, U, bawah ? 0.45 : 0.75 + r() * 0.35, L, bawah ? 1.5 : 0.7 + r() * 0.4, 5, 1.4), h, U, L * 0.2, { bentuk: 'lonjong', lipat: 0.22, cekung: true, guling: (r() - 0.5) * 0.5, warna: kotaWKali(hijau[i % 3], 0.68), ujung: 1.2 });
+  }
+  for (i = 0; i < 6; i++) { /* tangkai tinggi berdaun kecil berpasangan (menambah tinggi + kehalusan siluet) */
+    var a3 = i * 1.047 + 0.3, h3 = [Math.cos(a3), 0, Math.sin(a3)], tl = kotaTulang([x + h3[0] * 0.06, y + 0.9, z + h3[2] * 0.06], h3, U, 1.32 - r() * 0.2, 0.95 + r() * 0.2, 0.35 + r() * 0.3, 8, 1.6);
+    kotaTabung(B.halus, tl.T, [0.006, 0.006, 0.006, 0.005, 0.005, 0.005, 0.004, 0.004, 0.003], 4, kotaWKali(0x5f8a45, 0.5));
+    for (var k = 3; k <= 8; k++) for (var sisi = -1; sisi <= 1; sisi += 2) {
+      var aa = a3 + sisi * 1.25, hh = [Math.cos(aa), 0, Math.sin(aa)];
+      kotaHelai(B.helai, kotaTulang(tl.T[k], hh, U, 0.55, 0.085, 0.5, 2, 1), hh, U, 0.03, { bentuk: 'lonjong', m: 3, lipat: 0.25, warna: kotaWKali(0x7fa878, 0.66), ujung: 1.15 });
+    }
+  }
+}
+/* tanaman gantung (sirih gading): pot keramik bubut digantung 3 tali ke cincin kuningan, tajuk daun hati + sulur menjuntai berdaun */
+function kotaTanamanGantung(B, x, z, H) {
+  var yP = 3.16, U = [0, 1, 0], r = acak(Math.round(x * 7) + 93), cP = kotaW(0xe9e2d2), cT = kotaWKali(0xcdb98f, 0.8), hijau = [0x4f8a45, 0x6aa055, 0x3d7a3c, 0x7fae5a], i, k;
+  B.kilap.silinder(x, yP + 0.98, z, 0.005, 0.005, H - yP - 0.98, 5, kotaW(KC.besiHitam), false);
+  B.kilap.geo(new THREE.TorusGeometry(0.032, 0.007, 8, 18), kotaMatriks(x, yP + 0.95, z), kotaW(KC.kuningan));
+  for (i = 0; i < 3; i++) { var at = i * 2.094 + 0.5, cx = Math.cos(at), cz = Math.sin(at);
+    kotaTabung(B.halus, [[x, yP + 0.93, z], [x + cx * 0.224, yP + 0.3, z + cz * 0.224], [x + cx * 0.222, yP + 0.17, z + cz * 0.222], [x + cx * 0.15, yP + 0.03, z + cz * 0.15], [x, yP - 0.012, z]], [0.006, 0.006, 0.006, 0.006, 0.006], 4, cT); }
+  kotaPutar(B.kilap, x, yP, z, [[0.001, 0], [0.075, 0.004], [0.135, 0.022], [0.185, 0.075], [0.21, 0.16], [0.214, 0.25], null,
+    [0.214, 0.25], [0.226, 0.262], [0.229, 0.28], [0.222, 0.294], [0.207, 0.297], [0.197, 0.285], [0.194, 0.262]], 28, cP);
+  B.halus.cincin(x, yP + 0.266, z, 0, 0.195, 20, kotaW(0x33271d));
+  for (i = 0; i < 16; i++) { /* tajuk: daun hati mengembang dari tengah pot */
+    var az = i * 2.39996, h = [Math.cos(az), 0, Math.sin(az)], q = i / 15, L = 0.15 + r() * 0.05;
+    var tk = kotaTulang([x + h[0] * 0.05 * (1 + q), yP + 0.25, z + h[2] * 0.05 * (1 + q)], h, U, 1.25 - q * 0.75, 0.1 + q * 0.07, 0.25, 2, 1);
+    kotaTabung(B.halus, tk.T, [0.004, 0.004, 0.0035], 4, kotaWKali(0x6f9a4a, 0.55));
+    kotaHelai(B.helai, kotaTulang(tk.T[2], h, U, 0.75 - q * 0.75, L, 0.9 + r() * 0.5, 4, 1.2), h, U, L * 0.4, { bentuk: 'hati', lipat: 0.22, cekung: true, guling: (r() - 0.5) * 0.6, warna: kotaWKali(hijau[i % 4], 0.7), ujung: 1.2 });
+  }
+  for (i = 0; i < 8; i++) { /* sulur: keluar lewat bibir pot lalu menjuntai berayun, daun hati berseling kiri-kanan */
+    var av = i * 0.7854 + r() * 0.4, cxv = Math.cos(av), czv = Math.sin(av), pj = 0.55 + r() * 0.75, T = [[x + cxv * 0.15, yP + 0.27, z + czv * 0.15], [x + cxv * 0.235, yP + 0.3, z + czv * 0.235]], J = [0.005, 0.005], nS = Math.max(4, Math.round(pj / 0.11)), f1 = r() * 6.28;
+    for (k = 1; k <= nS; k++) { var t = k / nS, ay = Math.sin(t * 5 + f1) * 0.035 * t, rad = 0.262 + 0.03 * Math.sin(t * 3.1 + f1) + 0.02 * t; T.push([x + cxv * rad - czv * ay, yP + 0.27 - pj * t, z + czv * rad + cxv * ay]); J.push(0.0045 - 0.0015 * t); }
+    kotaTabung(B.halus, T, J, 4, kotaWKali(0x6f9a4a, 0.55));
+    for (k = 1; k < T.length; k++) {
+      var ad = av + (k % 2 ? 1 : -1) * (0.75 + r() * 0.5), hd2 = [Math.cos(ad), 0, Math.sin(ad)], Ld = (0.12 + r() * 0.04) * (1 - 0.25 * (k / T.length));
+      kotaHelai(B.helai, kotaTulang(T[k], hd2, U, 0.1 - r() * 0.5, Ld, 0.7 + r() * 0.5, 4, 1.2), hd2, U, Ld * 0.42, { bentuk: 'hati', lipat: 0.2, cekung: true, guling: (r() - 0.5) * 0.7, warna: kotaWKali(hijau[(i + k) % 4], 0.7), ujung: 1.2 });
+    }
+  }
+}
 function kotaLampuGantung(B, x, y, z, H, jenis) { /* lampu gantung: kabel + kap kuningan + bola menyala */
   B.kilap.silinder(x, y + 0.2, z, 0.008, 0.008, H - y - 0.2, 4, kotaW(KC.besiHitam), false);
   if (jenis === 'kubah') { B.kilap.geo(new THREE.SphereGeometry(0.28, 14, 7, 0, Math.PI * 2, 0, Math.PI / 2), kotaMatriks(x, y, z), kotaW(KC.kuningan)); B.kilap.geo(new THREE.SphereGeometry(0.27, 14, 7, 0, Math.PI * 2, 0, Math.PI / 2), kotaMatriks(x, y - 0.002, z, Math.PI, 0, 0, 1, 0.08, 1), kotaW(0x6a4a24)); B.nyala.geo(new THREE.SphereGeometry(0.1, 10, 8), kotaMatriks(x, y - 0.04, z), kotaW(0xfff0c8)); }
@@ -16490,9 +16934,7 @@ function kotaIsiHotel(B, R) {
   });
   /* meja bundar tengah + vas bunga besar */
   B.batu.silinder(0, 0, 0, 1.1, 1.1, 0.9, 32, kotaW(0x1d1d22), false); B.batu.silinder(0, 0.9, 0, 1.25, 1.25, 0.06, 32, kotaW(KC.marmer), true);
-  B.kilap.silinder(0, 0.96, 0, 0.28, 0.4, 0.9, 16, kotaW(0xc9d6e0), true);
-  for (var f = 0; f < 18; f++) { var a = f * 2.399, rr = 0.2 + (f % 5) * 0.12; B.halus.geo(new THREE.IcosahedronGeometry(0.16, 0), kotaMatriks(Math.cos(a) * rr, 2.0 + (f % 4) * 0.12 - rr * 0.4, Math.sin(a) * rr), kotaW([0xf6f1ee, 0xe84a6f, 0xf6c344, 0xffffff, 0xb36bd6][f % 5])); }
-  for (var lf = 0; lf < 10; lf++) { var bb = lf * 0.63; B.halus.geo(new THREE.ConeGeometry(0.08, 0.7, 4), kotaMatriks(Math.cos(bb) * 0.3, 1.9, Math.sin(bb) * 0.3, Math.cos(bb) * 0.8, 0, -Math.sin(bb) * 0.8), kotaW(0x3f7f3f)); }
+  kotaRangkaianBunga(B, 0, 0.96, 0);
   /* grand piano di sudut kiri belakang */
   kotaPianoBesar(B, -9.6, -6.1, 0.35);
   /* 2 lift kuningan di dinding kanan: kusen + daun pintu + penunjuk lantai menyala + tombol */
@@ -16511,7 +16953,7 @@ function kotaIsiHotel(B, R) {
     [q[1] - 0.6, q[2] + 0.6].forEach(function (sc) { B.kilap.fk(q[0], sc - 0.07, sc + 0.07, 3.35, 3.75, 0, 0.04, kotaW(KC.kuningan), KM_PZ | KM_PX | KM_NX | KM_PY | KM_NY); B.kilap.fk(q[0], sc - 0.02, sc + 0.02, 3.5, 3.54, 0.04, 0.2, kotaW(KC.kuningan), KM_PX | KM_NX | KM_PY | KM_NY); B.nyala.fgeo(q[0], new THREE.SphereGeometry(0.08, 10, 8), sc, 3.66, 0.22, 0, 0, 0, 1, 1.3, 1, kotaW(0xfff0c8)); });
   });
   /* tanaman pot besar di sudut */
-  [[-hw + 0.8, hd - 1.4], [hw - 0.8, hd - 1.4], [hw - 0.8, -hd + 0.8]].forEach(function (p) { kotaTanamanPot(B, p[0], p[1], 1.3); });
+  [[-hw + 0.8, hd - 1.4], [hw - 0.8, hd - 1.4], [hw - 0.8, -hd + 0.8]].forEach(function (p, i) { kotaTanamanPot(B, p[0], p[1], 1.3, i < 2 ? 'palem' : 'ficus', { batas: { x0: -hw + 0.32, x1: hw - 0.32, z0: -hd + 0.32, z1: hd - 0.32 } }); });
 }
 function kotaIsiKafe(B, R) {
   var hw = R.W / 2, hd = R.D / 2, H = R.H;
@@ -16562,7 +17004,7 @@ function kotaIsiKafe(B, R) {
     B.halus.silinder(q[0] + 1.0, 1.06, 5.65, 0.045, 0.055, 0.09, 10, kotaW(0xf3efe8), true);
   });
   /* tanaman gantung + balok plafon kayu gelap di atas plester hangat */
-  [[-1.5, 3.5], [1.5, 3.5]].forEach(function (p) { B.kilap.silinder(p[0], 3.5, p[1], 0.006, 0.006, H - 3.5, 4, kotaW(KC.besiHitam), false); B.batu.silinder(p[0], 3.2, p[1], 0.22, 0.16, 0.3, 12, kotaW(0xb8644a), true); for (var v = 0; v < 6; v++) B.halus.geo(new THREE.ConeGeometry(0.06, 0.7, 4), kotaMatriks(p[0] + Math.cos(v) * 0.16, 3.0, p[1] + Math.sin(v) * 0.16, Math.PI + Math.cos(v) * 0.4, 0, Math.sin(v) * 0.4), kotaW(0x4f8a45)); });
+  [[-1.5, 3.5], [1.5, 3.5]].forEach(function (p) { kotaTanamanGantung(B, p[0], p[1], H); });
   for (var lx = -hw + 1.5; lx < hw; lx += 2.6) B.halus.kotakMM(lx - 0.1, lx + 0.1, H - 0.3, H, -hd, hd, kotaW(0x3a2a1e), KM_NY | KM_PX | KM_NX);
 }
 function kotaIsiButik(B, R) {
@@ -16610,7 +17052,8 @@ function kotaIsiButik(B, R) {
   B.kilap.geo(new THREE.TorusGeometry(1.6, 0.06, 6, 40), kotaMatriks(0, H - 1.2, -0.5, Math.PI / 2, 0, 0), kotaW(KC.emas)); B.nyala.geo(new THREE.TorusGeometry(1.6, 0.035, 4, 40), kotaMatriks(0, H - 1.25, -0.5, Math.PI / 2, 0, 0), kotaW(0xfff4e0));
   [-1.6, 1.6].forEach(function (x) { B.kilap.silinder(x, H - 1.2, -0.5, 0.006, 0.006, 1.2, 4, kotaW(KC.besiHitam), false); });
   for (var t = -5; t <= 5; t += 2.5) for (var z = -4; z <= 3; z += 3.5) { B.kilap.silinder(t, H - 0.18, z, 0.09, 0.09, 0.18, 10, kotaW(0x1d1d22), false); B.nyala.cincin(t, H - 0.181, z, 0, 0.07, 10, kotaW(0xfff6e8), false); }
-  kotaTanamanPot(B, -hw + 0.8, hd - 1.2, 1.2); kotaTanamanPot(B, hw - 0.8, hd - 1.2, 1.2);
+  var potB = { badan: 0x24252a, plint: KC.emas, gelang: KC.emas, batas: { x0: -hw + 0.32, x1: hw - 0.32, z0: -hd + 0.32, z1: hd - 0.32 } };
+  kotaTanamanPot(B, -hw + 0.8, hd - 1.2, 1.2, 'strelitzia', potB); kotaTanamanPot(B, hw - 0.8, hd - 1.2, 1.2, 'ficus', potB);
 }
 function kotaKabinet(B, x, z, rot, warna, layar, i) { /* mesin arkade tegak: badan, layar miring, panel tombol + tuas, marquee menyala */
   var c = kotaW(warna), cs = Math.cos(rot), sn = Math.sin(rot), F = kotaBidang(x + sn * 0.45, z + cs * 0.45, sn, cs);
@@ -16710,7 +17153,7 @@ function kotaEfekRuang(jenis) {
 function kotaBangunRuang(id) {
   if (kotaRuangSiap[id]) return;
   var R = KOTA_RUANG[id], S = kotaRuangScene[id], bahan = kotaBahanRuang(id), B = kotaEmber(), BL = kotaEmber();
-  B.dinding = new KotaGeo('dinding'); B.dinding.petak = R.H;
+  B.dinding = new KotaGeo('dinding'); B.dinding.petak = R.H; B.helai = new KotaGeo('helai');
   kotaRuangCahaya(S, id, R, id === 'arkade' ? 0xd8c8ff : 0xfff1dc);
   var opsi = { hotel: { tinggiPintu: 3.4, atasEtalase: 5.2, kusen: KC.kuningan, lis: 0xe8dcc0, plafon: 0xf4ecdc, petakLantai: 2.4 },
     kafe: { tinggiPintu: 2.9, atasEtalase: 3.6, kusen: 0x1f3b2c, kusenPintu: 0x1f3b2c, lis: 0xe8dcc6, plafon: 0xeadcc4, petakLantai: 1.6 },
@@ -16758,7 +17201,7 @@ function kotaRuangTick(dt, now) {
   if (k && S) suasanaWarnaLangit(k, 0.02, 0, -1, S.background); /* langit di balik etalase ikut jam WIB */
   KOTA_U.malam.value = k ? Math.max(0, Math.min(1, (1 - k.terang) * 1.08)) : 0;
   KOTA_U.malamWarga.value = 0; /* staf interior: tanpa genangan peta jalan */
-  if (KD.luar) { var f = k ? 0.16 + 0.84 * Math.max(0, Math.min(1, k.terang)) : 1; KD.luar.batu.color.setScalar(f); KD.luar.halus.color.setScalar(f); KD.luar.lantai.color.setScalar(f); KD.luar.kilap.color.setScalar(f); }
+  if (KD.luar) { var f = k ? 0.16 + 0.84 * Math.max(0, Math.min(1, k.terang)) : 1; KD.luar.batu.color.setScalar(f); KD.luar.halus.color.setScalar(f); KD.luar.lantai.color.setScalar(f); KD.luar.kilap.color.setScalar(f); KD.luar.daun.color.setScalar(f); }
   var W = KOTA_RUANG_WARGA[R]; if (W) kotaWargaPose(W.daftar, W.tulang, W.rt, dt, now, function (n) { return kotaNpcKeadaan(n, 0); });
   var t = performance.now(), E = KOTA_RUANG_EFEK[R];
   if (E) for (var id in E) { var e = E[id], te = (t - e.mulai) / 1000; e.mesh.visible = e.mulai > 0 && te < 2.0; if (e.mesh.visible) { e.mesh.position.y = e.mesh.userData.dasar + te * 0.45; e.mesh.scale.setScalar(0.6 + te * 0.35); e.mesh.rotation.y = te * 1.4; } }
@@ -16799,7 +17242,7 @@ function kotaPasangEmber(B, scn, daftar) { /* ember -> satu mesh per bahan */
     var G = B[k]; if (!G.nv) return;
     var m = new THREE.Mesh(G.selesai(), KB[k] || KB.halus);
     m.matrixAutoUpdate = false; m.updateMatrix();
-    m.receiveShadow = (k === 'batu' || k === 'halus' || k === 'kilap' || k === 'lantai');
+    m.receiveShadow = (k === 'batu' || k === 'halus' || k === 'kilap' || k === 'lantai' || k === 'daun');
     m.castShadow = (k === 'bayang');
     if (k === 'etalase') m.renderOrder = 2;
     m.name = 'kota-' + k;
@@ -16848,7 +17291,7 @@ function kotaPetaCahaya() {
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(px(x), pz(z), r * sk, 0, Math.PI * 2); ctx.fill();
   }
   var plaza = {}; KOTA_LAMPU_PLAZA.forEach(function (p) { plaza[p.x + ',' + p.z] = 1; genang(p.x, p.z, 4.4, '255,220,170', 0.66); });
-  KOTA_LAMPU.forEach(function (p) { if (plaza[p.x + ',' + p.z]) return; var rot = Math.abs(Math.abs(p.z) - 52) < 1 ? 0 : Math.PI / 2; [-1, 1].forEach(function (s) { genang(p.x + Math.cos(rot) * s * 0.9, p.z - Math.sin(rot) * s * 0.9, 6.0, '255,206,140', 0.72); }); });
+  KOTA_LAMPU.forEach(function (p) { if (plaza[p.x + ',' + p.z]) return; var rot = Math.abs(Math.abs(p.z) - 52) < 3 ? 0 : Math.PI / 2; [-1, 1].forEach(function (s) { genang(p.x + Math.cos(rot) * s * 0.9, p.z - Math.sin(rot) * s * 0.9, 6.0, '255,206,140', 0.72); }); });
   var warnaGedung = { bioskop: '255,90,170', permata: '255,225,160', tekno: '210,235,255', pasar: '255,110,80', galeria: '255,230,190', kafe: '255,200,130', maison: '255,236,210' };
   KOTA_GEDUNG.forEach(function (g) {
     kotaSisiPoli(g.tapak).forEach(function (S) {
@@ -16905,7 +17348,7 @@ function enterKota() {
   kotaAsal = { realm: myRealm === 'jalan' ? 'jalan' : 'yard', x: avatarPos.x, z: avatarPos.z, rot: avatar.rotation.y, level: avatarLevel,
     camYaw: camYaw, camPitch: camPitch, camDist: camDist, ruang: ruang, ruangPos: ruangPos };
   if (!KOTA_SIAP) buildKota();
-  myRealm = 'kota'; avatarLevel = 0; kotaRuangKini = null; kotaMalamSnap = true;
+  myRealm = 'kota'; avatarLevel = 0; kotaRuangKini = null; kotaMalamSnap = true; kotaKamF = 1;
   if (avatar && avatar.parent) avatar.parent.remove(avatar);
   kotaScene.add(avatar);
   avatarPos.x = KOTA_SPAWN.x; avatarPos.z = KOTA_SPAWN.z; avatar.rotation.y = KOTA_SPAWN.rot;
@@ -16945,6 +17388,16 @@ function exitKota(keAsal) {
 function kotaLangitSkala() { /* kubah langit Suasana (r 150) diperbesar di Kota: menara cakrawala jauh tetap di depan langit */
   if (typeof SU !== 'undefined' && SU.langit) SU.langit.scale.setScalar(myRealm === 'kota' ? 3.1 : 1);
 }
+var kotaKamF = 1; /* faktor jarak kamera kini (1 = jarak pilihan pemain) */
+function kotaKameraTick(dt) { /* dipanggil sesudah animate() menaruh kamera orbit: dekatkan dengan mulus bila batang / tiang menutup pandangan */
+  var cp = cameraPos(camTarget, camYaw, camPitch, camDist);
+  var f = kotaKameraFaktor(cp.x, cp.y, cp.z, camTarget.x, camTarget.y + 1.5, camTarget.z, camDist);
+  kotaKamF += (f - kotaKamF) * Math.min(1, (dt > 0 ? dt : 0.016) * (f < kotaKamF ? 7 : 2.5)); /* masuk sigap, keluar pelan: tanpa lompat / getar */
+  if (kotaKamF > 0.998) { kotaKamF = Math.max(kotaKamF, f); if (kotaKamF > 0.998) return; }
+  var c2 = cameraPos(camTarget, camYaw, camPitch, camDist * kotaKamF);
+  camera.position.set(c2.x, c2.y, c2.z);
+  camera.lookAt(camTarget.x, camTarget.y + 1.5, camTarget.z);
+}
 function kotaTick(dt, now) {
   if (myRealm === 'kota') {
     kotaMatahariIkut();
@@ -16961,6 +17414,7 @@ function kotaTick(dt, now) {
     kotaLedTick(performance.now());
     kotaAnimTick(performance.now());
     if (now - (kotaTick.jam || 0) > 5000) { kotaTick.jam = now; kotaJamPerbarui(kotaScene); }
+    kotaKameraTick(dt);
   } else if (kotaRuangKini && typeof kotaRuangTick === 'function') kotaRuangTick(dt, now);
 }
 /* ================= AKHIR KOTA ================= */
