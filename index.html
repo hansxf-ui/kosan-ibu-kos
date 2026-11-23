@@ -13396,6 +13396,8 @@ var KOTA_POHON = KOTA_PULAU.map(function (q) { return { x: q.x, z: q.z, r: 1.55 
   [[-12.5, -12.5, 1], [12.5, -12.5, 0], [12.5, 12.5, 0]].map(function (p) { return { x: p[0], z: p[1], r: 2.4, rendah: !!p[2] }; }) /* bak tanaman bundar + bibir duduk di segitiga plaza (barat daya = piano). 12,5 (dulu 16): batang 12,3 m dari fasad serong -> tajuk (jangkau <= 4,0 m) bebas dari kanopi 4,6 m + papan nama gedung pojok. rendah (bak depan Hotel Kencana) = taman bunga + topiari <= 2,3 m, TANPA batang / tajuk: pohon setinggi 10 m di sumbu pintu hotel selalu menutup huruf HOTEL KENCANA (7 m lebar, 6,5-7,7 m tinggi) dari plaza */
 );
 /* lampu jalan lingkar berdiri di TEPI jalan (1,6 m dari fasad, selang-seling sisi luar / dalam, cermin), bukan di garis tengah */
+/* Kota malam lebih terang (Ryan 23 Nov): 4 tiang sorot tinggi di diagonal plaza (antara kolam dan bak pohon) = sumber cahaya tengah plaza */
+var KOTA_SOROT = [[1, 1], [-1, 1], [-1, -1], [1, -1]].map(function (q) { return { x: q[0] * 8.56, z: q[1] * 8.56, rot: Math.atan2(q[0], q[1]) + Math.PI / 2 }; });
 var KOTA_LAMPU = KOTA_PULAU.map(function (q) { return [{ x: q.x - 6.2, z: q.z }, { x: q.x + 6.2, z: q.z }]; }).reduce(function (a, b) { return a.concat(b); }, [])
   .concat(KOTA_LAMPU_PLAZA)
   .concat([[-5.6, -30], [5.6, -30], [-5.6, 30], [5.6, 30], [-56.4, -40], [-51.6, -22], [-51.6, 22], [-56.4, 40], [56.4, -40], [51.6, -22], [51.6, 22], [56.4, 40],
@@ -13472,6 +13474,7 @@ var KOTA_POT = []; /* bak tanaman granit di tepi trotoar lingkar: { x, z } (sete
 var KOTA_PADAT_KECIL = [];
 KOTA_POHON.forEach(function (p) { KOTA_PADAT_KECIL.push({ x: p.x, z: p.z, r: p.r }); });
 KOTA_LAMPU.forEach(function (p) { KOTA_PADAT_KECIL.push({ x: p.x, z: p.z, r: 0.22 }); });
+KOTA_SOROT.forEach(function (p) { KOTA_PADAT_KECIL.push({ x: p.x, z: p.z, r: 0.3 }); });
 KOTA_PADAT_KECIL.push({ x: KOTA_AIR.x, z: KOTA_AIR.z, r: KOTA_AIR.r });
 KOTA_POT.forEach(function (p) { KOTA_PADAT_KECIL.push({ x: p.x, z: p.z, r: 0.5 }); });
 KOTA_BANGKU.forEach(function (b) {
@@ -13703,7 +13706,8 @@ function kotaKursiWarga() { return KOTA_NPC.filter(function (n) { return n.jenis
    kamera -> pemain, kamera didekatkan sampai lewat penghalang itu. Hasil = faktor jarak (1 = tidak diubah), tidak pernah
    lebih dekat dari 60% jarak pilihan pemain (atau 3 m). Analitik (tanpa raycast mesh); pelunakan waktu di kotaKameraTick. */
 var KOTA_HALANG_KAMERA = KOTA_POHON.map(function (p) { return { x: p.x, z: p.z, r: p.r >= 2 ? 0.36 : 0.26, h: p.rendah ? 2.3 : 4.4 }; })
-  .concat(KOTA_LAMPU.map(function (p) { return { x: p.x, z: p.z, r: 0.12, h: 6.2 }; }));
+  .concat(KOTA_LAMPU.map(function (p) { return { x: p.x, z: p.z, r: 0.12, h: 6.2 }; }))
+  .concat(KOTA_SOROT.map(function (p) { return { x: p.x, z: p.z, r: 0.16, h: 9.6 }; }));
 function kotaKamKotak(tz) { /* kotak tempat kamera boleh berada: 0,3 m di depan fasad penutup; di luar bulevar (|z| > 12) batas timur-barat = sisi luar jalan lingkar */
   var bul = Math.abs(tz) <= 12; return { x0: bul ? KOTA.minX + 0.3 : -57.7, x1: bul ? KOTA.maxX - 0.3 : 57.7, z0: -55.7, z1: 55.7 };
 }
@@ -13977,6 +13981,7 @@ function kotaLebarHuruf(teks, tinggi, o) { var H = kotaHurufBalok(teks, o); retu
    Aturan: yang menyala = MeshBasicMaterial; satu bidang transparan per bukaan (kaca etalase);
    tanpa emissive. Malam ikut Suasana (jam WIB): lampu matahari/langit/kabut ditangani suasanaTerapkan
    (lampu Kota didaftarkan ke SU.lampu); jendela menyala + genangan cahaya di paving = uniform KOTA_U. */
+var KOTA_DAUN_MALAM = 0.4; /* porsi cahaya peta genangan yang sampai ke daun di atasnya */
 var KOTA_U = { peta: { value: null }, kotak: { value: new THREE.Vector4(0, 0, 1, 1) }, malam: { value: 0 }, led: { value: new THREE.Color(0, 0, 0) }, ledP: { value: new THREE.Vector4(14.06, -17.06, 1 / 12, 1 / 12) },
   basah: { value: 0 }, kacaMalam: { value: null }, waktu: { value: 0 }, jet: { value: new THREE.Vector4(1, 1, 1, 1) }, airMalam: { value: 0 }, malamWarga: { value: 0 } };
 function kotaSuntikMalam(shader) {
@@ -13996,6 +14001,11 @@ function kotaSuntikMalam(shader) {
       '  outgoingLight += diffuseColor.rgb * kC * kotaMalam * ( vKota.z * 2.3 + vKota.w * 1.1 );\n' +
       '  outgoingLight += kC * kotaMalam * vKota.z * ( 0.12 + 0.32 * kotaBasah );\n' +
       '}\n#include <opaque_fragment>');
+}
+function kotaSuntikMalamDaun(shader) { /* tajuk pohon / semak: lampu di bawahnya menerangi daun dari bawah (tanpa syarat tinggi) -> hijau gelap, bukan siluet hitam */
+  kotaSuntikMalam(shader);
+  shader.fragmentShader = shader.fragmentShader.replace('if ( kotaMalam > 0.002 && vKota.z + vKota.w > 0.002 ) {', 'if ( kotaMalam > 0.002 ) {')
+    .replace('( vKota.z * 2.3 + vKota.w * 1.1 )', '( vKota.z * 2.3 + vKota.w * 1.1 + ' + KOTA_DAUN_MALAM.toFixed(2) + ' )');
 }
 function kotaSuntikMalamWarga(shader) { /* warga jalan Kota: genangan lampu yang sama menerangi badan (0 di interior) */
   kotaSuntikMalam(shader); shader.uniforms.kotaMalam = KOTA_U.malamWarga;
@@ -14139,7 +14149,7 @@ function kotaBahan() {
     batu: lambert({ map: batu, vertexColors: true }, 'batu'),
     halus: lambert({ map: halus, vertexColors: true }, 'halus'),
     lantai: lambert({ map: lantai, vertexColors: true }, 'lantai'),
-    daun: lambert({ map: teksturLukis(512, 512, kotaLukisDaun, [1, 1]), vertexColors: true }, 'daun'),
+    daun: (function () { var m = lambert({ map: teksturLukis(512, 512, kotaLukisDaun, [1, 1]), vertexColors: true }, 'daun'); m.onBeforeCompile = kotaSuntikMalamDaun; m.customProgramCacheKey = kotaKunciSuntik('malam-daun'); return m; })(),
     kilap: (function () { var m = new THREE.MeshPhongMaterial({ vertexColors: true, specular: 0x9a9a9a, shininess: 64 }); m.onBeforeCompile = kotaSuntikMalam; m.customProgramCacheKey = kotaKunciSuntik('malam'); m.name = 'kota-kilap'; return m; })(),
     kaca: (function () { var m = new THREE.MeshBasicMaterial({ map: kaca, vertexColors: true }); m.onBeforeCompile = kotaSuntikKaca; m.customProgramCacheKey = kotaKunciSuntik('kaca'); m.name = 'kota-kaca'; return m; })(),
     etalase: new THREE.MeshBasicMaterial({ color: 0xd8ecff, transparent: true, opacity: 0.17, depthWrite: false, name: 'kota-etalase' }),
@@ -16128,6 +16138,21 @@ function kotaSpanduk(i) {
   });
   return kotaSpandukCache[i];
 }
+function kotaLampuSorot(B, x, z, rot) { /* tiang sorot plaza 9,6 m: besi hitam berlis emas, lengan ganda, 2 kepala sorot besar menghadap bawah (lensa menyala = Basic) */
+  var cB = kotaW(KC.besiHitam), cE = kotaW(KC.emas);
+  B.kilap.silinder(x, 0, z, 0.3, 0.24, 0.7, 12, cB, true);
+  B.kilap.silinder(x, 0.7, z, 0.13, 0.075, 8.6, 8, cB, false);
+  B.kilap.silinder(x, 1.6, z, 0.15, 0.15, 0.12, 10, cE, false);
+  B.kilap.silinder(x, 8.55, z, 0.11, 0.11, 0.1, 8, cE, false);
+  [-1, 1].forEach(function (s) {
+    var hx = x + Math.cos(rot) * s * 1.0, hz = z - Math.sin(rot) * s * 1.0;
+    B.kilap.kotak((x + hx) / 2, 9.2, (z + hz) / 2, 0.5, 0.04, 0.04, rot, cB, KM_SEMUA);
+    B.kilap.kotak(hx, 9.3, hz, 0.4, 0.06, 0.3, rot, cB, KM_SEMUA);
+    B.kilap.kotak(hx, 9.1, hz, 0.34, 0.14, 0.25, rot, kotaW(0x2f3236), KM_PX | KM_NX | KM_PZ | KM_NZ);
+    B.nyala.kotak(hx, 9.04, hz, 0.3, 0.11, 0.21, rot, kotaW(0xfff4dc), KM_PX | KM_NX | KM_PZ | KM_NZ | KM_NY);
+  });
+  B.kilap.silinder(x, 9.36, z, 0.03, 0.01, 0.4, 6, cE, false);
+}
 function kotaLampuPlaza(B, x, z) { /* tiang hias pendek + bola kaca menyala (warna bisa diganti: diketuk) */
   var cB = kotaW(KC.besiHitam), cE = kotaW(KC.emas);
   B.kilap.silinder(x, 0, z, 0.28, 0.22, 0.45, 12, cB, true);
@@ -16254,6 +16279,7 @@ function kotaBangunPerabot(B) {
   KOTA_GLOBE = null;
   KOTA_POHON.forEach(function (p) { kotaPohon(B, p); });
   KOTA_LAMPU_PLAZA.forEach(function (p) { kotaLampuPlaza(B, p.x, p.z); });
+  KOTA_SOROT.forEach(function (p) { kotaLampuSorot(B, p.x, p.z, p.rot); });
   var plaza = {}; KOTA_LAMPU_PLAZA.forEach(function (p) { plaza[p.x + ',' + p.z] = true; });
   KOTA_LAMPU.forEach(function (p, i) { if (plaza[p.x + ',' + p.z]) return; kotaLampuJalan(B, p.x, p.z, Math.abs(Math.abs(p.z) - 52) < 3 ? 0 : Math.PI / 2, i % 3 === 0); }); /* lengan sejajar arah jalan */
   KOTA_BANGKU.forEach(function (b) { kotaBangku(B, b); });
@@ -17594,11 +17620,12 @@ function kotaPetaCahaya() {
   var px = function (x) { return (x - x0) / (x1 - x0) * W; }, pz = function (z) { return (z - z0) / (z1 - z0) * H; }, sk = W / (x1 - x0);
   function genang(x, z, r, warna, kuat) {
     var g = ctx.createRadialGradient(px(x), pz(z), 0, px(x), pz(z), r * sk);
-    g.addColorStop(0, 'rgba(' + warna + ',' + kuat + ')'); g.addColorStop(0.45, 'rgba(' + warna + ',' + (kuat * 0.45) + ')'); g.addColorStop(1, 'rgba(' + warna + ',0)');
+    g.addColorStop(0, 'rgba(' + warna + ',' + kuat + ')'); g.addColorStop(0.3, 'rgba(' + warna + ',' + (kuat * 0.68) + ')'); g.addColorStop(0.65, 'rgba(' + warna + ',' + (kuat * 0.24) + ')'); g.addColorStop(1, 'rgba(' + warna + ',0)'); /* pinggir lembut (3 tahap) */
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(px(x), pz(z), r * sk, 0, Math.PI * 2); ctx.fill();
   }
-  var plaza = {}; KOTA_LAMPU_PLAZA.forEach(function (p) { plaza[p.x + ',' + p.z] = 1; genang(p.x, p.z, 4.4, '255,220,170', 0.66); });
-  KOTA_LAMPU.forEach(function (p) { if (plaza[p.x + ',' + p.z]) return; var rot = Math.abs(Math.abs(p.z) - 52) < 3 ? 0 : Math.PI / 2; [-1, 1].forEach(function (s) { genang(p.x + Math.cos(rot) * s * 0.9, p.z - Math.sin(rot) * s * 0.9, 6.0, '255,206,140', 0.72); }); });
+  var plaza = {}; KOTA_LAMPU_PLAZA.forEach(function (p) { plaza[p.x + ',' + p.z] = 1; genang(p.x, p.z, KOTA_GENANG.plaza[0], '255,220,170', KOTA_GENANG.plaza[1]); });
+  KOTA_SOROT.forEach(function (p) { genang(p.x * 1.12, p.z * 1.12, KOTA_GENANG.sorot[0], '255,238,208', KOTA_GENANG.sorot[1]); }); /* tiang sorot: genangan lebar, saling tumpang -> seluruh plaza terang */
+  KOTA_LAMPU.forEach(function (p) { if (plaza[p.x + ',' + p.z]) return; var rot = Math.abs(Math.abs(p.z) - 52) < 3 ? 0 : Math.PI / 2; [-1, 1].forEach(function (s) { genang(p.x + Math.cos(rot) * s * 0.9, p.z - Math.sin(rot) * s * 0.9, KOTA_GENANG.jalan[0], '255,206,140', KOTA_GENANG.jalan[1]); }); });
   var warnaGedung = { bioskop: '255,90,170', permata: '255,225,160', tekno: '210,235,255', pasar: '255,110,80', galeria: '255,230,190', kafe: '255,200,130', maison: '255,236,210' };
   KOTA_GEDUNG.forEach(function (g) {
     kotaSisiPoli(g.tapak).forEach(function (S) {
@@ -17612,7 +17639,11 @@ function kotaPetaCahaya() {
   KOTA_U.peta.value = tex; KOTA_U.kotak.value.set(x0, z0, 1 / (x1 - x0), 1 / (z1 - z0));
 }
 var KOTA_SU = [], kotaMalamSnap = true; /* lampu Kota lewat wakil: Suasana menulis ke wakil, kotaTick menyalin + meredupkan khas Kota */
-var KOTA_REDUP_MALAM = { hemi: 0.6, matahari: 0.5, isi: 0.75 }; /* malam Kota lebih gelap dari halaman -> genangan lampu, etalase, neon, jendela menonjol */
+/* Ryan 23 Nov ("gelap banget di tengah plaza, lampunya kureng"): dulu { hemi: 0.6, matahari: 0.5, isi: 0.75 } -> cahaya langit malam tinggal 40%,
+   dan cahaya bulan (satu-satunya lampu berbayang) tertutup bayangan menara -> paving di luar genangan nyaris hitam. Kini langit malam hampir
+   setara halaman kos (hemi tidak berbayang: mengisi semua sudut), bulan tetap redup; genangan lampu dilebarkan + tiang sorot plaza. */
+var KOTA_REDUP_MALAM = { hemi: 0.15, matahari: 0.45, isi: 0.3 };
+var KOTA_GENANG = { plaza: [9, 0.22], jalan: [10.5, 0.3], sorot: [15, 0.1] }; /* [jari-jari m, kuat]: dulu plaza 4,4 / jalan 6,0 (genangan terpisah-pisah) */
 function kotaSuasanaDaftar() { /* lampu + latar Kota ikut siang-malam Suasana (nilai siang dicatat = basis) */
   if (typeof SU === 'undefined' || !SU.siap) return;
   kotaScene.children.forEach(function (o) {
@@ -18021,6 +18052,7 @@ function suasanaSiapkan() {
   SU.arahPelangi = new THREE.Vector3(-0.79, 0, -0.62).normalize(); /* membelakangi matahari (cahaya dari tenggara) */
   SU.pelangi.position.copy(SU.arahPelangi).multiplyScalar(128); SU.pelangi.position.y = -24;
   SU.pelangi.lookAt(0, -24, 0); SU.pelangi.renderOrder = 901; SU.pelangi.visible = false; L.add(SU.pelangi);
+  skylineKosBangun(L); /* skyline Kota di cakrawala timur (halaman + Jalan Kampung) */
   /* hujan: garis opak jatuh di kotak sekitar pemain (satu draw call) */
   var nh = (window.innerWidth * window.innerHeight < 600000) ? 900 : 1400, ph = new Float32Array(nh * 6);
   SU.hujanData = { n: nh, x: new Float32Array(nh), y: new Float32Array(nh), z: new Float32Array(nh), v: new Float32Array(nh), p: new Float32Array(nh) };
@@ -18067,6 +18099,199 @@ function suasanaSiapkan() {
   SU.siap = true;
   suasanaTerapkan(true);
   setTimeout(suasanaSiapkanProgram, 3000); /* sesudah bingkai pertama: program senja/malam/hujan disiapkan (tanpa tersendat nanti) */
+}
+/* ==== SKYLINE-KOS-START ==== */
+/* Skyline Kota terlihat dari area kos (Ryan 23 Nov: "Gas, bikin skyline sesudah paket ini").
+   ARAH: Kota di TIMUR kos (+x) — Stasiun Kota ada di ujung BARAT bulevar Kota dan papannya "KE PERON · ARAH KOSAN":
+   dari Kota, kos ada di barat. Jalan Kampung membentang barat-timur, kamera bawaannya memandang timur -> skyline di ujung jalan.
+   BENTUK: siluet menara di 3 lapis kedalaman (jari-jari 118 / 128 / 138 m, makin jauh makin berkabut), anak grup langit Suasana
+   (ikut kamera: tanpa paralaks, selalu di belakang gedung / pagar / pohon, di depan kubah langit + bintang). BUKAN geometri Kota asli.
+   2 draw call: (1) badan menara — MeshBasicMaterial warna-verteks (kabut = campuran ke warna langit di arah itu, dihitung saat
+   keadaan Suasana berubah) + kisi jendela halus; (2) jendela + lampu mahkota menyala malam — MeshBasicMaterial alphaTest (opak),
+   1,5 m di depan badannya (bukan bidang berimpit). Hanya tampil di realm 'yard' + 'jalan'. Pembangkit data MURNI (dites di node). */
+var SKYLINE_KOS = { arah: 90, busur: [26, 154], dasar: -10, sel: [1.3, 1.9], maju: 1.5,
+  lapis: [{ id: 'jauh', R: 138, kabut: 0.86, nyala: 0.5 }, { id: 'tengah', R: 128, kabut: 0.74, nyala: 0.72 }, { id: 'dekat', R: 118, kabut: 0.6, nyala: 1 }] };
+function skylineKosData() {
+  var S = SKYLINE_KOS, r = suasanaAcak(20261123), rad = Math.PI / 180;
+  var A = { pos: [], uv: [], cat: [], kabut: [], idx: [], lapis: [] }, B = { pos: [], uv: [], warna: [], idx: [], lapis: [] }, menara = [];
+  var CAT = [[0.80, 0.86, 0.93], [0.74, 0.86, 0.84], [0.90, 0.84, 0.74], [0.84, 0.87, 0.91], [0.66, 0.73, 0.82], [0.93, 0.91, 0.86], [0.78, 0.80, 0.86]]; /* kaca biru / hijau / perunggu / perak / gelap, kapur, granit (sRGB) */
+  var LAMPU = [[1, 0.93, 0.78], [1, 0.86, 0.62], [0.9, 0.95, 1], [1, 0.9, 0.7]];
+  var L, li, cat, geser, lampu;
+  function kabutY(y) { var K = L.kabut; return y <= 0 ? Math.min(1, K + (1 - K) * (0.9 - y * 0.01)) : K + (1 - K) * 0.9 * Math.exp(-y / 7); }
+  function vA(b, y, teduh, polos) {
+    var R = L.R; A.pos.push(R * Math.sin(b * rad), y, -R * Math.cos(b * rad));
+    if (polos) A.uv.push(0.02, 0.02); else A.uv.push(b * rad * R / S.sel[0], y / S.sel[1]);
+    A.cat.push(cat[0] * teduh, cat[1] * teduh, cat[2] * teduh); A.kabut.push(kabutY(y)); A.lapis.push(li);
+    return A.pos.length / 3 - 1;
+  }
+  function segi4(bA0, bA1, yA, bB0, bB1, yB, teduh, polos) { /* alas (bA0..bA1 di yA) -> atas (bB0..bB1 di yB); menghadap pusat */
+    var a = vA(bA0, yA, teduh, polos), b = vA(bA1, yA, teduh, polos), c = vA(bB1, yB, teduh, polos), d = vA(bB0, yB, teduh, polos);
+    A.idx.push(a, b, c, a, c, d);
+  }
+  function segi3(b0, b1, y, bp, yp, teduh) { var a = vA(b0, y, teduh, true), b = vA(b1, y, teduh, true), c = vA(bp, yp, teduh, true); A.idx.push(a, b, c); }
+  function vB(b, y, w, uv) {
+    var R = L.R, f = (R - S.maju) / R; B.pos.push(R * Math.sin(b * rad) * f, y * f, -R * Math.cos(b * rad) * f);
+    if (uv) B.uv.push(uv[0], uv[1]); else B.uv.push(Math.round(b * rad * R / S.sel[0] * 1000) / 1000 + geser[0], y / S.sel[1] + geser[1]);
+    B.warna.push(w[0], w[1], w[2]); B.lapis.push(li); return B.pos.length / 3 - 1;
+  }
+  function jendela(b0, b1, y0, y1) { /* kisi jendela menyala: di dalam tepi badan, mulai lantai 2 */
+    var m = (b1 - b0) * 0.06, ya = Math.max(y0, S.sel[1]), yb = y1 - 0.35; if (yb - ya < S.sel[1] * 0.9 || b1 - b0 < 0.5) return;
+    var w = [lampu[0] * L.nyala, lampu[1] * L.nyala, lampu[2] * L.nyala];
+    var a = vB(b0 + m, ya, w), b = vB(b1 - m, ya, w), c = vB(b1 - m, yb, w), d = vB(b0 + m, yb, w); B.idx.push(a, b, c, a, c, d);
+  }
+  function titikLampu(b, y, lebar, tinggi, w) { /* lampu mahkota / suar: persegi kecil menyala penuh (texel jendela pasti-nyala) */
+    var u = [0.5, 0.5], k = [w[0] * (0.6 + 0.4 * L.nyala), w[1] * (0.6 + 0.4 * L.nyala), w[2] * (0.6 + 0.4 * L.nyala)];
+    var a = vB(b - lebar / 2, y, k, u), c = vB(b + lebar / 2, y, k, u), d = vB(b + lebar / 2, y + tinggi, k, u), e = vB(b - lebar / 2, y + tinggi, k, u); B.idx.push(a, c, d, a, d, e);
+  }
+  function badan(b0, b1, y0, y1) { /* dua muka: depan terang (66%) + samping teduh -> kesan volume */
+    var bs = b0 + (b1 - b0) * 0.66;
+    segi4(b0, bs, y0, b0, bs, y1, 1); segi4(bs, b1, y0, bs, b1, y1, 0.8);
+    jendela(b0, bs, y0, y1);
+  }
+  function masuk(b0, b1, f) { var m = (b1 - b0) * f; return [b0 + m, b1 - m]; }
+  var MERAH = [1, 0.28, 0.2], pd = 1 / 2.06; /* pd: 1 m di lapis dekat dalam derajat (kira-kira) */
+  var BENTUK = {
+    tingkat: function (b0, b1, H) { /* bertingkat + antena + suar merah */
+      var i1 = masuk(b0, b1, 0.13), i2 = masuk(b0, b1, 0.3), bm = (b0 + b1) / 2;
+      badan(b0, b1, 0, H * 0.6); badan(i1[0], i1[1], H * 0.6, H * 0.82); badan(i2[0], i2[1], H * 0.82, H * 0.92);
+      segi4(bm - 0.07, bm + 0.07, H * 0.92, bm - 0.03, bm + 0.03, H * 1.1, 0.7, true); titikLampu(bm, H * 1.1, 0.22, 0.42, MERAH);
+    },
+    runcing: function (b0, b1, H) { /* mahkota kristal runcing */
+      var bs = b0 + (b1 - b0) * 0.66, bm = (b0 + b1) / 2, i = masuk(b0, b1, 0.1);
+      badan(b0, b1, 0, H * 0.7); badan(i[0], i[1], H * 0.7, H * 0.78);
+      var is = i[0] + (i[1] - i[0]) * 0.66; segi3(i[0], is, H * 0.78, bm, H, 1.06); segi3(is, i[1], H * 0.78, bm, H, 0.78);
+      titikLampu(bm, H * 0.985, 0.2, 0.36, lampu);
+    },
+    mahkota: function (b0, b1, H) { /* Hotel Kencana: badan + lis + mahkota bertingkat + lentera + atap limas */
+      var o = masuk(b0, b1, -0.05), i1 = masuk(b0, b1, 0.14), i2 = masuk(b0, b1, 0.32), bm = (b0 + b1) / 2;
+      badan(b0, b1, 0, H * 0.66); segi4(o[0], o[1], H * 0.66, o[0], o[1], H * 0.69, 0.92, true);
+      badan(i1[0], i1[1], H * 0.69, H * 0.8); segi4(i2[0], i2[1], H * 0.8, i2[0], i2[1], H * 0.87, 0.9, true);
+      var s = i2[0] + (i2[1] - i2[0]) * 0.66; segi3(i2[0] - 0.12, s, H * 0.87, bm, H * 0.97, 1.05); segi3(s, i2[1] + 0.12, H * 0.87, bm, H * 0.97, 0.8);
+      segi4(bm - 0.05, bm + 0.05, H * 0.97, bm - 0.02, bm + 0.02, H * 1.06, 0.7, true);
+      titikLampu(bm, H * 0.815, (i2[1] - i2[0]) * 0.7, H * 0.04, [1, 0.82, 0.48]); /* lentera mahkota */
+    },
+    kubah: function (b0, b1, H) { /* silinder berkubah + jarum */
+      var i = masuk(b0, b1, 0.06), bm = (b0 + b1) / 2, hw = (i[1] - i[0]) / 2, y0 = H * 0.8, hh = H * 0.16, n = 6, a, p, q;
+      badan(b0, b1, 0, y0);
+      for (a = 0; a < n; a++) { p = Math.PI * a / n; q = Math.PI * (a + 1) / n;
+        var v0 = vA(bm, y0, 1, true), v1 = vA(bm - hw * Math.cos(p), y0 + hh * Math.sin(p), a < n / 2 ? 1.04 : 0.84, true), v2 = vA(bm - hw * Math.cos(q), y0 + hh * Math.sin(q), a < n / 2 ? 1.04 : 0.84, true); A.idx.push(v0, v2, v1); }
+      segi4(bm - 0.05, bm + 0.05, y0 + hh, bm - 0.02, bm + 0.02, H * 1.08, 0.7, true); titikLampu(bm, H * 1.08, 0.2, 0.36, MERAH);
+    },
+    ziggurat: function (b0, b1, H) { var k, i, y = 0, t = [0.46, 0.22, 0.18, 0.14]; for (k = 0; k < 4; k++) { i = masuk(b0, b1, k * 0.11); badan(i[0], i[1], y, y + H * t[k]); y += H * t[k]; } titikLampu((b0 + b1) / 2, y, 0.3, 0.3, lampu); },
+    miring: function (b0, b1, H) { /* atap miring */
+      var bs = b0 + (b1 - b0) * 0.66, yt = H * 0.76, ya = H, yb = H * 0.84, ys = ya + (yb - ya) * 0.66;
+      badan(b0, b1, 0, yt); segi4(b0, bs, yt, b0, bs, ya, 1.03, true); A.pos[A.pos.length - 5] = ys; A.kabut[A.kabut.length - 2] = kabutY(ys);
+      segi4(bs, b1, yt, bs, b1, yb, 0.8, true); A.pos[A.pos.length - 2] = ys; A.kabut[A.kabut.length - 1] = kabutY(ys);
+      titikLampu(b0 + 0.12, ya, 0.2, 0.34, MERAH);
+    },
+    tv: function (b0, b1, H) { /* menara TV: batang + pod + jarum */
+      var bm = (b0 + b1) / 2, w = (b1 - b0) / 2, y1 = H * 0.6, y2 = H * 0.64, y3 = H * 0.7, y4 = H * 0.735;
+      segi4(bm - w * 0.42, bm + w * 0.42, 0, bm - w * 0.2, bm + w * 0.2, y1, 0.92, true);
+      segi4(bm - w * 0.2, bm + w * 0.2, y1, bm - w, bm + w, y2, 0.82, true); segi4(bm - w, bm + w, y2, bm - w, bm + w, y3, 1, true); segi4(bm - w, bm + w, y3, bm - w * 0.28, bm + w * 0.28, y4, 1.05, true);
+      segi4(bm - w * 0.14, bm + w * 0.14, y4, bm - 0.02, bm + 0.02, H, 0.75, true);
+      titikLampu(bm, (y2 + y3) / 2 - H * 0.008, w * 1.7, H * 0.016, [0.55, 0.9, 1]); titikLampu(bm, H, 0.2, 0.36, MERAH);
+    },
+    kembar: function (b0, b1, H) { /* Menara Kembar berjembatan + mahkota runcing */
+      var w = (b1 - b0) * 0.36, k, x0, x1, i1, i2, bm, s;
+      for (k = 0; k < 2; k++) {
+        x0 = k ? b1 - w : b0; x1 = x0 + w; i1 = masuk(x0, x1, 0.1); i2 = masuk(x0, x1, 0.24); bm = (x0 + x1) / 2;
+        badan(x0, x1, 0, H * 0.58); badan(i1[0], i1[1], H * 0.58, H * 0.76); badan(i2[0], i2[1], H * 0.76, H * 0.86);
+        s = i2[0] + (i2[1] - i2[0]) * 0.66; segi3(i2[0], s, H * 0.86, bm, H * 0.97, 1.06); segi3(s, i2[1], H * 0.86, bm, H * 0.97, 0.78);
+        segi4(bm - 0.045, bm + 0.045, H * 0.97, bm - 0.02, bm + 0.02, H * 1.07, 0.7, true);
+        titikLampu(bm, H * 0.862, (i2[1] - i2[0]) * 0.8, H * 0.012, [1, 0.88, 0.6]); titikLampu(bm, H * 1.07, 0.2, 0.36, MERAH);
+      }
+      segi4(b0 + w, b1 - w, H * 0.4, b0 + w, b1 - w, H * 0.445, 0.86, true); /* jembatan langit */
+      titikLampu((b0 + b1) / 2, H * 0.416, (b1 - b0 - 2 * w) * 0.86, H * 0.012, [0.6, 0.9, 1]);
+    },
+    blok: function (b0, b1, H) { var i = masuk(b0, b1, 0.3); badan(b0, b1, 0, H * 0.9); segi4(i[0], i[1], H * 0.9, i[0], i[1], H, 0.85, true); }
+  };
+  function taruh(jenis, b0, b1, H, c) {
+    cat = CAT[c % CAT.length]; lampu = LAMPU[Math.floor(r() * LAMPU.length)]; geser = [Math.floor(r() * 8), Math.floor(r() * 8)];
+    var mulai = A.idx.length; BENTUK[jenis](b0, b1, H);
+    menara.push({ lapis: L.id, jenis: jenis, b0: b0, b1: b1, tinggi: H, tris: (A.idx.length - mulai) / 3 });
+  }
+  function amplop(b) { var d = (b - S.arah) / 36; return 0.3 + 0.7 * Math.exp(-d * d); }
+  var ACAK_JENIS = ['tingkat', 'blok', 'runcing', 'ziggurat', 'miring', 'kubah', 'blok', 'tingkat'];
+  for (li = 0; li < S.lapis.length; li++) {
+    L = S.lapis[li];
+    /* rok kabut: sabuk di bawah cakrawala (kabut penuh di dasar) -> kaki menara menyatu dengan langit, tidak terpotong tajam */
+    cat = [0.78, 0.82, 0.88];
+    for (var b = S.busur[0]; b < S.busur[1] - 1e-6; b += 8) { var rA = vA(b, S.dasar, 1, true), rB = vA(b + 8, S.dasar, 1, true), rC = vA(b + 8, 0, 1, true), rD = vA(b, 0, 1, true); A.idx.push(rA, rB, rC, rA, rC, rD); }
+    if (L.id === 'dekat') { /* menara tokoh (tulisan tangan): Kembar tepat di timur, Hotel bermahkota, menara TV */
+      [['miring', 43, 46.4, 14, 4], ['tingkat', 55.5, 59.6, 19, 0], ['runcing', 64.4, 67.4, 23, 3], ['mahkota', 74.6, 79.4, 26.5, 5], ['kembar', 84.6, 95.4, 31, 0],
+        ['tv', 100.4, 102.6, 36, 6], ['kubah', 106.6, 110.4, 21.5, 1], ['ziggurat', 115.4, 120.4, 18.5, 2], ['tingkat', 126, 129.6, 15.5, 3], ['blok', 136.5, 140.5, 10, 6]]
+        .forEach(function (m) { taruh(m[0], m[1], m[2], m[3], m[4]); });
+    } else { /* lapis tengah + jauh: deret rapat, tinggi mengikuti amplop (memuncak di timur) */
+      var skala = L.id === 'tengah' ? 25 : 19, bb = S.busur[0] + (L.id === 'tengah' ? 2.5 : 0.6), akhir = S.busur[1] - 1, n = 0;
+      while (bb < akhir - 2) {
+        var lebar = (L.id === 'tengah' ? 2.6 : 2.2) + r() * 2.4, jenis = ACAK_JENIS[Math.floor(r() * ACAK_JENIS.length)], tinggi = skala * amplop(bb + lebar / 2) * (0.55 + r() * 0.5);
+        if (jenis === 'blok') tinggi *= 0.72;
+        taruh(jenis, bb, Math.min(akhir, bb + lebar), Math.max(4.5, tinggi), n + li * 3); n++;
+        bb += lebar + 0.25 + r() * (L.id === 'tengah' ? 1.6 : 0.7);
+      }
+    }
+  }
+  return { A: A, B: B, menara: menara };
+}
+/* ==== SKYLINE-KOS-END ==== */
+function lukisSkylineKisi(ctx, w, h) { /* siang: panel putih (warna verteks yang menentukan) + kaca sedikit lebih gelap = kisi jendela halus */
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, h);
+  var n = 4, s = w / n; ctx.fillStyle = 'rgb(214,226,240)';
+  for (var i = 0; i < n; i++) for (var j = 0; j < n; j++) ctx.fillRect(Math.round(i * s + s * 0.2), Math.round(j * s + s * 0.2), Math.round(s * 0.62), Math.round(s * 0.66));
+}
+function lukisSkylineNyala(ctx, w, h) { /* malam: jendela menyala acak (alphaTest: yang padam = tembus ke badan menara); sel (0,0) pasti nyala penuh = texel lampu */
+  ctx.clearRect(0, 0, w, h);
+  var n = 8, s = w / n, r = suasanaAcak(777), warna = ['#fff1cf', '#ffe2a8', '#ffd58a', '#eaf3ff', '#fff6e0'];
+  for (var j = 0; j < n; j++) {
+    var ramai = r() < 0.18 ? 0.08 : 0.3 + r() * 0.4;
+    for (var i = 0; i < n; i++) {
+      if (i === 0 && j === n - 1) { ctx.fillStyle = '#ffffff'; ctx.fillRect(0, h - s, s, s); continue; } /* uv (0,5 , 0,5) -> baris kanvas terbawah (flipY) */
+      if (r() > ramai) continue;
+      ctx.fillStyle = warna[Math.floor(r() * warna.length)];
+      ctx.fillRect(Math.round(i * s + s * 0.2), Math.round(j * s + s * 0.2), Math.round(s * 0.62), Math.round(s * 0.66));
+    }
+  }
+}
+var skylineKos = null;
+function skylineKosBangun(induk) { /* dipanggil suasanaSiapkan: 2 mesh anak grup langit */
+  var D = skylineKosData(), ga = new THREE.BufferGeometry(), gb = new THREE.BufferGeometry();
+  ga.setAttribute('position', new THREE.Float32BufferAttribute(D.A.pos, 3)); ga.setAttribute('uv', new THREE.Float32BufferAttribute(D.A.uv, 2));
+  ga.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(D.A.pos.length), 3)); ga.setIndex(D.A.idx);
+  gb.setAttribute('position', new THREE.Float32BufferAttribute(D.B.pos, 3)); gb.setAttribute('uv', new THREE.Float32BufferAttribute(D.B.uv, 2));
+  gb.setAttribute('color', new THREE.Float32BufferAttribute(D.B.warna, 3)); gb.setIndex(D.B.idx);
+  var kisi = teksturLukis(64, 64, lukisSkylineKisi, [0.25, 0.25]), nyala = teksturLukis(64, 64, lukisSkylineNyala, [0.125, 0.125]);
+  nyala.magFilter = THREE.NearestFilter; nyala.minFilter = THREE.NearestMipmapLinearFilter; nyala.anisotropy = 1;
+  var badan = new THREE.Mesh(ga, new THREE.MeshBasicMaterial({ map: kisi, vertexColors: true, fog: false }));
+  var lampu = new THREE.Mesh(gb, new THREE.MeshBasicMaterial({ map: nyala, vertexColors: true, fog: false, alphaTest: 0.5 }));
+  badan.name = 'skylineKosBadan'; lampu.name = 'skylineKosNyala'; badan.frustumCulled = false; lampu.frustumCulled = false; lampu.visible = false;
+  var cat = new Float32Array(D.A.cat.length), c = new THREE.Color(), i;
+  for (i = 0; i < cat.length; i += 3) { c.setRGB(D.A.cat[i], D.A.cat[i + 1], D.A.cat[i + 2], THREE.SRGBColorSpace); cat[i] = c.r; cat[i + 1] = c.g; cat[i + 2] = c.b; }
+  var arah = new Float32Array(D.A.pos.length);
+  for (i = 0; i < arah.length; i += 3) { var p = Math.hypot(D.A.pos[i], D.A.pos[i + 1], D.A.pos[i + 2]); arah[i] = D.A.pos[i] / p; arah[i + 1] = D.A.pos[i + 1] / p; arah[i + 2] = D.A.pos[i + 2] / p; }
+  skylineKos = { badan: badan, lampu: lampu, cat: cat, arah: arah, kabut: D.A.kabut, nyala: 0, tris: (D.A.idx.length + D.B.idx.length) / 3 };
+  induk.add(badan); induk.add(lampu);
+}
+function skylineKosWarnai(k) { /* dipanggil suasanaTerapkan (hanya saat keadaan berubah): warna verteks badan = cat x cahaya, dikabutkan ke warna langit di arah itu */
+  if (!skylineKos) return;
+  var Q = skylineKos, w = Q.badan.geometry.attributes.color, n = w.count, langit = suTmp.c, i, j;
+  var siang = k.terang, sore = k.jam >= 12, jg = k.jingga * (1 - k.mendung * 0.8);
+  var cahaya = siang * (1 - 0.22 * k.mendung) * (sore ? 1 : 1 - 0.4 * jg) + (1 - siang) * 0.085; /* pagi: matahari di belakang Kota -> siluet lebih gelap */
+  var cr = cahaya * (sore ? 1 + 0.22 * jg : 1), cg = cahaya * (sore ? 1 - 0.04 * jg : 1), cb = cahaya * (sore ? 1 - 0.3 * jg : 1) + (1 - siang) * 0.03; /* sore: matahari barat menyinari muka Kota (hangat); malam sedikit biru */
+  var tipis = (1 - 0.82 * k.hujan) * (1 - 0.3 * k.mendung) * (0.75 + 0.25 * siang); /* hujan / mendung / malam: kabut menebal */
+  for (i = 0; i < n; i++) {
+    j = i * 3;
+    suasanaWarnaLangit(k, Q.arah[j + 1], Q.arah[j], Q.arah[j + 2], langit);
+    var t = 1 - (1 - Q.kabut[i]) * tipis;
+    w.setXYZ(i, Q.cat[j] * cr + (langit.r - Q.cat[j] * cr) * t, Q.cat[j + 1] * cg + (langit.g - Q.cat[j + 1] * cg) * t, Q.cat[j + 2] * cb + (langit.b - Q.cat[j + 2] * cb) * t);
+  }
+  w.needsUpdate = true;
+  Q.nyala = suasanaHalus(0.5, 0.92, 1 - siang) * (1 - 0.55 * k.hujan); /* jendela menyala bertahap sejak senja; hujan meredupkan */
+  Q.lampu.material.color.setScalar(Q.nyala);
+}
+function skylineKosTampil() { /* tiap frame (murah): hanya di halaman kos + Jalan Kampung; tidak di Kota / dalam ruangan */
+  if (!skylineKos) return;
+  var luar = myRealm === 'yard' || myRealm === 'jalan';
+  skylineKos.badan.visible = luar; skylineKos.lampu.visible = luar && skylineKos.nyala > 0.02;
 }
 function suasanaPasangLangit() { /* langit + hujan ikut scene luar yang aktif; di dalam ruangan disembunyikan */
   var luar = myRealm === 'yard' ? scene : (myRealm === 'jalan' ? jalanScene : (myRealm === 'kota' && KOTA_SIAP ? kotaScene : null)); /* Kota (22 Nov): jalan kota = luar ruangan */
@@ -18173,6 +18398,7 @@ function suasanaTerapkan(paksa) {
   var genang = Math.max(0, 1 - siang * 1.4);
   SU.genangWarna.copy(SU_WARNA.genang).multiplyScalar(genang > 0.01 ? SU_GENANG_KUAT * genang * (1 + 0.2 * hj) : 0);
   suGenangAktif(genang > 0.01); /* siang: program bawaan persis (tanpa biaya sisipan) */
+  skylineKosWarnai(k);
 }
 function suasanaTick(dt, now) {
   /* dipanggil animate tiap frame (sebelum render): keadaan dihitung ~4x/dtk, gerak hujan + kunang-kunang + kubah tiap frame */
@@ -18188,6 +18414,7 @@ function suasanaTick(dt, now) {
   suasanaPasangLangit();
   var k = suasanaKini, luar = SU.langit.visible;
   if (luar) SU.langit.position.copy(camera.position);
+  skylineKosTampil();
   /* hujan */
   var deras = luar ? k.hujan : 0;
   SU.hujan.visible = deras > 0.02;

@@ -20,7 +20,7 @@ const F = new Function(antara('/* ==== PURE-START ==== */', '/* ==== PURE-END ==
   + '\nreturn { KOTA, KOTA_SPAWN, KOTA_JALAN, KOTA_GEDUNG, KOTA_PADAT, KOTA_PINTU, KOTA_OBJEK, KOTA_KURSI, KOTA_NPC, KOTA_RUTE, KOTA_LAMPU_PLAZA, KOTA_R,'
   + ' KOTA_NPC_RANGKA, KOTA_RUANG, KOTA_RUANG_OBJEK, KOTA_RUANG_STAF, kotaBebas, kotaDorong, kotaZonaPintu, kotaDepanPintu, kotaRutePosisi, kotaRuteSiklus,'
   + ' kotaNpcKeadaan, kotaRuteCari, kotaKursiPilih, kotaKursiWarga, kotaRuangBatas, kotaPadatRuang, kotaRuangSpawn, kotaRuangZonaKeluar,'
-  + ' mpRealmDikenal, mpRealmDasar, mpValidasiPos, MP_BATAS_KOTA, KOTA_POHON, KOTA_LAMPU, KOTA_HALANG_KAMERA, kotaKameraFaktor, kotaKamKotak, KOTA_BANGKU, KOTA_RAGAM_TOKO, KOTA_MEREK_LINGKAR, kotaRagamPilih, KOTA_LINGKAR_LANTAI, KOTA_POT, kotaDiLingkar, kotaRuangKeLuar,'
+  + ' mpRealmDikenal, mpRealmDasar, mpValidasiPos, MP_BATAS_KOTA, KOTA_POHON, KOTA_LAMPU, KOTA_SOROT, KOTA_HALANG_KAMERA, kotaKameraFaktor, kotaKamKotak, KOTA_BANGKU, KOTA_RAGAM_TOKO, KOTA_MEREK_LINGKAR, kotaRagamPilih, KOTA_LINGKAR_LANTAI, KOTA_POT, kotaDiLingkar, kotaRuangKeLuar,'
   + ' KOTA_SPANDUK_TEKS, KOTA_SPANDUK_PX, kotaSpandukUkuran, KOTA_DUDUKAN, KOTA_DUDUK_Y, kotaNpcDudukY };')();
 const R = F.KOTA_R; /* radius badan avatar (kotaDorong di animate) */
 
@@ -180,7 +180,7 @@ test('Kota: kamera — garis tengah bulevar + jalan lingkar bebas batang / tiang
   const tengah = [ /* [x0, z0, x1, z1] garis tengah: bulevar (di luar plaza) + 4 jalan lingkar */
     [-88, 0, -13, 0], [13, 0, 90, 0], [-54, -52, -54, 52], [54, -52, 54, 52], [-54, -52, 54, -52], [-54, 52, 54, 52]];
   const tiang = F.KOTA_POHON.concat(F.KOTA_LAMPU.filter((l) => !F.KOTA_LAMPU_PLAZA.some((q) => q.x === l.x && q.z === l.z)));
-  assert.equal(F.KOTA_HALANG_KAMERA.length, F.KOTA_POHON.length + F.KOTA_LAMPU.length, 'semua pohon + tiang terdaftar sebagai penghalang kamera');
+  assert.equal(F.KOTA_HALANG_KAMERA.length, F.KOTA_POHON.length + F.KOTA_LAMPU.length + F.KOTA_SOROT.length, 'semua pohon + tiang (termasuk 4 tiang sorot plaza) terdaftar sebagai penghalang kamera');
   for (const [x0, z0, x1, z1] of tengah) {
     const L = Math.hypot(x1 - x0, z1 - z0), ux = (x1 - x0) / L, uz = (z1 - z0) / L;
     for (const o of tiang) { /* tidak ada pohon / tiang jalan dalam koridor 2 m kiri-kanan garis tengah */
@@ -589,4 +589,49 @@ test('pohon vs kanopi + papan nama: tajuk tidak menembus kanopi mana pun; HOTEL 
   }
   assert.ok(titik >= 60, 'titik pandang di plaza: ' + titik);
   assert.equal(kena, 0, 'garis pandang ke HOTEL KENCANA yang kena tajuk');
+});
+
+/* ---- Kota malam lebih terang (Ryan 23 Nov: "gelap banget di tengah plaza kalo malam, lampunya kureng") ---- */
+test('Kota malam terang: langit malam tidak lagi dipotong 60%, genangan lampu lebar + bersambung, 4 tiang sorot plaza, daun diterangi', () => {
+  const redup = JSON.parse(HTML.match(/var KOTA_REDUP_MALAM = (\{[^}]+\});/)[1].replace(/(\w+):/g, '"$1":'));
+  assert.ok(redup.hemi <= 0.2, 'cahaya langit malam Kota hampir setara halaman kos (dulu dipotong 0,6): ' + redup.hemi);
+  assert.ok(redup.isi <= 0.4 && redup.matahari <= 0.5, 'isi + bulan tidak lebih redup dari sebelumnya');
+  assert.ok(redup.hemi >= 0 && redup.matahari >= 0.3, 'malam tetap malam: bulan tetap diredupkan (genangan + etalase tetap menonjol)');
+  assert.ok(fungsi('kotaLampuSalin').includes('(1 - KOTA_REDUP_MALAM[L.jenis] * m)'), 'peredupan = fungsi KOTA_U.malam (siang m = 0: lampu persis nilai siang)');
+  const G = JSON.parse(HTML.match(/var KOTA_GENANG = (\{[^}]+\});/)[1].replace(/(\w+):/g, '"$1":'));
+  const plaza = F.KOTA_LAMPU_PLAZA, jalan = F.KOTA_LAMPU.filter((l) => !plaza.some((q) => q.x === l.x && q.z === l.z));
+  let celahPlaza = 0; plaza.forEach((p, i) => { const q = plaza[(i + 1) % plaza.length]; celahPlaza = Math.max(celahPlaza, Math.hypot(p.x - q.x, p.z - q.z)); });
+  assert.ok(G.plaza[0] * 0.65 * 2 >= celahPlaza, 'genangan lampu taman plaza bertumpang (bagian terang 65% jari-jari): ' + celahPlaza.toFixed(1));
+  const bul = jalan.filter((l) => Math.abs(l.z) === 5.7).map((l) => l.x).filter((x, i, a) => a.indexOf(x) === i).sort((a, b) => a - b);
+  for (let i = 1; i < bul.length; i++) if (bul[i] - bul[i - 1] < 20) assert.ok(G.jalan[0] * 2 >= bul[i] - bul[i - 1] + 3, 'genangan lampu bulevar bersambung: celah ' + (bul[i] - bul[i - 1]));
+  assert.ok(G.jalan[0] >= 5.7 + 3, 'genangan lampu bulevar menjangkau garis tengah jalan (tiang di z 5,7)');
+  assert.ok(G.plaza[0] >= 6 && G.jalan[0] >= 9 && G.sorot[0] >= 12, 'jari-jari genangan lebih lebar dari dulu (4,4 / 6,0)');
+  /* peta: canvas 'lighter' menjumlah — puncak di tengah plaza tidak boleh jenuh putih (kuat jumlah <= ~1) */
+  assert.ok(G.plaza[1] + G.sorot[1] * 0.68 <= 1.05, 'jumlah kuat genangan di bawah lampu taman tidak jenuh');
+  assert.ok(/addColorStop\(0\.3,[^;]+;\s*g\.addColorStop\(0\.65,/.test(fungsi('kotaPetaCahaya')), 'pinggir genangan lembut (gradasi 3 tahap)');
+  assert.ok(fungsi('kotaPetaCahaya').includes('KOTA_SOROT.forEach'), 'tiang sorot menyumbang genangan lebar di peta cahaya');
+  /* tiang sorot: 4, simetris, di ruang bebas antara kolam dan bak, jauh dari rute warga, terdaftar padat + penghalang kamera */
+  const S = F.KOTA_SOROT; assert.equal(S.length, 4);
+  const segJarak = (px, pz, a, b) => { const dx = b[0] - a[0], dz = b[1] - a[1], t = Math.max(0, Math.min(1, ((px - a[0]) * dx + (pz - a[1]) * dz) / (dx * dx + dz * dz || 1))); return Math.hypot(px - a[0] - dx * t, pz - a[1] - dz * t); };
+  for (const p of S) {
+    const r = Math.hypot(p.x, p.z);
+    assert.ok(r > 8.65 + 2 && r < 15, 'tiang sorot di luar bibir kolam (+2 m) dan di dalam lingkar lampu taman: ' + r.toFixed(2));
+    assert.ok(Math.abs(Math.abs(p.x) - Math.abs(p.z)) < 1e-9, 'di diagonal plaza (bulevar + Jalan Raya tetap bebas)');
+    for (const t of F.KOTA_POHON) assert.ok(Math.hypot(p.x - t.x, p.z - t.z) > t.r + 1.5, 'tidak menempel bak pohon');
+    for (const l of F.KOTA_LAMPU) assert.ok(Math.hypot(p.x - l.x, p.z - l.z) > 3, 'tidak menempel tiang lampu lain');
+    assert.equal(F.kotaBebas(p.x, p.z, 0.2), false, 'tiang sorot padat (tidak bisa ditembus)');
+    for (const R2 of F.KOTA_RUTE) for (let i = 0; i < R2.titik.length; i++) {
+      const d = segJarak(p.x, p.z, R2.titik[i], R2.titik[(i + 1) % R2.titik.length]);
+      assert.ok(d >= 0.3 + 0.4 + 0.25, 'rute warga ' + R2.id + ' tidak menabrak tiang sorot: ' + d.toFixed(2));
+    }
+    assert.ok(F.KOTA_HALANG_KAMERA.some((h) => h.x === p.x && h.z === p.z && h.h >= 9), 'terdaftar penghalang kamera');
+  }
+  const sorot = fungsi('kotaLampuSorot');
+  assert.ok(/B\.nyala\.kotak\(/.test(sorot) && !/emissive|PointLight|SpotLight/.test(sorot), 'lensa sorot = bahan nyala (MeshBasicMaterial), tanpa lampu dinamis');
+  assert.ok(fungsi('kotaBangunPerabot').includes('KOTA_SOROT.forEach(function (p) { kotaLampuSorot(B, p.x, p.z, p.rot); });'));
+  /* daun: sisipan khusus benar-benar mengubah shader (string sasaran ada di kotaSuntikMalam) */
+  const inti = fungsi('kotaSuntikMalam'), daun = fungsi('kotaSuntikMalamDaun');
+  for (const m of daun.matchAll(/\.replace\('([^']+)',/g)) assert.ok(inti.includes(m[1]), 'sasaran sisipan daun ada di kotaSuntikMalam: ' + m[1]);
+  assert.ok(/daun: \(function \(\) \{ var m = lambert\([^;]+; m\.onBeforeCompile = kotaSuntikMalamDaun; m\.customProgramCacheKey = kotaKunciSuntik\('malam-daun'\)/.test(HTML), 'bahan daun Kota memakai sisipan daun + kunci program sendiri');
+  assert.ok(inti.includes('kotaMalam > 0.002'), 'sisipan malam mati total di siang (kotaMalam 0)');
 });
