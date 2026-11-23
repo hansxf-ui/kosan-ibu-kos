@@ -13413,7 +13413,7 @@ KOTA_BANGKU.forEach(function (b) {
   (b.ganda ? [-1, 1] : [1]).forEach(function (s) {
     for (var k = -1; k <= 1; k++) {
       var rot = b.ganda ? (s > 0 ? 0 : Math.PI) : b.rot, fx = Math.sin(rot), fz = Math.cos(rot); /* arah hadap */
-      var px = b.ganda ? b.x + k * 0.68 : b.x - fz * k * 0.62, pz = b.ganda ? b.z + s * 0.3 : b.z + fx * k * 0.62;
+      var px = b.ganda ? b.x + k * 0.68 : b.x - fz * k * 0.62 + fx * 0.18, pz = b.ganda ? b.z + s * 0.45 : b.z + fx * k * 0.62 + fz * 0.18; /* pinggul cukup maju: lutut melewati tepi depan dudukan */
       KOTA_KURSI.push({ id: b.id + ':' + (s > 0 ? 'a' : 'b') + (k + 1), bangku: b.id, x: kotaBulat(px), z: kotaBulat(pz), rot: rot,
         bangun: { x: kotaBulat(px + fx * 0.95), z: kotaBulat(pz + fz * 0.95), rot: rot } });
     }
@@ -13443,10 +13443,37 @@ var KOTA_OBJEK = [
   { id: 'stasiun', nama: 'Pintu Stasiun Kota', x: -89.2, z: 0, jarak: 6 }
 ];
 var KOTA_KIOS = { minX: 22.9, maxX: 26.1, minZ: 6.3, maxZ: 8.6 }; /* kios di tepi selatan plaza timur, loket menghadap utara */
+/* ---- jalan lingkar (23 Nov): trotoar terang dua sisi, pot tanaman di tepi, toko beragam (tidak ada tetangga kembar) ---- */
+function kotaDiLingkar(x, z) { var ax = Math.abs(x), az = Math.abs(z); return (ax >= 50 && ax <= 58 && az <= 56) || (az >= 48 && az <= 56 && ax <= 58); }
+var KOTA_LINGKAR_LANTAI = { trotoar: 0xf3f1ec, lajur: 0xe6e3dd, kerb: 0xbdb9b1, lebarTrotoar: 1.3 };
+var KOTA_RAGAM_TOKO = [ /* tiang/papan = bahan fasad, tenda = bentuk peneduh, papanT = tinggi pita papan (parapet toko) */
+  { id: 'marmer', tiang: 0xf1ede6, papan: 0xf1ede6, bingkai: 0xc9a24a, nama: 0x3a2a1e, latar: '#f6f1e6', tenda: 'pelat', warnaTenda: 0xc9a24a, papanT: 1.25, belakang: 0xfff0e0, latarToko: 0 },
+  { id: 'hijau', tiang: 0x23463a, papan: 0x1c3a30, bingkai: 0xc9a24a, nama: 0xf2c94c, latar: '#1c3a30', tenda: 'kain', warnaTenda: 0xf3ead6, papanT: 1.0, belakang: 0xf4ead8, latarToko: 1 },
+  { id: 'terakota', tiang: 0xb5553c, papan: 0x8f3a26, bingkai: 0xf3efe8, nama: 0xffffff, latar: '#8f3a26', tenda: 'pelat', warnaTenda: 0xf3efe8, papanT: 1.45, belakang: 0xfff0e0, latarToko: 2 },
+  { id: 'travertin', tiang: 0xd9c7a8, papan: 0xe6d8bd, bingkai: 0x7a1f2b, nama: 0x7a1f2b, latar: '#f3ead8', tenda: 'kain', warnaTenda: 0x7a1f2b, papanT: 1.1, belakang: 0xf6e4ec, latarToko: 3 },
+  { id: 'navy', tiang: 0x1d3557, papan: 0x16294a, bingkai: 0xb8c4d0, nama: 0x9fe8ff, latar: '#101d36', neon: true, tenda: 'pelat', warnaTenda: 0xb8c4d0, papanT: 1.3, belakang: 0xeaf2ff, latarToko: 0 },
+  { id: 'arang', tiang: 0x2a2c30, papan: 0x1d1d22, bingkai: 0xff4fa3, nama: 0xff8cc6, latar: '#140a1e', neon: true, tenda: null, papanT: 0.95, belakang: 0xf6e4ec, latarToko: 1 },
+  { id: 'kayu', tiang: 0x8a5a36, papan: 0x6e4526, bingkai: 0x2f5a48, nama: 0xfff4d6, latar: '#4f311b', tenda: 'kain', warnaTenda: 0x2f5a48, papanT: 1.2, belakang: 0xfff0e0, latarToko: 2 },
+  { id: 'beton', tiang: 0xcfd3d6, papan: 0xe4e7ea, bingkai: 0x1d1d22, nama: 0x1d1d22, latar: '#ffffff', tenda: 'pelat', warnaTenda: 0x1d1d22, papanT: 1.5, belakang: 0xeaf2ff, latarToko: 3 }
+];
+var KOTA_MEREK_LINGKAR = ['OPTIK PRIMA', 'TOKO EMAS', 'SEPATU KITA', 'APOTEK SEHAT', 'ROTI MANIS', 'BUKU & KOPI', 'JAM TANGAN', 'TAS & KOPER', 'FLORIST', 'KOSMETIK', 'GELATO', 'TEH TARIK', 'SUSHI', 'RAMEN', 'MARTABAK', 'DIMSUM', 'ELEKTRONIK', 'MINIMARKET', 'SALON', 'PARFUM', 'BATIK', 'KOPI TUKU', 'PIZZA', 'BAKSO', 'LAUNDRY', 'MAINAN', 'KACAMATA', 'DONAT', 'TOKO KAIN', 'BOBA', 'SATE', 'KERAMIK'];
+/* pilih ragam + nama untuk toko di (x, z): ragam beda dari semua toko dalam 11 m (tetangga sederet + seberang), nama beda dalam 50 m. Murni + deterministik. */
+function kotaRagamPilih(daftar, x, z) {
+  var pakaiG = {}, pakaiN = {}, i;
+  for (i = 0; i < daftar.length; i++) { var d = Math.hypot(daftar[i].x - x, daftar[i].z - z); if (d < 11) pakaiG[daftar[i].g] = true; if (d < 50) pakaiN[daftar[i].n] = true; }
+  var g = (daftar.length * 3) % KOTA_RAGAM_TOKO.length, n = (daftar.length * 7) % KOTA_MEREK_LINGKAR.length, k;
+  for (k = 0; k < KOTA_RAGAM_TOKO.length && pakaiG[g]; k++) g = (g + 1) % KOTA_RAGAM_TOKO.length;
+  for (k = 0; k < KOTA_MEREK_LINGKAR.length && pakaiN[n]; k++) n = (n + 1) % KOTA_MEREK_LINGKAR.length;
+  var t = { x: x, z: z, g: g, n: n }; daftar.push(t); return t;
+}
+var KOTA_TOKO_LINGKAR = []; /* diisi saat dunia dibangun (kotaDeretToko) */
+var KOTA_POT = []; /* bak tanaman granit di tepi trotoar lingkar: { x, z } (setengah sisi 0,42) */
+[-30, -10, 10, 30].forEach(function (v, i) { var tepi = i % 2 ? 57.1 : 50.9; KOTA_POT.push({ x: -tepi, z: v }, { x: tepi, z: -v }, { x: v, z: -(i % 2 ? 55.1 : 48.9) }, { x: -v, z: i % 2 ? 55.1 : 48.9 }); });
 var KOTA_PADAT_KECIL = [];
 KOTA_POHON.forEach(function (p) { KOTA_PADAT_KECIL.push({ x: p.x, z: p.z, r: p.r }); });
 KOTA_LAMPU.forEach(function (p) { KOTA_PADAT_KECIL.push({ x: p.x, z: p.z, r: 0.22 }); });
 KOTA_PADAT_KECIL.push({ x: KOTA_AIR.x, z: KOTA_AIR.z, r: KOTA_AIR.r });
+KOTA_POT.forEach(function (p) { KOTA_PADAT_KECIL.push({ x: p.x, z: p.z, r: 0.5 }); });
 KOTA_BANGKU.forEach(function (b) {
   var dalam = b.ganda ? 0.62 : 0.34, hx = Math.abs(Math.cos(b.rot)) * b.panjang / 2 + Math.abs(Math.sin(b.rot)) * dalam;
   var hz = Math.abs(Math.sin(b.rot)) * b.panjang / 2 + Math.abs(Math.cos(b.rot)) * dalam;
@@ -13465,6 +13492,15 @@ var KOTA_PINTU = [
   { id: 'butik', ruang: 'kota-butik', nama: 'Maison Luna', x: 42, z: -12, nx: 0, nz: 1, lebar: 2.4 },
   { id: 'arkade', ruang: 'kota-arkade', nama: 'Arkade Ria', x: -19.715, z: 22.715, nx: Math.SQRT1_2, nz: -Math.SQRT1_2, lebar: 3.0 }
 ];
+/* F (23 Nov): pemandangan keluar interior = POTRET Kota asli dari depan pintunya (3 arah, 180 derajat), bukan latar generik.
+   kotaPandangLuar(id) murni: titik mata di Kota (0,5 m di luar ambang) + 3 arah pandang; panel latar interior memakai sudut yang sama. */
+var KOTA_PANDANG = { jarak: 14, sudut: [Math.PI / 3, 0, -Math.PI / 3], petak: [512, 640], mata: 1.6, maju: 0.5 };
+function kotaPandangLuar(id) {
+  var p = null; for (var i = 0; i < KOTA_PINTU.length; i++) if (KOTA_PINTU[i].id === id) p = KOTA_PINTU[i];
+  if (!p) return null;
+  return { x: p.x + p.nx * KOTA_PANDANG.maju, y: KOTA_PANDANG.mata, z: p.z + p.nz * KOTA_PANDANG.maju,
+    arah: KOTA_PANDANG.sudut.map(function (t) { var s = Math.sin(t), c = Math.cos(t); return [s * p.nz + c * p.nx, -s * p.nx + c * p.nz]; }) };
+}
 function kotaZonaPintu(x, z) {
   /* -> pintu yang ambangnya sedang diinjak (badan menempel fasad di bukaan pintu), null kalau tidak */
   for (var i = 0; i < KOTA_PINTU.length; i++) {
@@ -13583,7 +13619,12 @@ function kotaBebas(x, z, r, padat, batas) { /* badan r di (x, z) tidak menyentuh
 }
 function kotaPadatRuang(id) { return KOTA_RUANG[id].padat.map(function (k) { return kotaSiapPoli(kotaKotak(k.minX, k.maxX, k.minZ, k.maxZ)); }); }
 /* ---- kursi: kursi kosong terdekat di satu bangku / bak tanaman (pola jalanKursiPilih); null = penuh ---- */
-var KOTA_DUDUK_Y = -0.31, KOTA_DUDUK_KAKI = -0.92; /* dudukan 0,48 m = POSE_SIT */
+var KOTA_SPANDUK_TEKS = ['PLAZA TUGU JAM', 'FESTIVAL KOTA'], KOTA_SPANDUK_PX = { w: 64, h: 230, garis: 7, maks: 30 };
+/* ukuran huruf spanduk: lebar teks (diukur pada ukuran maks) + napas 0,5 huruf di tiap ujung harus muat di antara dua garis emas */
+function kotaSpandukUkuran(lebarMaks) { var P = KOTA_SPANDUK_PX, aman = P.h - 2 * P.garis; return Math.min(P.maks, Math.floor(aman / (lebarMaks / P.maks + 1) * 10) / 10); }
+var KOTA_DUDUKAN = 0.48; /* tinggi muka dudukan: bangku granit, bibir bak plaza, kursi teras kafe */
+var KOTA_DUDUK_Y = KOTA_DUDUKAN + 0.095 - 0.72, KOTA_DUDUK_KAKI = -1.25; /* pemain (rangka tanpa lutut, pinggul 0,72): pinggul DI ATAS dudukan, kaki menjulur ke depan-bawah melewati tepi */
+function kotaNpcDudukY() { return KOTA_DUDUKAN + 0.1 - KOTA_NPC_RANGKA.pinggulY * KOTA_NPC_RANGKA.skala; } /* akar warga duduk: sendi pinggul 10 cm di atas dudukan (jari-jari paha) */
 function kotaKursiPilih(bangku, ax, az, terisi) {
   var pilih = null, terdekat = Infinity;
   for (var i = 0; i < KOTA_KURSI.length; i++) {
@@ -14102,6 +14143,7 @@ function kotaBahan() {
     air: (function () { var m = new THREE.MeshBasicMaterial({ map: air, vertexColors: true }); m.onBeforeCompile = kotaSuntikAir; m.customProgramCacheKey = kotaKunciSuntik('air'); m.name = 'kota-air'; return m; })(),
     bayang: new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false, name: 'kota-bayang' })
   };
+  kotaUrutBahan(KB);
   return KB;
 }
 /* ---------- KOTA: perkakas arsitektur (dipakai semua gedung) ----------
@@ -14109,6 +14151,12 @@ function kotaBahan() {
    F = bidang fasad (kotaBidang): s = sepanjang fasad (kanan pengamat), y = tinggi, w = keluar.
    Semua elemen punya kedalaman nyata (kusen, mullion, reveal jendela, lis, kanopi, etalase
    menjorok ke dalam berisi barang). Muka yang menempel dinding / lantai tidak ditulis. */
+/* Anti-kedip (23 Nov): bila dua bahan berbeda sebidang / nyaris sebidang, pemenangnya PASTI (bukan undian presisi depth HP):
+   lapisan dekorasi selalu di atas alasnya. Peringkat lebih besar = lebih dekat ke mata. */
+var KOTA_URUT_BAHAN = { lantai: 0, batu: 1, halus: 2, kilap: 3, kaca: 3, nyala: 4, teks: 5 };
+function kotaUrutBahan(K) {
+  Object.keys(KOTA_URUT_BAHAN).forEach(function (n) { var m = K[n], r = KOTA_URUT_BAHAN[n]; if (!m || !r) return; m.polygonOffset = true; m.polygonOffsetFactor = -r; m.polygonOffsetUnits = -2 * r; });
+}
 var KC = { /* palet bahan (hex sRGB) */
   kapur: 0xe9dfcc, marmer: 0xf3f0ea, travertin: 0xdcc8a6, granit: 0x8e9196, granitGelap: 0x2c2d31, beton: 0xc9c6bf, plester: 0xf1ede4,
   emas: 0xc9a24a, kuningan: 0xb8903e, perunggu: 0x8a6a45, krom: 0xd5d9de, besiHitam: 0x26282c, aluminium: 0xb9bec4, spandrel: 0x3b4650,
@@ -14288,6 +14336,109 @@ function kotaLatarLobi(i) { /* lobi di balik pintu kaca: lantai mengilap, meja, 
   });
   return kotaLatarCache[k];
 }
+/* ---- E (23 Nov): mengintip ke dalam. Satu lukisan panorama per interior (atlas KOTA), dilihat dari pintu ke dinding belakang:
+   perspektif satu titik hilang (lantai + plafon + dinding samping menyempit), benda dekat besar / jauh kecil.
+   Tiap bukaan fasad (pintu + jendela) memakai POTONGAN lukisan sesuai posisinya -> jendela bersebelahan = satu ruang yang sama. ---- */
+var KOTA_INTIP_GAYA = {
+  hotel: { dinding: '#efe4cf', sisi: '#dccfb6', lantai: ['#f4eee2', '#c9b48a'], plafon: '#f4ecdc', cahaya: 'rgba(255,236,190,' },
+  kafe: { dinding: '#ead9bd', sisi: '#d2bf9e', lantai: ['#b98a5a', '#8f6238'], plafon: '#eadcc4', cahaya: 'rgba(255,214,150,' },
+  butik: { dinding: '#f6f1e8', sisi: '#e2dacb', lantai: ['#f2ede4', '#d9d0c0'], plafon: '#faf7f2', cahaya: 'rgba(255,244,220,' },
+  arkade: { dinding: '#241640', sisi: '#170e2c', lantai: ['#1c1230', '#0f0a1c'], plafon: '#120d1e', cahaya: 'rgba(255,79,163,' }
+};
+var kotaIntipCache = {};
+function kotaIntip(id) {
+  if (kotaIntipCache[id]) return kotaIntipCache[id];
+  kotaIntipCache[id] = kotaAtlas(480, 200, function (ctx, w, h) {
+    var G = KOTA_INTIP_GAYA[id], x0 = w * 0.24, x1 = w * 0.76, y0 = h * 0.14, y1 = h * 0.66, vx = w / 2, vy = h * 0.44;
+    var poli = function (p, f) { ctx.fillStyle = f; ctx.beginPath(); ctx.moveTo(p[0], p[1]); for (var i = 2; i < p.length; i += 2) ctx.lineTo(p[i], p[i + 1]); ctx.closePath(); ctx.fill(); };
+    var kotak = function (x, y, ww, hh, f) { ctx.fillStyle = f; ctx.fillRect(x, y, ww, hh); };
+    var bulat = function (x, y, r, f) { ctx.fillStyle = f; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); };
+    var sinar = function (x, y, r, a) { var g = ctx.createRadialGradient(x, y, 1, x, y, r); g.addColorStop(0, G.cahaya + a + ')'); g.addColorStop(1, G.cahaya + '0)'); ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2); };
+    /* di lantai: titik (u = -1..1 kiri-kanan, t = 0 depan .. 1 dinding belakang) -> piksel */
+    var L = function (u, t) { var k = 1 - t, xa = vx + u * (w / 2), xb = vx + u * (x1 - x0) / 2; return [xb + (xa - xb) * k * k, y1 + (h - y1) * k * k]; };
+    kotak(0, 0, w, h, G.sisi); kotak(x0, y0, x1 - x0, y1 - y0, G.dinding);
+    poli([0, 0, w, 0, x1, y0, x0, y0], G.plafon);
+    poli([0, 0, x0, y0, x0, y1, 0, h], G.sisi); poli([w, 0, x1, y0, x1, y1, w, h], G.sisi);
+    var gl = ctx.createLinearGradient(0, y1, 0, h); gl.addColorStop(0, G.lantai[1]); gl.addColorStop(1, G.lantai[0]); poli([x0, y1, x1, y1, w, h, 0, h], gl);
+    ctx.strokeStyle = id === 'arkade' ? 'rgba(94,231,255,0.35)' : 'rgba(60,40,20,0.22)'; ctx.lineWidth = 1;
+    for (var i = -6; i <= 6; i++) { var a = L(i / 6, 1), b = L(i / 6, 0); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); }
+    [0.85, 0.66, 0.42, 0.14].forEach(function (t) { var a = L(-1, t), b = L(1, t); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); });
+    var gs = ctx.createLinearGradient(0, 0, x0, 0); gs.addColorStop(0, 'rgba(0,0,0,0.22)'); gs.addColorStop(1, 'rgba(0,0,0,0)'); poli([0, 0, x0, y0, x0, y1, 0, h], gs);
+    gs = ctx.createLinearGradient(w, 0, x1, 0); gs.addColorStop(0, 'rgba(0,0,0,0.22)'); gs.addColorStop(1, 'rgba(0,0,0,0)'); poli([w, 0, x1, y0, x1, y1, w, h], gs);
+    var mw = x1 - x0, mh = y1 - y0;
+    if (id === 'hotel') {
+      kotak(x0, y1 - mh * 0.16, mw, mh * 0.16, '#d8c7a4'); kotak(x0, y0, mw, mh * 0.08, '#e8dcc0'); /* lis */
+      [0.12, 0.88].forEach(function (f) { kotak(x0 + mw * f - 8, y0 + mh * 0.1, 16, mh * 0.9, '#f8f4ec'); kotak(x0 + mw * f - 10, y0 + mh * 0.1, 20, 5, '#c9a24a'); }); /* kolom marmer */
+      kotak(x0 + mw * 0.3, y0 + mh * 0.2, mw * 0.4, mh * 0.5, '#5a3a26'); kotak(x0 + mw * 0.32, y0 + mh * 0.24, mw * 0.36, mh * 0.42, '#6d4a31'); /* lemari kunci */
+      ctx.fillStyle = '#c9a24a'; ctx.font = '800 ' + Math.round(mh * 0.3) + 'px ' + KOTA_FONT; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('K', vx, y0 + mh * 0.42);
+      kotak(x0 + mw * 0.2, y1 - mh * 0.3, mw * 0.6, mh * 0.3, '#3a2a1e'); kotak(x0 + mw * 0.2, y1 - mh * 0.3, mw * 0.6, 3, '#c9a24a'); kotak(x0 + mw * 0.2, y1 - mh * 0.14, mw * 0.6, 2, '#c9a24a'); /* meja resepsionis */
+      sinar(vx, y0 - 2, h * 0.5, 0.95); for (var c = 0; c < 26; c++) { var ang = c * 2.399, rr = 4 + (c % 9) * 2.6; bulat(vx + Math.cos(ang) * rr * 1.5, y0 + 6 + (c % 6) * 3.4, 1.6, c % 3 ? '#fff6d8' : '#ffd98a'); } /* lampu kristal */
+      [-1, 1].forEach(function (s) { var p = L(s * 0.62, 0.5), q = L(s * 0.62, 0.3), ww = 74; kotak(p[0] - ww / 2, p[1] - 26, ww, 30, '#7a1f2b'); kotak(p[0] - ww / 2 - 6, p[1] - 16, 8, 22, '#8d2836'); kotak(p[0] + ww / 2 - 2, p[1] - 16, 8, 22, '#8d2836'); kotak(p[0] - ww / 2, p[1] - 8, ww, 12, '#5f1620'); ctx.fillStyle = '#f3f0ea'; ctx.beginPath(); ctx.ellipse(q[0], q[1] - 6, 26, 7, 0, 0, Math.PI * 2); ctx.fill(); kotak(q[0] - 2, q[1] - 6, 4, 12, '#b8903e'); }); /* sofa + meja kopi */
+      var mb = L(0, 0.55); ctx.fillStyle = '#f3f0ea'; ctx.beginPath(); ctx.ellipse(mb[0], mb[1] - 14, 26, 7, 0, 0, Math.PI * 2); ctx.fill(); kotak(mb[0] - 3, mb[1] - 14, 6, 16, '#b8903e'); bulat(mb[0], mb[1] - 30, 13, '#c9506a'); bulat(mb[0] - 9, mb[1] - 25, 8, '#e8a0b0'); bulat(mb[0] + 9, mb[1] - 26, 8, '#3f7f3f'); /* meja bunga */
+      [-0.93, 0.93].forEach(function (u) { var p = L(u, 0.2); kotak(p[0] - 9, p[1] - 22, 18, 22, '#f3efe8'); bulat(p[0], p[1] - 34, 17, '#2f6a3a'); bulat(p[0] - 8, p[1] - 44, 11, '#3f7f3f'); }); /* pot */
+    } else if (id === 'kafe') {
+      kotak(x0, y1 - mh * 0.34, mw, mh * 0.34, '#1f4a3d'); kotak(x0, y1 - mh * 0.34, mw, 3, '#b8903e'); /* panel hijau bawah */
+      kotak(x0 + mw * 0.06, y0 + mh * 0.12, mw * 0.4, mh * 0.42, '#b8903e'); kotak(x0 + mw * 0.075, y0 + mh * 0.145, mw * 0.37, mh * 0.37, '#22262a'); /* papan menu kapur */
+      ctx.fillStyle = '#f2ede2'; for (var r = 0; r < 5; r++) { ctx.fillRect(x0 + mw * 0.1, y0 + mh * (0.2 + r * 0.06), mw * (0.2 + (r % 2) * 0.05), 2); ctx.fillRect(x0 + mw * 0.39, y0 + mh * (0.2 + r * 0.06), mw * 0.035, 2); }
+      ctx.fillStyle = '#c9a24a'; ctx.font = '800 ' + Math.round(mh * 0.13) + 'px ' + KOTA_FONT; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('KAFE BULAN', x0 + mw * 0.74, y0 + mh * 0.2);
+      kotak(x0 + mw * 0.03, y1 - mh * 0.36, mw * 0.46, mh * 0.36, '#173a30'); kotak(x0 + mw * 0.02, y1 - mh * 0.38, mw * 0.48, 5, '#5a3a26'); /* bar */
+      kotak(x0 + mw * 0.12, y1 - mh * 0.56, mw * 0.12, mh * 0.18, '#c8ccd2'); kotak(x0 + mw * 0.13, y1 - mh * 0.5, mw * 0.1, 3, '#2a2c30'); /* mesin espresso */
+      kotak(x0 + mw * 0.58, y1 - mh * 0.44, mw * 0.36, mh * 0.44, '#f1e7d6'); kotak(x0 + mw * 0.59, y1 - mh * 0.42, mw * 0.34, mh * 0.24, 'rgba(190,225,240,0.75)'); for (var q = 0; q < 6; q++) bulat(x0 + mw * (0.62 + q * 0.055), y1 - mh * 0.24, 4, ['#e9a0b4', '#f6d27a', '#8a5a3a', '#f3f0ea', '#c9506a', '#d9b25a'][q]); /* etalase kue */
+      [0.2, 0.36, 0.5, 0.64, 0.8].forEach(function (f, i) { var lx = w * f, ly = y0 * (0.5 + (i % 2) * 0.5) + 16; ctx.strokeStyle = '#2a2420'; ctx.beginPath(); ctx.moveTo(lx, 0); ctx.lineTo(lx, ly); ctx.stroke(); sinar(lx, ly + 4, 46, 0.8); poli([lx - 9, ly + 6, lx + 9, ly + 6, lx + 5, ly - 4, lx - 5, ly - 4], '#1f3b2c'); bulat(lx, ly + 7, 3.5, '#ffe2a0'); }); /* lampu gantung */
+      [[-0.55, 0.5], [0, 0.42], [0.55, 0.5], [-0.3, 0.16], [0.36, 0.14]].forEach(function (m) { var p = L(m[0], m[1]), k = 0.55 + (1 - m[1]) * 0.75; [-1, 1].forEach(function (s) { kotak(p[0] + s * 24 * k - 6 * k, p[1] - 30 * k, 12 * k, 30 * k, '#5a3a26'); kotak(p[0] + s * 24 * k - 7 * k, p[1] - 16 * k, 14 * k, 4 * k, '#1f4a3d'); }); ctx.fillStyle = '#f3f0ea'; ctx.beginPath(); ctx.ellipse(p[0], p[1] - 22 * k, 17 * k, 5 * k, 0, 0, Math.PI * 2); ctx.fill(); kotak(p[0] - 2 * k, p[1] - 22 * k, 4 * k, 22 * k, '#2a2420'); bulat(p[0] + 4 * k, p[1] - 26 * k, 3 * k, '#fffaf0'); }); /* meja + kursi */
+    } else if (id === 'butik') {
+      kotak(x0, y0, mw, mh * 0.07, '#c9a24a'); kotak(x0, y1 - mh * 0.1, mw, mh * 0.1, '#e9e1d2');
+      var gm = ctx.createLinearGradient(vx - mw * 0.1, 0, vx + mw * 0.1, 0); gm.addColorStop(0, '#c8d6e0'); gm.addColorStop(0.5, '#f4f8fb'); gm.addColorStop(1, '#aebfcc'); ctx.fillStyle = '#c9a24a'; ctx.beginPath(); ctx.ellipse(vx, y0 + mh * 0.42, mw * 0.12, mh * 0.34, 0, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = gm; ctx.beginPath(); ctx.ellipse(vx, y0 + mh * 0.42, mw * 0.105, mh * 0.31, 0, 0, Math.PI * 2); ctx.fill(); /* cermin oval */
+      kotak(x0 + mw * 0.3, y1 - mh * 0.26, mw * 0.4, mh * 0.26, '#f3f0ea'); kotak(x0 + mw * 0.3, y1 - mh * 0.26, mw * 0.4, 3, '#c9a24a'); /* kasir */
+      [0.04, 0.72].forEach(function (f, k) { kotak(x0 + mw * f, y0 + mh * 0.2, mw * 0.24, 3, '#c9a24a'); for (var b = 0; b < 7; b++) kotak(x0 + mw * (f + 0.012 + b * 0.033), y0 + mh * 0.21, mw * 0.026, mh * (0.3 + (b % 3) * 0.05), ['#14141a', '#e9dccb', '#7a1f2b', '#c9a24a', '#1d3557', '#f1e7da', '#5a2a3a'][(b + k * 3) % 7]); }); /* rel baju di dinding belakang */
+      [-1, 1].forEach(function (s) { for (var b = 0; b < 9; b++) { var t = 0.1 + b * 0.09, p = L(s * 0.97, t), k = 0.5 + (1 - t) * 0.9; kotak(p[0] - 5 * k, p[1] - 62 * k, 10 * k, 34 * k, ['#7a1f2b', '#e9dccb', '#14141a', '#c9a24a', '#1d3557'][b % 5]); } var a = L(s * 0.97, 0.05), bb = L(s * 0.97, 0.95); ctx.strokeStyle = '#c9a24a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(a[0], a[1] - 90); ctx.lineTo(bb[0], bb[1] - 36); ctx.stroke(); }); /* rak dinding samping */
+      [-0.55, 0.55].forEach(function (u, i) { var p = L(u, 0.3), k = 1.25; ctx.fillStyle = '#e9e1d2'; ctx.beginPath(); ctx.ellipse(p[0], p[1], 20 * k, 6 * k, 0, 0, Math.PI * 2); ctx.fill(); kotak(p[0] - 7 * k, p[1] - 44 * k, 14 * k, 26 * k, i ? '#7a1f2b' : '#14141a'); poli([p[0] - 7 * k, p[1] - 18 * k, p[0] + 7 * k, p[1] - 18 * k, p[0] + 10 * k, p[1] - 2 * k, p[0] - 10 * k, p[1] - 2 * k], i ? '#7a1f2b' : '#14141a'); bulat(p[0], p[1] - 50 * k, 5.5 * k, '#f1e7da'); }); /* manekin */
+      var mt = L(0, 0.5); kotak(mt[0] - 46, mt[1] - 20, 92, 20, '#f3f0ea'); kotak(mt[0] - 48, mt[1] - 23, 96, 4, '#c9a24a'); [-28, -6, 18].forEach(function (dx, i) { kotak(mt[0] + dx, mt[1] - 36, 16, 13, ['#7a1f2b', '#c9a24a', '#14141a'][i]); }); /* meja tas */
+      [0.3, 0.5, 0.7].forEach(function (f) { sinar(w * f, y0 * 0.5, 60, 0.8); });
+    } else {
+      [0.1, 0.3, 0.5, 0.7, 0.9].forEach(function (f, i) { ctx.strokeStyle = i % 2 ? '#5ee7ff' : '#ff4fa3'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(w * f, 0); ctx.lineTo(x0 + mw * f, y0); ctx.stroke(); });
+      kotak(x0, y1 - 4, mw, 4, '#ff4fa3'); kotak(x0, y0, mw, 3, '#5ee7ff');
+      ctx.fillStyle = '#ff4fa3'; ctx.font = '800 ' + Math.round(mh * 0.16) + 'px ' + KOTA_FONT; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('ARKADE RIA', vx, y0 + mh * 0.16);
+      kotak(vx - mw * 0.14, y0 + mh * 0.3, mw * 0.28, mh * 0.7, '#3a1f5a'); kotak(vx - mw * 0.12, y0 + mh * 0.34, mw * 0.24, mh * 0.38, 'rgba(150,235,255,0.85)'); [-12, 0, 12].forEach(function (dx, i) { bulat(vx + dx, y0 + mh * 0.62, 6, ['#ffd166', '#ff8fb8', '#8affc1'][i]); }); kotak(vx - 1, y0 + mh * 0.34, 2, mh * 0.16, '#d5d9de'); /* mesin capit */
+      [-1, 1].forEach(function (s) { for (var b = 0; b < 7; b++) { var t = 0.06 + b * 0.13, p = L(s * 0.9, t), k = 0.5 + (1 - t) * 1.0, wk = 26 * k, hk = 62 * k, cl = ['#5ee7ff', '#ff4fa3', '#ffd166', '#8affc1', '#b48cff'][(b + (s > 0 ? 2 : 0)) % 5]; kotak(p[0] - wk / 2, p[1] - hk, wk, hk, '#16102a'); kotak(p[0] - wk / 2 + 2 * k, p[1] - hk + 4 * k, wk - 4 * k, 20 * k, cl); kotak(p[0] - wk / 2, p[1] - hk, wk, 3 * k, cl); kotak(p[0] - wk / 2 + 3 * k, p[1] - hk + 30 * k, wk - 6 * k, 5 * k, '#3a2a5a'); } }); /* deret mesin */
+      [-0.38, 0.38].forEach(function (u, i) { var p = L(u, 0.45), k = 1.0; kotak(p[0] - 22 * k, p[1] - 30 * k, 44 * k, 30 * k, i ? '#1d3557' : '#7a1f2b'); kotak(p[0] - 18 * k, p[1] - 52 * k, 36 * k, 22 * k, i ? '#5ee7ff' : '#ffd166'); }); /* mesin balap */
+      sinar(vx, y1, h * 0.5, 0.35);
+    }
+  });
+  return kotaIntipCache[id];
+}
+function kotaIntipUv(I, sa, sb, ya, yb) { /* potongan lukisan untuk bukaan s = sa..sb, y = ya..yb (I = { id, pusat, lebar, tinggi }) */
+  var uv = kotaIntip(I.id), f = function (s) { return Math.max(0, Math.min(1, (s - I.pusat) / I.lebar + 0.5)); }, g = function (y) { return Math.max(0, Math.min(1, y / I.tinggi)); };
+  return [uv[0] + (uv[2] - uv[0]) * f(sa), uv[1] + (uv[3] - uv[1]) * g(ya), uv[0] + (uv[2] - uv[0]) * f(sb), uv[1] + (uv[3] - uv[1]) * g(yb)];
+}
+/* ---- C2 (23 Nov): penanda pintu MASUK yang sama di keempat pintu interior: kusen kuningan, ambang palang arang + tulisan MASUK menyala,
+   garis lampu di bawah palang, keset merah berbingkai kuningan, 2 lentera dinding. o.daun = pasang 2 daun kaca berbingkai + gagang. ---- */
+var KOTA_MASUK = { palang: 0x1f2126, kusen: 0xd9b25a, teks: '#fff0d2', keset: 0x8a1f2e, bingkai: 0xb8903e, lampu: 0xffe2a8 };
+var kotaMasukUv = null;
+function kotaPlangMasuk() {
+  if (!kotaMasukUv) kotaMasukUv = kotaAtlas(200, 56, function (ctx, w, h) { ctx.fillStyle = '#1f2126'; ctx.fillRect(0, 0, w, h); ctx.fillStyle = KOTA_MASUK.teks; ctx.font = '800 38px ' + KOTA_FONT; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('MASUK', w / 2, h / 2 + 2); });
+  return kotaMasukUv;
+}
+function kotaPortalMasuk(B, F, s, lebar, yT, o) {
+  o = o || {};
+  var M = KOTA_MASUK, a = s - lebar / 2, b = s + lebar / 2, w0 = o.w0 === undefined ? -0.14 : o.w0, w1 = o.w1 === undefined ? 0.1 : o.w1, cK = kotaW(M.kusen);
+  B.kilap.fk(F, a - 0.02, a + 0.12, 0, yT, w0, w1, cK, KM_PZ | KM_PX | KM_NX); B.kilap.fk(F, b - 0.12, b + 0.02, 0, yT, w0, w1, cK, KM_PZ | KM_PX | KM_NX); /* kusen kiri-kanan */
+  B.halus.fk(F, a - 0.02, b + 0.02, yT, yT + 0.4, w0, w1, kotaW(M.palang), KM_PZ | KM_PY | KM_NY | KM_PX | KM_NX); /* palang */
+  B.kilap.fk(F, a - 0.02, b + 0.02, yT + 0.4, yT + 0.45, w0, w1 + 0.03, cK, KM_PZ | KM_PY | KM_NY | KM_PX | KM_NX);
+  B.teks.fkuad(F, s - 0.6, s + 0.6, yT + 0.03, yT + 0.37, w1 + 0.03, kotaW(0xffffff), kotaPlangMasuk()); /* MASUK (3 cm di depan palang) */
+  B.nyala.fk(F, a + 0.12, b - 0.12, yT - 0.05, yT, w0 + 0.03, w1 - 0.03, kotaW(M.lampu), KM_NY | KM_PZ); /* garis lampu bawah palang */
+  if (o.daun) { /* 2 daun kaca: rangka + gagang; kaca = SATU bidang transparan */
+    var wd = (w0 + w1) / 2, cR = kotaW(o.rangka || 0x2a2420);
+    B.etalase.fkuad(F, a + 0.12, b - 0.12, 0.02, yT - 0.05, wd, kotaW(0xffffff));
+    [a + 0.15, s, b - 0.15].forEach(function (x, i) { B.kilap.fk(F, x - (i === 1 ? 0.035 : 0.03), x + (i === 1 ? 0.035 : 0.03), 0.02, yT - 0.05, wd - 0.03, wd + 0.03, cR, KM_PZ | KM_PX | KM_NX); });
+    B.kilap.fk(F, a + 0.12, b - 0.12, 0.02, 0.2, wd - 0.03, wd + 0.03, cR, KM_PZ | KM_PY);
+    [-1, 1].forEach(function (k) { B.kilap.fk(F, s + k * 0.13 - 0.02, s + k * 0.13 + 0.02, 0.85, 1.75, wd + 0.03, wd + 0.09, cK, KM_PZ | KM_PX | KM_NX | KM_PY | KM_NY); });
+  }
+  var k0 = o.keset === undefined ? 0.2 : o.keset; /* keset: alas kuningan 3 cm + permadani 5,5 cm (>= 2 cm di atas paving / jalur granit) */
+  B.kilap.fk(F, a + 0.05, b - 0.05, 0, 0.03, k0, k0 + 1.3, kotaW(M.bingkai), KM_PY | KM_PZ | KM_PX | KM_NX);
+  B.halus.fk(F, a + 0.15, b - 0.15, 0, 0.055, k0 + 0.1, k0 + 1.2, kotaW(M.keset), KM_PY | KM_PZ | KM_PX | KM_NX);
+  if (o.lentera !== false) [-1, 1].forEach(function (k) { kotaLampuDinding(B, F, s + k * (lebar / 2 + (o.lenteraJarak || 0.6)), o.lenteraY || 2.5, o.lenteraW || 0); });
+}
 function kotaEtalase(B, F, s0, s1, y0, y1, o) {
   o = o || {};
   var d = o.dalam || 1.4, cL = kotaW(o.lantai || KC.marmer), cBel = kotaW(o.belakang || 0xf4ead8), cPl = kotaW(o.plafon || 0xfff4dc);
@@ -14300,7 +14451,7 @@ function kotaEtalase(B, F, s0, s1, y0, y1, o) {
     for (var t = 0; t < nT; t++) B.teks.fkuad(F, s0 + (s1 - s0) * t / nT, s0 + (s1 - s0) * (t + 1) / nT, y0 + 0.42, y1, -d, cT, kotaLatarToko(o.latar !== undefined ? o.latar : (varian + t) % 4));
   }
   B.nyala.fk(F, s0, s1, y1 - 0.03, y1, -d, 0, cPl, KM_NY); /* plafon bercahaya */
-  B.batu.fk(F, s0 - 0.04, s0, y0, y1, -d, 0, cSisi, KM_PX); B.batu.fk(F, s1, s1 + 0.04, y0, y1, -d, 0, cSisi, KM_NX); /* sisi kotak pajang */
+  B.batu.fk(F, s0 - 0.04, s0 + 0.02, y0, y1, -d, 0, cSisi, KM_PX); B.batu.fk(F, s1 - 0.02, s1 + 0.04, y0, y1, -d, 0, cSisi, KM_NX); /* sisi kotak pajang (2 cm menjorok: tidak sebidang dgn sisi tiang) */
   if (o.isi) o.isi(B, F, s0, s1, y0 + 0.42, -d);
   B.etalase.fkuad(F, s0, s1, y0 + 0.42, y1, -0.08, kotaW(0xffffff)); /* kaca: satu bidang */
   B.kilap.fk(F, s0, s1, y0 + 0.38, y0 + 0.46, -0.12, 0.02, cK, KM_PZ | KM_PY); /* kusen bawah */
@@ -14314,7 +14465,9 @@ function kotaPintuKaca(B, F, s, lebar, y0, tinggi, o) { /* pintu kaca ganda di b
   B.batu.fk(F, a, b, y0 - 0.02, y0 + 0.01, -d, 0.02, kotaW(o.ambang || KC.granitGelap), KM_PY | KM_PZ); /* ambang */
   B.nyala.fk(F, a, b, y0 + tinggi - 0.03, y0 + tinggi, -d, 0, kotaW(0xfff0d0), KM_NY); /* plafon ceruk bercahaya */
   B.batu.fk(F, a - 0.04, a, y0, y0 + tinggi, -d, 0, kotaW(o.sisi || KC.granitGelap), KM_PX); B.batu.fk(F, b, b + 0.04, y0, y0 + tinggi, -d, 0, kotaW(o.sisi || KC.granitGelap), KM_NX);
-  var cD = kotaW(o.dalam || 0xf2dcb8); B.teks.fkuad(F, a, b, y0, y0 + tinggi, -d - 0.6, [0.7 + 0.3 * cD[0], 0.7 + 0.3 * cD[1], 0.7 + 0.3 * cD[2]], kotaLatarLobi(Math.abs(Math.round(F.ox + F.oz + s)) % 2)); /* lobi terang di balik pintu (atlas) */
+  var cD = kotaW(o.dalam || 0xf2dcb8);
+  if (o.intip) B.teks.fkuad(F, a, b, y0, y0 + tinggi, -d - 0.6, kotaW(0xffffff), kotaIntipUv(o.intip, a, b, y0, y0 + tinggi)); /* E: mengintip interior asli */
+  else B.teks.fkuad(F, a, b, y0, y0 + tinggi, -d - 0.6, [0.7 + 0.3 * cD[0], 0.7 + 0.3 * cD[1], 0.7 + 0.3 * cD[2]], kotaLatarLobi(Math.abs(Math.round(F.ox + F.oz + s)) % 2)); /* lobi terang di balik pintu (atlas) */
   B.etalase.fkuad(F, a, b, y0, y0 + tinggi - 0.4, -d + 0.04, kotaW(0xffffff)); /* daun kaca (satu bidang) */
   B.kilap.fk(F, a, b, y0 + tinggi - 0.44, y0 + tinggi - 0.36, -d, -d + 0.1, cK, KM_PZ | KM_NY | KM_PY); /* ambang atas daun */
   [a, s, b].forEach(function (x, i) { B.kilap.fk(F, x - (i === 1 ? 0.03 : 0.05), x + (i === 1 ? 0.03 : 0.05), y0, y0 + tinggi - 0.36, -d, -d + 0.1, cK, KM_PZ | KM_PX | KM_NX); });
@@ -14370,7 +14523,8 @@ function kotaPrisma(G, poli, y0, y1, c, o) {
   }
 }
 /* sisi-sisi poligon sebagai daftar bidang fasad (untuk menulis fasad tiap sisi) */
-function kotaSisiPoli(poli) {
+function kotaSisiPoli(poli) { /* hasil di-memo per larik poligon: sisi yang sama = objek yang sama (pembanding `S === depan` di gaya / teluk kotaVolume) */
+  if (poli.__sisi) return poli.__sisi;
   var n = poli.length, luas = 0, out = [];
   for (var i = 0; i < n; i++) { var a = poli[i], b = poli[(i + 1) % n]; luas += a[0] * b[1] - b[0] * a[1]; }
   var arah = luas > 0 ? 1 : -1;
@@ -14379,33 +14533,72 @@ function kotaSisiPoli(poli) {
     var kiri = arah > 0 ? q : p; /* s = 0 di ujung kiri pengamat */
     out.push({ F: kotaBidang(kiri[0], kiri[1], nx, nz), panjang: L, k: k });
   }
+  Object.defineProperty(poli, '__sisi', { value: out, enumerable: false });
   return out;
 }
 /* ---------- KOTA: lantai (paving granit jalan + plaza bermotif) + tanah sampai cakrawala ---------- */
+function kotaPotongKotak(r, lubang) { /* persegi [x0,x1,z0,z1] dikurangi daftar persegi -> daftar persegi (kisi koordinat, digabung searah z) */
+  var xs = [r[0], r[1]], zs = [r[2], r[3]], out = [];
+  lubang.forEach(function (h) { if (h[1] <= r[0] || h[0] >= r[1] || h[3] <= r[2] || h[2] >= r[3]) return; [h[0], h[1]].forEach(function (x) { if (x > r[0] + 1e-6 && x < r[1] - 1e-6) xs.push(x); }); [h[2], h[3]].forEach(function (z) { if (z > r[2] + 1e-6 && z < r[3] - 1e-6) zs.push(z); }); });
+  var urut = function (a) { a.sort(function (p, q) { return p - q; }); return a.filter(function (v, i) { return i === 0 || v - a[i - 1] > 1e-6; }); };
+  xs = urut(xs); zs = urut(zs);
+  for (var i = 0; i < xs.length - 1; i++) {
+    var mulai = null;
+    for (var j = 0; j < zs.length; j++) {
+      var isi = false;
+      if (j < zs.length - 1) { var cx = (xs[i] + xs[i + 1]) / 2, cz = (zs[j] + zs[j + 1]) / 2; isi = !lubang.some(function (h) { return cx > h[0] && cx < h[1] && cz > h[2] && cz < h[3]; }); }
+      if (isi && mulai === null) mulai = zs[j];
+      if (!isi && mulai !== null) { out.push([xs[i], xs[i + 1], mulai, zs[j]]); mulai = null; }
+    }
+  }
+  return out;
+}
 function kotaBangunTanah(B) {
   var L = B.lantai, c = kotaW(0xe6e3dd), cGelap = kotaW(0xb4b0aa), cTepi = kotaW(0x9c9994), cKuning = kotaW(0xd9b43c);
   L.kotakMM(-92, 118, -0.2, 0, -60, 80, c, KM_PY); /* paving dasar seluruh kota (di bawah gedung tertutup) */
   /* plaza: cincin granit gelap + bintang mata angin + garis serong ke empat gedung pojok */
   [[9.4, 10.3], [14.2, 14.6], [21.4, 22.2], [27.6, 28.0]].forEach(function (r, i) { L.cincin(0, 0.012, 0, r[0], r[1], 96, i % 2 ? cTepi : cGelap); });
   for (var k = 0; k < 16; k++) { /* sinar bintang di antara cincin 10,3 dan 14,2 */
-    var a = k * Math.PI / 8, b = a + Math.PI / 22, a2 = a - Math.PI / 22, r0 = 10.3, r1 = k % 2 ? 12.2 : 14.0;
+    var a = k * Math.PI / 8, b = a + Math.PI / 22, a2 = a - Math.PI / 22, r0 = 10.3 / Math.cos(Math.PI / 22) + 0.01, r1 = k % 2 ? 12.2 : 14.0;
     var p0 = [Math.cos(a2) * r0, 0.012, Math.sin(a2) * r0], p1 = [Math.cos(a) * r1, 0.012, Math.sin(a) * r1], p2 = [Math.cos(b) * r0, 0.012, Math.sin(b) * r0];
     var d = L.nv; L.siap(3, 3);
     [p0, p2, p1].forEach(function (p) { L.v(p[0], p[1], p[2], 0, 1, 0, p[0] / 4.8, p[2] / 4.8, k % 2 ? kotaW(0xc9c5be) : kotaW(0xb9a98c)); });
     L.tri(d, d + 1, d + 2);
   }
   /* jalur granit gelap di kaki semua fasad (0,6 m) + garis pemandu kuning tunanetra di bulevar & Jalan Raya */
+  /* jalur kaki dipotong di atas trotoar + kerb lingkar: di sana trotoar yang tampil (dulu jalur 2 mm di atas trotoar tetapi
+     polygonOffset memihak trotoar = dua bidang berebut); persegi trotoar di sini HARUS sama dengan yang dibangun di bawah */
+  var wTk = KOTA_LINGKAR_LANTAI.lebarTrotoar + 0.1, trotoarKotak = [];
+  [-1, 1].forEach(function (s) {
+    [[50, 50 + wTk], [58 - wTk, 58]].forEach(function (q) { trotoarKotak.push([Math.min(s * q[0], s * q[1]), Math.max(s * q[0], s * q[1]), -48, 48]); });
+    [[48, 48 + wTk], [56 - wTk, 56]].forEach(function (q) { [[-58, -8], [8, 58]].forEach(function (x) { trotoarKotak.push([x[0], x[1], Math.min(s * q[0], s * q[1]), Math.max(s * q[0], s * q[1])]); }); });
+  });
   KOTA_GEDUNG.forEach(function (g) {
     kotaSisiPoli(g.tapak).forEach(function (S) {
-      var F = S.F; L.fk(F, 0, S.panjang, -0.05, 0.008, 0, 0.6, cTepi, KM_PY);
+      var F = S.F, j0 = kotaBidangTitik(F, 0, 0), j1 = kotaBidangTitik(F, S.panjang, 0.6), jr = [Math.min(j0[0], j1[0]), Math.max(j0[0], j1[0]), Math.min(j0[1], j1[1]), Math.max(j0[1], j1[1])];
+      if ((Math.abs(F.nx) > 0.99 || Math.abs(F.nz) > 0.99) && trotoarKotak.some(function (h) { return h[0] < jr[1] && h[1] > jr[0] && h[2] < jr[3] && h[3] > jr[2]; }))
+        kotaPotongKotak(jr, trotoarKotak).forEach(function (p) { L.kotakMM(p[0], p[1], -0.05, 0.008, p[2], p[3], cTepi, KM_PY); });
+      else L.fk(F, 0, S.panjang, -0.05, 0.008, 0, 0.6, cTepi, KM_PY);
     });
   });
-  [[-88, -14, -3.4], [-88, -14, 3.4], [14, 90, -3.4], [14, 90, 3.4]].forEach(function (g) { L.kotakMM(g[0], g[1], -0.05, 0.01, g[2] - 0.15, g[2] + 0.15, cKuning, KM_PY); });
-  [[-54, -30], [30, 54]].forEach(function (g) { L.kotakMM(-0.15, 0.15, -0.05, 0.01, g[0], g[1], cKuning, KM_PY); });
+  [[-88, -14, -3.4], [-88, -14, 3.4], [14, 90, -3.4], [14, 90, 3.4]].forEach(function (g) { L.kotakMM(g[0], g[1], -0.05, 0.032, g[2] - 0.15, g[2] + 0.15, cKuning, KM_PY | KM_PZ | KM_NZ); }); /* 2 cm di atas cincin plaza (dulu 2 mm) */
+  [[-54, -30], [30, 54]].forEach(function (g) { L.kotakMM(-0.15, 0.15, -0.05, 0.032, g[0], g[1], cKuning, KM_PY | KM_PX | KM_NX); });
+  /* jalan lingkar: trotoar granit terang di dua sisi + garis kerb (lajur tengah = paving kota) */
+  var LL = KOTA_LINGKAR_LANTAI, cTr = kotaW(LL.trotoar), cKb = kotaW(LL.kerb), wT = LL.lebarTrotoar;
+  [-1, 1].forEach(function (s) {
+    [[50, 50 + wT, 50 + wT, 50 + wT + 0.1], [58 - wT, 58, 58 - wT - 0.1, 58 - wT]].forEach(function (q) {
+      var x0 = Math.min(s * q[0], s * q[1]), x1 = Math.max(s * q[0], s * q[1]), k0 = Math.min(s * q[2], s * q[3]), k1 = Math.max(s * q[2], s * q[3]);
+      B.batu.kotakMM(x0, x1, -0.05, 0.006, -48, 48, cTr, KM_PY); B.batu.kotakMM(k0, k1, -0.05, 0.007, -48, 48, cKb, KM_PY); /* barat / timur */
+    });
+    [[48, 48 + wT, 48 + wT, 48 + wT + 0.1], [56 - wT, 56, 56 - wT - 0.1, 56 - wT]].forEach(function (q) {
+      var z0 = Math.min(s * q[0], s * q[1]), z1 = Math.max(s * q[0], s * q[1]), k0 = Math.min(s * q[2], s * q[3]), k1 = Math.max(s * q[2], s * q[3]);
+      [[-58, -8], [8, 58]].forEach(function (x) { B.batu.kotakMM(x[0], x[1], -0.05, 0.006, z0, z1, cTr, KM_PY); B.batu.kotakMM(x[0], x[1], -0.05, 0.007, k0, k1, cKb, KM_PY); }); /* utara / selatan (putus di Jalan Raya) */
+    });
+  });
   /* tutup saluran air (logam berkisi) memanjang di dua sisi bulevar */
   [-10.2, 10.2].forEach(function (z) { for (var x = -86; x < 88; x += 8) if (Math.abs(x) > 30) B.kilap.kotakMM(x, x + 6, -0.02, 0.015, z - 0.18, z + 0.18, kotaW(0x3a3c40), KM_PY); });
   /* tanah luar kota sampai cakrawala (aspal gelap, tertutup kabut di kejauhan) */
-  B.halus.kotakMM(-1200, 1200, -0.32, -0.05, -1200, 1200, kotaW(0x4d5055), KM_PY);
+  [[-1200, -91.5, -1200, 1200], [117.5, 1200, -1200, 1200], [-91.5, 117.5, -1200, -59.5], [-91.5, 117.5, 79.5, 1200]].forEach(function (q) { B.halus.kotakMM(q[0], q[1], -0.32, -0.05, q[2], q[3], kotaW(0x4d5055), KM_PY); }) /* tanah luar TIDAK lagi menumpang di bawah paving kota */;
 }
 /* ---------- KOTA: volume gedung (semua sisi selesai) + gaya fasad ----------
    kotaVolume menulis SETIAP sisi poligon (depan, samping, belakang) dengan gaya fasad, kolom sudut,
@@ -14538,6 +14731,7 @@ function kotaVolume(B, poli, y0, y1, gaya, o) {
   var sisi = kotaSisiPoli(poli), ins = o.insetSudut === undefined ? 0.45 : o.insetSudut;
   sisi.forEach(function (S, idx) {
     var a = ins, b = S.panjang - ins, ya = y0, tutup = kotaTertutup(S);
+    S.khusus = false;
     if (tutup >= y1 - 0.3) return; /* dinding bersama tertutup penuh tetangga */
     if (tutup > y0 + 0.3) { var gs0 = typeof gaya === 'function' ? gaya(S, idx) : gaya; if (gs0) kotaFasad(B, S.F, a, b, Math.max(y0, tutup - 0.4), y1, Object.assign({ geser: (o.benih || 0) + idx }, gs0)); if (o.lis) kotaLis(B, S.F, a, b, y1 - 0.02, Object.assign({ ujung: false }, o.lis)); return; }
     if (o.dasar && y0 < 0.5) {
@@ -14549,6 +14743,7 @@ function kotaVolume(B, poli, y0, y1, gaya, o) {
         else kotaFasad(B, S.F, a, b, 0, H, o.dasar.gayaTutup || { jenis: 'kisi', bentang: 2.4, lantai: H, warnaTiang: KC.granit, kaca: KC.kacaGelap });
       } else kotaFasad(B, S.F, a, b, 0, H, o.dasar.gayaBelakang || { jenis: 'kisi', bentang: 2.6, lantai: H, warnaTiang: o.dasar.tiang || KC.granit, kaca: KC.kacaGelap, tutupAtas: false });
       if (!S.khusus) B.batu.fk(S.F, a, b, H - 0.02, H + 0.5, 0, 0.2, kotaW(o.dasar.lis || KC.granitGelap), KM_PZ | KM_PY | KM_NY | KM_PX | KM_NX); /* lis di atas lantai dasar */
+      else if (o.dasar.pita !== false) B.batu.fk(S.F, a, b, H, H + 0.5, -0.3, 0.2, kotaW(o.dasar.pita || o.dasar.lis || KC.granitGelap), KM_PZ | KM_PY | KM_NY | KM_PX | KM_NX); /* sisi khusus: pita penutup celah H..H+0,5 (fasad buatan tangan berhenti di H) */
       ya = H + 0.5;
     }
     var gs = typeof gaya === 'function' ? gaya(S, idx) : gaya;
@@ -14564,11 +14759,12 @@ function kotaVolume(B, poli, y0, y1, gaya, o) {
     if (siku) { /* kotak sudut sejajar sisi (ins x ins) */
       var ux = ax / La, uz = az / La, vx = bx / Lb, vz = bz / Lb;
       var cx = p[0] + (ux + vx) * ins / 2, cz = p[1] + (uz + vz) * ins / 2;
-      eS.kotak(cx, (y0 + y1) / 2, cz, ins / 2, (y1 - y0) / 2, ins / 2, Math.atan2(ux, uz), cS, KM_PX | KM_NX | KM_PZ | KM_NZ | (o.atap === false ? KM_PY : 0));
+      var hS = (y1 - y0) / 2 + (o.atap === false ? 0.01 : 0); /* tanpa atap: puncak kolom 2 cm di atas puncak mullion (tidak sebidang) */
+      eS.kotak(cx, y0 + hS, cz, ins / 2, hS, ins / 2, Math.atan2(ux, uz), cS, KM_PX | KM_NX | KM_PZ | KM_NZ | (o.atap === false ? KM_PY : 0));
     } else eS.silinder(p[0], y0, p[1], ins * 0.95, ins * 0.95, y1 - y0, 14, cS, o.atap === false);
   });
   if (o.atap !== false) {
-    kotaPrisma(B.halus, kotaInsetPoli(poli, 0.05), y1 - 0.05, y1, kotaW(0x8f9398), { lewati: function () { return true; } }); /* dek atap tertutup */
+    kotaPrisma(B.halus, kotaInsetPoli(poli, 0.3), y1 - 0.05, y1, kotaW(0x8f9398), { lewati: function () { return true; } }); /* dek atap tertutup */
     var A = o.atap || {};
     kotaParapet(B, poli, y1, A.tinggiParapet || 1.0, A.parapet || o.sudut || KC.beton);
     if (!A.polos) kotaPerlengkapanAtap(B, poli, y1, Object.assign({ benih: o.benih || 1 }, A));
@@ -14658,13 +14854,14 @@ function kotaBukaanLengkung(B, F, sc, y0, L, hLurus, o) {
 }
 /* ---- barang pajangan (fisik, di dalam etalase) ---- */
 var kotaPapanCache = {};
-function kotaPapanTeks(teks, warna, latar, neon) { /* teks papan toko di atlas (cache per teks + warna) */
-  var c = new THREE.Color(warna), hex = '#' + c.getHexString(), k = teks + hex + latar + (neon ? 'n' : '');
+function kotaPapanTeks(teks, warna, latar, neon, polos) { /* teks papan toko di atlas (cache per teks + warna); polos = warna rata (papan terang) */
+  var c = new THREE.Color(warna), hex = '#' + c.getHexString(), k = teks + hex + latar + (neon ? 'n' : '') + (polos ? 'p' : '');
   if (kotaPapanCache[k]) return kotaPapanCache[k];
   kotaPapanCache[k] = kotaAtlas(Math.max(160, teks.length * 26 + 40), 56, function (ctx, w, h) {
     ctx.fillStyle = latar; ctx.fillRect(0, 0, w, h);
     ctx.font = '800 34px ' + KOTA_FONT; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     if (neon) { ctx.shadowColor = hex; ctx.shadowBlur = 10; ctx.fillStyle = '#ffffff'; ctx.fillText(teks, w / 2, h / 2 + 2); ctx.shadowBlur = 0; ctx.strokeStyle = hex; ctx.lineWidth = 2; ctx.strokeText(teks, w / 2, h / 2 + 2); }
+    else if (polos) { ctx.fillStyle = hex; ctx.fillText(teks, w / 2, h / 2 + 2); }
     else { var g = ctx.createLinearGradient(0, 8, 0, h - 8); g.addColorStop(0, '#fff6d8'); g.addColorStop(0.5, hex); g.addColorStop(1, '#8a6a2a'); ctx.fillStyle = g; ctx.fillText(teks, w / 2, h / 2 + 2); }
   });
   return kotaPapanCache[k];
@@ -14680,7 +14877,7 @@ function kotaManekin(B, F, s, y, w, warnaBaju, gaun) { /* manekin: alas, tiang, 
 }
 function kotaTas(B, F, s, y, w, warna, lebar) { /* tas tangan: badan berlekuk + tutup + pegangan busur */
   var L = lebar || 0.36, c = kotaW(warna), cE = kotaW(KC.emas);
-  B.kilap.fgeo(F, new THREE.BoxGeometry(L, L * 0.72, L * 0.4), s, y + L * 0.36, w, 0, 0.3, 0, 1, 1, 1, c);
+  B.kilap.fgeo(F, new THREE.BoxGeometry(L, L * 0.58, L * 0.4), s, y + L * 0.29, w, 0, 0.3, 0, 1, 1, 1, c); /* badan berhenti di dasar tutup: sisi badan tidak berimpit di balik sisi tutup */
   B.kilap.fgeo(F, new THREE.BoxGeometry(L * 1.02, L * 0.2, L * 0.42), s, y + L * 0.68, w, 0, 0.3, 0, 1, 1, 1, kotaWKali(warna, 0.8));
   B.kilap.fgeo(F, kotaGeoBusur(L * 0.26, L * 0.3, 0.025, 0, Math.PI, 8), s, y + L * 0.78, w - 0.012, 0, 0.3, 0, 1, 1, 1, c);
   B.kilap.fgeo(F, new THREE.BoxGeometry(L * 0.14, L * 0.08, 0.02), s, y + L * 0.6, w + L * 0.2, 0, 0.3, 0, 1, 1, 1, cE);
@@ -14714,25 +14911,43 @@ function kotaDeretToko(B, F, s0, s1, o) {
   if ((s1 - s0) - tiang * 2 < 1.2) { emberT.fk(F, s0, s1, 0, H, -0.2, o.tonjolTiang || 0.18, cT, KM_PZ | KM_PX | KM_NX | KM_PY); return; }
   var tot = 0; teluk.forEach(function (t) { tot += t.lebar; });
   var sisa = (s1 - s0) - tiang * (teluk.length + 1), f = sisa / tot, s = s0;
+  var pt = kotaBidangTitik(F, (s0 + s1) / 2, 3), lingkar = kotaDiLingkar(pt[0], pt[1]), G = null; /* sisi menghadap jalan lingkar: tiap toko punya ragam sendiri */
   teluk.forEach(function (t, i) {
+    var a = s + tiang, b = a + t.lebar * f, papan = o.papan || 1.15;
+    if (lingkar) {
+      var pc = kotaBidangTitik(F, (a + b) / 2, 0), pilih = kotaRagamPilih(KOTA_TOKO_LINGKAR, pc[0], pc[1]); G = KOTA_RAGAM_TOKO[pilih.g];
+      t = { lebar: t.lebar, jenis: t.jenis, isi: t.isi, dalam: t.dalam, tiangKaca: t.tiangKaca, teksBelakang: t.teksBelakang, warna: t.warna, poster: t.poster, warnaDalam: t.warnaDalam,
+        nama: KOTA_MEREK_LINGKAR[pilih.n], warnaNama: G.nama, neon: !!G.neon, latarNama: G.latar, warnaPapan: G.papan, warnaBingkai: G.bingkai, belakang: G.belakang, latar: G.latarToko };
+      papan = G.papanT; cT = kotaW(G.tiang);
+    }
+    var atasBuka = H - papan;
     emberT.fk(F, s, s + tiang, 0, H, -0.2, o.tonjolTiang || 0.18, cT, KM_PZ | KM_PX | KM_NX | KM_PY); /* tiang (granit / batu) */
-    var a = s + tiang, b = a + t.lebar * f, papan = o.papan || 1.15, atasBuka = H - papan;
     if (t.jenis === 'pintu') kotaPintuKaca(B, F, (a + b) / 2, b - a - 0.3, 0, Math.min(atasBuka, 3.4), { dalam: t.warnaDalam || 0xf2dcb8, ceruk: t.dalam || 1.0 });
     if (t.jenis === 'pintu' && atasBuka > 3.5) { B.nyala.fkuad(F, a, b, 3.4, atasBuka, -0.9, kotaW(0xf6e6c8)); B.etalase.fkuad(F, a, b, 3.4, atasBuka, -0.1, kotaW(0xffffff)); B.kilap.fk(F, a, b, 3.36, 3.46, -0.14, 0.02, kotaW(KC.besiHitam), KM_PZ | KM_PY | KM_NY); B.kilap.fk(F, a, a + 0.08, 3.4, atasBuka, -0.12, 0.02, kotaW(KC.besiHitam), KM_PZ | KM_PX); B.kilap.fk(F, b - 0.08, b, 3.4, atasBuka, -0.12, 0.02, kotaW(KC.besiHitam), KM_PZ | KM_NX); }
     else if (t.jenis === 'pintu') { /* ambang atas pintu rendah */ }
-    if (t.jenis === 'etalase') kotaEtalase(B, F, a, b, 0, atasBuka, { dalam: t.dalam || 1.4, isi: t.isi, belakang: t.belakang, teksBelakang: t.teksBelakang, tiang: t.tiangKaca });
+    if (t.jenis === 'etalase') kotaEtalase(B, F, a, b, 0, atasBuka, { dalam: t.dalam || 1.4, isi: t.isi, belakang: t.belakang, teksBelakang: t.teksBelakang, tiang: t.tiangKaca, latar: t.latar, alas: G ? G.tiang : undefined, kusen: G && G.id !== 'arang' && G.id !== 'navy' ? G.bingkai : undefined });
     if (t.jenis === 'panel') { B.batu.fk(F, a, b, 0, atasBuka, -0.2, 0, kotaW(t.warna || KC.travertin), KM_PZ); if (t.poster) B.teks.fkuad(F, a + 0.25, b - 0.25, 0.9, atasBuka - 0.4, 0.02, kotaW(0xffffff), t.poster); }
     /* pita papan nama di atas teluk: panel + huruf 3D (emas / neon) */
     B.kilap.fk(F, a, b, atasBuka, H, -0.2, o.tonjolPapan || 0.05, kotaW(t.warnaPapan || o.warnaPapan || KC.besiHitam), KM_PZ | KM_NY);
     if (t.nama) { /* kotak lampu papan nama: bingkai timbul + muka teks menyala (atlas) */
       var tp = o.tonjolPapan || 0.05, pw = Math.min(b - a - 0.3, Math.max(1.6, t.nama.length * 0.36)), ph = papan * 0.62, sc = (a + b) / 2, py = atasBuka + papan * 0.19;
       B.kilap.fk(F, sc - pw / 2 - 0.06, sc + pw / 2 + 0.06, py - 0.06, py + ph + 0.06, tp, tp + 0.14, kotaW(t.warnaBingkai || KC.besiHitam), KM_PZ | KM_PX | KM_NX | KM_PY | KM_NY);
-      B.teks.fkuad(F, sc - pw / 2, sc + pw / 2, py, py + ph, tp + 0.145, kotaW(0xffffff), kotaPapanTeks(t.nama, t.warnaNama || KC.emas, t.neon ? '#140a1e' : '#141416', t.neon));
+      B.teks.fkuad(F, sc - pw / 2, sc + pw / 2, py, py + ph, tp + 0.145, kotaW(0xffffff), kotaPapanTeks(t.nama, t.warnaNama || KC.emas, t.latarNama || (t.neon ? '#140a1e' : '#141416'), t.neon, !!t.latarNama));
     }
+    if (G && G.tenda === 'kain') { /* tenda kain miring (kotak tipis) + lis depan */
+      var pk = kotaBidangTitik(F, (a + b) / 2, 0.62);
+      var nB = 6, lB = (b - a - 0.5) / nB, cSel = kotaW(0xf6efe0); /* tenda kain bergaris (6 bilah selang-seling), lebih ramping dari teluk + rumbai depan */
+      for (var ib = 0; ib < nB; ib++) { var pb = kotaBidangTitik(F, a + 0.25 + lB * (ib + 0.5), 0.5);
+        B.halus.geo(new THREE.BoxGeometry(lB, 0.03, 0.95), kotaMatriks(pb[0], atasBuka - 0.2, pb[1], 0.42, F.rot, 0), ib % 2 ? cSel : kotaW(G.warnaTenda)); }
+      B.halus.fk(F, a + 0.25, b - 0.25, atasBuka - 0.56, atasBuka - 0.4, 0.92, 0.95, kotaWKali(G.warnaTenda, 0.82), KM_PZ | KM_NZ);
+    } else if (G && G.tenda === 'pelat') { /* pelat tipis mendatar + garis lampu bawah */
+      B.kilap.fk(F, a - 0.05, b + 0.05, atasBuka - 0.02, atasBuka + 0.07, 0, 0.85, kotaW(G.warnaTenda), KM_PZ | KM_PY | KM_NY | KM_PX | KM_NX);
+      B.nyala.fk(F, a + 0.3, b - 0.3, atasBuka - 0.03, atasBuka - 0.02, 0.4, 0.5, kotaW(0xfff1d6), KM_NY);
+    } else if (G) B.nyala.fk(F, a + 0.2, b - 0.2, atasBuka - 0.03, atasBuka + 0.02, 0.05, 0.11, kotaW(G.bingkai), KM_PZ | KM_NY); /* tanpa tenda: garis neon di bawah papan */
     s = b;
   });
   emberT.fk(F, s, s1, 0, H, -0.2, o.tonjolTiang || 0.18, cT, KM_PZ | KM_PX | KM_NX | KM_PY);
-  if (o.kanopi) kotaKanopi(B, F, s0 + 0.2, s1 - 0.2, H - 0.05, o.kanopi, { lis: 0.12, warna: o.warnaKanopi || KC.besiHitam, warnaLis: o.warnaLisKanopi || KC.emas });
+  if (o.kanopi && !lingkar) kotaKanopi(B, F, s0 + 0.2, s1 - 0.2, H - 0.05, o.kanopi, { lis: 0.12, warna: o.warnaKanopi || KC.besiHitam, warnaLis: o.warnaLisKanopi || KC.emas });
 }
 /* pola teluk otomatis untuk panjang L (toko kecil berganti) */
 var KOTA_MEREK = ['OPTIK PRIMA', 'TOKO EMAS', 'SEPATU KITA', 'APOTEK SEHAT', 'ROTI MANIS', 'BUKU & KOPI', 'JAM TANGAN', 'TAS & KOPER', 'BUNGA', 'KOSMETIK', 'GELATO', 'TEH TARIK', 'SUSHI', 'RAMEN', 'MARTABAK', 'DIMSUM', 'ELEKTRONIK', 'MINIMARKET', 'SALON', 'PARFUM'];
@@ -14792,7 +15007,8 @@ function kotaDindingLengkung(B, F, s0, s1, y0, y1, bukaan, o) {
     /* ruang terang di balik bukaan (lobi / toko): lantai, dinding belakang menyala, sisi */
     var d = k.dalamRuang || 2.2;
     B.batu.fk(F, a, b, y0, ya + 0.02, -t - d, -t, kotaW(KC.marmer), KM_PY);
-    B.nyala.fkuad(F, a - 0.3, b + 0.3, ya, puncak + 0.2, -t - d, cDalam);
+    if (o.intip) B.teks.fkuad(F, a - 0.3, b + 0.3, ya, puncak + 0.2, -t - d, kotaW(0xffffff), kotaIntipUv(o.intip, a - 0.3, b + 0.3, ya, puncak + 0.2)); /* E: mengintip interior asli */
+    else B.nyala.fkuad(F, a - 0.3, b + 0.3, ya, puncak + 0.2, -t - d, cDalam);
     B.batu.fk(F, a - 0.3, a, ya, puncak, -t - d, -t, c, KM_PX); B.batu.fk(F, b, b + 0.3, ya, puncak, -t - d, -t, c, KM_NX);
     B.nyala.fk(F, a, b, puncak, puncak + 0.1, -t - d, -t, kotaW(0xfff0d0), KM_NY);
     if (k.isi) k.isi(B, F, a, b, ya, -t - d + 0.2);
@@ -14827,11 +15043,12 @@ function kotaGedungHotel(B) {
       dasar: { tinggi: 7.0, kanopi: 1.4, tiang: KC.kapur, lis: KC.kapur, teluk: function (S) { return S === serong || Math.abs(S.F.nx * Math.SQRT1_2 + S.F.nz * Math.SQRT1_2) > 0.99 ? false : [{ lebar: 3, jenis: 'etalase', isi: KOTA_ISI.bunga(), nama: 'KENCANA', warnaNama: KC.emas }]; } } });
   /* lantai dasar serong: 5 bukaan berlengkung, tengah = pintu putar */
   var F = serong.F, L = serong.panjang, m = L / 2;
-  B.batu.fk(F, 0.45, L - 0.45, 0, 0.8, -0.05, 0.12, kotaW(KC.granitGelap), KM_PZ | KM_PY | KM_PX | KM_NX); /* alas granit */
+  B.batu.fk(F, 0.45, L - 0.45, 0, 0.8, 0, 0.12, kotaW(KC.granitGelap), KM_PZ | KM_PY | KM_PX | KM_NX); /* alas granit (mulai di muka dinding) */
   kotaDindingLengkung(B, F, 0.45, L - 0.45, 0, 7.0, [
     { s: m - 10.6, lebar: 2.8, tinggiLurus: 3.4, isi: KOTA_ISI.bunga() }, { s: m - 5.6, lebar: 2.8, tinggiLurus: 3.4 },
     { s: m, lebar: 4.4, tinggiLurus: 3.6, pintu: true, dalamRuang: 3.4 },
-    { s: m + 5.6, lebar: 2.8, tinggiLurus: 3.4 }, { s: m + 10.6, lebar: 2.8, tinggiLurus: 3.4, isi: KOTA_ISI.bunga() }], { warna: KC.kapur, ambang: 0.8 });
+    { s: m + 5.6, lebar: 2.8, tinggiLurus: 3.4 }, { s: m + 10.6, lebar: 2.8, tinggiLurus: 3.4, isi: KOTA_ISI.bunga() }], { warna: KC.kapur, ambang: 0.8, intip: { id: 'hotel', pusat: m, lebar: 25, tinggi: 7.0 } });
+  kotaPortalMasuk(B, F, m, 4.4, 3.6, { lentera: false, keset: 0.3, w0: -0.45, w1: -0.25 });
   /* pintu putar kuningan: piringan atas + bawah, 4 tiang, sayap rangka, lobi terang di belakang */
   var pp = kotaBidangTitik(F, m, -1.9), cK = kotaW(KC.kuningan);
   B.kilap.silinder(pp[0], 0, pp[1], 1.75, 1.75, 0.06, 24, cK, true);
@@ -14841,7 +15058,7 @@ function kotaGedungHotel(B) {
   B.kilap.silinder(pp[0], 0, pp[1], 0.08, 0.08, 2.9, 10, cK, false);
   /* porte-cochère: kanopi perunggu dalam 4,6 m + lis emas + huruf HOTEL KENCANA berdiri di tepinya */
   kotaKanopi(B, F, m - 7.5, m + 7.5, 6.25, 4.6, { warna: 0x3a2e24, lis: 0.16, warnaLis: KC.emas, batangTinggi: 2.2 });
-  B.kilap.huruf(F, 'HOTEL KENCANA', m, 6.72, 4.32, 4.46, 0.62, kotaW(KC.emas), { px: 46, jarak: 4 });
+  kotaPapanGedung(B, F, 'HOTEL KENCANA', m, 6.77, 0.62, { jarak: 4, w: 4.36 });
   kotaLampuDinding(B, F, m - 2.9, 3.0, 0); kotaLampuDinding(B, F, m + 2.9, 3.0, 0);
   /* teras podium: balustrade + pot topiari di depan menara */
   var M = kotaInsetPoli(T, 3.2);
@@ -14867,9 +15084,10 @@ function kotaGedungKafe(B) {
   kotaDindingLengkung(B, F, 0.45, 15.55, 0, Hd, [
     { s: 2.8, lebar: 2.4, tinggiLurus: 2.6, isi: KOTA_ISI.kue() }, { s: 6.2, lebar: 2.4, tinggiLurus: 2.6, isi: KOTA_ISI.kopi() },
     { s: pintuS, lebar: 2.2, tinggiLurus: 2.9, pintu: true, dalamRuang: 2.6 }, { s: 13.4, lebar: 2.4, tinggiLurus: 2.6, isi: KOTA_ISI.kue() }],
-    { warna: KC.hijauMarmer, kusenBatu: KC.kuningan, ember: B.kilap, dalam: 0xf7d9a8, ambang: 0.7 });
+    { warna: KC.hijauMarmer, kusenBatu: KC.kuningan, ember: B.kilap, dalam: 0xf7d9a8, ambang: 0.7, intip: { id: 'kafe', pusat: pintuS, lebar: 18, tinggi: 4.9 } });
+  kotaPortalMasuk(B, F, pintuS, 2.2, 2.9, { daun: true, rangka: 0x1f3b2c, lentera: false, w0: -0.45, w1: -0.25 });
   B.kilap.fk(F, 0.45, 15.55, Hd - 0.9, Hd, -0.3, 0.12, kotaW(KC.hijauMarmer), KM_PZ | KM_NY);
-  B.kilap.huruf(F, 'KAFE BULAN', 8, Hd - 0.72, 0.12, 0.2, 0.46, kotaW(KC.emas), { px: 44, jarak: 3 });
+  B.nyala.huruf(F, 'KAFE BULAN', 8, Hd - 0.72, 0.12, 0.2, 0.46, kotaW(0xffdf9a), { px: 44, jarak: 3 });
   [2.8, 6.2, pintuS, 13.4].forEach(function (s, i) { /* tenda bergaris: bilah miring berganti warna */
     for (var b = 0; b < 8; b++) {
       var a0 = s - 1.35 + b * 0.3375, p = kotaBidangTitik(F, a0 + 0.169, 0.7);
@@ -14943,9 +15161,9 @@ function kotaGedungGaleria(B) {
   kotaEtalase(B, F, m + 3.6, L - 0.45, 0, 6.0, { dalam: 1.6, isi: KOTA_ISI.tas([0xc9a24a, 0x7a1f2b, 0x2e2e33, 0xe8d6c0]), tiang: 3 });
   kotaPintuKaca(B, F, m - 1.8, 3.4, 0, 4.6, { ceruk: 1.4, dalam: 0xf8ecd4 }); kotaPintuKaca(B, F, m + 1.8, 3.4, 0, 4.6, { ceruk: 1.4, dalam: 0xf8ecd4 });
   B.kilap.fk(F, m - 3.6, m + 3.6, 4.6, 6.0, -1.4, 0.05, kotaW(0xd9c9a3), KM_PZ | KM_NY);
-  B.kilap.fk(F, 0.45, L - 0.45, 6.0, 7.8, -0.3, 0.1, kotaW(0x2a2a2e), KM_PZ | KM_NY | KM_PY);
+  B.kilap.fk(F, 0.45, L - 0.45, 6.0, 7.8, -0.3, 0.08, kotaW(0x2a2a2e), KM_PZ | KM_NY | KM_PY);
   kotaKanopiKaca(B, F, m - 9, m + 9, 6.1, 3.6, { warna: 0xd9c9a3 });
-  B.kilap.huruf(F, 'GALERIA', m, 6.32, 3.3, 3.46, 0.95, kotaW(KC.emas), { px: 48, jarak: 10 });
+  B.nyala.huruf(F, 'GALERIA', m, 6.32, 3.3, 3.46, 0.95, kotaW(0xffe9bd), { px: 48, jarak: 10 });
   var ledA = m - 13, ledB = m + 13, y0 = 8.4, y1 = 21.4, tonjol = 1.4, seg = 20;
   kotaTirai(B, F, 0.45, ledA - 0.6, 7.8, 24, gayaP); kotaTirai(B, F, ledB + 0.6, L - 0.45, 7.8, 24, gayaP);
   B.kilap.fk(F, ledA - 0.6, ledB + 0.6, 21.9, 24, -0.3, 0.05, kotaW(0x2a2a2e), KM_PZ);
@@ -15008,9 +15226,10 @@ function kotaGedungMaison(B) {
     if (depan) { var ps = KOTA_PINTU[2].x - 34; k.forEach(function (b) { if (Math.abs(b.s - ps) < 2.6) { b.s = ps; b.pintu = true; b.lebar = 2.8; b.tinggiLurus = 4.6; b.dalamRuang = 2.4; } }); }
     var warnaBaju = [[0x14141a, 0xe9dccb, 0x7a1f2b], [0xc9a24a, 0x1d1d24, 0x2e2e33], [0xf1e7da, 0x5a2a3a, 0xc9a24a], [0x1d3557, 0xe8d6c0, 0x7a1f2b]];
     k.forEach(function (b, i) { if (!b.pintu) b.isi = i % 2 ? KOTA_ISI.tas([0x7a1f2b, 0xc9a24a, 0x14141a, 0xe8d6c0]) : KOTA_ISI.butik(warnaBaju[i % 4]); b.dalamRuang = 2.0; });
-    kotaDindingLengkung(B, F, 0.45, L - 0.45, 0, 8.4, k, { warna: KC.marmer, kusen: KC.emas, dalam: 0xf8efe2, ambang: 0.6 });
+    kotaDindingLengkung(B, F, 0.45, L - 0.45, 0, 8.4, k, { warna: KC.marmer, kusen: KC.emas, dalam: 0xf8efe2, ambang: 0.6, intip: { id: 'butik', pusat: depan ? KOTA_PINTU[2].x - 34 : L / 2, lebar: Math.max(16, L), tinggi: 6.4 } });
+    if (depan) kotaPortalMasuk(B, F, KOTA_PINTU[2].x - 34, 2.8, 3.2, { daun: true, rangka: 0x2a2420, lentera: false, w0: -0.45, w1: -0.25 });
     k.forEach(function (b) { kotaKanopi(B, F, b.s - 1.9, b.s + 1.9, b.pintu ? 5.65 : 5.45, 1.1, { warna: KC.besiHitam, lis: 0.08, warnaLis: KC.emas, lampu: true, batangTinggi: 1.0 }); });
-    B.kilap.huruf(F, 'MAISON LUNA', L / 2, 7.45, 0.02, 0.12, 0.6, kotaW(KC.emas), { px: 46, jarak: 9 });
+    kotaPapanGedung(B, F, 'MAISON LUNA', L / 2, 7.3, 0.6, { jarak: 9, w: 0.1 });
   });
   /* paviliun kaca di atap + bulan sabit emas menyala */
   var P = kotaKotak(37.5, 46.5, -32, -20);
@@ -15132,13 +15351,13 @@ function kotaGedungTekno(B) {
     var cx = L / 2;
     B.nyala.fgeo(F, new THREE.TorusGeometry(1.1, 0.22, 10, 32), cx, 5.6, -d + 0.15, 0, 0, 0, 1, 1, 1, kotaW(0xbfe6ff));
     B.nyala.fgeo(F, new THREE.SphereGeometry(0.42, 16, 10), cx, 5.6, -d + 0.15, 0, 0, 0, 1, 1, 0.3, kotaW(0x9fd7ff));
-    B.nyala.huruf(F, 'TEKNO', cx, 3.4, -d + 0.02, -d + 0.1, 0.7, kotaW(0xffffff), { px: 46, jarak: 10 });
+    B.kilap.huruf(F, 'TEKNO', cx, 3.4, -d + 0.02, -d + 0.1, 0.7, kotaW(0x20242c), { px: 46, jarak: 10 }); /* H1: huruf arang di dinding terang (dulu putih di abu terang) */
     KOTA_ISI.tekno()(B, F, 1.2, L - 1.2, 0, -d + 2.0);
     KOTA_ISI.tekno()(B, F, 1.2, L - 1.2, 0, -d + 4.6);
     B.etalase.fkuad(F, 0.45, L - 0.45, 0, H0 - 0.2, -0.1, kotaW(0xffffff));
     var n = Math.max(2, Math.round(L / 3)); /* rangka kaca putih tipis: tiang + palang tengah (kubus kaca) */
     for (var i = 0; i <= n; i++) { var s = 0.45 + (L - 0.9) * i / n; B.halus.fk(F, s - 0.06, s + 0.06, 0, H0, -0.16, 0.06, kotaW(KC.putih), KM_PZ | KM_PX | KM_NX); }
-    B.halus.fk(F, 0.45, L - 0.45, H0 * 0.5 - 0.05, H0 * 0.5 + 0.05, -0.16, 0.06, kotaW(KC.putih), KM_PZ | KM_PY | KM_NY);
+    for (var q = 0; q < n; q++) B.halus.fk(F, 0.45 + (L - 0.9) * q / n + 0.06, 0.45 + (L - 0.9) * (q + 1) / n - 0.06, H0 * 0.5 - 0.05, H0 * 0.5 + 0.05, -0.16, 0.06, kotaW(KC.putih), KM_PZ | KM_PY | KM_NY); /* palang per ruas di antara tiang (tidak sebidang menimpa tiang) */
     B.halus.fk(F, 0.45, L - 0.45, H0 - 0.2, H0 + 0.5, -0.2, 0.2, kotaW(KC.putih), KM_PZ | KM_PY | KM_NY);
     KOTA_LED.push({ F: F, datar: { s0: 0.8, s1: L - 0.8, y0: H0 + 0.62, y1: H0 + 1.38, w: 0.24 }, wilayah: 'pita' });
   });
@@ -15207,11 +15426,14 @@ function kotaGedungBioskop(B) {
   /* garis neon tegak lurus berjarak sama di podium (magenta / cyan), bukan zigzag */
   kotaSisiPoli(T).forEach(function (S) { var n = Math.floor(S.panjang / 2.2); for (var i = 1; i < n; i++) { var s = S.panjang * i / n; B.nyala.fk(S.F, s - 0.06, s + 0.06, 7.2, 19.0, 0, 0.08, kotaW(i % 2 ? 0xff4fa3 : 0x5ee7ff), KM_PZ | KM_PX | KM_NX); } });
   /* muka serong: pintu arkade, loket karcis, poster menyala, marquee lampu kejar + huruf BIOSKOP RIA */
-  B.kilap.fk(F, 0.45, L - 0.45, 0, 6.0, -0.2, 0, kotaW(0x24252d), KM_PZ);
-  kotaPintuKaca(B, F, m, 4.2, 0, 4.2, { ceruk: 1.3, dalam: 0x3a1f5a });
-  B.nyala.huruf(F, 'ARKADE RIA', m, 4.55, 0.0, 0.08, 0.5, kotaW(0x66f0ff), { px: 44, garis: 6, jarak: 4 });
+  var cMuka = kotaW(0x24252d), IA = { id: 'arkade', pusat: m, lebar: 13, tinggi: 4.4 };
+  [[0.45, m - 4.6, 0], [m - 4.6, m - 2.6, 3.0], [m - 2.6, m - 2.1, 0], [m - 2.1, m + 2.1, 4.2], [m + 2.1, m + 2.6, 0], [m + 2.6, m + 4.6, 3.0], [m + 4.6, L - 0.45, 0]].forEach(function (q) {
+    B.kilap.fk(F, q[0], q[1], q[2], 6.0, -0.2, 0, cMuka, KM_PZ | (q[2] ? KM_NY : 0)); }); /* dinding muka: terbuka di pintu + 2 etalase */
+  kotaPintuKaca(B, F, m, 4.2, 0, 4.2, { ceruk: 1.3, dalam: 0x3a1f5a, kusen: 0x5ee7ff, intip: IA });
+  kotaPortalMasuk(B, F, m, 4.4, 4.2, { w0: 0, w1: 0.12, lenteraJarak: 0.9, lenteraY: 2.6, lenteraW: 0.02 });
+  B.nyala.huruf(F, 'ARKADE RIA', m, 4.95, 0.0, 0.08, 0.62, kotaW(0x66f0ff), { px: 44, garis: 6, jarak: 4 });
   [[m - 9.8, 1], [m - 6.4, 2], [m + 6.4, 3], [m + 9.8, 4]].forEach(function (p) { B.kilap.fk(F, p[0] - 1.45, p[0] + 1.45, 0.6, 5.0, 0, 0.16, kotaW(0xc9a24a), KM_PZ | KM_PX | KM_NX | KM_PY | KM_NY); B.teks.fkuad(F, p[0] - 1.3, p[0] + 1.3, 0.75, 4.85, 0.17, kotaW(0xffffff), kotaPoster(p[1])); });
-  kotaEtalase(B, F, m - 4.6, m - 2.6, 0, 3.0, { dalam: 0.8, belakang: 0xffd0e8, tiang: 1 }); kotaEtalase(B, F, m + 2.6, m + 4.6, 0, 3.0, { dalam: 0.8, belakang: 0xffd0e8, tiang: 1 });
+  kotaEtalase(B, F, m - 4.6, m - 2.6, 0, 3.0, { dalam: 0.8, teksBelakang: kotaIntipUv(IA, m - 4.6, m - 2.6, 0.42, 3.0), tiang: 1, kusen: 0xff4fa3 }); kotaEtalase(B, F, m + 2.6, m + 4.6, 0, 3.0, { dalam: 0.8, teksBelakang: kotaIntipUv(IA, m + 2.6, m + 4.6, 0.42, 3.0), tiang: 1, kusen: 0xff4fa3 });
   var y = 6.1, d = 4.4, s0 = m - 11.5, s1 = m + 11.5;
   B.kilap.fk(F, s0, s1, y, y + 1.3, 0, d, kotaW(0x1a1a22), KM_PZ | KM_PY | KM_NY | KM_PX | KM_NX);
   B.nyala.fk(F, s0 + 0.2, s1 - 0.2, y - 0.02, y, 0.3, d - 0.3, kotaW(0xfff4dc), KM_NY);
@@ -15259,14 +15481,14 @@ function kotaGedungBank(B) {
   B.batu.fk(F, 0.45, L - 0.45, 0, 0.56, -3.9, -1.2, cM, KM_PY);
   B.batu.fk(F, 0.45, L - 0.45, 0.56, Ha - 6, -4.2, -3.6, cT, KM_PZ);
   [L / 2 - 4.6, L / 2, L / 2 + 4.6].forEach(function (s) {
-    B.kilap.fk(F, s - 1.2, s + 1.2, 0.56, 6.6, -3.75, -3.6, kotaW(0x5a3f26), KM_PZ);
+    B.kilap.fk(F, s - 1.2, s + 1.2, 0.56, 6.6, -3.75, -3.58, kotaW(0x5a3f26), KM_PZ);
     B.batu.fk(F, s - 1.5, s + 1.5, 6.6, 7.3, -3.6, -3.35, cT, KM_PZ | KM_PY | KM_NY | KM_PX | KM_NX);
     for (var p = -1; p <= 1; p += 2) B.kilap.fk(F, s + p * 0.6 - 0.05, s + p * 0.6 + 0.05, 2.6, 4.2, -3.6, -3.52, kotaW(KC.emas), KM_PZ | KM_PX | KM_NX | KM_PY | KM_NY);
     B.nyala.fkuad(F, s - 1.0, s + 1.0, 8.2, 11.6, -3.58, kotaW(0xf6d9a6));
   });
   for (var k = 0; k < 6; k++) { var s = 1.6 + (L - 3.2) * k / 5, p = kotaBidangTitik(F, s, -0.9); kotaKolom(B, p[0], p[1], 0.56, 13.4, 0.55, { warna: KC.marmer, kepala: KC.travertin, rot: F.rot }); }
   B.batu.fk(F, 0.45, L - 0.45, 13.4, 15.2, -4.2, 0.1, cT, KM_PZ | KM_NY | KM_PY | KM_PX | KM_NX);
-  B.kilap.huruf(F, 'BANK NUSANTARA', L / 2, 13.85, 0.1, 0.18, 0.78, kotaW(KC.emas), { px: 46, jarak: 5 });
+  kotaPapanGedung(B, F, 'BANK NUSANTARA', L / 2, 13.85, 0.78, { jarak: 5, w: 0.16 });
   var sh = new THREE.Shape(); sh.moveTo(-L / 2 + 0.4, 0); sh.lineTo(L / 2 - 0.4, 0); sh.lineTo(0, 3.6); sh.closePath();
   var gp = new THREE.ExtrudeGeometry(sh, { depth: 0.6, bevelEnabled: false }); B.batu.fgeo(F, gp, L / 2, 15.2, -0.5, 0, 0, 0, 1, 1, 1, cT); gp.dispose();
   [[-1, 1], [1, 1]].forEach(function (q) { var ang = Math.atan2(3.6, L / 2 - 0.4); B.batu.fgeo(F, new THREE.BoxGeometry(Math.hypot(L / 2, 3.6) + 0.4, 0.3, 0.9), L / 2 + q[0] * (L / 4 - 0.1), 15.2 + 1.8 + 0.12, -0.3, 0, 0, -q[0] * ang, 1, 1, 1, cT); });
@@ -15297,7 +15519,7 @@ function kotaGedungNusa(B) {
 /* tiap spek berbeda: tinggi, gaya badan, warna, bentuk menara (mundur / dua tingkat / spiral), mahkota */
 var KOTA_LUAR = {
   u1: { tinggi: 64, podium: 12, gaya: { jenis: 'tirai', bentang: 1.8, lantai: 3.8, mullion: KC.aluminium, kaca: KC.kacaBiru, siripTiap: 4, sirip: 0.4 }, menara: { inset: 2.5 }, atap: { antena: { tinggi: 14 }, tangki: true }, garis: 0xbfe0ff },
-  u2: { tinggi: 46, podium: 8, gaya: { jenis: 'balkon', lantai: 3.3, dinding: 0xe8d9c0, pelat: 0xf4efe6, kaca: KC.kacaPerak, selang: true }, atap: { taman: 4 } },
+  u2: { tinggi: 46, podium: 8, gaya: { jenis: 'balkon', lantai: 3.3, dinding: 0xe8d9c0, pelat: 0xf4efe6, kaca: KC.kacaPerak, selang: true, dalam: 1.28 }, atap: { taman: 4 } },
   u4: { tinggi: 34, podium: 0, gaya: { jenis: 'batu', lantai: 3.8, batu: 0xd8c3a0, kepala: true, balkonPrancis: true, jarak: 2.6 }, lis: { warna: 0xd8c3a0, tonjol: 0.7 }, atap: { tangki: true } },
   u5: { tinggi: 12, podium: 12, gaya: { jenis: 'kisi', bentang: 2.0, lantai: 6.2, warnaTiang: KC.granit, kaca: KC.kacaGelap }, spiral: { x: 57, z: -64, sisi: 11, tinggi: 124, putar: Math.PI * 0.55 } },
   s1: { tinggi: 70, podium: 10, gaya: { jenis: 'kisi', bentang: 1.8, lantai: 3.6, warnaTiang: 0xc76e4f, warnaBalok: 0xe8d6c0, tiang: 0.45, kaca: KC.kacaPerunggu }, menara: { inset: 3 }, papanTegak: 'HOTEL MEGA', atap: { lift: true } },
@@ -15370,11 +15592,11 @@ function kotaMenaraSpiral(B, o) { /* menara memutar: lantai-lantai persegi diput
 function kotaGedungMenaraUtara(B) {
   var T = kotaTapak('menaraUtara'), depan = kotaSisiArah(T, 0, 1);
   kotaVolume(B, T, 0, 20, { jenis: 'kisi', bentang: 2.4, lantai: 4.6, warnaTiang: 0xe6ddcd, tiang: 0.9, tonjol: 0.2, kaca: KC.kacaGelap, tiangBesarTiap: 3 },
-    { benih: 131, sudut: 0xe6ddcd, lis: { warna: 0xe6ddcd, tonjol: 0.7, tinggi: 0.9 }, atap: { polos: true, tinggiParapet: 0.6, parapet: 0xe6ddcd },
+    { benih: 131, insetSudut: 0.47, sudut: 0xe6ddcd, lis: { warna: 0xe6ddcd, tonjol: 0.7, tinggi: 0.9 }, atap: { polos: true, tinggiParapet: 0.6, parapet: 0xe6ddcd },
       dasar: { tinggi: 7.2, tiang: 0xe6ddcd, teluk: function (S) { return S === depan ? false : null; } } });
   var F = depan.F, L = depan.panjang;
-  kotaDindingLengkung(B, F, 0.45, L - 0.45, 0, 7.2, [{ s: L / 2 - 8, lebar: 3, tinggiLurus: 3.4, isi: KOTA_ISI.bunga() }, { s: L / 2, lebar: 6, tinggiLurus: 3.6, pintu: true, dalamRuang: 3 }, { s: L / 2 + 8, lebar: 3, tinggiLurus: 3.4, isi: KOTA_ISI.bunga() }], { warna: 0xe6ddcd, dalam: 0xf6e8cc });
-  B.kilap.huruf(F, 'MENARA NUSANTARA', L / 2, 8.1, 0.12, 0.2, 0.75, kotaW(KC.emas), { px: 46, jarak: 6 });
+  kotaDindingLengkung(B, F, 0.47, L - 0.47, 0, 7.2, [{ s: L / 2 - 8, lebar: 3, tinggiLurus: 3.4, isi: KOTA_ISI.bunga() }, { s: L / 2, lebar: 6, tinggiLurus: 3.6, pintu: true, dalamRuang: 3 }, { s: L / 2 + 8, lebar: 3, tinggiLurus: 3.4, isi: KOTA_ISI.bunga() }], { warna: 0xe6ddcd, dalam: 0xf6e8cc });
+  kotaPapanGedung(B, F, 'MENARA NUSANTARA', L / 2, 8.1, 0.75, { jarak: 6, w: 0.5 });
   [[-9, 9, -72, -60, 20, 112], [-7, 7, -70, -62, 112, 136], [-5, 5, -68.5, -63.5, 136, 150]].forEach(function (t, i) {
     var P = kotaKotak(t[0], t[1], t[2], t[3]);
     kotaVolume(B, P, t[4], t[5], { jenis: 'kisi', bentang: 1.5, lantai: 4.0, warnaTiang: 0xece4d4, warnaBalok: 0xb8c4d0, emberBalok: B.kilap, tiang: 0.32, tonjol: 0.22, balok: 0.7, kaca: KC.kacaBiru, tiangBesarTiap: 4, lisTiap: 10 },
@@ -15384,6 +15606,18 @@ function kotaGedungMenaraUtara(B) {
   kotaJarum(B, 0, -66, 150.6, 36, { warna: KC.krom, r: 1.6, cincin: 0xe6f2ff });
 }
 /* ============ GEDUNG KESENIAN (penutup Jalan Raya selatan) — lobi kaca tinggi, atap gelombang logam menjorok, poster pertunjukan ============ */
+/* papan nama gedung: pelat arang (menonjol di depan pilar/kusen) + lis kuningan + huruf krem MENYALA (Basic) -> kontras siang & malam.
+   Lebar pelat dihitung dari lebar huruf (teks selalu utuh di dalam pelat, napas 0,6 tinggi huruf). */
+var KOTA_PAPAN_GEDUNG = { pelat: 0x1f2126, huruf: 0xfff0d2, lis: 0xb8903e };
+function kotaPapanGedung(B, F, teks, s, y, tinggi, o) {
+  o = o || {};
+  var w = o.w === undefined ? 0.2 : o.w, lebar = kotaLebarHuruf(teks, tinggi, { px: 46, jarak: o.jarak || 6 }), hw = lebar / 2 + tinggi * 0.6, P = KOTA_PAPAN_GEDUNG;
+  B.halus.fk(F, s - hw, s + hw, y - tinggi * 0.45, y + tinggi * 1.45, w - 0.3, w + 0.06, kotaW(o.pelat || P.pelat), KM_PZ | KM_PX | KM_NX | KM_PY | KM_NY);
+  B.kilap.fk(F, s - hw, s + hw, y - tinggi * 0.45 - 0.05, y - tinggi * 0.45, w - 0.3, w + 0.1, kotaW(P.lis), KM_PZ | KM_NY | KM_PX | KM_NX | KM_PY);
+  B.kilap.fk(F, s - hw, s + hw, y + tinggi * 1.45, y + tinggi * 1.45 + 0.05, w - 0.3, w + 0.1, kotaW(P.lis), KM_PZ | KM_NY | KM_PX | KM_NX | KM_PY);
+  B.nyala.huruf(F, teks, s, y, w + 0.06, w + 0.11, tinggi, kotaW(o.huruf || P.huruf), { px: 46, jarak: o.jarak || 6 });
+  return hw * 2;
+}
 function kotaGedungKesenian(B) {
   var T = kotaTapak('kesenian'), depan = kotaSisiArah(T, 0, -1), Ha = 18;
   kotaVolume(B, T, 0, Ha, function (S) { return S === depan ? null : { jenis: 'kisi', bentang: 3.0, lantai: 6.0, warnaTiang: 0xd8d2c8, tiang: 1.2, tonjol: 0.25, kaca: KC.kacaGelap }; },
@@ -15411,7 +15645,7 @@ function kotaGedungKesenian(B) {
     if (k % 4 === 0) B.nyala.fk(F, sa, sb, ya + 0.27, ya + 0.3, 1, d - 0.5, kotaW(0xfff0d8), KM_NY);
   }
   [3, L / 2 - 7, L / 2 + 7, L - 3].forEach(function (s) { var p = kotaBidangTitik(F, s, d - 0.6); B.kilap.silinder(p[0], 0, p[1], 0.16, 0.12, Ha + 1.4 * Math.sin(((s + 1) / (L + 2)) * Math.PI * 2.5) + 0.3, 10, kotaW(0xcfd3d8), false); });
-  B.kilap.huruf(F, 'GEDUNG KESENIAN', L / 2, 6.6, 0.1, 0.2, 0.7, kotaW(0x2a2c30), { px: 46, jarak: 6 });
+  kotaPapanGedung(B, F, 'GEDUNG KESENIAN', L / 2, 9.0, 0.8, { jarak: 6, w: 0.08 });
 }
 /* ============ MENARA KEMBAR (penutup bulevar timur) — podium portal agung + dua menara kaca bersirip, jembatan langit, mahkota kembar ============ */
 function kotaGedungKembar(B) {
@@ -15420,7 +15654,7 @@ function kotaGedungKembar(B) {
     dasar: { tinggi: 7, tiang: 0xe4e0d8, teluk: function (S) { return S === depan ? false : null; } } });
   var F = depan.F, L = depan.panjang;
   kotaDindingLengkung(B, F, 0.45, L - 0.45, 0, 7, [{ s: L / 2 - 10, lebar: 3.2, tinggiLurus: 3.2 }, { s: L / 2 - 5, lebar: 3.2, tinggiLurus: 3.2 }, { s: L / 2, lebar: 5.4, tinggiLurus: 3.4, pintu: true, dalamRuang: 3.2 }, { s: L / 2 + 5, lebar: 3.2, tinggiLurus: 3.2 }, { s: L / 2 + 10, lebar: 3.2, tinggiLurus: 3.2 }], { warna: 0xe4e0d8, kusen: KC.krom, dalam: 0xf2e6d2 });
-  B.kilap.huruf(F, 'MENARA KEMBAR', L / 2, 7.9, 0.12, 0.2, 0.9, kotaW(KC.krom), { px: 46, jarak: 8 });
+  kotaPapanGedung(B, F, 'MENARA KEMBAR', L / 2, 7.62, 0.9, { jarak: 8 });
   var gaya = { jenis: 'tirai', bentang: 1.5, lantai: 4.0, mullion: 0xd5dbe2, kaca: KC.kacaPerak, siripTiap: 2, sirip: 0.45, warnaSirip: 0xc5ccd4, tonjol: 0.14 };
   [[-24, -8], [8, 24]].forEach(function (zz, i) {
     var P = [[96, zz[0] + 2.5], [98.5, zz[0]], [109.5, zz[0]], [112, zz[0] + 2.5], [112, zz[1] - 2.5], [109.5, zz[1]], [98.5, zz[1]], [96, zz[1] - 2.5]];
@@ -15453,7 +15687,7 @@ function kotaGedungStasiun(B) {
   for (var i = 0; i <= 12; i++) { var ss = 0.45 + (L - 0.9) * i / 12; B.kilap.fk(F, ss - 0.06, ss + 0.06, 0, Ha, -0.2, 0.08, kotaW(0x3a3c40), KM_PZ | KM_PX | KM_NX); }
   B.kilap.fk(F, 0.45, L - 0.45, 4.2, 4.3, -0.2, 0.08, kotaW(0x3a3c40), KM_PZ | KM_PY | KM_NY);
   B.kilap.fk(F, 0.45, L - 0.45, Ha - 0.3, Ha + 0.4, -0.3, 0.2, kotaW(0x2a2c30), KM_PZ | KM_PY | KM_NY);
-  B.nyala.huruf(F, 'STASIUN KOTA', m, Ha - 2.0, 0.2, 0.28, 0.95, kotaW(0xffffff), { px: 46, jarak: 8 });
+  kotaPapanGedung(B, F, 'STASIUN KOTA', m, Ha - 2.0, 0.95, { jarak: 8, w: 0.1 });
   kotaPintuKaca(B, F, m, 4.8, 0, 3.2, { ceruk: 0.3, dalam: 0xe9eef4 });
   /* atap tong kaca: busur melengkung sepanjang z, rusuk logam + lampu */
   var cx = -97, rr = 7.4, z0 = -17, z1 = 17, seg = 18, cK = kotaW(KC.kacaBiru);
@@ -15559,7 +15793,7 @@ function kotaJamPerbarui(scn) {
     [[aJ, 0.62, 0.08], [aM, 0.95, 0.05]].forEach(function (j) {
       G.fgeo(F, new THREE.BoxGeometry(j[2], j[1], 0.03), Math.sin(-j[0]) * j[1] * 0.42, 23.0 + Math.cos(j[0]) * j[1] * 0.42, 0.09, 0, 0, j[0], 1, 1, 1, cH);
     });
-    G.fgeo(F, new THREE.CylinderGeometry(0.07, 0.07, 0.05, 10), 0, 23.0, 0.1, Math.PI / 2, 0, 0, 1, 1, 1, kotaW(KC.emas));
+    G.fgeo(F, new THREE.CylinderGeometry(0.07, 0.07, 0.09, 10), 0, 23.0, 0.1, Math.PI / 2, 0, 0, 1, 1, 1, kotaW(KC.emas));
   });
   var geo = G.selesai();
   if (!KOTA_JAM) { KOTA_JAM = { mesh: new THREE.Mesh(geo, KB.kilap) }; KOTA_JAM.mesh.name = 'kota-jarum'; scn.add(KOTA_JAM.mesh); }
@@ -15654,7 +15888,7 @@ function kotaBangunCakrawala(B) {
     if (menara.some(function (m) { return Math.hypot(m.x - bx, m.z - bz) < m.lebar + w + 8; })) continue;
     var P = kotaPoliKotak(bx, bz, w, dd, 0);
     kotaKacaPrisma(B, P, 0, h, kotaW(kacaW[Math.floor(r() * kacaW.length)]), 1.8, 3.6, k);
-    kotaSisiPoli(P).forEach(function (S) { for (var q = 0; q <= 4; q++) B.halus.fk(S.F, S.panjang * q / 4 - 0.4, S.panjang * q / 4 + 0.4, 0, h, 0, 0.3, kotaW(rangkaW[k % rangkaW.length]), KM_PZ | KM_PX | KM_NX); });
+    kotaSisiPoli(P).forEach(function (S) { for (var q = 0; q <= 4; q++) B.halus.fk(S.F, S.panjang * q / 4 - 0.4, S.panjang * q / 4 + 0.4, 0, h, 0, 0.32 + (k % 5) * 0.02, kotaW(rangkaW[k % rangkaW.length]), KM_PZ | KM_PX | KM_NX); });
     kotaPrisma(B.halus, P, h - 0.2, h + 0.8, kotaW(0x8f9398));
     k++;
   }
@@ -15866,7 +16100,9 @@ function kotaSpanduk(i) {
   kotaSpandukCache[i] = kotaAtlas(64, 230, function (ctx, w, h) {
     var g = ctx.createLinearGradient(0, 0, 0, h); g.addColorStop(0, i ? '#7a1f3d' : '#123d6b'); g.addColorStop(1, i ? '#3d0d1f' : '#0a2340'); ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
     ctx.fillStyle = '#e9c46a'; ctx.fillRect(4, 4, w - 8, 3); ctx.fillRect(4, h - 7, w - 8, 3);
-    ctx.save(); ctx.translate(w / 2, h / 2); ctx.rotate(-Math.PI / 2); ctx.fillStyle = '#fff4d6'; ctx.font = '800 30px ' + KOTA_FONT; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(i ? 'FESTIVAL KOTA' : 'PLAZA TUGU JAM', 0, 2); ctx.restore();
+    ctx.save(); ctx.translate(w / 2, h / 2); ctx.rotate(-Math.PI / 2); ctx.fillStyle = '#fff4d6'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    var teks = KOTA_SPANDUK_TEKS[i ? 1 : 0]; ctx.font = '800 ' + KOTA_SPANDUK_PX.maks + 'px ' + KOTA_FONT;
+    var px = kotaSpandukUkuran(ctx.measureText(teks).width); ctx.font = '800 ' + px + 'px ' + KOTA_FONT; ctx.fillText(teks, 0, 1); ctx.restore();
   });
   return kotaSpandukCache[i];
 }
@@ -15891,10 +16127,10 @@ function kotaBangku(B, b) { /* granit + sandaran logam hitam berlis kuningan */
     [-1, 1].forEach(function (s) { B.kilap.kotak(b.x + Math.cos(b.rot) * s * (L / 2 - 0.05), 0.62, b.z - Math.sin(b.rot) * s * (L / 2 - 0.05), 0.04, 0.14, 0.6, b.rot, cB, KM_SEMUA); });
   } else {
     var fx = Math.sin(b.rot), fz = Math.cos(b.rot), bx = b.x - fx * 0.3, bz = b.z - fz * 0.3;
-    B.batu.kotak(b.x, 0.21, b.z, 0.32, 0.21, L / 2, b.rot, cG, KM_SEMUA);
-    B.batu.kotak(b.x, 0.45, b.z, 0.34, 0.03, L / 2 + 0.03, b.rot, kotaW(0xbabdc1), KM_SEMUA);
-    B.kilap.kotak(bx, 0.82, bz, 0.04, 0.34, L / 2 - 0.1, b.rot, cB, KM_SEMUA);
-    B.kilap.kotak(bx, 1.17, bz, 0.06, 0.02, L / 2 - 0.06, b.rot, cK, KM_SEMUA);
+    B.batu.kotak(b.x, 0.21, b.z, L / 2, 0.21, 0.32, b.rot, cG, KM_SEMUA); /* kotak: hx = sepanjang bangku (tegak lurus arah hadap), hz = searah hadap */
+    B.batu.kotak(b.x, 0.45, b.z, L / 2 + 0.03, 0.03, 0.34, b.rot, kotaW(0xbabdc1), KM_SEMUA);
+    B.kilap.kotak(bx, 0.82, bz, L / 2 - 0.1, 0.34, 0.04, b.rot, cB, KM_SEMUA);
+    B.kilap.kotak(bx, 1.17, bz, L / 2 - 0.06, 0.02, 0.06, b.rot, cK, KM_SEMUA);
   }
 }
 function kotaMesinMinuman(B, x, z, warna, i) { /* menghadap selatan (+z), menempel fasad di z -12 */
@@ -15966,8 +16202,8 @@ function kotaKios(B) { /* kios sate & es kopi: badan logam-kaca, loket menghadap
   for (var b = 0; b < 10; b++) { var s = -lebar / 2 + (b + 0.5) * lebar / 10, p = kotaBidangTitik(F, s, 0.45); B.halus.geo(new THREE.BoxGeometry(lebar / 10, 0.035, 1.0), kotaMatriks(p[0], 2.72, p[1], 0.42, F.rot, 0), kotaW(b % 2 ? 0xf4ecd8 : 0xc0392b)); }
   var uv = kotaAtlas(300, 64, function (ctx, w, h) { ctx.fillStyle = '#1d2b24'; ctx.fillRect(0, 0, w, h); ctx.fillStyle = '#ffd98a'; ctx.font = '800 36px ' + KOTA_FONT; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('SATE & ES KOPI', w / 2, h / 2 + 2); });
   B.kilap.fk(F, -1.45, 1.45, 2.92, 3.56, -dalam / 2 - 0.05, -dalam / 2 + 0.05, kotaW(0x1d2b24), KM_PZ | KM_NZ | KM_PX | KM_NX | KM_PY);
-  B.teks.fkuad(F, -1.4, 1.4, 2.95, 3.53, -dalam / 2 + 0.052, kotaW(0xffffff), uv);
-  B.teks.fkuad(kotaBidang(cx, K.minZ + dalam / 2, 0, 1), -1.4, 1.4, 2.95, 3.53, 0.052, kotaW(0xffffff), uv);
+  B.teks.fkuad(F, -1.4, 1.4, 2.95, 3.53, -dalam / 2 + 0.07, kotaW(0xffffff), uv);
+  B.teks.fkuad(kotaBidang(cx, K.minZ + dalam / 2, 0, 1), -1.4, 1.4, 2.95, 3.53, 0.07, kotaW(0xffffff), uv);
   /* panggangan + bara menyala + sate + gelas es kopi di meja */
   B.kilap.fk(F, -1.2, -0.2, 1.1, 1.25, -0.55, -0.1, kotaW(0x2a2a2e), KM_PZ | KM_PY | KM_PX | KM_NX);
   B.nyala.fk(F, -1.15, -0.25, 1.25, 1.27, -0.5, -0.15, kotaW(0xff6a2a), KM_PY);
@@ -15999,6 +16235,11 @@ function kotaBangunPerabot(B) {
   var plaza = {}; KOTA_LAMPU_PLAZA.forEach(function (p) { plaza[p.x + ',' + p.z] = true; });
   KOTA_LAMPU.forEach(function (p, i) { if (plaza[p.x + ',' + p.z]) return; kotaLampuJalan(B, p.x, p.z, Math.abs(Math.abs(p.z) - 52) < 3 ? 0 : Math.PI / 2, i % 3 === 0); }); /* lengan sejajar arah jalan */
   KOTA_BANGKU.forEach(function (b) { kotaBangku(B, b); });
+  KOTA_POT.forEach(function (p, i) { /* bak granit terang berlis kuningan + semak halus */
+    B.batu.kotakMM(p.x - 0.42, p.x + 0.42, 0, 0.5, p.z - 0.42, p.z + 0.42, kotaW(0xd9d6cf), KM_PX | KM_NX | KM_PZ | KM_NZ);
+    B.kilap.kotakMM(p.x - 0.45, p.x + 0.45, 0.5, 0.54, p.z - 0.45, p.z + 0.45, kotaW(KC.kuningan), KM_SEMUA | KM_NZ);
+    kotaSemak(B.daun, p.x, 0.5, p.z, 0.44, 900 + i, { detail: 1, sisi: 2 });
+  });
   kotaMesinMinuman(B, 31.95, -11.1, 0xc0392b, 0); kotaMesinMinuman(B, 33.25, -11.1, 0x1f5fa8, 1);
   kotaPhotobooth(B);
   kotaMesinCapit(B, -32.85, 11.05, 0xff4fa3, true); kotaMesinCapit(B, -31.55, 11.05, 0x2ec4b6, false);
@@ -16017,7 +16258,7 @@ function kotaPasangSasaran() {
   kotaSasaran(S, D, 0, 14, 0, 4.4, 28, 4.4, 0, { kota: 'objek', id: 'air' });
   kotaSasaran(S, D, -90.6, 3, 0, 1.2, 6, 10, 0, { kota: 'objek', id: 'stasiun' });
   KOTA_LAMPU_PLAZA.forEach(function (p) { kotaSasaran(S, D, p.x, 2.2, p.z, 0.9, 4.4, 0.9, 0, { kota: 'objek', id: 'lampu' }); });
-  KOTA_BANGKU.forEach(function (b) { kotaSasaran(S, D, b.x, 0.6, b.z, b.ganda ? b.panjang : 0.7, 1.2, b.ganda ? 1.25 : b.panjang, b.rot, { kota: 'bangku', id: b.id }); });
+  KOTA_BANGKU.forEach(function (b) { kotaSasaran(S, D, b.x, 0.6, b.z, b.panjang, 1.2, b.ganda ? 1.25 : 0.7, b.rot, { kota: 'bangku', id: b.id }); });
   KOTA_POHON.forEach(function (p, i) { if (p.r >= 2) kotaSasaran(S, D, p.x, 0.3, p.z, p.r * 2, 0.6, p.r * 2, 0, { kota: 'bangku', id: 'bak' + i }); });
 }
 /* ---------- KOTA: layar LED (kanvas beranimasi, satu tekstur + satu draw call untuk semua permukaan LED) ---------- */
@@ -16150,6 +16391,8 @@ function kotaWargaBangun(DAFTAR, scn, nama) { /* daftar warga -> satu SkinnedMes
     var jenisAtas = Math.floor(r() * 6); /* 0 kaus, 1 kemeja, 2 blazer, 3 hoodie, 4 gaun (cewek) / jas (cowok), 5 mantel */
     var jenisBawah = cewek ? Math.floor(r() * 3) : 1 + Math.floor(r() * 3); /* 0 rok, 1 celana panjang, 2 jins, 3 celana pendek */
     if (npc.seragam) { atas = npc.seragam[0]; bawah = npc.seragam[1]; jenisAtas = npc.seragam[2]; jenisBawah = npc.seragam[3]; } /* seragam staf / penjaga */
+    var duduk = npc.jenis === 'duduk';
+    if (duduk) { if (jenisBawah === 0) jenisBawah = 2; if (jenisAtas >= 4) jenisAtas -= 3; } /* warga duduk: celana + atasan pendek (rok / gaun / mantel kaku akan menembus dudukan) */
     var potong = cewek ? [0, 2, 3, 4][Math.floor(r() * 4)] : [1, 1, 5][Math.floor(r() * 3)]; /* 0 panjang, 1 pendek, 2 bob, 3 kuncir, 4 cepol, 5 cepak */
     var sepatu = [0xf3f0e8, 0x1d1d24, 0x5a3a26, 0x8a2a2a][Math.floor(r() * 4)], tint = [1, 0.94, 0.86, 0.78][Math.floor(r() * 4)];
     var kulit = [kulitDasar.r * tint, kulitDasar.g * tint, kulitDasar.b * tint], wajahT = [tint, tint * 0.99, tint * 0.98];
@@ -16199,6 +16442,13 @@ function kotaWargaBangun(DAFTAR, scn, nama) { /* daftar warga -> satu SkinnedMes
     /* kaki: kulit atau kaki celana + sepatu */
     [2, 3].forEach(function (sl) {
       var panjangCelana = !gaun && (jenisBawah === 1 || jenisBawah === 2);
+      if (duduk) { /* kaki duduk dibentuk langsung (tulang kaki tetap 0): paha mendatar ke depan, betis turun tegak, telapak di lantai */
+        var hp = (KOTA_DUDUKAN + 0.1) / R.skala, cK = panjangCelana ? cB : kulit, rr = panjangCelana ? 0.092 : 0.08;
+        bagian(sl, new THREE.CylinderGeometry(rr, rr + 0.004, 0.36, 6, 1, false), M(0, 0, 0.14, Math.PI / 2, 0, 0), jenisBawah === 3 ? cB : cK);
+        bagian(sl, new THREE.CylinderGeometry(rr - 0.004, panjangCelana ? 0.08 : 0.055, hp - 0.02, 6, 1, false), M(0, 0.08 - (hp - 0.02) / 2, 0.3), cK);
+        bagian(sl, new THREE.BoxGeometry(0.17, 0.11, 0.3), M(0, 0.055 - hp, 0.345), cS);
+        return;
+      }
       if (panjangCelana) bagian(sl, new THREE.CylinderGeometry(0.095, 0.08, 0.64, 7, 1, true), M(0, -0.32, 0), cB);
       else { bagian(sl, new THREE.CylinderGeometry(0.085, 0.055, 0.64, 7, 1, true), M(0, -0.32, 0), kulit); if (jenisBawah === 3 && !gaun) bagian(sl, new THREE.CylinderGeometry(0.12, 0.115, 0.2, 7), M(0, -0.1, 0), cB); }
       bagian(sl, new THREE.BoxGeometry(0.17, 0.11, 0.3), M(0, -0.665, 0.045), cS);
@@ -16261,9 +16511,9 @@ function kotaWargaPoseSatu(B, rt, s, dt, t) {
   {
     rt.rot = dt ? turnToward(rt.rot, s.rot, k) : s.rot; rt.gerak += ((s.gerak || 0) - rt.gerak) * (dt ? kg : 1);
     var g = rt.gerak, sw = Math.sin(t * 7.2 + rt.fase) * g;
-    B.akar.position.set(s.x, s.pose === 'duduk' ? KOTA_DUDUK_Y : 0, s.z); B.akar.rotation.y = rt.rot;
+    B.akar.position.set(s.x, s.pose === 'duduk' ? kotaNpcDudukY() : 0, s.z); B.akar.rotation.y = rt.rot;
     if (s.pose === 'duduk') {
-      B.kakiL.rotation.x = KOTA_DUDUK_KAKI; B.kakiR.rotation.x = KOTA_DUDUK_KAKI;
+      B.kakiL.rotation.x = 0; B.kakiR.rotation.x = 0; /* bentuk duduk sudah di geometri kaki (kotaWargaBangun) */
       B.lenganL.rotation.x = -0.25; B.lenganR.rotation.x = -0.3 - 0.2 * Math.max(0, Math.sin(t * 0.7 + rt.fase));
       B.badan.rotation.y = Math.sin(t * 0.35 + rt.fase) * 0.22;
     } else if (s.pose === 'ngobrol' || s.pose === 'jaga') {
@@ -16300,6 +16550,7 @@ function kotaMasukRuang(id) {
   avatar.position.set(avatarPos.x, 0, avatarPos.z);
   camTarget.set(avatarPos.x, 0, avatarPos.z);
   camYaw = 0; camPitch = 0.32; camDist = isPortrait() ? 4.0 : 3.6; /* spawn 4,2 m dari pintu: kamera tetap DI DALAM ruang (pola ruang tamu) */
+  kotaLatarPotret(id); /* F: pemandangan keluar = Kota asli di depan pintu ini, pada jam ini */
   flyTarget = null; flyKeep = false;
   closeCard();
   kotaLangitSkala();
@@ -16628,7 +16879,10 @@ function kotaSofa(B, x, z, panjang, rot, warna) { /* sofa beludru: alas + duduka
   B.bayang.kotak(x, 0.4, z, panjang / 2 - 0.1, 0.4, 0.4, rot, [1, 1, 1], KM_SEMUA);
 }
 function kotaMejaKopi(B, x, z, r, tinggi) { B.batu.silinder(x, tinggi - 0.05, z, r, r, 0.05, 24, kotaW(KC.marmer), true); B.kilap.silinder(x, 0.03, z, r * 0.3, r * 0.15, tinggi - 0.08, 10, kotaW(KC.kuningan), false); B.kilap.silinder(x, 0, z, r * 0.6, r * 0.6, 0.03, 16, kotaW(KC.kuningan), true); }
-function kotaKarpet(B, x, z, w, d, warna, tepi) { B.halus.kotakMM(x - w / 2, x + w / 2, 0, 0.012, z - d / 2, z + d / 2, kotaW(tepi || 0xc9a24a), KM_PY); B.halus.kotakMM(x - w / 2 + 0.25, x + w / 2 - 0.25, 0, 0.016, z - d / 2 + 0.25, z + d / 2 - 0.25, kotaW(warna), KM_PY); }
+function kotaKarpet(B, x, z, w, d, warna, tepi) { /* tepi = bingkai 4 bilah, bukan bidang penuh di bawah karpet (tanpa muka ganda) */
+  var cT = kotaW(tepi || 0xc9a24a), x0 = x - w / 2, x1 = x + w / 2, z0 = z - d / 2, z1 = z + d / 2;
+  [[x0, x1, z0, z0 + 0.25], [x0, x1, z1 - 0.25, z1], [x0, x0 + 0.25, z0 + 0.25, z1 - 0.25], [x1 - 0.25, x1, z0 + 0.25, z1 - 0.25]].forEach(function (q) { B.halus.kotakMM(q[0], q[1], 0, 0.012, q[2], q[3], cT, KM_PY); });
+  B.halus.kotakMM(x - w / 2 + 0.25, x + w / 2 - 0.25, 0, 0.016, z - d / 2 + 0.25, z + d / 2 - 0.25, kotaW(warna), KM_PY); }
 /* ---- tanaman hias interior "hero": pot bubut halus (profil putar 32 sisi, bibir gulung, plint, gelang logam) + helai daun
    berbentuk (tulang melengkung, penampang cekung, urat dari tekstur helai) + kuntum berkelopak berlapis. Semua helai satu ruang
    masuk SATU ember (B.helai, bahan Lambert dua sisi) -> +1 draw call per ruang bertanaman, tanpa bola / kerucut. ---- */
@@ -16941,7 +17195,7 @@ function kotaIsiHotel(B, R) {
   var Fk = kotaBidang(hw, 0, -1, 0);
   [-5.4, -3.0].forEach(function (s, i) {
     B.kilap.fk(Fk, s - 1.05, s - 0.92, 0, 3.0, 0, 0.1, kotaW(KC.kuningan), KM_PZ | KM_PX | KM_NX); B.kilap.fk(Fk, s + 0.92, s + 1.05, 0, 3.0, 0, 0.1, kotaW(KC.kuningan), KM_PZ | KM_PX | KM_NX); B.kilap.fk(Fk, s - 1.05, s + 1.05, 2.9, 3.05, 0, 0.1, kotaW(KC.kuningan), KM_PZ | KM_PY | KM_NY);
-    B.kilap.fk(Fk, s - 0.92, s + 0.92, 0, 2.9, 0, 0.025, kotaW(0xb8944a), KM_PZ); B.kilap.fk(Fk, s - 0.012, s + 0.012, 0, 2.9, 0.025, 0.03, kotaW(0x4a3a1e), KM_PZ);
+    B.kilap.fk(Fk, s - 0.92, s + 0.92, 0, 2.9, 0, 0.025, kotaW(0xb8944a), KM_PZ); B.kilap.fk(Fk, s - 0.012, s + 0.012, 0.16, 2.9, 0.025, 0.03, kotaW(0x4a3a1e), KM_PZ);
     B.kilap.fk(Fk, s - 0.45, s + 0.45, 3.15, 3.45, 0, 0.04, kotaW(0x1d1d22), KM_PZ | KM_PY | KM_NY | KM_PX | KM_NX); B.nyala.fkuad(Fk, s - 0.38, s + 0.38, 3.2, 3.4, 0.041, kotaW(0xffb347));
     B.kilap.fk(Fk, s + 1.18, s + 1.32, 1.05, 1.45, 0, 0.02, kotaW(KC.kuningan), KM_PZ); B.nyala.fk(Fk, s + 1.22, s + 1.28, 1.25 + i * 0.0, 1.31, 0.02, 0.035, kotaW(0xfff0c8), KM_PZ);
   });
@@ -16949,7 +17203,7 @@ function kotaIsiHotel(B, R) {
   var Fl = kotaBidang(-hw, 0, 1, 0);
   [[Fl, -3.0, 1.0, 0], [Fk, -1.0, 3.0, 1]].forEach(function (q) {
     B.kilap.fk(q[0], q[1] - 0.1, q[2] + 0.1, 2.5, 4.9, 0, 0.07, kotaW(KC.emas), KM_PZ | KM_PX | KM_NX | KM_PY | KM_NY);
-    B.teks.fkuad(q[0], q[1], q[2], 2.6, 4.8, 0.071, kotaW(0xffffff), kotaLukisan(q[3]));
+    B.teks.fkuad(q[0], q[1], q[2], 2.6, 4.8, 0.09, kotaW(0xffffff), kotaLukisan(q[3]));
     [q[1] - 0.6, q[2] + 0.6].forEach(function (sc) { B.kilap.fk(q[0], sc - 0.07, sc + 0.07, 3.35, 3.75, 0, 0.04, kotaW(KC.kuningan), KM_PZ | KM_PX | KM_NX | KM_PY | KM_NY); B.kilap.fk(q[0], sc - 0.02, sc + 0.02, 3.5, 3.54, 0.04, 0.2, kotaW(KC.kuningan), KM_PX | KM_NX | KM_PY | KM_NY); B.nyala.fgeo(q[0], new THREE.SphereGeometry(0.08, 10, 8), sc, 3.66, 0.22, 0, 0, 0, 1, 1.3, 1, kotaW(0xfff0c8)); });
   });
   /* tanaman pot besar di sudut */
@@ -16982,7 +17236,7 @@ function kotaIsiKafe(B, R) {
   var F = kotaBidang(4.1, -4.8, 0, 1); KOTA_ISI.kue()(B, F, -2.4, 2.4, 0.55, -0.75);
   B.etalase.fkuad(F, -2.5, 2.5, 0.95, 1.5, -0.02, kotaW(0xffffff)); B.kilap.fk(F, -2.5, 2.5, 1.5, 1.54, -0.8, 0, kotaW(KC.kuningan), KM_PY | KM_PZ | KM_NY);
   /* papan menu kapur + huruf timbul KAFE BULAN */
-  B.teks.fkuad(Fb, 1.6, 6.4, 2.0, 3.6, 0.03, kotaW(0xffffff), kotaAtlas(320, 120, function (ctx, w, h) { ctx.fillStyle = '#1f2622'; ctx.fillRect(0, 0, w, h); ctx.strokeStyle = '#b8903e'; ctx.lineWidth = 5; ctx.strokeRect(3, 3, w - 6, h - 6); ctx.fillStyle = '#f3efe8'; ctx.font = '700 22px "Caveat", cursive'; ['Kopi Susu Bulan ... 28', 'Es Kopi Gula Aren ... 30', 'Teh Melati ... 22', 'Croissant Pandan ... 25'].forEach(function (s, i) { ctx.fillText(s, 18, 30 + i * 25); }); }));
+  B.teks.fkuad(Fb, 1.6, 6.4, 2.0, 3.6, 0.055, kotaW(0xffffff), kotaAtlas(320, 120, function (ctx, w, h) { ctx.fillStyle = '#1f2622'; ctx.fillRect(0, 0, w, h); ctx.strokeStyle = '#b8903e'; ctx.lineWidth = 5; ctx.strokeRect(3, 3, w - 6, h - 6); ctx.fillStyle = '#f3efe8'; ctx.font = '700 22px "Caveat", cursive'; ['Kopi Susu Bulan ... 28', 'Es Kopi Gula Aren ... 30', 'Teh Melati ... 22', 'Croissant Pandan ... 25'].forEach(function (s, i) { ctx.fillText(s, 18, 30 + i * 25); }); }));
   B.kilap.fk(Fb, 1.5, 6.5, 1.9, 3.7, 0, 0.03, kotaW(0x3a2a1e), KM_PZ | KM_PX | KM_NX | KM_PY | KM_NY);
   B.kilap.huruf(Fb, 'KAFE BULAN', 4.0, 3.8, 0.02, 0.07, 0.34, kotaW(KC.emas), { px: 36, jarak: 3 });
   /* 3 meja bundar marmer + kursi bistro + lampu kubah kuningan */
@@ -16995,7 +17249,7 @@ function kotaIsiKafe(B, R) {
   /* sofa panjang di dinding samping + meja kecil + poster berbingkai kuningan */
   kotaSofa(B, -6.15, 2.9, 3.0, Math.PI / 2, 0x7a4a2a); kotaSofa(B, 6.15, 2.9, 3.0, -Math.PI / 2, 0x7a4a2a);
   kotaMejaKopi(B, -4.9, 2.9, 0.35, 0.6); kotaMejaKopi(B, 4.9, 2.9, 0.35, 0.6);
-  [kotaBidang(-hw, 0, 1, 0), kotaBidang(hw, 0, -1, 0)].forEach(function (Fs, i) { [-2.5, 2.6].forEach(function (s, j) { B.kilap.fk(Fs, s - 0.75, s + 0.75, 2.0, 3.2, 0, 0.05, kotaW(KC.kuningan), KM_PZ | KM_PX | KM_NX | KM_PY | KM_NY); B.teks.fkuad(Fs, s - 0.68, s + 0.68, 2.07, 3.13, 0.052, kotaW(0xffffff), kotaPoster(i * 2 + j + 1)); }); });
+  [kotaBidang(-hw, 0, 1, 0), kotaBidang(hw, 0, -1, 0)].forEach(function (Fs, i) { [-2.5, 2.6].forEach(function (s, j) { B.kilap.fk(Fs, s - 0.75, s + 0.75, 2.0, 3.2, 0, 0.05, kotaW(KC.kuningan), KM_PZ | KM_PX | KM_NX | KM_PY | KM_NY); B.teks.fkuad(Fs, s - 0.68, s + 0.68, 2.07, 3.13, 0.07, kotaW(0xffffff), kotaPoster(i * 2 + j + 1)); }); });
   /* meja jendela (menghadap jalan) + bangku tinggi */
   [[-5.8, -2.0], [2.0, 5.8]].forEach(function (q) {
     B.batu.kotakMM(q[0], q[1], 1.0, 1.06, 5.45, 5.86, kotaW(KC.marmer), KM_SEMUA);
@@ -17046,7 +17300,7 @@ function kotaIsiButik(B, R) {
   /* cermin besar berbingkai emas di dinding kanan + sofa beludru */
   var Fc = kotaBidang(hw, -4.2, -1, 0);
   B.kilap.fk(Fc, -1.0, 1.0, 0.2, 3.2, 0, 0.08, kotaW(KC.emas), KM_PZ | KM_PX | KM_NX | KM_PY | KM_NY);
-  B.nyala.fkuad(Fc, -0.9, 0.9, 0.3, 3.1, 0.081, kotaW(0xdfe8ee));
+  B.nyala.fkuad(Fc, -0.9, 0.9, 0.3, 3.1, 0.1, kotaW(0xdfe8ee));
   kotaSofa(B, 4.6, -1.8, 1.6, -Math.PI / 2, 0x5a2a3a);
   /* lampu gantung cincin modern + lampu sorot plafon */
   B.kilap.geo(new THREE.TorusGeometry(1.6, 0.06, 6, 40), kotaMatriks(0, H - 1.2, -0.5, Math.PI / 2, 0, 0), kotaW(KC.emas)); B.nyala.geo(new THREE.TorusGeometry(1.6, 0.035, 4, 40), kotaMatriks(0, H - 1.25, -0.5, Math.PI / 2, 0, 0), kotaW(0xfff4e0));
@@ -17062,7 +17316,7 @@ function kotaKabinet(B, x, z, rot, warna, layar, i) { /* mesin arkade tegak: bad
   B.kilap.fk(F, -0.42, 0.42, 1.9, 2.2, -0.9, -0.15, kotaW(0x1d1d22), KM_PZ | KM_PX | KM_NX | KM_NZ | KM_PY);
   B.nyala.fk(F, -0.38, 0.38, 1.95, 2.15, -0.15, -0.13, kotaW(layar), KM_PZ);
   B.teks.fkuad(F, -0.36, 0.36, 1.12, 1.82, -0.345, kotaW(0xffffff), kotaLayarArkade(i % 4));
-  B.kilap.fk(F, -0.42, 0.42, 0.95, 1.08, -0.35, 0.05, kotaW(0x1d1d22), KM_PZ | KM_PY | KM_PX | KM_NX);
+  B.kilap.fk(F, -0.44, 0.44, 0.95, 1.08, -0.35, 0.05, kotaW(0x1d1d22), KM_PZ | KM_PY | KM_PX | KM_NX);
   [[0.0, 0xff3b30], [0.12, 0x5ee7ff], [0.24, 0xffd166]].forEach(function (b) { B.nyala.fk(F, b[0] - 0.03, b[0] + 0.03, 1.08, 1.11, -0.2, -0.12, kotaW(b[1]), KM_PY | KM_PZ); });
   var j = kotaBidangTitik(F, -0.22, -0.16); B.kilap.silinder(j[0], 1.08, j[1], 0.012, 0.012, 0.12, 5, kotaW(0x9aa0a6), false); B.nyala.geo(new THREE.SphereGeometry(0.035, 8, 6), kotaMatriks(j[0], 1.22, j[1]), kotaW(0xff3b30));
   B.nyala.fk(F, -0.03, 0.03, 0.3, 0.42, 0.0, 0.01, kotaW(0xffd166), KM_PZ); /* lubang koin */
@@ -17109,7 +17363,7 @@ function kotaIsiArkade(B, R) {
   [[0, 1.4, 0xff4fa3], [0, 0.4, 0x5ee7ff], [-0.5, 0.9, 0xffd166], [0.5, 0.9, 0x8aff80]].forEach(function (a) { var p = kotaBidangTitik(Fd, a[0], a[1]); B.nyala.kotak(p[0], 0.185, p[1], 0.2, 0.005, 0.2, 0, kotaW(a[2]), KM_PY); });
   B.kilap.fk(Fd, -0.9, 0.9, 0.18, 2.3, -0.4, 0, kotaW(0x6a1b9a), KM_PZ | KM_PX | KM_NX | KM_PY);
   B.nyala.fk(Fd, -0.9, 0.9, 2.3, 2.36, -0.4, 0.02, kotaW(0xff4fa3), KM_PZ | KM_PY);
-  B.teks.fkuad(Fd, -0.75, 0.75, 1.0, 2.1, 0.001, kotaW(0xffffff), kotaLayarArkade(2));
+  B.teks.fkuad(Fd, -0.75, 0.75, 1.0, 2.1, 0.02, kotaW(0xffffff), kotaLayarArkade(2));
   [-0.7, 0.7].forEach(function (s) { var g = new THREE.CylinderGeometry(0.13, 0.13, 0.03, 14); g.rotateX(Math.PI / 2); B.kilap.fgeo(Fd, g, s, 0.55, 0.015, 0, 0, 0, 1, 1, 1, kotaW(0x111114)); B.nyala.fgeo(Fd, new THREE.SphereGeometry(0.04, 8, 6), s, 0.55, 0.03, 0, 0, 0, 1, 1, 0.4, kotaW(0xff4fa3)); });
   [-0.85, 0.85].forEach(function (s) { B.kilap.fk(Fd, s - 0.03, s + 0.03, 0.18, 1.1, 1.66, 1.72, kotaW(KC.krom), KM_PZ | KM_NZ | KM_PX | KM_NX); });
   B.kilap.fk(Fd, -0.88, 0.88, 1.1, 1.15, 1.66, 1.72, kotaW(KC.krom), KM_SEMUA);
@@ -17150,6 +17404,41 @@ function kotaEfekRuang(jenis) {
   var m = new THREE.Mesh(G.selesai(), KB.nyala); m.visible = false; m.name = 'kota-dalam-efek-' + jenis;
   return m;
 }
+var KOTA_LATAR = { rt: null, cam: null, bahan: null, malam: -1, id: null };
+function kotaLatarBahan() {
+  if (KOTA_LATAR.bahan) return KOTA_LATAR.bahan;
+  var q = KOTA_PANDANG.petak;
+  KOTA_LATAR.rt = new THREE.WebGLRenderTarget(q[0] * 3, q[1]);
+  KOTA_LATAR.cam = new THREE.PerspectiveCamera(2 * Math.atan(Math.tan(Math.PI / 6) * q[1] / q[0]) * 180 / Math.PI, q[0] / q[1], 0.3, KOTA_LIHAT_JAUH);
+  KOTA_LATAR.bahan = new THREE.MeshBasicMaterial({ map: KOTA_LATAR.rt.texture, side: THREE.DoubleSide, fog: false }); KOTA_LATAR.bahan.name = 'kota-latar-potret';
+  return KOTA_LATAR.bahan;
+}
+function kotaLatarPanel(R) { /* setengah segi enam di sekeliling titik mata pintu (interior: luar = +z) */
+  var d = KOTA_PANDANG.jarak, w = 2 * d * Math.tan(Math.PI / 6), h = w * KOTA_PANDANG.petak[1] / KOTA_PANDANG.petak[0], ex = 0, ey = KOTA_PANDANG.mata, ez = R.D / 2 + KOTA_PANDANG.maju;
+  var pos = [], uv = [], idx = [];
+  KOTA_PANDANG.sudut.forEach(function (t, i) {
+    var dx = Math.sin(t), dz = Math.cos(t), rx = -dz, rz = dx, cx = ex + dx * d, cz = ez + dz * d, u0 = i / 3, u1 = (i + 1) / 3;
+    pos.push(cx - rx * w / 2, ey - h / 2, cz - rz * w / 2, cx + rx * w / 2, ey - h / 2, cz + rz * w / 2, cx + rx * w / 2, ey + h / 2, cz + rz * w / 2, cx - rx * w / 2, ey + h / 2, cz - rz * w / 2);
+    uv.push(u0, 0, u1, 0, u1, 1, u0, 1); idx.push(i * 4, i * 4 + 1, i * 4 + 2, i * 4, i * 4 + 2, i * 4 + 3);
+  });
+  var g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx);
+  var m = new THREE.Mesh(g, kotaLatarBahan()); m.name = 'kota-latar-potret'; m.matrixAutoUpdate = false; m.frustumCulled = false; return m;
+}
+function kotaLatarPotret(id) { /* potret ulang Kota dari depan pintu id (dipanggil saat masuk + saat terang langit bergeser) */
+  var P = kotaPandangLuar(id); if (!P || !KOTA_SIAP) return;
+  kotaLatarBahan();
+  var L = KOTA_LATAR, q = KOTA_PANDANG.petak, lama = renderer.getRenderTarget(), av = avatar && avatar.parent === kotaScene;
+  if (av) avatar.visible = false;
+  L.rt.scissorTest = true;
+  P.arah.forEach(function (a, i) {
+    L.rt.viewport.set(i * q[0], 0, q[0], q[1]); L.rt.scissor.set(i * q[0], 0, q[0], q[1]);
+    L.cam.position.set(P.x, P.y, P.z); L.cam.lookAt(P.x + a[0], P.y, P.z + a[1]); L.cam.updateMatrixWorld();
+    renderer.setRenderTarget(L.rt); renderer.render(kotaScene, L.cam);
+  });
+  renderer.setRenderTarget(lama);
+  if (av) avatar.visible = true;
+  L.malam = KOTA_U.malam.value; L.id = id;
+}
 function kotaBangunRuang(id) {
   if (kotaRuangSiap[id]) return;
   var R = KOTA_RUANG[id], S = kotaRuangScene[id], bahan = kotaBahanRuang(id), B = kotaEmber(), BL = kotaEmber();
@@ -17161,9 +17450,8 @@ function kotaBangunRuang(id) {
     arkade: { tinggiPintu: 3.0, atasEtalase: 3.4, kusen: 0x1d1d22, kusenPintu: 0x5ee7ff, lis: 0x2a1d3a, plafon: 0x120d1e, plint: 0xff4fa3, petakLantai: 2.0 } }[id];
   kotaKulitRuang(B, id, R, opsi);
   ({ hotel: kotaIsiHotel, kafe: kotaIsiKafe, butik: kotaIsiButik, arkade: kotaIsiArkade })[id](B, R);
-  kotaLatarLuar(BL, R);
   kotaPasangEmberBahan(B, S, bahan, 'kota-dalam-');
-  kotaPasangEmberBahan(BL, S, kotaBahanLuar(), 'kota-luar-');
+  S.add(kotaLatarPanel(R)); /* F: 3 panel potret Kota asli di luar pintu (6 tris, 1 draw) menggantikan latar generik */
   if (KOTA_ATLAS && KOTA_ATLAS.tex) KOTA_ATLAS.tex.needsUpdate = true; /* wilayah atlas baru (jam, lukisan, layar, plang) */
   if (id === 'arkade' && KOTA_RUANG_ANIM.capit) S.add(KOTA_RUANG_ANIM.capit);
   var staf = KOTA_RUANG_STAF[id];
@@ -17201,6 +17489,7 @@ function kotaRuangTick(dt, now) {
   if (k && S) suasanaWarnaLangit(k, 0.02, 0, -1, S.background); /* langit di balik etalase ikut jam WIB */
   KOTA_U.malam.value = k ? Math.max(0, Math.min(1, (1 - k.terang) * 1.08)) : 0;
   KOTA_U.malamWarga.value = 0; /* staf interior: tanpa genangan peta jalan */
+  if (KOTA_LATAR.id !== R || Math.abs(KOTA_U.malam.value - KOTA_LATAR.malam) > 0.15) kotaLatarPotret(R); /* F: latar ikut siang/malam */
   if (KD.luar) { var f = k ? 0.16 + 0.84 * Math.max(0, Math.min(1, k.terang)) : 1; KD.luar.batu.color.setScalar(f); KD.luar.halus.color.setScalar(f); KD.luar.lantai.color.setScalar(f); KD.luar.kilap.color.setScalar(f); KD.luar.daun.color.setScalar(f); }
   var W = KOTA_RUANG_WARGA[R]; if (W) kotaWargaPose(W.daftar, W.tulang, W.rt, dt, now, function (n) { return kotaNpcKeadaan(n, 0); });
   var t = performance.now(), E = KOTA_RUANG_EFEK[R];
@@ -17264,6 +17553,7 @@ function buildKota() {
   S.add(new THREE.HemisphereLight(0xc4e2ff, 0x9c958a, 1.05));
   var isi = new THREE.DirectionalLight(0xe8f0ff, 0.55); isi.position.set(-40, 50, -60); S.add(isi);
   var B = kotaEmber();
+  KOTA_TOKO_LINGKAR.length = 0;
   kotaBangunTanah(B);
   kotaBangunSemuaGedung(B);
   kotaBangunTugu(B);
@@ -17365,6 +17655,7 @@ function enterKota() {
 function exitKota(keAsal) {
   if (!kotaRealmIni(myRealm)) return;
   if (roomPose) bangunDariKasur(true);
+  if (camera.near !== 0.1) { camera.near = 0.1; camera.updateProjectionMatrix(); } /* near Kota (0,3) tidak terbawa ke alam lain */
   kotaRuangKini = null; kotaPadatRuangKini = null;
   var A = kotaAsal || { realm: 'yard', x: 15, z: 26.6, rot: Math.PI, level: 0, camYaw: 0, camPitch: 0.25, camDist: camDistAwalHalaman() };
   myRealm = A.realm;
@@ -17398,7 +17689,10 @@ function kotaKameraTick(dt) { /* dipanggil sesudah animate() menaruh kamera orbi
   camera.position.set(c2.x, c2.y, c2.z);
   camera.lookAt(camTarget.x, camTarget.y + 1.5, camTarget.z);
 }
+var KOTA_LIHAT_DEKAT = 0.3; /* near kamera di Kota luar (alam lain 0,1): far 520 m dengan near 0,1 membuat presisi depth 3x lebih kasar -> sumber kedip */
 function kotaTick(dt, now) {
+  var dekat = myRealm === 'kota' ? KOTA_LIHAT_DEKAT : 0.1;
+  if (camera.near !== dekat) { camera.near = dekat; camera.updateProjectionMatrix(); }
   if (myRealm === 'kota') {
     kotaMatahariIkut();
     var k = typeof suasanaKini !== 'undefined' ? suasanaKini : { terang: 1, hujan: 0 };

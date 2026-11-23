@@ -20,7 +20,8 @@ const F = new Function(antara('/* ==== PURE-START ==== */', '/* ==== PURE-END ==
   + '\nreturn { KOTA, KOTA_SPAWN, KOTA_JALAN, KOTA_GEDUNG, KOTA_PADAT, KOTA_PINTU, KOTA_OBJEK, KOTA_KURSI, KOTA_NPC, KOTA_RUTE, KOTA_LAMPU_PLAZA, KOTA_R,'
   + ' KOTA_NPC_RANGKA, KOTA_RUANG, KOTA_RUANG_OBJEK, KOTA_RUANG_STAF, kotaBebas, kotaDorong, kotaZonaPintu, kotaDepanPintu, kotaRutePosisi, kotaRuteSiklus,'
   + ' kotaNpcKeadaan, kotaRuteCari, kotaKursiPilih, kotaKursiWarga, kotaRuangBatas, kotaPadatRuang, kotaRuangSpawn, kotaRuangZonaKeluar,'
-  + ' mpRealmDikenal, mpRealmDasar, mpValidasiPos, MP_BATAS_KOTA, KOTA_POHON, KOTA_LAMPU, KOTA_HALANG_KAMERA, kotaKameraFaktor, kotaKamKotak };')();
+  + ' mpRealmDikenal, mpRealmDasar, mpValidasiPos, MP_BATAS_KOTA, KOTA_POHON, KOTA_LAMPU, KOTA_HALANG_KAMERA, kotaKameraFaktor, kotaKamKotak, KOTA_BANGKU, KOTA_RAGAM_TOKO, KOTA_MEREK_LINGKAR, kotaRagamPilih, KOTA_LINGKAR_LANTAI, KOTA_POT, kotaDiLingkar, KOTA_PANDANG, kotaPandangLuar,'
+  + ' KOTA_SPANDUK_TEKS, KOTA_SPANDUK_PX, kotaSpandukUkuran, KOTA_DUDUKAN, KOTA_DUDUK_Y, kotaNpcDudukY };')();
 const R = F.KOTA_R; /* radius badan avatar (kotaDorong di animate) */
 
 /* BFS kisi: sel bebas (badan r tidak menyentuh padat, di dalam batas) yang terhubung ke titik awal */
@@ -240,4 +241,280 @@ test('Kota: tanaman — tidak ada lagi semak / pot "bola bersegi"; pagar teras m
   assert.equal(BLOK_KOTA.split("new KotaGeo('helai')").length - 1, 1, 'satu ember helai per ruang (kotaBangunRuang)');
   assert.match(fungsi('kotaBalkonDeret'), /kotaSemak\(B\.daun,/, 'pot balkon: semak halus di ember daun');
   assert.match(fungsi('kotaSemak'), /kotaGugusDaun\(/, 'semak memakai gugus daun yang sama dengan semak bak pohon');
+});
+
+/* ===== Paket perbaikan Kota 23 Nov: jalan lingkar, NPC duduk, papan nama, pintu, papan menu, intip, latar keluar, spanduk, kedip ===== */
+const lum = (h) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(h >> 16 & 255) + 0.7152 * f(h >> 8 & 255) + 0.0722 * f(h & 255); };
+const kontras = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+const hex = (t) => parseInt(String(t).replace('#', '').replace('0x', ''), 16);
+
+test('jalan lingkar: permukaan terang, >= 6 ragam toko, tidak ada tetangga kembar, pot di tepi', () => {
+  const L = F.KOTA_LINGKAR_LANTAI;
+  for (const k of ['trotoar', 'lajur']) assert.ok(lum(L[k]) > 0.7, k + ' terang (luminans ' + lum(L[k]).toFixed(2) + ')');
+  assert.ok(L.lebarTrotoar >= 1.2, 'trotoar dua sisi >= 1,2 m');
+  assert.ok(F.KOTA_RAGAM_TOKO.length >= 6, 'ragam toko >= 6');
+  const G = F.KOTA_RAGAM_TOKO;
+  for (let i = 0; i < G.length; i++) for (let j = i + 1; j < G.length; j++) {
+    assert.notEqual(G[i].id, G[j].id);
+    assert.ok(G[i].tiang !== G[j].tiang && G[i].papan !== G[j].papan, 'bahan fasad beda: ' + G[i].id + ' vs ' + G[j].id);
+  }
+  assert.ok(new Set(G.map((g) => g.papanT)).size >= 5, 'tinggi parapet beragam');
+  assert.ok(new Set(G.map((g) => String(g.tenda))).size >= 3, 'bentuk peneduh beragam (pelat / kain / tanpa)');
+  for (const g of G) assert.ok(kontras(g.nama, hex(g.latar)) >= 3, 'papan toko ' + g.id + ' terbaca (kontras ' + kontras(g.nama, hex(g.latar)).toFixed(1) + ')');
+  assert.equal(new Set(F.KOTA_MEREK_LINGKAR).size, F.KOTA_MEREK_LINGKAR.length, 'nama toko unik');
+  /* simulasi dua deret berhadapan sepanjang 4 sisi (teluk 5 m, koridor 8 m): tidak ada ragam sama dalam 11 m */
+  const daftar = [];
+  for (let s = -52; s <= 52; s += 5) for (const t of [50, 58]) { F.kotaRagamPilih(daftar, s, -t); F.kotaRagamPilih(daftar, s, t); F.kotaRagamPilih(daftar, -t, s); F.kotaRagamPilih(daftar, t, s); }
+  assert.ok(new Set(daftar.map((d) => d.g)).size >= 6, 'ragam terpakai >= 6');
+  let kembar = 0, bentrokNama = 0;
+  for (let i = 0; i < daftar.length; i++) for (let j = 0; j < i; j++) {
+    const d = Math.hypot(daftar[i].x - daftar[j].x, daftar[i].z - daftar[j].z);
+    if (d < 11 && daftar[i].g === daftar[j].g) kembar++;
+    if (d < 11 && daftar[i].n === daftar[j].n) bentrokNama++;
+  }
+  assert.equal(kembar, 0, 'tidak ada dua toko berdekatan (sederet / seberang) dengan ragam sama');
+  assert.equal(bentrokNama, 0, 'tidak ada dua toko berdekatan bernama sama');
+  assert.match(fungsi('kotaDeretToko'), /kotaRagamPilih\(KOTA_TOKO_LINGKAR,/, 'deret toko lingkar memakai pemilih ragam');
+  /* pot: di jalan lingkar, di tepi (bukan di lajur tengah), dan lajur jalan tetap bisa dilalui */
+  assert.ok(F.KOTA_POT.length >= 12);
+  for (const p of F.KOTA_POT) {
+    assert.ok(F.kotaDiLingkar(p.x, p.z), 'pot di jalan lingkar');
+    const tengah = Math.abs(Math.abs(p.x) - 54) < 2 && Math.abs(p.z) <= 46 || Math.abs(Math.abs(p.z) - 52) < 2 && Math.abs(p.x) <= 48;
+    assert.ok(!tengah, 'pot tidak di lajur tengah: ' + p.x + ',' + p.z);
+    assert.ok(!F.kotaBebas(p.x, p.z, 0.2), 'pot punya collider');
+  }
+  for (let s = -44; s <= 44; s += 1) for (const q of [[s, -52], [s, 52], [-54, s], [54, s]]) assert.ok(F.kotaBebas(q[0], q[1], R), 'lajur lingkar bebas di ' + q);
+});
+
+test('NPC + pemain duduk DI ATAS dudukan, menghadap melintang bangku', () => {
+  const K = F.KOTA_NPC_RANGKA, pinggul = F.kotaNpcDudukY() + K.pinggulY * K.skala;
+  assert.ok(pinggul >= F.KOTA_DUDUKAN + 0.05 && pinggul <= F.KOTA_DUDUKAN + 0.2, 'sendi pinggul warga 5-20 cm di atas dudukan (dapat ' + pinggul.toFixed(3) + ')');
+  assert.ok(F.KOTA_DUDUK_Y + 0.72 >= F.KOTA_DUDUKAN + 0.05, 'pinggul pemain di atas dudukan');
+  assert.ok(!/KOTA_DUDUK_Y = -0\.31/.test(BLOK_KOTA), 'tinggi duduk lama (tenggelam) sudah tidak dipakai');
+  /* bangku tunggal: 3 kursi berjajar SEPANJANG bangku, hadap TEGAK LURUS jajaran itu */
+  for (const b of F.KOTA_BANGKU.filter((x) => !x.ganda)) {
+    const k = F.KOTA_KURSI.filter((q) => q.bangku === b.id);
+    assert.equal(k.length, 3);
+    const ax = k[2].x - k[0].x, az = k[2].z - k[0].z, fx = Math.sin(b.rot), fz = Math.cos(b.rot);
+    assert.ok(Math.abs(ax * fx + az * fz) < 0.01, b.id + ': hadap tegak lurus sumbu bangku');
+    for (const q of k) assert.ok(Math.abs(q.rot - b.rot) < 1e-9);
+  }
+  const bangku = fungsi('kotaBangku');
+  assert.match(bangku, /b\.ganda/, 'pembangun bangku membedakan ganda / tunggal');
+  /* kaki duduk dibentuk di geometri (paha mendatar + betis turun), atasan pendek: tidak ada "dasi" balok panjang */
+  assert.match(BLOK_KOTA, /duduk/);
+  assert.match(fungsi('kotaWargaBangun'), /duduk/, 'geometri warga tahu pose duduk');
+});
+
+test('papan nama gedung: pelat arang + huruf menyala kontras tinggi, pelat selalu lebih lebar dari huruf', () => {
+  const m = /var KOTA_PAPAN_GEDUNG = \{ pelat: (0x[0-9a-f]{6}), huruf: (0x[0-9a-f]{6}), lis: (0x[0-9a-f]{6}) \}/.exec(BLOK_KOTA);
+  assert.ok(m, 'KOTA_PAPAN_GEDUNG');
+  assert.ok(kontras(hex(m[1]), hex(m[2])) >= 7, 'kontras huruf vs pelat >= 7 (dapat ' + kontras(hex(m[1]), hex(m[2])).toFixed(1) + ')');
+  const f = fungsi('kotaPapanGedung');
+  assert.match(f, /hw = lebar \/ 2 \+ tinggi \* 0\.6/, 'lebar pelat = lebar huruf terukur + napas');
+  assert.match(f, /B\.nyala\.huruf\(/, 'huruf papan menyala (Basic) -> terbaca malam');
+  for (const t of ['MENARA KEMBAR', 'GEDUNG KESENIAN', 'HOTEL KENCANA', 'MAISON LUNA', 'BANK NUSANTARA', 'MENARA NUSANTARA', 'STASIUN KOTA'])
+    assert.ok(BLOK_KOTA.includes("kotaPapanGedung(B, F, '" + t + "'"), t + ' memakai papan kontras');
+  assert.ok(!/huruf\(F, '(MENARA KEMBAR|GEDUNG KESENIAN)'/.test(BLOK_KOTA), 'huruf lama (krem di krem / di belakang pilar) dicabut');
+  assert.match(BLOK_KOTA, /B\.kilap\.huruf\(F, 'TEKNO'[^;]*kotaW\(0x20242c\)/, 'TEKNO: huruf gelap di dinding terang');
+});
+
+test('pintu interior: portal MASUK seragam di 4 pintu, pemicu persis di bukaan, pintu arkade tidak lagi tertutup dinding', () => {
+  const f = fungsi('kotaPortalMasuk');
+  assert.match(f, /kotaPlangMasuk\(\)/, 'penanda MASUK');
+  assert.match(f, /B\.nyala\.fk\(/, 'garis lampu menyala di atas pintu');
+  assert.match(f, /M\.keset/, 'keset');
+  assert.match(fungsi('kotaPlangMasuk'), /fillText\('MASUK'/);
+  assert.equal(BLOK_KOTA.split('  kotaPortalMasuk(B, F,').length - 1 + BLOK_KOTA.split('if (depan) kotaPortalMasuk(B, F,').length - 1, 4, 'tepat 4 portal (hotel, kafe, butik, arkade)');
+  for (const g of ['kotaGedungHotel', 'kotaGedungKafe', 'kotaGedungBioskop']) assert.match(fungsi(g), /kotaPortalMasuk\(B, F,/, g);
+  const mk = /var KOTA_MASUK = \{ palang: (0x[0-9a-f]{6}), kusen: 0x[0-9a-f]{6}, teks: '(#[0-9a-f]{6})'/.exec(BLOK_KOTA);
+  assert.ok(mk && kontras(hex(mk[1]), hex(mk[2])) >= 7, 'tulisan MASUK kontras');
+  assert.ok(!fungsi('kotaGedungBioskop').includes('B.kilap.fk(F, 0.45, L - 0.45, 0, 6.0, -0.2, 0, kotaW(0x24252d), KM_PZ);'), 'dinding muka arkade tidak lagi menutup pintu + etalase');
+  /* pemicu masuk: hanya di depan bukaan (<= setengah lebar pintu), tidak di dinding sebelahnya */
+  for (const p of F.KOTA_PINTU) {
+    const tx = p.nz, tz = -p.nx, d = R + 0.05;
+    assert.ok(F.kotaZonaPintu(p.x + p.nx * d, p.z + p.nz * d), p.id + ': ambang memicu');
+    for (const s of [-1, 1]) assert.equal(F.kotaZonaPintu(p.x + p.nx * d + tx * s * (p.lebar / 2 + 0.3), p.z + p.nz * d + tz * s * (p.lebar / 2 + 0.3)), null, p.id + ': dinding sebelah pintu tidak memicu');
+  }
+  assert.match(BLOK_KOTA, /function kotaPlangKeluar\(/, 'plang KELUAR di dalam interior');
+});
+
+test('papan menu Kafe Bulan: teks tidak sebidang dengan bingkai (jarak >= 2 cm)', () => {
+  const m = /B\.teks\.fkuad\(Fb, 1\.6, 6\.4, 2\.0, 3\.6, (0\.\d+), kotaW\(0xffffff\), kotaAtlas\(320, 120,[^\n]*Kopi Susu Bulan/.exec(BLOK_KOTA);
+  assert.ok(m, 'bidang teks menu ditemukan');
+  assert.ok(+m[1] >= 0.05, 'teks menu >= 2 cm di depan muka bingkai 0,03 (dapat ' + m[1] + ')');
+});
+
+test('intip + latar keluar: lukisan interior per tempat, potret Kota asli dari depan pintu', () => {
+  for (const id of ['hotel', 'kafe', 'butik', 'arkade']) assert.ok(new RegExp("intip: \\{ id: '" + id + "'|IA = \\{ id: '" + id + "'").test(BLOK_KOTA), 'lukisan intip dipakai: ' + id);
+  assert.match(fungsi('kotaDindingLengkung'), /if \(o\.intip\) B\.teks\.fkuad\(/, 'bukaan lengkung: lukisan (Basic) menggantikan bidang polos');
+  assert.match(fungsi('kotaPintuKaca'), /if \(o\.intip\) B\.teks\.fkuad\(/);
+  /* latar keluar: titik mata di LUAR ambang, arah tengah = normal pintu, 3 arah menyapu 180 derajat */
+  for (const p of F.KOTA_PINTU) {
+    const P = F.kotaPandangLuar(p.id);
+    assert.ok((P.x - p.x) * p.nx + (P.z - p.z) * p.nz > 0.3, p.id + ': mata di luar pintu');
+    assert.ok(Math.abs(P.arah[1][0] - p.nx) < 1e-9 && Math.abs(P.arah[1][1] - p.nz) < 1e-9, p.id + ': arah tengah = keluar pintu');
+    for (const a of P.arah) { assert.ok(Math.abs(Math.hypot(a[0], a[1]) - 1) < 1e-9); assert.ok(a[0] * p.nx + a[1] * p.nz > 0.49, 'semua arah menghadap keluar'); }
+    assert.ok(Math.abs(P.arah[0][0] * P.arah[2][0] + P.arah[0][1] * P.arah[2][1] - Math.cos(2 * Math.PI / 3)) < 1e-9, 'kiri-kanan terpisah 120 derajat');
+  }
+  assert.ok(!fungsi('kotaBangunRuang').includes('kotaLatarLuar('), 'latar generik (aspal bermarka) tidak dipakai lagi');
+  assert.match(fungsi('kotaBangunRuang'), /S\.add\(kotaLatarPanel\(R\)\)/);
+  assert.match(fungsi('kotaMasukRuang'), /kotaLatarPotret\(id\)/, 'potret diambil saat masuk');
+  assert.match(fungsi('kotaRuangTick'), /kotaLatarPotret\(R\)/, 'potret ikut siang / malam');
+  assert.match(fungsi('kotaLatarPotret'), /renderer\.render\(kotaScene, L\.cam\)/, 'yang dipotret = Kota asli');
+});
+
+test('spanduk tiang: semua teks muat di antara dua garis emas dengan napas', () => {
+  const P = F.KOTA_SPANDUK_PX, aman = P.h - 2 * P.garis;
+  assert.ok(F.KOTA_SPANDUK_TEKS.length >= 2);
+  for (const t of F.KOTA_SPANDUK_TEKS) {
+    /* lebar teks pada font maks ~ 0,62 em per huruf kapital tebal (perkiraan kasar di atas; pelukis memakai measureText) */
+    const lebarMaks = t.length * 0.66 * P.maks, px = F.kotaSpandukUkuran(lebarMaks), lebar = lebarMaks * px / P.maks;
+    assert.ok(px > 8 && px <= P.maks, t);
+    assert.ok(lebar + px <= aman + 0.5, t + ': teks + napas setinggi huruf muat (lebar ' + lebar.toFixed(1) + ' + ' + px + ' <= ' + aman + ')');
+  }
+  assert.match(BLOK_KOTA, /measureText\(/, 'pelukis spanduk mengukur teks');
+  assert.match(BLOK_KOTA, /kotaSpandukUkuran\(/);
+});
+
+test('anti-kedip: urutan bahan (polygonOffset) + near kamera Kota 0,3 + tanah luar tidak di bawah paving', () => {
+  assert.match(BLOK_KOTA, /var KOTA_URUT_BAHAN = \{ lantai: 0, batu: 1, halus: 2, kilap: 3, kaca: 3, nyala: 4, teks: 5 \}/);
+  assert.match(fungsi('kotaUrutBahan'), /polygonOffset = true/);
+  assert.match(BLOK_KOTA, /var KOTA_LIHAT_DEKAT = 0\.3;/);
+  assert.match(fungsi('kotaTick'), /camera\.near = dekat/);
+  assert.match(fungsi('exitKota'), /camera\.near = 0\.1/, 'near dikembalikan saat keluar Kota');
+  assert.ok(!BLOK_KOTA.includes('B.halus.kotakMM(-1200, 1200, -0.32, -0.05'), 'lempeng tanah raksasa 5 cm di bawah paving (sumber "aspal gelap") dicabut');
+  /* memo sisi: S === depan harus benar (dulu selalu salah -> fasad ganda sebidang) */
+  assert.match(fungsi('kotaSisiPoli'), /__sisi/, 'kotaSisiPoli memakai memo');
+});
+
+/* ===== RONDE 2 (23 Nov): pengunci anti-kedip SEBAHAN =====
+   Geometri Kota SUNGGUHAN dibangun di node (three.module.js + kanvas tiruan), lalu diaudit: di dalam satu
+   bahan (= satu mesh, polygonOffset tidak bisa menolong) tidak boleh ada dua segitiga BEDA warna yang
+   sejajar-searah, berjarak < 5 mm, dan saling tumpang. Batas: huruf 3D timbul tidak ikut (rasterisasi
+   butuh kanvas asli) — itu dijaga audit headless (kota-fix-lingkar-alat/r2/aud.js). */
+function kotaAuditSebahan(daftar, batas) {
+  /* daftar: [{ nama, pos, col, idx, ni }] -> pasangan [{ nama, mm, k, a:[x,y,z], b:[x,y,z] }] */
+  const hasil = [];
+  const pisah = (P, Q, eps) => {
+    for (let i = 0; i < 3; i++) {
+      const x0 = P[i * 2], y0 = P[i * 2 + 1], x1 = P[(i * 2 + 2) % 6], y1 = P[(i * 2 + 3) % 6]; let nx = y1 - y0, ny = x0 - x1; const l = Math.hypot(nx, ny); if (l < 1e-9) continue; nx /= l; ny /= l;
+      const o = (P[(i * 2 + 4) % 6] - x0) * nx + (P[(i * 2 + 5) % 6] - y0) * ny; if (o > 0) { nx = -nx; ny = -ny; }
+      let mn = Infinity; for (let j = 0; j < 3; j++) { const s = (Q[j * 2] - x0) * nx + (Q[j * 2 + 1] - y0) * ny; if (s < mn) mn = s; }
+      if (mn > -eps) return true;
+    }
+    return false;
+  };
+  for (const G of daftar) {
+    const kel = new Map(), p = G.pos, c = G.col, CS = 2;
+    for (let i = 0; i < G.ni; i += 3) {
+      const i0 = G.idx[i] * 3, i1 = G.idx[i + 1] * 3, i2 = G.idx[i + 2] * 3;
+      const ax = p[i0], ay = p[i0 + 1], az = p[i0 + 2], bx = p[i1], by = p[i1 + 1], bz = p[i1 + 2], cx = p[i2], cy = p[i2 + 1], cz = p[i2 + 2];
+      let nx = (by - ay) * (cz - az) - (bz - az) * (cy - ay), ny = (bz - az) * (cx - ax) - (bx - ax) * (cz - az), nz = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
+      const L = Math.hypot(nx, ny, nz); if (L < 4e-4) continue; nx /= L; ny /= L; nz /= L;
+      const qx = Math.round(nx * 100), qy = Math.round(ny * 100), qz = Math.round(nz * 100), ql = Math.hypot(qx, qy, qz), mx = qx / ql, my = qy / ql, mz = qz / ql;
+      if (mx * nx + my * ny + mz * nz < 0.99998) continue; /* hanya bidang berarah "bulat" (dinding, lantai, serong 45) */
+      let ux, uz; const uy = 0; if (Math.abs(my) > 0.9) { ux = 1; uz = 0; } else { const l = Math.hypot(mx, mz); ux = mz / l; uz = -mx / l; }
+      const vx = my * uz - mz * uy, vy = mz * ux - mx * uz, vz = mx * uy - my * ux;
+      const P = [ax * ux + az * uz, ax * vx + ay * vy + az * vz, bx * ux + bz * uz, bx * vx + by * vy + bz * vz, cx * ux + cz * uz, cx * vx + cy * vy + cz * vz];
+      const t = { d: ax * mx + ay * my + az * mz, P, c: Math.round(c[i0] * 16) * 289 + Math.round(c[i0 + 1] * 16) * 17 + Math.round(c[i0 + 2] * 16), w: [(ax + bx + cx) / 3, (ay + by + cy) / 3, (az + bz + cz) / 3],
+        bb: [Math.min(P[0], P[2], P[4]), Math.max(P[0], P[2], P[4]), Math.min(P[1], P[3], P[5]), Math.max(P[1], P[3], P[5])] };
+      const k = qx + ',' + qy + ',' + qz; if (!kel.has(k)) kel.set(k, []); kel.get(k).push(t);
+    }
+    for (const [k, Lk] of kel) {
+      Lk.sort((x, y) => x.d - y.d); const grid = new Map(), besar = [];
+      for (let ti = 0; ti < Lk.length; ti++) {
+        const t = Lk[ti], b = t.bb, cx0 = Math.floor(b[0] / CS), cx1 = Math.floor(b[1] / CS), cy0 = Math.floor(b[2] / CS), cy1 = Math.floor(b[3] / CS), big = (cx1 - cx0 + 1) * (cy1 - cy0 + 1) > 100, seen = new Set();
+        const uji = (o) => {
+          if (seen.has(o)) return; seen.add(o); if (o.c === t.c) return; const b2 = o.bb;
+          if (b2[0] > b[1] - 0.03 || b2[1] < b[0] + 0.03 || b2[2] > b[3] - 0.03 || b2[3] < b[2] + 0.03) return;
+          if (pisah(t.P, o.P, 0.03) || pisah(o.P, t.P, 0.03)) return;
+          hasil.push({ nama: G.nama, mm: +((t.d - o.d) * 1000).toFixed(2), k, a: t.w.map((v) => +v.toFixed(2)), b: o.w.map((v) => +v.toFixed(2)) });
+        };
+        for (let q = besar.length - 1; q >= 0; q--) { if (t.d - besar[q].d >= batas) break; uji(besar[q]); }
+        if (big) { for (let q = ti - 1; q >= 0; q--) { if (t.d - Lk[q].d >= batas) break; uji(Lk[q]); } besar.push(t); }
+        else for (let gx = cx0; gx <= cx1; gx++) for (let gy = cy0; gy <= cy1; gy++) {
+          const key = gx + '_' + gy, cl = grid.get(key);
+          if (cl) for (let q = cl.length - 1; q >= 0; q--) { if (t.d - cl[q].d >= batas) break; uji(cl[q]); }
+          if (cl) cl.push(t); else grid.set(key, [t]);
+        }
+      }
+    }
+  }
+  return hasil;
+}
+let kotaGeoJanji = null;
+function kotaBangunDiNode() { /* -> { luar: ember, ruang: { id: ember } } dibangun oleh kode Kota asli */
+  if (kotaGeoJanji) return kotaGeoJanji;
+  kotaGeoJanji = (async () => {
+    const THREE = await import(require('node:url').pathToFileURL(path.join(__dirname, '..', 'vendor', 'three', 'three.module.js')).href);
+    const ctx = new Proxy({}, { get: (t, k) => k === 'measureText' ? (s) => ({ width: String(s).length * 10 }) : k === 'canvas' ? { width: 2048, height: 2048 }
+      : (k === 'createLinearGradient' || k === 'createRadialGradient') ? () => ({ addColorStop() {} }) : k === 'getImageData' ? (x, y, w, h) => ({ data: new Uint8ClampedArray(w * h * 4) })
+      : (typeof k === 'string' ? function () {} : undefined), set: () => true });
+    const dokumen = { createElement: () => ({ width: 0, height: 0, style: {}, getContext: () => ctx }) };
+    const tiruan = () => { const f = function () { return f; }; return new Proxy(f, { get: (t, k) => k === Symbol.toPrimitive ? () => 0 : (k === 'length' ? 0 : f), apply: () => f, construct: () => f, set: () => true }); };
+    const br = fungsi('kotaBangunRuang'), oa = br.indexOf('var opsi = '), ob = br.indexOf('[id];', oa); assert.ok(oa > 0 && ob > oa, 'opsi kotaBangunRuang');
+    const src = antara('/* ==== PURE-START ==== */', '/* ==== PURE-END ==== */') + antara('/* ==== MP-PURE-START ==== */', '/* ==== MP-PURE-END ==== */') + fungsi('acak') + BLOK_KOTA
+      + '\nreturn { luar: function () { KOTA_ATLAS = { cv: kotaKanvas(2048, 2048), langit: null, tinggi: 0 }; KOTA_ATLAS.ctx = KOTA_ATLAS.cv.getContext("2d"); KB = __T(); var B = kotaEmber(); KOTA_TOKO_LINGKAR.length = 0;'
+      + ' kotaBangunTanah(B); kotaBangunSemuaGedung(B); kotaBangunTugu(B); kotaBangunPerabot(B); kotaBangunCakrawala(B); return B; },'
+      + ' ruang: function (id) { var R = KOTA_RUANG[id], B = kotaEmber(); B.dinding = new KotaGeo("dinding"); B.dinding.petak = R.H; B.helai = new KotaGeo("helai");'
+      + ' var opsi = (' + br.slice(oa + 11, ob) + ')[id]; kotaKulitRuang(B, id, R, opsi); ({ hotel: kotaIsiHotel, kafe: kotaIsiKafe, butik: kotaIsiButik, arkade: kotaIsiArkade })[id](B, R); return B; } };';
+    const stub = []; let luar = null, ruang = null, galat = null;
+    for (let it = 0; it < 40 && !ruang; it++) { /* global game di luar blok Kota (mis. BUNYI) diganti tiruan */
+      try {
+        const api = new Function('THREE', 'document', 'window', 'performance', '__T', stub.map((n) => 'var ' + n + ' = __T();').join('') + src)(THREE, dokumen, {}, { now: () => 0 }, tiruan);
+        luar = api.luar(); const r = {}; ['hotel', 'kafe', 'butik', 'arkade'].forEach((id) => { r[id] = api.ruang(id); }); ruang = r;
+      } catch (e) { const m = /^(\w+) is not defined/.exec(e.message); if (!m) { galat = e; break; } stub.push(m[1]); }
+    }
+    if (!ruang) throw galat || new Error('Kota tidak bisa dibangun di node');
+    return { luar, ruang, stub };
+  })();
+  return kotaGeoJanji;
+}
+const kotaDaftarEmber = (B) => Object.keys(B).filter((k) => B[k] && B[k].ni && !/^(daun|bayang|helai)$/.test(k)).map((k) => ({ nama: k, pos: B[k].pos, col: B[k].col, idx: B[k].idx, ni: B[k].ni }));
+const kotaRingkas = (h) => h.length + ' pasangan, mis. ' + JSON.stringify(h.slice(0, 4));
+
+test('anti-kedip ronde 2: geometri Kota luar — 0 pasangan SEBAHAN beda warna yang berimpit (< 5 mm) dan saling tumpang', async () => {
+  const K = await kotaBangunDiNode();
+  assert.ok(K.stub.length <= 6 && K.stub.every((n) => !/^kota/i.test(n)), 'yang ditiru hanya global game di luar blok Kota: ' + K.stub.join(','));
+  let tris = 0; kotaDaftarEmber(K.luar).forEach((g) => { tris += g.ni / 3; });
+  assert.ok(tris > 250000 && tris < 445000, 'jumlah segitiga luar wajar: ' + tris);
+  const h = kotaAuditSebahan(kotaDaftarEmber(K.luar), 0.005);
+  assert.equal(h.length, 0, kotaRingkas(h));
+});
+test('anti-kedip ronde 2: tanah — jalur kaki fasad (lantai) tidak bertumpuk < 5 mm dengan trotoar / kerb lingkar (batu)', async () => {
+  const K = await kotaBangunDiNode();
+  const gabung = { nama: 'lantai+batu', pos: [], col: [], idx: [], ni: 0 }; let nv = 0;
+  ['lantai', 'batu'].forEach((k) => { /* hanya lapisan tanah tipis: trotoar 6 mm, kerb 7 mm, jalur 8 mm (ambang pintu 10 mm hanya menjorok 2 cm = tidak ikut) */
+    const G = K.luar[k];
+    for (let i = 0; i < G.ni; i += 3) {
+      const v = [G.idx[i], G.idx[i + 1], G.idx[i + 2]];
+      if (!v.every((q) => G.pos[q * 3 + 1] > 0.001 && G.pos[q * 3 + 1] < 0.0095)) continue;
+      v.forEach((q) => { gabung.pos.push(G.pos[q * 3], G.pos[q * 3 + 1], G.pos[q * 3 + 2]); gabung.col.push(k === 'lantai' ? 0 : 1, 0, 0); gabung.idx.push(nv++); }); gabung.ni += 3;
+    }
+  });
+  assert.ok(gabung.ni / 3 > 200, 'ada trotoar + jalur yang diaudit: ' + gabung.ni / 3);
+  const h = kotaAuditSebahan([gabung], 0.005);
+  assert.equal(h.length, 0, kotaRingkas(h));
+});
+test('anti-kedip ronde 2: keempat interior — 0 pasangan SEBAHAN beda warna yang berimpit (< 5 mm) dan saling tumpang', async () => {
+  const K = await kotaBangunDiNode();
+  for (const id of ['hotel', 'kafe', 'butik', 'arkade']) {
+    const d = kotaDaftarEmber(K.ruang[id]); let tris = 0; d.forEach((g) => { tris += g.ni / 3; });
+    assert.ok(tris > 5000, id + ' terbangun: ' + tris);
+    const h = kotaAuditSebahan(d, 0.005);
+    assert.equal(h.length, 0, id + ': ' + kotaRingkas(h));
+  }
+});
+test('anti-kedip ronde 2: pengaudit benar-benar menangkap muka ganda (kontrol positif) + pemotong persegi trotoar', () => {
+  const buat = (dz) => ({ nama: 'uji', ni: 6, idx: [0, 1, 2, 3, 4, 5], pos: [0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0.2, dz, 0.9, 0.2, dz, 0.2, 0.9, dz], col: [1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0] });
+  assert.equal(kotaAuditSebahan([buat(0)], 0.005).length, 1, 'sebidang beda warna tertangkap');
+  assert.equal(kotaAuditSebahan([buat(0.003)], 0.005).length, 1, '3 mm tertangkap');
+  assert.equal(kotaAuditSebahan([buat(0.02)], 0.005).length, 0, '2 cm lolos');
+  const pk = new Function(fungsi('kotaPotongKotak') + 'return kotaPotongKotak;')();
+  const sisa = pk([49.4, 50.6, -48, 48], [[50, 51.4, -48, -12], [50, 51.4, 12, 48]]);
+  const luas = sisa.reduce((s, r) => s + (r[1] - r[0]) * (r[3] - r[2]), 0);
+  assert.ok(Math.abs(luas - (1.2 * 96 - 0.6 * 72)) < 1e-6, 'luas sisa: ' + luas);
+  sisa.forEach((r) => { assert.ok(!(r[1] > 50 + 1e-6 && (r[2] < -12 - 1e-6 || r[3] > 12 + 1e-6)), 'tidak ada sisa di dalam lubang: ' + r); });
+  assert.deepEqual(pk([0, 1, 0, 1], []), [[0, 1, 0, 1]]);
 });
