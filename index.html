@@ -926,6 +926,63 @@
     #emoteMenu { width: min(420px, calc(100vw - 24px)); grid-template-columns: repeat(8, minmax(0, 1fr)); }
     #emoteMenu img { width: 34px; height: 34px; }
   }
+  /* Pengaturan (24 Nov) — panel grafik / suara / nama pemain (pola panel Tampilan: non-modal, tanpa latar gelap) */
+  #pgtPanel { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 36;
+    display: none; max-width: 420px; margin: 0 auto; background: #fff; border-radius: 22px; padding: 14px 16px 14px;
+    box-shadow: var(--kb-bayang-2), inset 0 0 0 1px rgba(255,255,255,.7); font-family: 'Nunito', sans-serif; color: var(--kb-teks); }
+  #pgtPanel.open { display: block; animation: kbMuncul .2s ease-out; }
+  #pgtPanel h2 { display: flex; align-items: center; gap: 8px; font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 19px; color: var(--kb-biru); margin: 0 40px 2px 0; }
+  #pgtPanel h2 svg { width: 22px; height: 22px; color: var(--kb-biru-2); }
+  #pgtClose { position: absolute; top: 10px; right: 12px; width: 30px; height: 30px; border: none; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; background: var(--kb-isi); color: var(--kb-teks-2); cursor: pointer; }
+  #pgtClose svg { width: 16px; height: 16px; }
+  .pgt-label { font-size: 12px; font-weight: 800; color: var(--kb-teks-2); margin: 10px 0 6px; letter-spacing: .02em; }
+  .pgt-grafik { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .pgt-grafik button { display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 0; padding: 8px 2px 7px; border: none; border-radius: 14px;
+    cursor: pointer; background: var(--kb-isi); color: var(--kb-teks-2); font-family: 'Nunito', sans-serif;
+    box-shadow: inset 0 0 0 1px rgba(19,37,58,.06); transition: transform .08s, background .15s, color .15s, box-shadow .15s; }
+  .pgt-grafik button svg { width: 26px; height: 26px; display: block; margin-bottom: 1px; }
+  .pgt-grafik button b { font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 15px; font-weight: 800; line-height: 1.1; }
+  .pgt-grafik button small { font-size: 10.5px; font-weight: 700; opacity: .85; white-space: nowrap; }
+  .pgt-grafik button:active { transform: scale(.96); }
+  .pgt-grafik button[aria-checked="true"] { background: var(--kb-biru-muda); color: var(--kb-biru); box-shadow: inset 0 0 0 2px var(--kb-biru-2), 0 4px 12px rgba(46,127,214,.18); }
+  .pgt-note { font-size: 11.5px; font-weight: 700; color: #6b7d92; margin: 8px 2px 0; line-height: 1.4; min-height: 48px; }
+  #pgtMuatUlang { display: block; width: 100%; margin: 8px 0 0; padding: 8px; border: none; border-radius: 12px; cursor: pointer;
+    font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 800; color: #6b4a00; background: #fff3c9; box-shadow: inset 0 0 0 1px rgba(214,160,0,.35); }
+  #pgtMuatUlang[hidden] { display: none; }
+  .pgt-saklar { display: flex; align-items: center; width: 100%; margin: 0 0 6px; padding: 9px 12px; border: none; border-radius: 14px; cursor: pointer;
+    background: var(--kb-isi); color: var(--kb-teks); font-family: 'Nunito', sans-serif; font-size: 14px; font-weight: 800; text-align: left;
+    box-shadow: inset 0 0 0 1px rgba(19,37,58,.06); transition: background .12s; white-space: pre; }
+  .pgt-saklar:active { background: var(--kb-biru-muda); }
+  .pgt-saklar .uicon { width: 20px; height: 20px; margin-right: 10px; color: var(--kb-biru-2); flex: none; }
+  .pgt-saklar .menu-status { margin-left: auto; font-size: 12px; font-weight: 800; color: var(--kb-biru); }
+  .pgt-saklar .menu-status.mati { color: #8a94a0; }
+  .pgt-tuas { flex: none; position: relative; width: 40px; height: 24px; margin-left: 10px; border-radius: 12px; background: linear-gradient(180deg, #3a8de6, #1f6fc9);
+    box-shadow: inset 0 1px 2px rgba(8,28,58,.25); transition: background .15s; }
+  .pgt-tuas::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff;
+    box-shadow: 0 1px 3px rgba(8,28,58,.35); transform: translateX(16px); transition: transform .15s; }
+  .pgt-saklar .menu-status.mati + .pgt-tuas { background: #c9d3de; }
+  .pgt-saklar .menu-status.mati + .pgt-tuas::after { transform: none; }
+  #pgtSelesai { width: 100%; margin-top: 6px; padding: 10px; border: none; border-radius: 14px; cursor: pointer;
+    font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 15px; font-weight: 800; color: #fff; background: linear-gradient(180deg, #3a8de6, #1f6fc9); }
+  @media (orientation: landscape) and (min-width: 900px) and (min-height: 501px) {
+    #pgtPanel { left: auto; right: 16px; top: 72px; bottom: auto; width: 360px; margin: 0; max-height: calc(100dvh - 88px); overflow-y: auto; }
+  }
+  @media (max-height: 500px) and (orientation: landscape) {
+    #pgtPanel { left: auto; right: 12px; top: 52px; bottom: auto; width: 330px; max-width: none; max-height: calc(100dvh - 60px); overflow-y: auto; padding: 10px 14px; }
+    #pgtPanel h2 { font-size: 17px; }
+    .pgt-label { margin: 6px 0 4px; }
+    .pgt-grafik button { flex-direction: row; justify-content: center; gap: 5px; padding: 6px 2px; }
+    .pgt-grafik button svg { width: 18px; height: 18px; margin: 0; }
+    .pgt-grafik button small { display: none; }
+    .pgt-note { margin-top: 5px; min-height: 0; font-size: 11px; }
+    .pgt-saklar { padding: 6px 10px; margin-bottom: 4px; font-size: 13px; }
+    .pgt-suara { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+    .pgt-suara .pgt-saklar .menu-status { display: none; }
+    .pgt-suara .pgt-saklar .pgt-tuas { margin-left: auto; }
+    #pgtSelesai { display: none; } /* layar pendek: cukup tombol silang (panel muat tanpa gulir) */
+    #pgtPanel .pgt-saklar:last-of-type { margin-bottom: 2px; }
+  }
   /* Karakter v2 — panel Tampilan */
   #rupaPanel { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 35;
     display: none; max-width: 420px; margin: 0 auto; background: #fff; border-radius: 22px; padding: 14px 16px 14px;
@@ -1335,9 +1392,8 @@
         <!-- Kerja & Belanja — lowongan kerja + toko online (panel Dompet) -->
         <button id="kerjaBtn" class="pillbtn" type="button" title="Lowongan kerja: kafe, warung, ronda, laundry"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 12.5h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Kerja</button>
         <button id="tokoBtn" class="pillbtn" type="button" title="Toko online: aksesori + dekorasi kamar (Rupiah)"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1.2 12H6.2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 10V6.5a3 3 0 0 1 6 0V10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Toko Online</button>
-        <!-- Suasana — musik santai + efek suara: nyala/mati (disimpan di HP); menu tetap terbuka saat diketuk -->
-        <button id="musikBtn" class="pillbtn" type="button" title="Musik santai nyala/mati"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l11-2v13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17.5" cy="16" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/></svg> Musik <span id="musikStatus" class="menu-status">Nyala</span></button>
-        <button id="efekBtn" class="pillbtn" type="button" title="Efek suara + suara alam nyala/mati"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h4l5-4v13l-5-4H4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M16.5 9a4 4 0 0 1 0 6M19 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Efek suara <span id="efekStatus" class="menu-status">Nyala</span></button>
+        <!-- Pengaturan (24 Nov) — grafik / suara / nama pemain; Musik + Efek suara pindah ke panelnya -->
+        <button id="pgtBtn" class="pillbtn" type="button" title="Pengaturan: grafik, suara, nama pemain"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg> Pengaturan</button>
         <button id="exitBtn" class="pillbtn" type="button" style="display:none"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 21h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="13" cy="12" r="0.7" fill="currentColor"/></svg> Keluar</button>
       </div>
     </div>
@@ -1420,6 +1476,27 @@
      #misiOverlay); isi di-render JS (ktaRender) dari identitas pengunjung. -->
 <!-- Karakter v2 — panel Tampilan: lembar bawah (portrait) / panel kanan
      (landscape) TANPA latar gelap, supaya avatar terlihat di belakangnya. -->
+<!-- Pengaturan (24 Nov) — pilihan tersimpan di perangkat (localStorage kosan3d-pengaturan + kosan3d-suara) -->
+<div id="pgtPanel" role="dialog" aria-modal="false" aria-labelledby="pgtJudul">
+  <button id="pgtClose" type="button" aria-label="Tutup"><svg class="kb-x" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button>
+  <h2 id="pgtJudul"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>Pengaturan</h2>
+  <div class="pgt-label" id="pgtLabelGrafik">Grafik</div>
+  <div class="pgt-grafik" role="radiogroup" aria-labelledby="pgtLabelGrafik">
+    <button type="button" role="radio" data-grafik="ringan" aria-checked="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L5 13.5h5.5L9.5 22l9-12.5h-6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><b>Ringan</b><small>Paling lancar</small></button>
+    <button type="button" role="radio" data-grafik="sedang" aria-checked="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M5 8h14M5 8l-2.5 6a3 3 0 0 0 5 0zM19 8l-2.5 6a3 3 0 0 0 5 0zM8 20h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><b>Sedang</b><small>Seimbang</small></button>
+    <button type="button" role="radio" data-grafik="bagus" aria-checked="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.2 5.6 5.8.4-4.5 3.8 1.5 5.8L12 15.4 7 18.6l1.5-5.8L4 9l5.8-.4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><b>Bagus</b><small>Paling cantik</small></button>
+  </div>
+  <p id="pgtCatatan" class="pgt-note" aria-live="polite"></p>
+  <button id="pgtMuatUlang" type="button" hidden>Muat ulang supaya berlaku penuh</button>
+  <div class="pgt-label">Suara</div>
+  <div class="pgt-suara">
+  <button id="musikBtn" class="pgt-saklar" type="button" title="Musik santai nyala/mati"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l11-2v13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17.5" cy="16" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/></svg> Musik <span id="musikStatus" class="menu-status">Nyala</span><i class="pgt-tuas"></i></button>
+  <button id="efekBtn" class="pgt-saklar" type="button" title="Efek suara + suara alam nyala/mati"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h4l5-4v13l-5-4H4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M16.5 9a4 4 0 0 1 0 6M19 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Efek suara <span id="efekStatus" class="menu-status">Nyala</span><i class="pgt-tuas"></i></button>
+  </div>
+  <div class="pgt-label">Pemain</div>
+  <button id="pgtNamaBtn" class="pgt-saklar" type="button" title="Nama di atas kepala pemain tampil/sembunyi"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-5l-3 3.5L9 15H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M7.5 10h9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Nama pemain <span id="pgtNamaStatus" class="menu-status">Tampil</span><i class="pgt-tuas"></i></button>
+  <button id="pgtSelesai" type="button">Selesai</button>
+</div>
 <div id="rupaPanel" role="dialog" aria-modal="false" aria-labelledby="rupaJudul">
   <button id="rupaClose" type="button" aria-label="Tutup"><svg class="kb-x" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button>
   <h2 id="rupaJudul">Tampilan</h2>
@@ -2570,13 +2647,71 @@ function plazaGridTexture() {
   return tex;
 }
 
+/* ================= Pengaturan (24 Nov): tingkat grafik + nama pemain, tersimpan per perangkat =================
+   BAGUS = nilai lama persis (pixel ratio 1,5, penghalus tepi, bayangan Kota, LED 90 ms, semua warga).
+   Hasil ukur Kota luar (pengaturan/alat/ukur-asli.json): ±440 ribu segitiga hanya dalam 31–33 draw call, dan interior yang
+   segitiganya LEBIH banyak tetap lancar di HP kentang -> yang ditekan adalah jumlah piksel (pixel ratio + penghalus tepi),
+   bayangan matahari Kota (lintasan bayangan = warga 58,9 ribu segitiga berkulit digambar dua kali + PCF per piksel),
+   unggahan tekstur layar LED 1024x512, dan jumlah warga (58,9 ribu segitiga, satu-satunya kelompok besar yang berkulit). */
+/* ==== PENGATURAN-START ==== */
+var PGT_KUNCI = 'kosan3d-pengaturan';
+var PGT_URUT = ['ringan', 'sedang', 'bagus'];
+var PGT_TINGKAT = {
+  ringan: { nama: 'Ringan', pr: 1, aa: false, bayangKota: false, ledMs: 500, warga: 'separuh',
+    catatan: 'Resolusi diturunkan, bayangan Kota dimatikan, warga Kota lebih sedikit. Paling enteng buat HP.' },
+  sedang: { nama: 'Sedang', pr: 1.25, aa: true, bayangKota: true, ledMs: 200, warga: 'semua',
+    catatan: 'Resolusi sedikit diturunkan, layar LED Kota lebih kalem. Tampilan nyaris sama.' },
+  bagus: { nama: 'Bagus', pr: 1.5, aa: true, bayangKota: true, ledMs: 90, warga: 'semua',
+    catatan: 'Tampilan penuh. Cocok buat HP kencang, tablet, dan laptop.' }
+};
+function pgtTebak(p) { /* tebakan awal KONSERVATIF dari perangkat: p = { mem (GB, boleh kosong), inti, sisi (sisi pendek layar, px CSS) } */
+  p = p || {};
+  var mem = typeof p.mem === 'number' && p.mem > 0 ? p.mem : null, inti = typeof p.inti === 'number' && p.inti > 0 ? p.inti : null;
+  var kecil = typeof p.sisi === 'number' && p.sisi > 0 && p.sisi < 600; /* layar HP (bukan tablet / laptop) */
+  if (mem !== null) {
+    if (mem <= 4) return kecil || (inti !== null && inti <= 4) ? 'ringan' : 'sedang';
+    if (mem <= 6 || (inti !== null && inti <= 4)) return 'sedang';
+    return 'bagus';
+  }
+  if (inti !== null && inti <= 4) return 'sedang'; /* memori tak terbaca (Safari): jangan langsung Ringan */
+  return kecil && inti === null ? 'sedang' : 'bagus';
+}
+function pgtBaca(teks, perangkat) { /* isi localStorage (boleh rusak / kosong) -> { grafik, nama, otomatis } */
+  var o = null;
+  try { o = teks ? JSON.parse(teks) : null; } catch (e) { o = null; }
+  var ada = !!o && typeof o === 'object' && PGT_URUT.indexOf(o.grafik) !== -1;
+  return { grafik: ada ? o.grafik : pgtTebak(perangkat), nama: !o || typeof o !== 'object' || o.nama !== false, otomatis: !ada };
+}
+function pgtTeks(s) { return JSON.stringify({ grafik: PGT_URUT.indexOf(s.grafik) !== -1 ? s.grafik : 'bagus', nama: s.nama !== false }); }
+function pgtWargaPilih(daftar, cara) { /* 'semua' -> null (tanpa saringan). 'separuh': yang duduk + jaga tetap (kursinya memang terisi),
+     pejalan kaki selang-seling, kelompok ngobrol tinggal lima orang pertama (dua kelompok utuh) */
+  if (cara !== 'separuh') return null;
+  var n = { jalan: 0, ngobrol: 0 };
+  return daftar.map(function (w) {
+    if (w.jenis === 'jalan') return (n.jalan++ % 2) === 0;
+    if (w.jenis === 'ngobrol') return n.ngobrol++ < 5;
+    return true;
+  });
+}
+/* ==== PENGATURAN-END ==== */
+var PGT = (function () {
+  var teks = null, nav = typeof navigator !== 'undefined' ? navigator : {};
+  try { teks = localStorage.getItem(PGT_KUNCI); } catch (e) { teks = null; }
+  var s = pgtBaca(teks, { mem: nav.deviceMemory, inti: nav.hardwareConcurrency, sisi: typeof screen !== 'undefined' ? Math.min(screen.width || 0, screen.height || 0) : 0 });
+  var m = /[?&]grafik=(ringan|sedang|bagus)\b/.exec(typeof location !== 'undefined' ? location.search : ''); /* alat uji: ?grafik=bagus (tidak disimpan) */
+  if (m) { s.grafik = m[1]; s.otomatis = false; }
+  return s;
+})();
+var PGT_AA = PGT_TINGKAT[PGT.grafik].aa; /* penghalus tepi ditetapkan saat kanvas dibuat -> ganti dari / ke Ringan baru penuh sesudah muat ulang */
+
 /* ---------- renderer / scene / kamera ---------- */
 var container = document.getElementById('scene');
-var renderer = new THREE.WebGLRenderer({ antialias: true });
+var renderer = new THREE.WebGLRenderer({ antialias: PGT_AA }); /* Pengaturan: BAGUS / SEDANG = true (nilai lama) */
 /* Ronde 28 — pixel ratio dibatasi 1,5 (vonis HP Ryan 19:17: halaman
    ngeframe, dulu smooth): di HP DPR 2–3, render 2x = piksel ~78% lebih
    banyak dari 1,5x; 1,5 masih tajam di HP, FPS naik jelas. */
 var KOSAN_PIXEL_RATIO_MAX = 1.5;
+KOSAN_PIXEL_RATIO_MAX = PGT_TINGKAT[PGT.grafik].pr; /* Pengaturan: BAGUS = 1,5 (nilai lama) */
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, KOSAN_PIXEL_RATIO_MAX));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
@@ -6898,6 +7033,7 @@ function makeLabel(text) {
   var spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
   spr.scale.set(2.4, 0.6, 1);
   spr.position.y = 2.05;
+  spr.material.visible = PGT.nama; /* Pengaturan: nama pemain tampil / sembunyi (terpisah dari .visible milik pose tidur) */
   return { sprite: spr, canvas: cv, ctx: ctx, texture: tex };
 }
 function setLabel(label, text) {
@@ -12047,6 +12183,69 @@ function rupaTutup() {
 document.getElementById('rupaBtn').addEventListener('click', function () { rupaBuka(); });
 document.getElementById('rupaClose').addEventListener('click', function () { rupaTutup(); });
 document.getElementById('rupaSelesai').addEventListener('click', function () { rupaTutup(); });
+
+/* ================= Pengaturan (24 Nov) — terapkan tingkat grafik + panel ================= */
+function pgtTerapkanKota() { /* aman dipanggil kapan saja (Kota belum dibangun = tidak berbuat apa-apa); BAGUS = keadaan bawaan */
+  var T = PGT_TINGKAT[PGT.grafik];
+  if (kotaMatahari && kotaMatahari.castShadow !== T.bayangKota) kotaMatahari.castShadow = T.bayangKota;
+  if (KOTA_NPC_MESH && KOTA_NPC_AWAL) {
+    var g = KOTA_NPC_MESH.geometry, pilih = pgtWargaPilih(KOTA_NPC, T.warga);
+    if (!pilih) {
+      if (g.userData.pgtAsli && g.index !== g.userData.pgtAsli) g.setIndex(g.userData.pgtAsli);
+    } else if (!KOTA_NPC_PILIH) {
+      if (!g.userData.pgtAsli) g.userData.pgtAsli = g.index;
+      if (!g.userData.pgtSaring) {
+        var asal = g.userData.pgtAsli.array, isi = [];
+        for (var i = 0; i < pilih.length; i++) if (pilih[i]) for (var q = KOTA_NPC_AWAL[i]; q < KOTA_NPC_AWAL[i + 1]; q++) isi.push(asal[q]);
+        g.userData.pgtSaring = new THREE.BufferAttribute(new asal.constructor(isi), 1);
+      }
+      g.setIndex(g.userData.pgtSaring);
+    }
+    KOTA_NPC_PILIH = pilih;
+  }
+}
+function pgtTerapkan() {
+  var T = PGT_TINGKAT[PGT.grafik];
+  KOTA_LED_SELANG = T.ledMs;
+  if (KOSAN_PIXEL_RATIO_MAX !== T.pr) { KOSAN_PIXEL_RATIO_MAX = T.pr; kosanResize(); }
+  pgtTerapkanKota();
+  var tampil = PGT.nama;
+  if (avatarLabel) avatarLabel.sprite.material.visible = tampil;
+  for (var id in remotePlayers) { var re = remotePlayers[id]; if (re && re.label) re.label.sprite.material.visible = tampil; }
+}
+function pgtSimpan() { PGT.otomatis = false; try { localStorage.setItem(PGT_KUNCI, pgtTeks(PGT)); } catch (e) { /* abaikan */ } }
+var pgtPanel = document.getElementById('pgtPanel');
+function pgtRender() {
+  [].forEach.call(pgtPanel.querySelectorAll('[data-grafik]'), function (b) { b.setAttribute('aria-checked', b.dataset.grafik === PGT.grafik ? 'true' : 'false'); });
+  var T = PGT_TINGKAT[PGT.grafik], perluMuat = T.aa !== PGT_AA;
+  document.getElementById('pgtCatatan').textContent = T.catatan + (PGT.otomatis ? ' Dipilih otomatis buat perangkat ini — bebas diganti.' : '')
+    + (perluMuat ? ' Penghalus tepi baru ikut berubah sesudah muat ulang.' : '');
+  document.getElementById('pgtMuatUlang').hidden = !perluMuat;
+  var st = document.getElementById('pgtNamaStatus');
+  st.textContent = PGT.nama ? 'Tampil' : 'Sembunyi'; st.classList.toggle('mati', !PGT.nama);
+  if (typeof suaraMenuPerbarui === 'function') suaraMenuPerbarui();
+}
+function pgtBuka() {
+  if (typeof rupaTutup === 'function') rupaTutup();
+  closeCard();
+  pgtRender();
+  pgtPanel.classList.add('open');
+}
+function pgtTutup() { pgtPanel.classList.remove('open'); }
+[].forEach.call(pgtPanel.querySelectorAll('[data-grafik]'), function (b) {
+  b.addEventListener('click', function () {
+    if (PGT_URUT.indexOf(b.dataset.grafik) === -1) return;
+    PGT.grafik = b.dataset.grafik; pgtSimpan(); pgtTerapkan(); pgtRender();
+  });
+});
+document.getElementById('pgtNamaBtn').addEventListener('click', function () { PGT.nama = !PGT.nama; pgtSimpan(); pgtTerapkan(); pgtRender(); });
+document.getElementById('pgtMuatUlang').addEventListener('click', function () { location.reload(); });
+document.getElementById('pgtBtn').addEventListener('click', function () { if (pgtPanel.classList.contains('open')) pgtTutup(); else pgtBuka(); });
+document.getElementById('pgtClose').addEventListener('click', function () { pgtTutup(); });
+document.getElementById('pgtSelesai').addEventListener('click', function () { pgtTutup(); });
+document.getElementById('rupaBtn').addEventListener('click', function () { pgtTutup(); }); /* dua panel tidak bertumpuk */
+['pointerdown', 'touchstart', 'mousedown', 'wheel'].forEach(function (n) { pgtPanel.addEventListener(n, function (e) { e.stopPropagation(); }, { passive: true }); }); /* sentuhan di panel tidak menggerakkan kamera / joystick */
+pgtTerapkan();
 var ktaBtnEl = document.getElementById('ktaBtn');
 if (ktaBtnEl) ktaBtnEl.addEventListener('click', function () { ktaBuka(); });
 var ktaCloseEl = document.getElementById('ktaClose');
@@ -16565,7 +16764,8 @@ function kotaBangunLed(scn) {
   scn.add(KOTA_LED_MESH); kotaMeshDaftar.push(KOTA_LED_MESH);
   kotaLedLukis(performance.now());
 }
-function kotaLedTick(now) { if (now - kotaLedTerakhir > 90) { kotaLedTerakhir = now; kotaLedLukis(now); } }
+var KOTA_LED_SELANG = PGT_TINGKAT[PGT.grafik].ledMs; /* Pengaturan: selang lukis layar LED (BAGUS = 90 ms, nilai lama) */
+function kotaLedTick(now) { if (now - kotaLedTerakhir > KOTA_LED_SELANG) { kotaLedTerakhir = now; kotaLedLukis(now); } }
 function kotaLedLukis(now) {
   var ctx = KOTA_LED_KANVAS.getContext('2d'), t = now / 1000, P = KOTA_LED_ACARA[kotaLedProgram], R = KOTA_LED_W.utama, w = R[2], h = R[3];
   ctx.save(); ctx.beginPath(); ctx.rect(R[0], R[1], w, h); ctx.clip(); ctx.translate(R[0], R[1]);
@@ -16640,6 +16840,7 @@ function kotaLedBerikut() { kotaLedProgram = (kotaLedProgram + 1) % KOTA_LED_ACA
    Gaya pakaian beragam (kaus, kemeja, blazer, gaun, mantel, hoodie; rok, celana, jins; tas belanja, ransel,
    kacamata hitam, topi). Wajah = tekstur wajah avatar (krTeksturWajah) di atlas. Gerak dari jam (KOTA_NPC). */
 var KOTA_NPC_MESH = null, KOTA_NPC_TULANG = [], KOTA_NPC_RT = [];
+var KOTA_NPC_AWAL = null, KOTA_NPC_PILIH = null; /* Pengaturan: saringan warga (null = semua, nilai lama) */
 function kotaNpcAtlas() { /* 1024 x 512: wajah cewek | wajah cowok (setengah resolusi) + petak putih */
   var cv = kotaKanvas(1024, 512), ctx = cv.getContext('2d');
   ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 1024, 512);
@@ -16649,7 +16850,9 @@ function kotaNpcAtlas() { /* 1024 x 512: wajah cewek | wajah cowok (setengah res
 function kotaNpcBangun(scn) { /* warga jalan kota */
   var h = kotaWargaBangun(KOTA_NPC, scn, 'kota-warga');
   KOTA_NPC_MESH = h.mesh; KOTA_NPC_TULANG = h.tulang; KOTA_NPC_RT = h.rt;
+  KOTA_NPC_AWAL = h.awal; KOTA_NPC_PILIH = null;
   kotaNpcTick(0, Date.now());
+  pgtTerapkanKota(); /* Pengaturan: tingkat grafik dihormati sebelum pemanasan shader */
 }
 var KOTA_NPC_ATLAS = null;
 function kotaWargaBangun(DAFTAR, scn, nama) { /* daftar warga -> satu SkinnedMesh + tulang per warga */
@@ -16658,7 +16861,9 @@ function kotaWargaBangun(DAFTAR, scn, nama) { /* daftar warga -> satu SkinnedMes
   var tulang = [], m4 = new THREE.Matrix4(), m3 = new THREE.Matrix3(), v = new THREE.Vector3(), n = new THREE.Vector3();
   var PUTIH_U = 32 / 1024, PUTIH_V = 1 - 400 / 512;
   var kulitDasar = new THREE.Color(KR_SKIN);
+  var AWAL = []; /* Pengaturan: awal indeks tiap warga (untuk menyaring warga di tingkat Ringan) */
   DAFTAR.forEach(function (npc, k) {
+    AWAL.push(idx.length);
     var r = acak(npc.benih), cewek = npc.cewek !== undefined ? npc.cewek : r() < 0.5;
     /* gaya */
     var palet = [0x1d1d24, 0xf3efe8, 0x7a1f2b, 0x1d3557, 0xc9a24a, 0x2a9d8f, 0xe76f51, 0x6d597a, 0x9bb58a, 0xe9c46a, 0x3a5a80, 0xb56576, 0x264653, 0xd4a373];
@@ -16772,7 +16977,8 @@ function kotaWargaBangun(DAFTAR, scn, nama) { /* daftar warga -> satu SkinnedMes
   mesh.bind(new THREE.Skeleton(tulang), new THREE.Matrix4());
   mesh.frustumCulled = false; mesh.castShadow = true; mesh.receiveShadow = false; mesh.name = nama;
   scn.add(mesh);
-  return { mesh: mesh, tulang: TULANG, rt: RT };
+  AWAL.push(idx.length);
+  return { mesh: mesh, tulang: TULANG, rt: RT, awal: AWAL };
 }
 function kotaWargaPose(DAFTAR, TULANG, RT, dt, now, keadaan) { /* pose semua warga satu daftar */
   for (var i = 0; i < DAFTAR.length; i++) kotaWargaPoseSatu(TULANG[i], RT[i], keadaan(DAFTAR[i]), dt, now / 1000);
@@ -16780,7 +16986,7 @@ function kotaWargaPose(DAFTAR, TULANG, RT, dt, now, keadaan) { /* pose semua war
 function kotaNpcTick(dt, now) {
   if (!KOTA_NPC_MESH) return;
   var t = now / 1000;
-  for (var i = 0; i < KOTA_NPC.length; i++) kotaWargaPoseSatu(KOTA_NPC_TULANG[i], KOTA_NPC_RT[i], kotaNpcKeadaan(KOTA_NPC[i], t), dt, t);
+  for (var i = 0; i < KOTA_NPC.length; i++) { if (KOTA_NPC_PILIH && !KOTA_NPC_PILIH[i]) continue; kotaWargaPoseSatu(KOTA_NPC_TULANG[i], KOTA_NPC_RT[i], kotaNpcKeadaan(KOTA_NPC[i], t), dt, t); }
 }
 function kotaWargaPoseSatu(B, rt, s, dt, t) {
   var k = Math.min(1, dt * 8), kg = Math.min(1, dt * 5);
@@ -17869,6 +18075,7 @@ function kotaTahapCahaya(S) {
   sun.shadow.camera.left = -44; sun.shadow.camera.right = 44; sun.shadow.camera.top = 44; sun.shadow.camera.bottom = -44;
   sun.shadow.camera.near = 1; sun.shadow.camera.far = 560; sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.02;
   S.add(sun); S.add(sun.target); kotaMatahari = sun;
+  pgtTerapkanKota(); /* Pengaturan: Ringan = tanpa bayangan matahari Kota (BAGUS / SEDANG tidak mengubah apa pun) */
   S.add(new THREE.HemisphereLight(0xc4e2ff, 0x9c958a, 1.05));
   var isi = new THREE.DirectionalLight(0xe8f0ff, 0.55); isi.position.set(-40, 50, -60); S.add(isi);
 }
