@@ -9,7 +9,7 @@ const HTML = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const antara = (a, b) => { const i = HTML.indexOf(a), j = HTML.indexOf(b, i); assert.ok(i > 0 && j > i, a); return HTML.slice(i, j); };
 const fungsi = (n) => { const a = HTML.indexOf('function ' + n + '('); assert.ok(a > 0, n); return HTML.slice(a, HTML.indexOf('\n}\n', a) + 3); };
 const P = new Function(antara('/* ==== PENGATURAN-START ==== */', '/* ==== PENGATURAN-END ==== */')
-  + '\nreturn { PGT_KUNCI, PGT_URUT, PGT_TINGKAT, pgtTebak, pgtBaca, pgtTeks, pgtWargaPilih };')();
+  + '\nreturn { PGT_KUNCI, PGT_URUT, PGT_TINGKAT, pgtBaca, pgtTeks, pgtWargaPilih };')();
 
 test('Pengaturan: tombol ada di menu ☰ (ikon SVG senada), Musik + Efek suara pindah ke panel dengan id lama', () => {
   const menu = antara('<div id="menuDrop">', '<button id="exitBtn"');
@@ -53,11 +53,11 @@ test('Pengaturan: simpan + baca localStorage (pulang-pergi), simpanan rusak tida
   assert.equal(P.PGT_KUNCI, 'kosan3d-pengaturan');
   for (const g of P.PGT_URUT) for (const nama of [true, false]) {
     const s = P.pgtBaca(P.pgtTeks({ grafik: g, nama }), { mem: 8, inti: 8, sisi: 800 });
-    assert.deepEqual(s, { grafik: g, nama, otomatis: false });
+    assert.deepEqual(s, { grafik: g, nama });
   }
   for (const rusak of ['', null, undefined, '{', '[]', '42', '{"grafik":"ultra"}', '{"grafik":5}']) {
     const s = P.pgtBaca(rusak, { mem: 8, inti: 8, sisi: 800 });
-    assert.equal(s.grafik, 'bagus', String(rusak)); assert.equal(s.otomatis, true); assert.equal(s.nama, true);
+    assert.equal(s.grafik, 'bagus', String(rusak)); assert.equal(s.nama, true);
   }
   assert.equal(JSON.parse(P.pgtTeks({ grafik: 'aneh', nama: true })).grafik, 'bagus');
   assert.match(fungsi('pgtSimpan'), /localStorage\.setItem\(PGT_KUNCI, pgtTeks\(PGT\)\)/);
@@ -65,18 +65,12 @@ test('Pengaturan: simpan + baca localStorage (pulang-pergi), simpanan rusak tida
   assert.match(HTML, /localStorage\.setItem\('kosan3d-suara'/, 'musik tetap disimpan logika lama');
 });
 
-test('Pengaturan: tebakan awal konservatif dari perangkat, tidak pernah di luar tiga tingkat', () => {
-  assert.equal(P.pgtTebak({ mem: 4, inti: 8, sisi: 360 }), 'ringan', 'HP 4 GB');
-  assert.equal(P.pgtTebak({ mem: 2, inti: 4, sisi: 360 }), 'ringan');
-  assert.equal(P.pgtTebak({ mem: 4, inti: 8, sisi: 800 }), 'sedang', 'tablet 4 GB');
-  assert.equal(P.pgtTebak({ mem: 6, inti: 8, sisi: 400 }), 'sedang');
-  assert.equal(P.pgtTebak({ mem: 8, inti: 8, sisi: 400 }), 'bagus');
-  assert.equal(P.pgtTebak({ mem: 8, inti: 2, sisi: 900 }), 'sedang');
-  assert.equal(P.pgtTebak({ inti: 6, sisi: 820 }), 'bagus', 'memori tak terbaca (Safari), tablet');
-  assert.equal(P.pgtTebak({ inti: 4, sisi: 390 }), 'sedang');
-  assert.equal(P.pgtTebak({}), 'bagus'); assert.equal(P.pgtTebak(), 'bagus');
-  for (const mem of [undefined, 0.5, 1, 2, 4, 8, 16]) for (const inti of [undefined, 1, 2, 4, 6, 8, 12]) for (const sisi of [0, 320, 412, 768, 1080])
-    assert.ok(P.PGT_URUT.includes(P.pgtTebak({ mem, inti, sisi })));
+test('Pengaturan: tanpa tebak otomatis — belum pernah memilih selalu mulai dari Bagus, apa pun perangkatnya', () => {
+  assert.ok(!HTML.includes('pgtTebak'), 'tebakan perangkat dicabut');
+  assert.ok(!HTML.includes('deviceMemory') && !HTML.includes('Dipilih otomatis'));
+  assert.equal(P.pgtBaca(null).grafik, 'bagus');
+  assert.equal(P.pgtBaca(null, { mem: 2, inti: 4, sisi: 360 }).grafik, 'bagus', 'HP kecil pun tetap Bagus');
+  assert.equal(P.PGT_TINGKAT.bagus.pr, 1.5); assert.equal(P.PGT_TINGKAT.bagus.aa, true);
 });
 
 test('Pengaturan: Ringan menyaring warga Kota — yang duduk + jaga tetap, pejalan selang-seling, ngobrol lima orang', () => {

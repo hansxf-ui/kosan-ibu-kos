@@ -2664,23 +2664,11 @@ var PGT_TINGKAT = {
   bagus: { nama: 'Bagus', pr: 1.5, aa: true, bayangKota: true, ledMs: 90, warga: 'semua',
     catatan: 'Tampilan penuh. Cocok buat HP kencang, tablet, dan laptop.' }
 };
-function pgtTebak(p) { /* tebakan awal KONSERVATIF dari perangkat: p = { mem (GB, boleh kosong), inti, sisi (sisi pendek layar, px CSS) } */
-  p = p || {};
-  var mem = typeof p.mem === 'number' && p.mem > 0 ? p.mem : null, inti = typeof p.inti === 'number' && p.inti > 0 ? p.inti : null;
-  var kecil = typeof p.sisi === 'number' && p.sisi > 0 && p.sisi < 600; /* layar HP (bukan tablet / laptop) */
-  if (mem !== null) {
-    if (mem <= 4) return kecil || (inti !== null && inti <= 4) ? 'ringan' : 'sedang';
-    if (mem <= 6 || (inti !== null && inti <= 4)) return 'sedang';
-    return 'bagus';
-  }
-  if (inti !== null && inti <= 4) return 'sedang'; /* memori tak terbaca (Safari): jangan langsung Ringan */
-  return kecil && inti === null ? 'sedang' : 'bagus';
-}
-function pgtBaca(teks, perangkat) { /* isi localStorage (boleh rusak / kosong) -> { grafik, nama, otomatis } */
+function pgtBaca(teks) { /* isi localStorage (boleh rusak / kosong) -> { grafik, nama }. Belum pernah memilih = BAGUS (Ryan 24 Nov: tanpa tebak otomatis) */
   var o = null;
   try { o = teks ? JSON.parse(teks) : null; } catch (e) { o = null; }
   var ada = !!o && typeof o === 'object' && PGT_URUT.indexOf(o.grafik) !== -1;
-  return { grafik: ada ? o.grafik : pgtTebak(perangkat), nama: !o || typeof o !== 'object' || o.nama !== false, otomatis: !ada };
+  return { grafik: ada ? o.grafik : 'bagus', nama: !o || typeof o !== 'object' || o.nama !== false };
 }
 function pgtTeks(s) { return JSON.stringify({ grafik: PGT_URUT.indexOf(s.grafik) !== -1 ? s.grafik : 'bagus', nama: s.nama !== false }); }
 function pgtWargaPilih(daftar, cara) { /* 'semua' -> null (tanpa saringan). 'separuh': yang duduk + jaga tetap (kursinya memang terisi),
@@ -2697,9 +2685,9 @@ function pgtWargaPilih(daftar, cara) { /* 'semua' -> null (tanpa saringan). 'sep
 var PGT = (function () {
   var teks = null, nav = typeof navigator !== 'undefined' ? navigator : {};
   try { teks = localStorage.getItem(PGT_KUNCI); } catch (e) { teks = null; }
-  var s = pgtBaca(teks, { mem: nav.deviceMemory, inti: nav.hardwareConcurrency, sisi: typeof screen !== 'undefined' ? Math.min(screen.width || 0, screen.height || 0) : 0 });
+  var s = pgtBaca(teks);
   var m = /[?&]grafik=(ringan|sedang|bagus)\b/.exec(typeof location !== 'undefined' ? location.search : ''); /* alat uji: ?grafik=bagus (tidak disimpan) */
-  if (m) { s.grafik = m[1]; s.otomatis = false; }
+  if (m) s.grafik = m[1];
   return s;
 })();
 var PGT_AA = PGT_TINGKAT[PGT.grafik].aa; /* penghalus tepi ditetapkan saat kanvas dibuat -> ganti dari / ke Ringan baru penuh sesudah muat ulang */
@@ -12213,12 +12201,12 @@ function pgtTerapkan() {
   if (avatarLabel) avatarLabel.sprite.material.visible = tampil;
   for (var id in remotePlayers) { var re = remotePlayers[id]; if (re && re.label) re.label.sprite.material.visible = tampil; }
 }
-function pgtSimpan() { PGT.otomatis = false; try { localStorage.setItem(PGT_KUNCI, pgtTeks(PGT)); } catch (e) { /* abaikan */ } }
+function pgtSimpan() { try { localStorage.setItem(PGT_KUNCI, pgtTeks(PGT)); } catch (e) { /* abaikan */ } }
 var pgtPanel = document.getElementById('pgtPanel');
 function pgtRender() {
   [].forEach.call(pgtPanel.querySelectorAll('[data-grafik]'), function (b) { b.setAttribute('aria-checked', b.dataset.grafik === PGT.grafik ? 'true' : 'false'); });
   var T = PGT_TINGKAT[PGT.grafik], perluMuat = T.aa !== PGT_AA;
-  document.getElementById('pgtCatatan').textContent = T.catatan + (PGT.otomatis ? ' Dipilih otomatis buat perangkat ini — bebas diganti.' : '')
+  document.getElementById('pgtCatatan').textContent = T.catatan
     + (perluMuat ? ' Penghalus tepi baru ikut berubah sesudah muat ulang.' : '');
   document.getElementById('pgtMuatUlang').hidden = !perluMuat;
   var st = document.getElementById('pgtNamaStatus');
