@@ -7901,7 +7901,7 @@ function bangunToko(S, K, KD, M2) {
   [-14.6, -13.3, -10.7, -9.4].forEach(function (x) { tb(KD, nyala, LAMPU, new THREE.CylinderGeometry(0.07, 0.07, 0.016, 12), x, 2.742, 8.55); });
   [-15.55, -8.45].forEach(function (x) { kt(K, polos, ARANG, 0.07, 2.66, 0.07, x, 1.45, 7.62); }); /* dua tiang kanopi ramping */
   /* papan nama (teks diukur measureText di jalanPapan) di lis, 2 cm di depan mukanya */
-  var papan = jalanPapan(TOKO_NAMA, 'dekor kamar · bisa dimasukin', '#1f4d4a', 2.9);
+  var papan = jalanPapan(TOKO_NAMA, 'dekor kamar · bisa dimasukin', '#f7f5ef', 2.9, '#141414');
   papan.position.set(cx, 3.34, 8.95); papan.rotation.y = Math.PI; S.add(papan); latar.push(papan);
   [-13.75, -10.25].forEach(function (x) { /* 2 lampu sorot papan */
     kt(KD, polos, ARANG, 0.03, 0.03, 0.3, x, 3.9, 8.84);
