@@ -97,7 +97,7 @@ test('fasad: rumah hijau diganti Toko Perabot, papan + kotak ketuk + latar halam
   assert.match(jalan, /\[TOKO_KOTAK, 'toko', 3\.0\]/);
   assert.match(jalan, /\.concat\(kafeLatar\)\.concat\(tokoLatar\)\)/);
   assert.match(TOKO, /var TOKO_KOTAK = \{ minX: -15\.5, maxX: -8\.5, minZ: 6\.85, maxZ: 9\.3 \};/);
-  assert.match(TOKO, /var TOKO_NAMA = 'TOKO PERABOT';/);
+  assert.match(TOKO, /var TOKO_NAMA = 'TOKO DEKOR';/);
   const b = blok('bangunToko');
   assert.match(b, /jalanPapan\(TOKO_NAMA, 'dekor kamar · bisa dimasukin', '#f7f5ef', 2\.9, '#141414'\)/); /* jalanPapan menyusutkan font dengan measureText */
   assert.match(b, /papan\.position\.set\(cx, 3\.34, 8\.95\); papan\.rotation\.y = Math\.PI;/);
@@ -111,7 +111,7 @@ test('fasad: rumah hijau diganti Toko Perabot, papan + kotak ketuk + latar halam
 test("alam 'toko': dikenal multiplayer, scene + batas + ketuk + keluar terpasang, tamu boleh masuk, pindah alam lain keluar toko dulu", () => {
   assert.match(blok('mpRealmDikenal'), /if \(realm === 'toko'\) return realm;/);
   assert.match(blok('sceneUntukRealm'), /if \(realm === 'toko'\) return tokoScene;/);
-  assert.match(blok('petaLabelLokasi'), /if \(realm === 'toko'\) return 'Toko Perabot';/);
+  assert.match(blok('petaLabelLokasi'), /if \(realm === 'toko'\) return 'Toko Dekor';/);
   const ani = blok('animate');
   assert.match(ani, /var bounds = myRealm === 'toko' \? TOKO : /);
   assert.match(ani, /\} else if \(myRealm === 'toko'\) \{\n      var ctk = tokoPadat\(nx, nz\);/);

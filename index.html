@@ -2255,7 +2255,7 @@ function gedungDariKamar(room) { /* 1-10 A, 11-20 B, 21-30 C, 31-40 D, 41-50 E, 
 function petaLabelLokasi(realm) { /* alam -> nama tempat yang kebaca */
   if (realm === 'yard') return 'Halaman Kosan';
   if (realm === 'jalan') return 'Jalan Kampung';
-  if (realm === 'toko') return 'Toko Perabot';
+  if (realm === 'toko') return 'Toko Dekor';
   if (realm === 'kota') return 'Kota';
   if (realm === 'kota-hotel') return 'Kota — Lobi Hotel Kencana';
   if (realm === 'kota-kafe') return 'Kota — Kafe Bulan';
@@ -7765,7 +7765,7 @@ function dudukBeanBag() {
    diketuk -> kartu barang -> Beli (alur lama: tokoBeli -> /api/belanja). Tamu boleh masuk + lihat;
    beli tetap khusus penghuni (perilaku toko lama). Masuk hanya dari Jalan Kampung, keluar kembali ke sana. */
 var TOKO_KOTAK = { minX: -15.5, maxX: -8.5, minZ: 6.85, maxZ: 9.3 }; /* teras + fasad (ketuk = kartu Toko Perabot) */
-var TOKO_NAMA = 'TOKO PERABOT';
+var TOKO_NAMA = 'TOKO DEKOR';
 var TOKO = { minX: -3.5, maxX: 3.5, minZ: -2.5, maxZ: 2.5 }; /* batas jalan interior (dinding x +-4, z +-3) */
 var TOKO_SPAWN = { x: 0, z: -0.3, rot: Math.PI };
 var TOKO_JARAK_BELI = 2.4; /* m dari kotak pajangan */
@@ -7931,7 +7931,7 @@ function bangunToko(S, K, KD, M2) {
   return latar;
 }
 function showTokoCard() {
-  cardTitle.innerHTML = iconSvg('toko') + ' Toko Perabot';
+  cardTitle.innerHTML = iconSvg('toko') + ' Toko Dekor';
   cardActions.innerHTML = '';
   var dekat = jarakKeKotak(avatarPos.x, avatarPos.z, TOKO_KOTAK) <= JALAN_JARAK;
   var html = '<p>Toko dekor kamar: cermin, akuarium, bean bag, rak buku, meja belajar, meja rias — mulai <b>' + rupiah(tokoHargaTermurah()) + '</b>. Barangnya dipajang di dalam, yang dibeli langsung terpasang di kamarmu.</p>';
@@ -8093,7 +8093,7 @@ function enterToko() {
   closeCard();
   mpSaatPindahAlam();
   if (ktaIsResident() && !DOMPET.data) dompetMuat();
-  toastKosan(ktaIsResident() ? '🛋️ Toko Perabot — ketuk barang buat lihat harga + beli' : '🛋️ Toko Perabot — tamu boleh lihat-lihat; beli khusus penghuni');
+  toastKosan(ktaIsResident() ? '🛋️ Toko Dekor — ketuk barang buat lihat harga + beli' : '🛋️ Toko Dekor — tamu boleh lihat-lihat; beli khusus penghuni');
 }
 function exitToko() { /* kembali ke Jalan Kampung, di depan pintu toko */
   if (myRealm !== 'toko') return;
@@ -8914,7 +8914,7 @@ function enterJalan(lewat) {
   document.getElementById('exitBtn').style.display = 'inline-block';
   closeCard();
   mpSaatPindahAlam();
-  toastKosan('🛣️ Jalan Kampung — ada warung, Toko Perabot, Kedai Kopi, pos ronda, dan si Oyen');
+  toastKosan('🛣️ Jalan Kampung — ada warung, Toko Dekor, Kedai Kopi, pos ronda, dan si Oyen');
 }
 function exitJalan(lewat) {
   if (myRealm !== 'jalan') return;
