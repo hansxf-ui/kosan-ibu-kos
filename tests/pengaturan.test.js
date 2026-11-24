@@ -41,7 +41,7 @@ test('Pengaturan: BAGUS = nilai lama persis (pixel ratio 1,5, penghalus tepi, ba
   assert.equal(P.pgtWargaPilih([{ jenis: 'jalan' }, { jenis: 'duduk' }], 'semua'), null, 'tanpa saringan warga');
   assert.ok(HTML.includes('var KOSAN_PIXEL_RATIO_MAX = 1.5;\nKOSAN_PIXEL_RATIO_MAX = PGT_TINGKAT[PGT.grafik].pr;'));
   assert.ok(HTML.includes('new THREE.WebGLRenderer({ antialias: PGT_AA })') && HTML.includes('var PGT_AA = PGT_TINGKAT[PGT.grafik].aa;'));
-  assert.ok(HTML.includes('var KOTA_LED_SELANG = PGT_TINGKAT[PGT.grafik].ledMs;') && HTML.includes('if (now - kotaLedTerakhir > KOTA_LED_SELANG)'));
+  assert.ok(HTML.includes('var KOTA_LED_SELANG = PGT_TINGKAT[PGT.grafik].ledMs;') && HTML.includes('if (now - kotaLedTerakhir > selang)') && P.PGT_TINGKAT.ringan.ledMs >= 10000 /* Ringan: LED nyaris diam, bukan sentakan berkala */);
   assert.ok(HTML.includes('sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024);'), 'bayangan Kota bawaan tetap nyala');
   const k = fungsi('pgtTerapkanKota');
   assert.match(k, /if \(kotaMatahari && kotaMatahari\.castShadow !== T\.bayangKota\)/);

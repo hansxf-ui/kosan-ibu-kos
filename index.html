@@ -2657,8 +2657,8 @@ function plazaGridTexture() {
 var PGT_KUNCI = 'kosan3d-pengaturan';
 var PGT_URUT = ['ringan', 'sedang', 'bagus'];
 var PGT_TINGKAT = {
-  ringan: { nama: 'Ringan', pr: 1, aa: false, bayangKota: false, ledMs: 500, warga: 'separuh',
-    catatan: 'Resolusi diturunkan, bayangan Kota dimatikan, warga Kota lebih sedikit. Paling enteng buat HP.' },
+  ringan: { nama: 'Ringan', pr: 1, aa: false, bayangKota: false, ledMs: 20000, warga: 'separuh',
+    catatan: 'Resolusi diturunkan, bayangan Kota dimatikan, warga Kota lebih sedikit, layar LED Kota hampir diam. Paling enteng buat HP.' },
   sedang: { nama: 'Sedang', pr: 1.25, aa: true, bayangKota: true, ledMs: 200, warga: 'semua',
     catatan: 'Resolusi sedikit diturunkan, layar LED Kota lebih kalem. Tampilan nyaris sama.' },
   bagus: { nama: 'Bagus', pr: 1.5, aa: true, bayangKota: true, ledMs: 90, warga: 'semua',
@@ -16753,7 +16753,10 @@ function kotaBangunLed(scn) {
   kotaLedLukis(performance.now());
 }
 var KOTA_LED_SELANG = PGT_TINGKAT[PGT.grafik].ledMs; /* Pengaturan: selang lukis layar LED (BAGUS = 90 ms, nilai lama) */
-function kotaLedTick(now) { if (now - kotaLedTerakhir > KOTA_LED_SELANG) { kotaLedTerakhir = now; kotaLedLukis(now); } }
+function kotaLedTick(now) { /* Ringan: LED nyaris diam (lukis ulang tiap 0,5 dtk = sentakan berkala di HP, laporan Ryan 24 Nov); sapuan ganti acara 0,6 dtk tetap dilukis rapat */
+  var selang = now - kotaLedGanti < 600 ? Math.min(KOTA_LED_SELANG, 90) : KOTA_LED_SELANG;
+  if (now - kotaLedTerakhir > selang) { kotaLedTerakhir = now; kotaLedLukis(now); }
+}
 function kotaLedLukis(now) {
   var ctx = KOTA_LED_KANVAS.getContext('2d'), t = now / 1000, P = KOTA_LED_ACARA[kotaLedProgram], R = KOTA_LED_W.utama, w = R[2], h = R[3];
   ctx.save(); ctx.beginPath(); ctx.rect(R[0], R[1], w, h); ctx.clip(); ctx.translate(R[0], R[1]);
