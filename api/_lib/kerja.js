@@ -39,7 +39,14 @@ const KATALOG = {
   poster: { nama: 'Poster dinding', harga: 12000, jenis: 'dekor' },
   tanaman: { nama: 'Tanaman hias', harga: 20000, jenis: 'dekor' },
   karpet: { nama: 'Karpet bulu', harga: 35000, jenis: 'dekor' },
-  lampu_tumblr: { nama: 'Lampu tumblr', harga: 25000, jenis: 'dekor' }
+  lampu_tumblr: { nama: 'Lampu tumblr', harga: 25000, jenis: 'dekor' },
+  /* Toko Perabot (24 Nov): 6 dekor kamar baru, dijual + dipajang di Toko Perabot Jalan Kampung */
+  cermin: { nama: 'Cermin berdiri', harga: 30000, jenis: 'dekor' },
+  akuarium: { nama: 'Akuarium kecil', harga: 45000, jenis: 'dekor' },
+  bean_bag: { nama: 'Bean bag', harga: 50000, jenis: 'dekor' },
+  rak_buku: { nama: 'Rak buku', harga: 60000, jenis: 'dekor' },
+  meja_belajar: { nama: 'Meja belajar', harga: 80000, jenis: 'dekor' },
+  meja_rias: { nama: 'Meja rias', harga: 100000, jenis: 'dekor' }
 };
 const BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
