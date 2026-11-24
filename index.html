@@ -2819,6 +2819,7 @@ var M = {
   /* --- palet dapur modern Fase 1 (Task 5) --- */
   counterStone: new THREE.MeshLambertMaterial({ color: 0xe8e2d4 })
 };
+var KOS_POHON = []; /* pohon area kos: { jenis: 'bulat' | 'pipih', x, z, s, alam: 'halaman' | 'jalan', latar } -> dibangun kosPohonBangun() (gaya pohon Kota) */
 var GEO = {
   box: new THREE.BoxGeometry(1, 1, 1),
   sphere: new THREE.SphereGeometry(1, 20, 14),
@@ -3382,9 +3383,7 @@ function bangunHalamanModern() {
   /* pohon taman: batang + 2 tajuk PIPIH berlapis (cakram elipsoid — BEDA dari
      bola tree() + kerucut cemara); 2 tone hijau (gelap bawah, terang atas) */
   [[-38.5, -6], [-23.5, -10]].forEach(function (p) {
-    K.cat(0x8a5a33); K.tambah(G.beton, new THREE.CylinderGeometry(0.16, 0.22, 1.6, 10), p[0], 0.8, p[1]);
-    K.cat(0x2e6b34); K.tambah(G.polos, new THREE.SphereGeometry(1.15, 14, 10).scale(1, 0.55, 1), p[0], 2.0, p[1]);
-    K.cat(0x4a9e50); K.tambah(G.polos, new THREE.SphereGeometry(0.8, 12, 9).scale(1, 0.55, 1), p[0], 2.6, p[1]);
+    KOS_POHON.push({ jenis: 'pipih', x: p[0], z: p[1], alam: 'halaman' }); /* 24 Nov: dua tajuk pipih (jari 1,15 / 0,8, pipih 0,55) kini dibangun kosPohonBangun() bergaya pohon Kota */
   });
   /* bangku taman menghadap selatan (jalan): pola HL_BANGKU (kaki beton +
      dudukan + sandaran kayu; sandaran di utara = z 1,97) */
@@ -4011,12 +4010,7 @@ function buildWorld() {
      papan kini HANYA di dinding dalam ruangan. */
 
   /* pohon + bangku */
-  function tree(x, z) {
-    cyl(M.trunk, 0.22, 0.3, 2.2, x, 1.1, z);
-    ball(M.leaf, 1.5, x, 3.1, z);
-    ball(M.leaf2, 1.0, x + 0.8, 2.5, z + 0.3);
-    ball(M.leaf2, 0.9, x - 0.7, 2.6, z - 0.4);
-  }
+  function tree(x, z) { KOS_POHON.push({ jenis: 'bulat', x: x, z: z, s: 1, alam: 'halaman' }); } /* 24 Nov: bentuk dibangun kosPohonBangun() (gaya pohon Kota), posisi + ukuran tetap */
   tree(-17, 13); tree(17.5, 9); tree(-17, -11.5); /* revisi 17 Nov: pohon barat pindah (-17, 8) -> (-17, 13), tepi selatan celah — supaya papan KOMPLEK TETANGGA terbaca penuh dari yard */
   /* (bangku kayu lama di (3,5, 3,5) diganti bangku modern berpasangan — bangunHalamanModern) */
 
@@ -7531,13 +7525,7 @@ function lukisCatur(ctx, w, h) { /* papan catur 8x8 di bale-bale pos ronda */
   for (var j = 0; j < n; j++) for (var i = 0; i < n; i++) { ctx.fillStyle = (i + j) % 2 ? '#3b2a1c' : '#e9d9b8'; ctx.fillRect(i * s, j * s, s, s); }
   ctx.strokeStyle = '#2a1c10'; ctx.lineWidth = 3; ctx.strokeRect(1.5, 1.5, w - 3, h - 3);
 }
-function jalanPohon(Kp, polos, x, z, s) { /* pohon gaya halaman (tree() buildWorld): batang + 3 bola daun */
-  s = s || 1;
-  Kp.cat(0x8a5a33); Kp.tambah(polos, new THREE.CylinderGeometry(0.22 * s, 0.3 * s, 2.2 * s, 10), x, 1.1 * s, z);
-  Kp.cat(0x3f9e4d); Kp.tambah(polos, new THREE.SphereGeometry(1.5 * s, 16, 10), x, 3.1 * s, z);
-  Kp.cat(0x57b368); Kp.tambah(polos, new THREE.SphereGeometry(1.0 * s, 12, 8), x + 0.8 * s, 2.5 * s, z + 0.3 * s);
-  Kp.tambah(polos, new THREE.SphereGeometry(0.9 * s, 12, 8), x - 0.7 * s, 2.6 * s, z - 0.4 * s);
-}
+function jalanPohon(x, z, s, latar) { KOS_POHON.push({ jenis: 'bulat', x: x, z: z, s: s || 1, alam: 'jalan', latar: !!latar }); } /* pohon gaya halaman; 24 Nov: dibangun kosPohonBangun() (gaya pohon Kota). latar = ikut terlihat dari halaman */
 var jalanUtara = null; /* grup sisi utara (tembok kos, gerbang, punggung C/D): disembunyikan saat kamera di balik tembok */
 var jalanLatarHalaman = null; /* salinan jalan + sisi selatan di halaman (latar di balik pagar selatan) */
 function buildJalan() {
@@ -7714,7 +7702,7 @@ function buildJalan() {
   var kCelah = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.34, 0.02), jalanMat('celahKentongan', { color: 0x23252a })); kCelah.position.set(0, -0.55, 0.075); jalanKentongan.add(kCelah);
   jalanKentongan.traverse(function (o) { if (o.isMesh) { o.castShadow = true; o.userData = { interact: 'kentongan' }; jalanClickables.push(o); } });
   S.add(jalanKentongan);
-  jalanPohon(K, polos, 10, 10.9, 0.85); /* pohon mangga di belakang pos ronda */
+  jalanPohon(10, 10.9, 0.85, true); /* pohon mangga di belakang pos ronda */
   /* --- PALANG "SEGERA DIBUKA" di dua ujung --- */
   [PALANG_TIMUR, PALANG_BARAT].forEach(function (pk, ix) {
     var px = (pk.minX + pk.maxX) / 2, s = ix === 0 ? 1 : -1; /* s: arah luar */
@@ -7763,7 +7751,7 @@ function buildJalan() {
   /* pemandangan lewat celah gerbang: jalan setapak ke alun-alun (cermin jalur gerbang halaman z 14..29) + 2 pohon pembingkai */
   KT.kotak(cat(KT, polos, C.setapak), 2.4, 0.06, 13, JALAN_GERBANG_X, 0.0, -15.9);
   KT.kotak(cat(KT, polos, C.plaza), 30, 0.04, 20, JALAN_GERBANG_X, 0.0, -32.4);
-  jalanPohon(KC, polos, -20.5, -23.25); jalanPohon(KC, polos, -3.5, -23.25);
+  jalanPohon(-20.5, -23.25); jalanPohon(-3.5, -23.25);
   /* punggung Gedung C/D di balik tembok = kulit gedung modern yang SAMA dengan di
      halaman (gedungKulit tanpa muka depan), dicerminkan seperti C/D: grup scale.z -1,
      x_jalan = x_halaman - 27, z_jalan = -23,65 - z_lokalAB (punggung C/D z_halaman
@@ -18374,6 +18362,96 @@ function kotaTick(dt, now) {
   } else if (kotaRuangKini && typeof kotaRuangTick === 'function') kotaRuangTick(dt, now);
 }
 /* ================= AKHIR KOTA ================= */
+/* ==== POHON-KOS-START ==== */
+/* Pohon area kos bergaya pohon Kota (Ryan 24 Nov: "pohon di area kos bikin kayak pohon di kota, bagus" — yang disukai
+   TEKSTUR daun + batangnya). Semua pohon halaman / Komplek Tetangga / Jalan Kampung didaftarkan ke KOS_POHON oleh
+   tree() / taman E-F / jalanPohon(), lalu dibangun SEKALI di sini memakai generator Kota (kotaGugusDaun + kotaTabung)
+   dan tekstur Kota (kotaPra('daun') / kotaPra('halus') — tekstur yang SAMA dipakai Kota, tanpa memori ganda).
+   Per alam hanya 2 mesh (daun + batang): halaman dulu 20 mesh pohon -> 2. Posisi, ukuran, dan kotak padat tidak berubah.
+   Cemara Komplek Tetangga (CEMARA_EF) tidak ikut. Bahan = Lambert biasa (ikut lampu siang-malam-hujan area kos).
+   KOS_POHON_GAYA: 'tekstur' = bentuk lama (bola yang sama, hanya dibenjolkan halus) | 'rimbun' = tajuk bergugus + cabang seperti Kota. */
+var KOS_POHON_GAYA = 'tekstur';
+var KOS_POHON_BENJOL = 1.12; /* benjolan kotaGugusDaun = +-12% jari -> jari gugus dibagi ini supaya TIDAK PERNAH keluar dari bola lama */
+var KOS_POHON_HIJAU = [0x3d7d3a, 0x4a8f3f, 0x5aa047, 0x6db053, 0x82bd5c, 0x4f9358], KOS_POHON_KAYU = 0x6b5a4a; /* palet pohon Kota */
+function kosPohonLama(p) { /* bola pohon LAMA (amplop): tajuk baru gaya 'tekstur' selalu di dalamnya */
+  var s = p.s || 1;
+  if (p.jenis === 'pipih') return [{ x: p.x, y: 2.0, z: p.z, r: 1.15, q: 0.55 }, { x: p.x, y: 2.6, z: p.z, r: 0.8, q: 0.55 }];
+  return [{ x: p.x, y: 3.1 * s, z: p.z, r: 1.5 * s, q: 1 }, { x: p.x + 0.8 * s, y: 2.5 * s, z: p.z + 0.3 * s, r: 1.0 * s, q: 1 }, { x: p.x - 0.7 * s, y: 2.6 * s, z: p.z - 0.4 * s, r: 0.9 * s, q: 1 }];
+}
+function kosPohonRancang(p, gaya) { /* -> { tajuk: [gugus kotaGugusDaun, warna = indeks KOS_POHON_HIJAU], tabung: [{ T, J, seg }], pusat, jari, uv } (murni: dites) */
+  var s = p.s || 1, x = p.x, z = p.z, r = acak(Math.round(x * 7 + z * 13) + 4177), B = KOS_POHON_BENJOL, pipih = p.jenis === 'pipih';
+  var fase = function () { return [r() * 6.28, r() * 6.28, r() * 6.28, r() * 6.28, r() * 6.28]; };
+  var tajuk = [], tabung = [], lama = kosPohonLama(p), i, k;
+  var batang = function (rt, y1, lx, lz) { /* batang sapuan berpangkal lebar (pola kotaPohon) */
+    var fr = [0, 0.05, 0.13, 0.32, 0.58, 0.82, 1], jr = [1.9, 1.42, 1.13, 1.0, 0.9, 0.82, 0.76], T = [], J = [];
+    for (var q = 0; q < fr.length; q++) { var u = fr[q], lk = Math.sin(u * Math.PI) * 0.5 + u * 0.5; T.push([x + lx * lk, y1 * u, z + lz * lk]); J.push(rt * jr[q]); }
+    tabung.push({ T: T, J: J, seg: 10 });
+    return T[T.length - 1];
+  };
+  if (gaya !== 'rimbun') { /* 'tekstur': gugus = bola lama (pusat sama, jari / 1,12) */
+    var warnaT = pipih ? [0, 3] : [1, 3, 2];
+    for (i = 0; i < lama.length; i++) tajuk.push({ x: lama[i].x, y: lama[i].y, z: lama[i].z, r: lama[i].r / B, q: lama[i].q, detail: i === 0 && !pipih ? 3 : 2, warna: warnaT[i], f: fase() });
+    batang((pipih ? 0.17 : 0.22) * s, (pipih ? 1.95 : 2.5) * s, 0, 0);
+    return { tajuk: tajuk, tabung: tabung, pusat: [x, lama[0].y - (pipih ? 0.2 : 0.3 * s), z], jari: (pipih ? 1.2 : 1.75 * s), uv: pipih ? 2 : 3 };
+  }
+  var lx = (r() - 0.5) * 0.24 * s, lz = (r() - 0.5) * 0.24 * s;
+  if (pipih) { /* dua lapis pipih (ciri pohon taman dipertahankan), tiap lapis = inti + cincin gugus kecil; semuanya di dalam cakram lama */
+    [[2.0, 1.15, 5, 0], [2.6, 0.8, 4, 3]].forEach(function (L, li) {
+      var R = L[1] / B, a0 = r() * 6.28;
+      tajuk.push({ x: x, y: L[0], z: z, r: R * 0.7, q: 0.6, detail: 2, warna: L[3] + 1, f: fase() });
+      for (k = 0; k < L[2]; k++) { var a = a0 + k / L[2] * Math.PI * 2 + (r() - 0.5) * 0.3, rk = R * (0.4 + r() * 0.06), d = R - rk; tajuk.push({ x: x + Math.cos(a) * d, y: L[0] + (r() - 0.5) * 0.12, z: z + Math.sin(a) * d, r: rk, q: 0.62, detail: 2, warna: (L[3] + k * 2) % 6, f: fase() }); }
+    });
+    batang(0.17, 1.95, lx, lz);
+    return { tajuk: tajuk, tabung: tabung, pusat: [x, 1.9, z], jari: 1.2, uv: 2 };
+  }
+  /* bulat rimbun: inti + cincin 4 gugus + pucuk + 3 gugus menjuntai (pola kotaPohon), jangkauan datar <= 1,62 s, puncak <= 4,6 s */
+  var Rc = 1.3 * s, yc = 3.1 * s, rt = 0.19 * s, yF = yc - Rc * 0.62, ujung = batang(rt, yF, lx, lz), fx = ujung[0], fz = ujung[2];
+  var nC = 3, aC = r() * 6.28;
+  for (k = 0; k < nC; k++) { /* cabang utama: melengkung keluar-naik, ujungnya terbenam di gugus */
+    var ac = aC + k / nC * Math.PI * 2 + (r() - 0.5) * 0.5, jx = Math.cos(ac) * Rc * 0.5, jz = Math.sin(ac) * Rc * 0.5, ty = yc + Rc * 0.05 - yF, Tc = [], Jc = [];
+    for (var m = 0; m <= 3; m++) { var um = m / 3, kel = Math.pow(um, 0.8); Tc.push([fx + jx * kel, yF - 0.1 * s + (ty + 0.1 * s) * (um * 0.62 + um * um * 0.38), fz + jz * kel]); Jc.push(rt * (0.56 - 0.38 * um)); }
+    tabung.push({ T: Tc, J: Jc, seg: 6 });
+  }
+  tajuk.push({ x: fx, y: yc, z: fz, r: Rc * 0.62, q: 0.86, detail: 1, warna: 1, f: fase() });
+  var aR = r() * 6.28;
+  for (k = 0; k < 4; k++) {
+    var b = aR + k / 4 * Math.PI * 2 + (r() - 0.5) * 0.35, dd = Rc * (0.5 + r() * 0.08), rk2 = Rc * (0.5 + r() * 0.06);
+    tajuk.push({ x: fx + Math.cos(b) * dd, y: yc + Rc * (-0.1 + r() * 0.26), z: fz + Math.sin(b) * dd, r: rk2, q: 0.84 + r() * 0.1, detail: 2, warna: (k * 2 + 2) % 6, f: fase() });
+  }
+  tajuk.push({ x: fx + (r() - 0.5) * Rc * 0.3, y: yc + Rc * 0.5, z: fz + (r() - 0.5) * Rc * 0.3, r: Rc * 0.46, q: 0.88, detail: 2, warna: 4, f: fase() });
+  var aK = r() * 6.28;
+  for (k = 0; k < 3; k++) {
+    var be = aK + k / 3 * Math.PI * 2 + (r() - 0.5) * 0.5, de = Rc * (0.74 + r() * 0.08);
+    tajuk.push({ x: fx + Math.cos(be) * de, y: yc - Rc * (0.16 + r() * 0.1), z: fz + Math.sin(be) * de, r: Rc * (0.27 + r() * 0.05), q: 0.9, detail: 2, warna: (k * 2 + 3) % 6, f: fase() });
+  }
+  return { tajuk: tajuk, tabung: tabung, pusat: [fx, yc - Rc * 0.1, fz], jari: Rc * 1.05, uv: 2 };
+}
+var KOS_POHON_MESH = []; /* { alam, jenis: 'daun' | 'batang', mesh } */
+function kosPohonTulis(E, R, gx, gy, gz) { /* rancangan -> ember (digeser gx, gy, gz: salinan latar) */
+  var kayu = kotaW(KOS_POHON_KAYU);
+  kotaGugusDaun(E.daun, R.tajuk.map(function (g) { return { x: g.x + gx, y: g.y + gy, z: g.z + gz, r: g.r, q: g.q, detail: g.detail, warna: kotaW(KOS_POHON_HIJAU[g.warna]), f: g.f }; }),
+    [R.pusat[0] + gx, R.pusat[1] + gy, R.pusat[2] + gz], R.jari, R.uv);
+  R.tabung.forEach(function (t) { kotaTabung(E.batang, t.T.map(function (q) { return [q[0] + gx, q[1] + gy, q[2] + gz]; }), t.J, t.seg, kayu); });
+}
+function kosPohonBangun() {
+  var bahan = { daun: new THREE.MeshLambertMaterial({ map: kotaPra('daun'), vertexColors: true, name: 'kos-pohon-daun' }),
+    batang: new THREE.MeshLambertMaterial({ map: kotaPra('halus'), vertexColors: true, name: 'kos-pohon-batang' }) };
+  var ember = { halaman: { daun: new KotaGeo('kos-daun'), batang: new KotaGeo('kos-batang'), scn: scene }, jalan: { daun: new KotaGeo('kos-daun-jalan'), batang: new KotaGeo('kos-batang-jalan'), scn: jalanScene } };
+  KOS_POHON.forEach(function (p) {
+    var R = kosPohonRancang(p, KOS_POHON_GAYA);
+    kosPohonTulis(ember[p.alam || 'halaman'], R, 0, 0, 0);
+    if (p.latar) kosPohonTulis(ember.halaman, R, 27, 0.015, 36.25); /* pohon jalan yang terlihat dari halaman di balik pagar selatan (cermin jalanPasangLatar) */
+  });
+  ['halaman', 'jalan'].forEach(function (alam) {
+    ['daun', 'batang'].forEach(function (jenis) {
+      var m = new THREE.Mesh(ember[alam][jenis].selesai(), bahan[jenis]);
+      m.name = 'kos-pohon-' + jenis + '-' + alam; m.castShadow = true; m.matrixAutoUpdate = false; m.updateMatrix();
+      ember[alam].scn.add(m); KOS_POHON_MESH.push({ alam: alam, jenis: jenis, mesh: m });
+    });
+  });
+}
+/* ==== POHON-KOS-END ==== */
+kosPohonBangun();
 /* ================= Suasana (runtime): siang-malam ikut jam WIB, hujan, pelangi, kunang-kunang =================
    Ryan 15 Nov (lihat SUASANA-START). Semua dihitung dari jam WIB + jadwal hujan bersemai tanggal
    (sama di semua HP, tanpa server). Aturan tetap:

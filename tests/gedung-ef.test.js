@@ -411,10 +411,9 @@ test('Ronde 8: geometri taman + lapangan (detail hero) — slab hijau, garis put
   assert.match(blok, /0xe67e22/, 'bunga oranye');
   assert.match(blok, /0x9b59b6/, 'bunga ungu');
   assert.match(blok, /CylinderGeometry\(0\.02, 0\.02, fh - 0\.36, 6\)/, 'tangkai bunga (tidak melayang; ronde 9: tebal 0,02)');
-  assert.match(blok, /SphereGeometry\(1\.15, 14, 10\)\.scale\(1, 0\.55, 1\)/, 'tajuk pipih bawah pohon taman (cakram, bukan bola/kerucut)');
-  assert.match(blok, /SphereGeometry\(0\.8, 12, 9\)\.scale\(1, 0\.55, 1\)/, 'tajuk pipih atas pohon taman');
-  assert.match(blok, /0x2e6b34/, 'tajuk bawah hijau gelap');
-  assert.match(blok, /0x4a9e50/, 'tajuk atas hijau terang');
+  /* 24 Nov (pohon kos bergaya pohon Kota): dua tajuk pipih kini dibangun kosPohonBangun(); bentuk pipihnya dikunci di tests/pohon-kos.test.js */
+  assert.match(blok, /KOS_POHON\.push\(\{ jenis: 'pipih', x: p\[0\], z: p\[1\], alam: 'halaman' \}\)/, 'pohon taman tajuk pipih terdaftar (cakram, bukan bola/kerucut)');
+  assert.match(HTML, /if \(p\.jenis === 'pipih'\) return \[\{ x: p\.x, y: 2\.0, z: p\.z, r: 1\.15, q: 0\.55 \}, \{ x: p\.x, y: 2\.6, z: p\.z, r: 0\.8, q: 0\.55 \}\];/, 'tajuk pipih bawah 1,15 + atas 0,8 (pipih 0,55)');
   /* bangku: 2 taman (z 2,2) + 2 lapangan (z 15,2 / 24,9) — pola HL_BANGKU */
   assert.match(blok, /G\.kayuA, 0xffffff, 1\.8, 0\.07, 0\.5, x, 0\.455, 2\.2, 1/, 'bangku taman (dudukan)');
   assert.match(blok, /G\.kayuA, 0xffffff, 1\.8, 0\.07, 0\.5, -33, 0\.455, 15\.2, 1/, 'bangku lapangan 1 (dudukan)');
