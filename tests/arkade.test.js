@@ -21,7 +21,7 @@ const ATURAN = antara('/* ==== ARKADE-START ==== */', '/* ==== ARKADE-END ==== *
 const UI = antara('/* ==== ARKADE-UI-START ==== */', '/* ==== ARKADE-UI-END ==== */');
 const NAMA_KLIEN = ['ARK_GAME', 'ARK_CAPIT', 'ARK_BALAP', 'ARK_DANSA', 'ARK_HADIAH', 'ARK_BONEKA', 'ARK_CAPIT_MAIN', 'ARK_BALAP_MAIN',
   'arkBalapLaju', 'arkBalapJarakIdeal', 'arkDansaPeta', 'arkDansaPengali', 'arkDansaNilai', 'arkMingguWib', 'arkMingguSisaDetik', 'arkAcak', 'arkJepit',
-  'arkCapitSusun', 'arkCapitSasaran', 'arkCapitPeluangLepas', 'arkCapitNilai', 'arkBalapBaris', 'arkBalapJarakBaris', 'arkBalapKena', 'arkBalapLajuNyata',
+  'arkCapitSusun', 'arkCapitSasaran', 'arkCapitPeluangLepas', 'arkCapitNilai', 'arkCapitGoyang', 'arkCapitGoyangMaks', 'arkCapitPeluangMerosot', 'arkCapitCelah', 'arkBalapPosGeser', 'arkBalapGeserJarak', 'arkBalapBaris', 'arkBalapJarakBaris', 'arkBalapKena', 'arkBalapLajuNyata',
   'arkDansaDetik', 'arkDansaBaru', 'arkDansaCari', 'arkDansaKena', 'arkNamaTampil', 'arkSisaTeks'];
 const C = new Function(ATURAN + '\nreturn { ' + NAMA_KLIEN.join(', ') + ' };')();
 
@@ -82,8 +82,10 @@ test('batas skor server: mengikuti waktu yang berlalu, tidak bisa dilampaui, mas
   assert.equal(A.skorBatas('capit', 0), 0);
   assert.equal(A.skorBatas('capit', 12), 4 * 60, '12 dtk = paling banyak 4 koin');
   assert.equal(A.skorBatas('capit', 1000), A.CAPIT.koin * (A.CAPIT.nilaiMaks + A.CAPIT.bonusPresisi));
-  assert.equal(A.skorBatas('balap', 10), Math.floor(22 * 10 + 0.35 * 100) + 30);
-  assert.equal(A.skorBatas('balap', 60), 2580 + 30); assert.equal(A.skorBatas('balap', 9999), 2580 + 30, 'sesudah 60 dtk tidak bertambah');
+  assert.equal(A.skorBatas('balap', 10), Math.floor(26 * 10 + 0.55 * 100) + 30);
+  assert.equal(A.skorBatas('balap', 60), 3540 + 30); assert.equal(A.skorBatas('balap', 9999), 3540 + 30, 'sesudah 60 dtk tidak bertambah');
+  assert.deepEqual(A.CAPIT, { koin: 6, detik: 60, nilaiMaks: 50, bonusPresisi: 10, detikPerKoin: 2.5, hadiahDapat: 3 }, 'ronde 2: 60 dtk');
+  assert.deepEqual(A.BALAP, { v0: 26, naik: 1.1, detik: 60, nyawa: 3, toleransi: 30 }, 'ronde 2: lebih ngebut');
   assert.equal(A.skorBatas('dansa', 45), A.DANSA_MAKS); assert.equal(A.DANSA_MAKS, 11600);
   assert.equal(A.skorJepit('balap', 999999, 20), A.skorBatas('balap', 20));
   assert.equal(A.skorJepit('balap', 300, 20), 300);
@@ -111,62 +113,97 @@ test('capit: 7 boneka tidak tumpang tindih + di luar lubang; makin pas makin ama
   const d = C.arkCapitSusun(5), b = d[2];
   assert.deepEqual(C.arkCapitSasaran(d, b.x), { i: 2, presisi: 1 });
   assert.equal(C.arkCapitSasaran(d, b.x + b.r * 0.5).i, 2); assert.ok(Math.abs(C.arkCapitSasaran(d, b.x + b.r * 0.5).presisi - 0.5) < 1e-9);
-  assert.equal(C.arkCapitSasaran(d, b.x + b.r * 1.1).presisi, 0, 'di pinggir: kena tapi presisi 0');
+  assert.equal(C.arkCapitSasaran(d, b.x + b.r * 0.98).i, 2); assert.ok(C.arkCapitSasaran(d, b.x + b.r * 0.98).presisi < 0.03, 'di tepi badan: kena tapi presisi ~0');
+  assert.equal(C.arkCapitSasaran(d, b.x + b.r * 1.05).i, -1, 'ronde 2: di luar badan boneka = meleset (jangkau 1,0)');
   assert.equal(C.arkCapitSasaran(d, 0.05).i, -1, 'di atas lubang = meleset');
   b.ada = false; assert.equal(C.arkCapitSasaran(d, b.x).i, -1, 'boneka yang sudah diambil tidak bisa dijepit lagi');
   for (const berat of [0.8, 1.0, 1.3]) {
     assert.equal(C.arkCapitPeluangLepas(1, berat), 0); assert.equal(C.arkCapitPeluangLepas(0.9, berat), 0, 'presisi >= 0,9 tidak pernah lepas');
-    let lalu = -1; for (let p = 1; p >= 0; p -= 0.05) { const q = C.arkCapitPeluangLepas(p, berat); assert.ok(q >= lalu, 'makin meleset makin gampang lepas'); assert.ok(q <= 0.9); lalu = q; }
+    let lalu = -1; for (let p = 1; p >= 0; p -= 0.05) { const q = C.arkCapitPeluangLepas(p, berat); assert.ok(q >= lalu, 'makin meleset makin gampang lepas'); assert.ok(q <= 0.95); lalu = q; }
+    /* ronde 2: merosot saat DIBAWA — jepitan pas tidak pernah, makin miring / makin jauh makin berisiko, tidak pernah pasti */
+    for (const jr of [0, 0.2, 0.5, 0.85]) { assert.equal(C.arkCapitPeluangMerosot(C.ARK_CAPIT_MAIN.bawaAman, berat, jr), 0); assert.equal(C.arkCapitPeluangMerosot(1, berat, jr), 0); }
+    assert.equal(C.arkCapitPeluangMerosot(0.2, berat, 0), 0, 'tepat di samping lubang tidak sempat merosot');
+    let lm = -1; for (let p = 1; p >= 0; p -= 0.05) { const q = C.arkCapitPeluangMerosot(p, berat, 0.5); assert.ok(q >= lm && q <= 0.8); lm = q; }
+    assert.ok(C.arkCapitPeluangMerosot(0.3, berat, 0.7) > C.arkCapitPeluangMerosot(0.3, berat, 0.2), 'boneka jauh lebih berisiko');
   }
-  assert.ok(C.arkCapitPeluangLepas(0.5, 1.3) > C.arkCapitPeluangLepas(0.5, 0.8), 'boneka mahal lebih berat');
+  assert.ok(C.arkCapitPeluangLepas(0.8, 1.3) > C.arkCapitPeluangLepas(0.8, 0.8), 'boneka mahal lebih berat');
   const maks = Math.max(...Object.values(C.ARK_BONEKA).map((x) => C.arkCapitNilai(x, 1)));
   assert.equal(maks, A.CAPIT.nilaiMaks + A.CAPIT.bonusPresisi, 'nilai tertinggi satu boneka = batas per koin di server');
   assert.equal(C.arkCapitNilai(C.ARK_BONEKA.kelinci, 0.84), 20); assert.equal(C.arkCapitNilai(C.ARK_BONEKA.kelinci, 0.85), 30);
   /* skor sempurna 6 koin tidak melebihi batas server */
   const sempurna = C.arkCapitSusun(9).map((x) => C.arkCapitNilai(x, 1)).sort((a, c) => c - a).slice(0, A.CAPIT.koin).reduce((s, n) => s + n, 0);
-  assert.ok(sempurna <= A.skorBatas('capit', 75));
+  assert.ok(sempurna <= A.skorBatas('capit', 60));
+  /* ronde 2: lebih susah dari ronde 1 di titik yang sama (jepitan setengah meleset, boneka termurah) */
+  assert.ok(C.arkCapitPeluangLepas(0.5, 0.8) >= 0.9, 'jepitan setengah meleset hampir pasti lepas');
+  assert.ok(C.arkCapitPeluangLepas(0.8, 1.3) > 0.3 && C.arkCapitPeluangLepas(0.8, 1.3) < 0.6, 'beruang butuh jepitan nyaris pas');
+  assert.ok(C.ARK_BONEKA.beruang.r < C.ARK_BONEKA.bebek.r && C.ARK_BONEKA.bebek.r < C.ARK_BONEKA.kelinci.r, 'boneka mahal lebih kecil');
+  /* capit bergoyang terus: deterministik, tidak pernah melebihi simpangan maksimum koin itu, makin lebar tiap koin, masuk pelan (tidak meloncat) */
+  for (const benih of [1, 77, 20261126]) for (let k = 0; k < A.CAPIT.koin; k++) {
+    let maks = 0, ganti = 0, lalu = 0;
+    for (let t = 0; t <= 20; t += 0.02) { const g = C.arkCapitGoyang(benih, k, t); assert.equal(g, C.arkCapitGoyang(benih, k, t)); maks = Math.max(maks, Math.abs(g)); if (t > 0 && Math.sign(g) !== Math.sign(lalu) && lalu !== 0) ganti++; assert.ok(Math.abs(g - lalu) < 0.008, 'gerak halus'); lalu = g; }
+    assert.ok(maks <= C.arkCapitGoyangMaks(k) + 1e-9 && maks > C.arkCapitGoyangMaks(k) * 0.7, 'simpangan koin ' + k + ': ' + maks);
+    assert.ok(ganti >= 15, 'melintas tengah berkali-kali (selalu ada kesempatan pas): ' + ganti);
+    assert.ok(Math.abs(C.arkCapitGoyang(benih, k, 0)) < 1e-12);
+  }
+  assert.ok(C.arkCapitGoyangMaks(5) > C.arkCapitGoyangMaks(0) * 1.5, 'koin terakhir paling liar');
+  assert.ok(C.arkCapitGoyangMaks(5) <= C.ARK_BONEKA.beruang.r * 1.5, 'goyangan tidak lebih lebar dari ~1,5 jari-jari boneka terkecil (masih bisa dibidik)');
+  /* boneka yang merosot saat dibawa jatuh ke celah kosong (tidak menumpuk boneka lain) */
+  { const dd = C.arkCapitSusun(11), slot = dd.map((x) => x.x); dd[1].ada = false;
+    assert.equal(C.arkCapitCelah(dd, slot, slot[3] - 0.02, 4), slot[4], 'celah terdekat = tempat asalnya sendiri');
+    assert.equal(C.arkCapitCelah(dd, slot, slot[1] + 0.03, 4), slot[1], 'atau celah boneka yang sudah diambil');
+    for (const x of [0.24, 0.4, 0.6, 0.93]) { const c = C.arkCapitCelah(dd, slot, x, 4); assert.ok(dd.every((q, i) => i === 4 || !q.ada || Math.abs(q.x - c) >= 0.06), 'tidak menimpa boneka lain'); } }
   assert.ok(A.capitHadiah(3 * 20, 3), '3 boneka termurah tanpa bonus sudah berhak hadiah');
 });
 
 test('balap: selalu ada jalur bebas, jeda mengecil sampai batas refleks, tabrakan + laju pulih, skor <= batas server', () => {
+  let nGeser = 0, nDua = 0;
   for (const benih of [1, 99, 20261126]) {
     let lalu = 9;
     for (let i = 0; i < 200; i++) {
       const b = C.arkBalapBaris(benih, i), n = b.tutup.filter(Boolean).length;
       assert.equal(b.tutup.length, 3); assert.ok(n === 1 || n === 2, 'tidak pernah menutup semua jalur');
-      if (i < 4) assert.equal(n, 1, 'empat baris pertama ringan');
+      if (i < 3) assert.equal(n, 1, 'tiga baris pertama ringan');
+      if (i < 5) assert.equal(b.geser, null, 'lima baris pertama belum ada mobil pindah jalur');
+      if (b.geser) { nGeser++; assert.equal(n, 1, 'baris pindah-jalur hanya satu mobil -> jalur ketiga selalu bebas'); assert.equal(b.tutup[b.geser.dari], true); assert.equal(Math.abs(b.geser.ke - b.geser.dari), 1, 'pindah ke jalur sebelah'); assert.ok(b.geser.ke >= 0 && b.geser.ke <= 2); }
+      if (n === 2) nDua++;
       assert.ok(b.jeda <= lalu && b.jeda >= C.ARK_BALAP_MAIN.jedaAkhir); lalu = b.jeda;
-      assert.ok(b.jeda >= C.ARK_BALAP_MAIN.pindah * 2 + 0.25, 'cukup waktu pindah dua jalur');
+      assert.ok(b.jeda >= C.ARK_BALAP_MAIN.pindah * 2 + 0.2 - 1e-9, 'cukup waktu pindah dua jalur');
       assert.deepEqual(C.arkBalapBaris(benih, i), b, 'deterministik');
     }
   }
+  assert.ok(nGeser > 40 && nGeser < 300, 'mobil pindah jalur ada tapi bukan semua: ' + nGeser + '/600'); assert.ok(nDua > 120, 'baris dua mobil: ' + nDua + '/600');
+  assert.equal(C.arkBalapPosGeser({ dari: 0, ke: 1 }, 0), 0); assert.equal(C.arkBalapPosGeser({ dari: 0, ke: 1 }, 1), 1); assert.equal(C.arkBalapPosGeser({ dari: 2, ke: 1 }, 0.5), 1.5); assert.equal(C.arkBalapPosGeser({ dari: 2, ke: 1 }, 7), 1);
+  assert.ok(Math.abs(C.arkBalapGeserJarak(50) - 0.6 * 50 * 0.55) < 1e-9, 'mulai menyeberang 0,6 dtk sebelum kita sampai');
   assert.equal(C.arkBalapKena(1, 1, 0), true); assert.equal(C.arkBalapKena(1, 2, 0), false); assert.equal(C.arkBalapKena(1.5, 2, 0), true, 'sedang pindah jalur masih bisa kena');
   assert.equal(C.arkBalapKena(1, 1, C.ARK_BALAP_MAIN.panjang), false, 'sudah lewat satu badan mobil');
   assert.equal(C.arkBalapLajuNyata(10, 99), A.balapLaju(10));
   assert.ok(Math.abs(C.arkBalapLajuNyata(10, 0) - A.balapLaju(10) * C.ARK_BALAP_MAIN.anjlok) < 1e-9);
   /* ADIL: pemain yang pindah begitu lolos dari baris lama (pindah 0,12 dtk/jalur + reaksi 0,15 dtk) selesai 60 dtk tanpa
-     tabrakan di semua benih — celah antar-baris selalu cukup (dulu jarak baris < dua panjang tabrak = mustahil dihindari) */
+     tabrakan di semua benih — celah antar-baris selalu cukup (dulu jarak baris < dua panjang tabrak = mustahil dihindari).
+     Ronde 2: mobil bersein benar-benar menyeberang (fisika yang sama dengan game); pemain ideal membaca sein = menghindari
+     jalur asal DAN jalur tujuan -> jalur ketiga selalu bebas. */
   const M = C.ARK_BALAP_MAIN, zona = M.panjang * 0.86;
   assert.ok(C.arkBalapJarakBaris(M.jedaAkhir, A.balapLaju(0)) > 2 * zona, 'zona tabrak dua baris tidak pernah bertumpuk');
   for (const benih of [1, 2, 3, 99, 4242, 20261126, 0xdeadbeef]) {
     let t = 0, rel = 0, pos = 1, jalur = 1, n = 0, sNext = 46, tabrak = 0, tunda = 0, niat = 1; const baris = [], dt = 1 / 120;
     while (t < A.BALAP.detik) {
       t += dt; const v = A.balapLaju(t); rel += v * (1 - M.lalu) * dt;
-      while (sNext - rel < 64) { baris.push({ s: sNext, tutup: C.arkBalapBaris(benih, n).tutup }); n += 1; sNext += C.arkBalapJarakBaris(C.arkBalapBaris(benih, n).jeda, v); }
+      while (sNext - rel < 64) { const B = C.arkBalapBaris(benih, n); baris.push({ s: sNext, tutup: B.tutup, geser: B.geser ? { dari: B.geser.dari, ke: B.geser.ke, p: 0 } : null }); n += 1; sNext += C.arkBalapJarakBaris(C.arkBalapBaris(benih, n).jeda, v); }
       const depan = baris.filter((r) => r.s - rel > -zona)[0];
-      if (depan) { const bebas = [0, 1, 2].filter((l) => !depan.tutup[l]).sort((a, c) => Math.abs(a - jalur) - Math.abs(c - jalur))[0]; if (bebas !== niat) { niat = bebas; tunda = 0.15; } }
+      for (const r of baris) if (r.geser && r.geser.p < 1 && r.s - rel < C.arkBalapGeserJarak(v)) r.geser.p = Math.min(1, r.geser.p + dt / M.geserLama);
+      if (depan) { const bebas = [0, 1, 2].filter((l) => !depan.tutup[l] && !(depan.geser && l === depan.geser.ke)).sort((a, c) => Math.abs(a - jalur) - Math.abs(c - jalur))[0]; if (bebas !== niat) { niat = bebas; tunda = 0.15; } }
       if (tunda > 0) tunda -= dt; else jalur = niat;
       const d = jalur - pos, langkah = dt / M.pindah; pos = Math.abs(d) <= langkah ? jalur : pos + Math.sign(d) * langkah;
-      for (const r of baris) for (let l = 0; l < 3; l++) if (r.tutup[l] && !r.kena && C.arkBalapKena(pos, l, r.s - rel)) { r.kena = true; tabrak += 1; }
+      for (const r of baris) for (let l = 0; l < 3; l++) if (r.tutup[l] && !r.kena && C.arkBalapKena(pos, r.geser && r.geser.dari === l ? C.arkBalapPosGeser(r.geser, r.geser.p) : l, r.s - rel)) { r.kena = true; tabrak += 1; }
     }
     assert.equal(tabrak, 0, 'benih ' + benih + ': ' + tabrak + ' tabrakan tak terhindarkan');
-    assert.ok(n > 45 && n < 80, 'jumlah baris wajar: ' + n);
+    assert.ok(n > 60 && n < 100, 'jumlah baris wajar: ' + n);
   }
   /* simulasi 60 dtk tanpa tabrakan dan dengan tabrakan: jarak tidak pernah melampaui batas server untuk waktu itu */
   for (const tabrakTiap of [0, 7]) {
     let t = 0, jarak = 0, sejak = 99; const dt = 1 / 60;
     while (t < A.BALAP.detik) { t += dt; sejak += dt; if (tabrakTiap && Math.floor(t / tabrakTiap) !== Math.floor((t - dt) / tabrakTiap)) sejak = 0; jarak += C.arkBalapLajuNyata(t, sejak) * dt; assert.ok(Math.floor(jarak) <= A.skorBatas('balap', t), 'jarak <= batas di detik ' + t.toFixed(2)); }
-    if (!tabrakTiap) assert.ok(Math.abs(jarak - 2580) < 2, 'main sempurna 60 dtk = 2.580 m');
+    if (!tabrakTiap) assert.ok(Math.abs(jarak - 3540) < 3, 'main sempurna 60 dtk = 3.540 m (galat langkah Euler < 3 m)');
   }
 });
 
@@ -386,8 +423,8 @@ test('kabel klien: mesin membuka game, 3D dijeda, lagu = file (bukan sintesis), 
   assert.ok(ketuk.indexOf('o.jarak') < ketuk.indexOf('arkadeBuka'), 'cek jarak sebelum membuka game');
   assert.match(HTML, /function animate\(\) \{\n  requestAnimationFrame\(animate\);\n  if \(ARK\.aktif\) \{ clock\.getDelta\(\); return; \}/, '3D tidak digambar selama layar arkade terbuka');
   /* lagu: file MP3 pra-render lewat pemuat bersama; tidak ada osilator/penjadwalan nada musik di blok arkade */
-  assert.match(UI, /var ARK_MUSIK_FILE = 'assets\/musik\/arkade\.mp3';/);
-  assert.match(UI, /musikAmbil\(ARK_MUSIK_FILE\)/); assert.match(UI, /createBufferSource\(\)/); assert.match(UI, /g\.connect\(SUARA\.musik\)/, 'ikut sakelar Musik');
+  assert.match(UI, /var ARK_MUSIK_FILE = \{ capit: 'assets\/musik\/arkade-capit\.mp3', balap: 'assets\/musik\/arkade-balap\.mp3', dansa: 'assets\/musik\/arkade\.mp3' \};/, 'ronde 2: tiap game punya lagu sendiri; dansa tetap arkade.mp3');
+  assert.match(UI, /musikAmbil\(ARK_MUSIK_FILE\[game\]\)/); assert.match(UI, /createBufferSource\(\)/); assert.match(UI, /g\.connect\(SUARA\.musik\)/, 'ikut sakelar Musik');
   assert.match(UI, /!SUARA\.setel\.musik/);
   assert.doesNotMatch(UI, /createOscillator|setInterval|new Audio\(/, 'tanpa sintesis/penjadwalan live di blok arkade (efek lewat BUNYI)');
   assert.doesNotMatch(UI, /fetch\(|XMLHttpRequest|sbRpc\(|localStorage\.setItem\('(?!kosan3d-arkade')/);
@@ -395,8 +432,15 @@ test('kabel klien: mesin membuka game, 3D dijeda, lagu = file (bukan sintesis), 
   assert.equal((HTML.match(/function musikAmbil\(url\)/g) || []).length, 1);
   const mp3 = fs.statSync(path.join(ROOT, 'assets', 'musik', 'arkade.mp3'));
   assert.ok(mp3.size > 200000 && mp3.size < 800000, 'lagu arkade ' + mp3.size + ' byte');
-  const kepala = fs.readFileSync(path.join(ROOT, 'assets', 'musik', 'arkade.mp3')).subarray(0, 3);
-  assert.ok(kepala.toString('latin1') === 'ID3' || (kepala[0] === 0xff && (kepala[1] & 0xe0) === 0xe0), 'berkas MP3');
+  assert.equal(crypto.createHash('md5').update(fs.readFileSync(path.join(ROOT, 'assets', 'musik', 'arkade.mp3'))).digest('hex'), '62354cf02c9c6e40e9b7ca9c6ea40609', 'lagu dansa TIDAK dirender ulang (peta not bergantung padanya)');
+  const sidik = new Set();
+  for (const nama of ['arkade.mp3', 'arkade-balap.mp3', 'arkade-capit.mp3']) {
+    const isi = fs.readFileSync(path.join(ROOT, 'assets', 'musik', nama)), kepala = isi.subarray(0, 3);
+    assert.ok(kepala.toString('latin1') === 'ID3' || (kepala[0] === 0xff && (kepala[1] & 0xe0) === 0xe0), nama + ' berkas MP3');
+    assert.ok(isi.length > 100000 && isi.length < 800000, nama + ' ' + isi.length + ' byte');
+    sidik.add(crypto.createHash('md5').update(isi).digest('hex'));
+  }
+  assert.equal(sidik.size, 3, 'tiga berkas lagu berbeda');
   /* semua bunyi('ark...') yang dipanggil punya definisi; semua yang didefinisikan dipakai */
   const dipanggil = new Set([...UI.matchAll(/bunyi\(([^)]*)\)/g)].flatMap((m) => [...m[1].matchAll(/'(\w+)'/g)].map((x) => x[1])));
   const didefinisikan = new Set([...HTML.matchAll(/BUNYI\.(\w+) = function/g)].map((m) => m[1]).concat([...antara('var BUNYI = {', '\nfunction bunyi(').matchAll(/^\s{2}(\w+): function/gm)].map((m) => m[1])));
@@ -420,6 +464,51 @@ test('kabel klien: mesin membuka game, 3D dijeda, lagu = file (bukan sintesis), 
   assert.match(antara('function dekorTerapkan() {', '\nfunction dekorPadatKamar'), /bonekaTerapkan\(\);/);
   assert.doesNotMatch(antara('var DEKOR_IDS = [', '];'), /boneka/, 'boneka hadiah tidak masuk daftar barang toko');
   assert.doesNotMatch(antara('/* ==== KERJA-START ==== */', '/* ==== KERJA-END ==== */'), /boneka_capit/);
+});
+
+test('musik ronde 2: tiap game memutar berkasnya sendiri, dimuat malas, pindah game = ganti lagu, gagal muat tidak diulang-ulang', async () => {
+  /* jalankan blok aturan + UI arkade apa adanya dengan audio palsu; musikAmbil mencatat URL yang diminta */
+  const diminta = [], sumber = [];
+  const gain = () => ({ gain: { value: 1, setValueAtTime() {}, cancelScheduledValues() {}, linearRampToValueAtTime() {}, setTargetAtTime() {} }, connect() {} });
+  const ctx = { state: 'running', currentTime: 5, createBufferSource() { const s = { buffer: null, loop: false, mulai: null, henti: null, connect() {}, start(t) { s.mulai = t; }, stop(t) { s.henti = t; } }; sumber.push(s); return s; }, createGain: gain };
+  const dunia = { gagal: null };
+  const F = new Function('SUARA', 'MUSIK', 'BUNYI', 'musikAmbil', 'suaraNada', 'suaraDesis', 'bunyi', 'performance', 'navigator', 'localStorage',
+    ATURAN + '\n' + UI + '\nreturn { ARK: ARK, ARK_MAIN: ARK_MAIN, ARK_MUSIK_FILE: ARK_MUSIK_FILE, arkMusikMuat: arkMusikMuat, arkMusikLatar: arkMusikLatar, arkMusikStop: arkMusikStop };');
+  const U = F({ ctx, setel: { musik: true }, musik: {} }, { srcG: null }, {}, (url) => { diminta.push(url); return dunia.gagal === url ? Promise.reject(new Error('404')) : Promise.resolve({ url }); },
+    () => {}, () => {}, () => {}, { now: () => 0 }, {}, { getItem: () => null, setItem() {} });
+  const { ARK } = U; ARK.aktif = true;
+  const buka = async (game, tahap) => { ARK.game = game; ARK.tahap = tahap; U.arkMusikLatar(); await U.arkMusikMuat(game); U.arkMusikLatar(); };
+  assert.deepEqual(U.ARK_MUSIK_FILE, { capit: 'assets/musik/arkade-capit.mp3', balap: 'assets/musik/arkade-balap.mp3', dansa: 'assets/musik/arkade.mp3' });
+  /* balap dibuka: hanya lagu balap yang diunduh, diputar berulang */
+  await buka('balap', 'menu');
+  assert.deepEqual(diminta, ['assets/musik/arkade-balap.mp3'], 'malas: lagu game lain belum diunduh');
+  assert.equal(ARK.musik.src.buffer.url, 'assets/musik/arkade-balap.mp3'); assert.equal(ARK.musik.src.loop, true); assert.equal(ARK.musik.game, 'balap');
+  const lama = ARK.musik.src;
+  ARK.tahap = 'main'; U.arkMusikLatar(); assert.equal(ARK.musik.src, lama, 'mulai main balap: lagu yang sama lanjut (tidak dimulai ulang)');
+  /* pindah ke capit: lagu balap berhenti, lagu capit yang main */
+  await buka('capit', 'menu');
+  assert.ok(lama.henti != null, 'lagu balap dihentikan');
+  assert.equal(ARK.musik.src.buffer.url, 'assets/musik/arkade-capit.mp3'); assert.equal(ARK.musik.src.loop, true);
+  ARK.tahap = 'main'; U.arkMusikLatar(); assert.equal(ARK.musik.src.buffer.url, 'assets/musik/arkade-capit.mp3');
+  /* dansa: menu = arkade.mp3 pelan berulang; main = dimulai sendiri dari ketuk 0, TIDAK berulang, dan latar tidak menimpanya */
+  await buka('dansa', 'menu');
+  assert.equal(ARK.musik.src.buffer.url, 'assets/musik/arkade.mp3'); assert.equal(ARK.musik.src.loop, true);
+  U.arkMusikStop(); ARK.tahap = 'main'; const s = U.ARK_MAIN.dansa.mulai();
+  assert.ok(s.t0 != null, 'dansa mulai dengan jam audio'); assert.equal(ARK.musik.src.buffer.url, 'assets/musik/arkade.mp3'); assert.equal(ARK.musik.src.loop, false);
+  const dansaSrc = ARK.musik.src; U.arkMusikLatar(); assert.equal(ARK.musik.src, dansaSrc, 'latar tidak mengganggu lagu dansa');
+  /* balik ke balap: tidak mengunduh ulang, dan TIDAK PERNAH memutar lagu dansa di balap (keluhan Ryan) */
+  await buka('balap', 'main');
+  assert.equal(ARK.musik.src.buffer.url, 'assets/musik/arkade-balap.mp3');
+  assert.deepEqual(diminta, ['assets/musik/arkade-balap.mp3', 'assets/musik/arkade-capit.mp3', 'assets/musik/arkade.mp3'], 'tiap berkas diunduh sekali');
+  for (const q of sumber) assert.ok(q.buffer && /^assets\/musik\/arkade(-balap|-capit)?\.mp3$/.test(q.buffer.url));
+  /* Musik dimatikan di Pengaturan: tidak ada yang diputar */
+  U.arkMusikStop(); const n0 = sumber.length; ARK.game = 'capit'; ARK.tahap = 'menu';
+  const U2 = F({ ctx, setel: { musik: false }, musik: {} }, { srcG: null }, {}, (url) => Promise.resolve({ url }), () => {}, () => {}, () => {}, { now: () => 0 }, {}, { getItem: () => null, setItem() {} });
+  U2.ARK.aktif = true; U2.ARK.game = 'capit'; U2.ARK.tahap = 'menu'; await U2.arkMusikMuat('capit'); U2.arkMusikLatar(); assert.equal(U2.ARK.musik, null); assert.equal(sumber.length, n0);
+  /* gagal unduh: game tetap jalan, tidak mengulang unduhan tiap putaran */
+  const d3 = []; const U3 = F({ ctx, setel: { musik: true }, musik: {} }, { srcG: null }, {}, (url) => { d3.push(url); return Promise.reject(new Error('404')); }, () => {}, () => {}, () => {}, { now: () => 0 }, {}, { getItem: () => null, setItem() {} });
+  U3.ARK.aktif = true; U3.ARK.game = 'balap'; U3.ARK.tahap = 'menu'; await U3.arkMusikMuat('balap'); for (let i = 0; i < 5; i++) { U3.arkMusikLatar(); await Promise.resolve(); }
+  assert.equal(d3.length, 1, 'gagal = sekali coba'); assert.equal(U3.ARK.musik, null);
 });
 
 test('layar LED plaza TIDAK disentuh (Ryan 26 Nov 16:29): blok LED + semua baris LED identik produksi', () => {

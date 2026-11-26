@@ -19062,8 +19062,8 @@ var ARK_GAME = {
   balap: { nama: 'Balap Kota', satuan: 'm', minDetik: 5, maksDetik: 240 },
   dansa: { nama: 'Lantai Dansa', satuan: 'poin', minDetik: 40, maksDetik: 240 }
 };
-var ARK_CAPIT = { koin: 6, detik: 75, nilaiMaks: 50, bonusPresisi: 10, detikPerKoin: 2.5, hadiahDapat: 3 };
-var ARK_BALAP = { v0: 22, naik: 0.7, detik: 60, nyawa: 3, toleransi: 30 };
+var ARK_CAPIT = { koin: 6, detik: 60, nilaiMaks: 50, bonusPresisi: 10, detikPerKoin: 2.5, hadiahDapat: 3 };
+var ARK_BALAP = { v0: 26, naik: 1.1, detik: 60, nyawa: 3, toleransi: 30 };
 var ARK_DANSA = { bpm: 128, ketuk: 96, mulai: 8, akhir: 92, benih: 20261126, jendela: [0.07, 0.13, 0.19], nilai: [100, 60, 30], komboTiap: 10, komboMaks: 10 };
 var ARK_HADIAH = { barang: 'boneka_capit', nama: 'Boneka beruang Arkade Ria' };
 function arkBalapLaju(t) { return ARK_BALAP.v0 + ARK_BALAP.naik * Math.max(0, Math.min(ARK_BALAP.detik, t)); } /* m/dtk (server) */
@@ -19109,14 +19109,25 @@ function arkJepit(v, a, b) { return Math.max(a, Math.min(b, v)); }
 /* ---- Capit Boneka ----
    Bak selebar 0..1; lubang hadiah di kiri (x < 0,17). 7 boneka berjajar; capit digeser lalu
    diturunkan. Presisi = seberapa tepat capit di atas tengah boneka (1 = pas, 0 = di pinggir).
-   Peluang lepas BUKAN acak murni: makin pas makin aman; presisi >= 0,9 tidak pernah lepas;
-   boneka mahal lebih berat (lebih gampang merosot). */
+   Ronde 2 (Ryan 26 Nov 21:01 "terlalu gampang"): butuh ketepatan beneran —
+   (1) capit TERUS bergoyang di bawah troli (arkCapitGoyang; makin lebar + makin cepat tiap koin) -> tekan pas melintas;
+   (2) jangkauan jepit = badan boneka saja (jangkau 1,0), boneka mahal lebih kecil + lebih berat;
+   (3) jepitan miring lebih gampang merosot saat DIANGKAT (licin) dan bisa merosot lagi saat DIBAWA ke lubang
+       (makin jauh bonekanya makin lama dibawa -> makin berisiko); jepitan pas (presisi >= bawaAman) tidak pernah merosot dibawa;
+   (4) waktu 60 dtk. Tetap bukan acak murni: presisi >= presisiAman tidak pernah lepas. */
 var ARK_BONEKA = {
-  kelinci: { nama: 'Kelinci', nilai: 20, berat: 0.8, r: 0.042 },
-  bebek: { nama: 'Bebek', nilai: 30, berat: 1.0, r: 0.039 },
-  beruang: { nama: 'Beruang', nilai: 50, berat: 1.3, r: 0.036 }
+  kelinci: { nama: 'Kelinci', nilai: 20, berat: 0.8, r: 0.04 },
+  bebek: { nama: 'Bebek', nilai: 30, berat: 1.0, r: 0.036 },
+  beruang: { nama: 'Beruang', nilai: 50, berat: 1.3, r: 0.032 }
 };
-var ARK_CAPIT_MAIN = { lubang: 0.17, kiri: 0.06, kanan: 0.94, laju: 0.4, jangkau: 1.15, presisiAman: 0.9, presisiBonus: 0.85 };
+var ARK_CAPIT_MAIN = { lubang: 0.17, kiri: 0.06, kanan: 0.94, laju: 0.4, jangkau: 1.0, presisiAman: 0.9, presisiBonus: 0.85,
+  licin: 4.0, bawaAman: 0.7, bawaLicin: 1.8, bawaJarak: 0.75, goyang: 0.022, goyangTambah: 0.004, goyangW: 3.2, goyangWTambah: 0.22, goyangMasuk: 0.6 };
+function arkCapitGoyang(benih, koinKe, t) { /* simpangan capit (satuan lebar bak) pada detik t sejak koin ke-`koinKe` (0 = pertama) mulai dibidik */
+  var M = ARK_CAPIT_MAIN, k = Math.max(0, koinKe | 0), acak = arkAcak((benih ^ Math.imul(k + 1, 40503)) >>> 0); acak();
+  var A = M.goyang + M.goyangTambah * k, w = (M.goyangW + M.goyangWTambah * k) * (0.9 + 0.2 * acak()), fase = acak() * 6.283;
+  return A * (0.8 * Math.sin(w * t + fase) + 0.2 * Math.sin(w * 2.37 * t + fase * 1.7)) * arkJepit(t / M.goyangMasuk, 0, 1);
+}
+function arkCapitGoyangMaks(koinKe) { return ARK_CAPIT_MAIN.goyang + ARK_CAPIT_MAIN.goyangTambah * Math.max(0, koinKe | 0); }
 function arkCapitSusun(benih) { /* -> [{ jenis, x, r, nilai, berat, ada: true }] urut kiri ke kanan */
   var acak = arkAcak(benih), jenis = ['kelinci', 'kelinci', 'kelinci', 'bebek', 'bebek', 'beruang', 'beruang'], i;
   for (i = jenis.length - 1; i > 0; i--) { var j = Math.floor(acak() * (i + 1)), t = jenis[i]; jenis[i] = jenis[j]; jenis[j] = t; }
@@ -19136,22 +19147,48 @@ function arkCapitSasaran(daftar, x) { /* boneka terdekat yang masih ada dan terj
   if (best < 0) return { i: -1, presisi: 0 };
   return { i: best, presisi: arkJepit(1 - bd / daftar[best].r, 0, 1) };
 }
-function arkCapitPeluangLepas(presisi, berat) { return arkJepit((ARK_CAPIT_MAIN.presisiAman - presisi) * berat, 0, 0.9); }
+function arkCapitPeluangLepas(presisi, berat) { return arkJepit((ARK_CAPIT_MAIN.presisiAman - presisi) * berat * ARK_CAPIT_MAIN.licin, 0, 0.95); } /* saat diangkat */
+function arkCapitPeluangMerosot(presisi, berat, jarak) { /* saat dibawa sejauh `jarak` (lebar bak) ke lubang; jepitan pas = 0 */
+  var M = ARK_CAPIT_MAIN;
+  return presisi >= M.bawaAman ? 0 : arkJepit((M.bawaAman - presisi) * berat * M.bawaLicin * arkJepit(jarak / M.bawaJarak, 0, 1), 0, 0.8);
+}
+function arkCapitCelah(daftar, slot, x, kecuali) { /* boneka yang merosot saat dibawa jatuh ke celah kosong terdekat (tidak menumpuk boneka lain) */
+  var best = -1, bd = 1e9;
+  for (var i = 0; i < slot.length; i++) {
+    var isi = false;
+    for (var j = 0; j < daftar.length; j++) if (j !== kecuali && daftar[j].ada && Math.abs(daftar[j].x - slot[i]) < 0.06) isi = true;
+    if (!isi && Math.abs(slot[i] - x) < bd) { bd = Math.abs(slot[i] - x); best = i; }
+  }
+  return best < 0 ? x : slot[best];
+}
 function arkCapitNilai(boneka, presisi) { return boneka.nilai + (presisi >= ARK_CAPIT_MAIN.presisiBonus ? ARK_CAPIT.bonusPresisi : 0); }
 
 /* ---- Balap Kota ----
    3 jalur. Lalu lintas melaju searah, lebih pelan (ARK_BALAP_MAIN.lalu x laju kita). Baris ke-i
    menutup 1-2 jalur (tidak pernah semua). Jarak ke baris berikutnya = dua panjang tabrak (kita harus
    lolos dari baris lama dulu) + `jeda` detik jalan bebas untuk pindah jalur; jeda mengecil sampai
-   batas refleks (0,5 dtk = pindah dua jalur 0,24 dtk + sisa). Tabrak = nyawa -1 + laju anjlok sebentar. Skor = meter. */
-var ARK_BALAP_MAIN = { jalur: 3, lalu: 0.45, panjang: 7, kebal: 1.3, anjlok: 0.45, pulih: 1.6, jedaAwal: 0.85, jedaAkhir: 0.5, jedaTurun: 0.007, pindah: 0.12 };
-function arkBalapBaris(benih, i) { /* -> { tutup: [bool x3], jeda } */
-  var acak = arkAcak((benih + Math.imul(i + 1, 7919)) >>> 0); acak();
-  var dua = i >= 4 && acak() < Math.min(0.55, 0.2 + i * 0.008);
-  var bebas = Math.floor(acak() * 3), tutup = [false, false, false];
+   batas refleks. Tabrak = nyawa -1 + laju anjlok sebentar. Skor = meter.
+   Ronde 2 (Ryan 26 Nov 21:01 "terlalu gampang"): laju awal + kenaikan lebih besar (94 -> 331 km/j), baris dua-mobil
+   muncul lebih awal + lebih sering, jeda lebih rapat, dan ada mobil yang PINDAH JALUR (`geser`: lampu sein berkedip sejak
+   kelihatan, lalu menyeberang ke jalur sebelah saat tinggal ~0,6 dtk lagi kita sampai). Tetap adil: baris `geser` hanya berisi satu mobil, jadi
+   jalur ketiga SELALU bebas; tidak pernah semua jalur tertutup; jeda >= dua kali pindah jalur + 0,2 dtk. */
+var ARK_BALAP_MAIN = { jalur: 3, lalu: 0.45, panjang: 7, kebal: 1.3, anjlok: 0.45, pulih: 1.6, jedaAwal: 0.8, jedaAkhir: 0.44, jedaTurun: 0.012, pindah: 0.12,
+  duaMulai: 3, duaAwal: 0.15, duaNaik: 0.02, duaMaks: 0.85, geserMulai: 5, geserAwal: 0.1, geserNaik: 0.02, geserMaks: 0.75, geserWaktu: 0.6, geserLama: 0.4 };
+function arkBalapBaris(benih, i) { /* -> { tutup: [bool x3], jeda, geser: null | { dari, ke } } */
+  var M = ARK_BALAP_MAIN, acak = arkAcak((benih + Math.imul(i + 1, 7919)) >>> 0); acak();
+  var dua = i >= M.duaMulai && acak() < Math.min(M.duaMaks, M.duaAwal + i * M.duaNaik);
+  var bebas = Math.floor(acak() * 3), tutup = [false, false, false], geser = null;
   if (dua) { tutup = [true, true, true]; tutup[bebas] = false; }
-  else tutup[Math.floor(acak() * 3)] = true;
-  return { tutup: tutup, jeda: Math.max(ARK_BALAP_MAIN.jedaAkhir, ARK_BALAP_MAIN.jedaAwal - i * ARK_BALAP_MAIN.jedaTurun) };
+  else {
+    var dari = Math.floor(acak() * 3); tutup[dari] = true;
+    if (i >= M.geserMulai && acak() < Math.min(M.geserMaks, M.geserAwal + i * M.geserNaik)) geser = { dari: dari, ke: dari === 0 ? 1 : (dari === 2 ? 1 : (acak() < 0.5 ? 0 : 2)) };
+  }
+  return { tutup: tutup, jeda: Math.max(M.jedaAkhir, M.jedaAwal - i * M.jedaTurun), geser: geser };
+}
+function arkBalapGeserJarak(laju) { return ARK_BALAP_MAIN.geserWaktu * laju * (1 - ARK_BALAP_MAIN.lalu); } /* mobil bersein mulai menyeberang saat tinggal `geserWaktu` detik lagi kita sampai */
+function arkBalapPosGeser(geser, p) { /* jalur (pecahan) mobil yang sedang pindah; p 0..1, halus di kedua ujung */
+  var q = arkJepit(p, 0, 1); q = q * q * (3 - 2 * q);
+  return geser.dari + (geser.ke - geser.dari) * q;
 }
 function arkBalapJarakBaris(jeda, laju) { /* meter (relatif lalu lintas) antara dua baris */
   return 2 * ARK_BALAP_MAIN.panjang * 0.86 + jeda * laju * (1 - ARK_BALAP_MAIN.lalu);
@@ -19196,19 +19233,20 @@ function arkSisaTeks(detik) {
 /* ==== ARKADE-UI-START ==== */
 /* Arkade Ria (26 Nov) — layar game 2D di atas tiga mesin arkade interior Kota. TIDAK menambah benda
    3D: satu kanvas 2D + tombol DOM; selama layar ini terbuka animate() berhenti menggambar 3D
-   (lihat `if (ARK.aktif)` di awal animate) supaya enteng di HP. Lagu = FILE MP3 (lihat ARK_MUSIK_FILE,
-   dirender dulu oleh alat/render-musik.py: 128 BPM, 96 ketuk = 45 dtk, loop) — bukan sintesis live;
+   (lihat `if (ARK.aktif)` di awal animate) supaya enteng di HP. Lagu = FILE MP3 (lihat ARK_MUSIK_FILE) yang
+   dirender dulu — bukan sintesis live. Ronde 2 (Ryan 26 Nov 21:01: "musik dance sama kayak balap"): TIAP GAME
+   punya lagu sendiri, dimuat malas saat game itu dibuka (dansa 128 BPM A minor; balap 172 BPM Eb minor; capit waltz 104 BPM A mayor);
    hanya efek pendek yang live. Sakelar Musik / Efek suara di Pengaturan dihormati (bus SUARA).
    Penghuni: skor dikirim ke /api/skor (tiket server + dijepit server). Tamu: skor lokal saja. */
 var ARK = { aktif: false, game: '', tahap: '', el: null, cv: null, c: null, W: 0, H: 0, dpr: 1, P: { x: 0, y: 0, w: 1, h: 1 }, bg: null,
-  raf: 0, ts: 0, t: 0, s: null, apung: [], partikel: [], getar: 0, buf: null, bufJanji: null, musik: null, redam: null, redamCek: 0,
+  raf: 0, ts: 0, t: 0, s: null, apung: [], partikel: [], getar: 0, buf: {}, bufJanji: {}, bufGagal: {}, musik: null, redam: null, redamCek: 0,
   papan: null, papanMs: 0, papanJanji: null, tiket: null, tekan: {}, hasil: null, urut: 0 };
-var ARK_MUSIK_FILE = 'assets/musik/arkade.mp3';
+var ARK_MUSIK_FILE = { capit: 'assets/musik/arkade-capit.mp3', balap: 'assets/musik/arkade-balap.mp3', dansa: 'assets/musik/arkade.mp3' };
 var ARK_INFO = {
-  capit: { ikon: '🧸', warna: '#ff5fb0', sub: '6 koin · 75 detik · makin pas makin aman',
-    cara: 'Tahan <b>◀ ▶</b> buat geser capit, lalu tekan <b>CAPIT!</b> pas di atas boneka. Capitnya berayun — tunggu diam biar jepitannya <b>pas di tengah</b>. Meleng dikit, bonekanya merosot.' },
-  balap: { ikon: '🏎\uFE0F', warna: '#38d8ff', sub: '3 nyawa · 60 detik · makin lama makin ngebut',
-    cara: 'Ketuk <b>◀ ▶</b> (atau sisi kiri/kanan layar) buat pindah jalur. Hindari mobil lain, kejar <b>jarak terjauh</b>. Nabrak = nyawa berkurang dan laju anjlok.' },
+  capit: { ikon: '🧸', warna: '#ff5fb0', sub: '6 koin · 60 detik · capitnya goyang terus',
+    cara: 'Tahan <b>◀ ▶</b> buat geser troli. Capitnya <b>goyang terus</b> (makin liar tiap koin) — tekan <b>CAPIT!</b> pas garis bidiknya lewat <b>tengah boneka</b>. Jepitan miring gampang merosot, apalagi boneka mahal dan yang jauh dari lubang. Dapat <b>3 boneka</b> itu prestasi.' },
+  balap: { ikon: '🏎\uFE0F', warna: '#38d8ff', sub: '3 nyawa · 60 detik · sampai 331 km/j',
+    cara: 'Ketuk <b>◀ ▶</b> (atau sisi kiri/kanan layar) buat pindah jalur. Hindari mobil lain, kejar <b>jarak terjauh</b>. Awas mobil yang <b>lampu seinnya kedip</b> — dia bakal pindah jalur pas kamu dekat. Nabrak = nyawa berkurang dan laju anjlok.' },
   dansa: { ikon: '💃', warna: '#ffd84a', sub: '45 detik · ikuti irama · kombo = poin dobel',
     cara: 'Panah turun mengikuti lagu. Ketuk tombol panah yang sama <b>pas panahnya nempel garis</b>. Jangan putus — kombo panjang bikin poin sampai <b>2x</b>.' }
 };
@@ -19234,25 +19272,26 @@ function arkLokalBaca() { try { var p = JSON.parse(localStorage.getItem('kosan3d
 function arkLokalTulis(game, skor) { var p = arkLokalBaca(); if (skor > p[game]) { p[game] = skor; try { localStorage.setItem('kosan3d-arkade', JSON.stringify(p)); } catch (e) { /* abaikan */ } return true; } return false; }
 
 /* ---- lagu arkade (file) ---- */
-function arkMusikMuat() { /* unduh + decode sekali, saat arkade pertama dibuka (bukan saat muat game) */
-  if (ARK.bufJanji || !SUARA.ctx) return ARK.bufJanji || Promise.resolve(null);
-  ARK.bufJanji = musikAmbil(ARK_MUSIK_FILE).then(function (b) { ARK.buf = b; return b; }).catch(function () { ARK.bufJanji = null; return null; });
-  return ARK.bufJanji;
+function arkMusikMuat(game) { /* unduh + decode lagu SATU game, sekali, saat game itu pertama dibuka (bukan saat muat Kosan) */
+  if (!ARK_MUSIK_FILE[game] || !SUARA.ctx) return Promise.resolve(null);
+  if (ARK.bufJanji[game]) return ARK.bufJanji[game];
+  ARK.bufJanji[game] = musikAmbil(ARK_MUSIK_FILE[game]).then(function (b) { ARK.buf[game] = b; return b; }).catch(function () { ARK.bufGagal[game] = true; return null; }); /* gagal: tidak diulang-ulang; dicoba lagi saat arkade dibuka berikutnya */
+  return ARK.bufJanji[game];
 }
 function arkMusikStop() {
   var m = ARK.musik, c = SUARA.ctx; ARK.musik = null;
   if (!m || !c) return;
   try { var t = c.currentTime; m.g.gain.cancelScheduledValues(t); m.g.gain.setValueAtTime(m.g.gain.value, t); m.g.gain.linearRampToValueAtTime(0.0001, t + 0.2); m.src.stop(t + 0.25); } catch (e) { /* abaikan */ }
 }
-function arkMusikMulai(ulang, vol) { /* -> waktu mulai (jam AudioContext) atau null kalau tidak bisa / Musik dimatikan */
+function arkMusikMulai(ulang, vol) { /* lagu milik ARK.game -> waktu mulai (jam AudioContext) atau null kalau tidak bisa / Musik dimatikan */
   arkMusikStop();
-  var c = SUARA.ctx;
-  if (!c || c.state !== 'running' || !SUARA.setel.musik || !ARK.buf) return null;
+  var c = SUARA.ctx, game = ARK.game, buf = ARK.buf[game];
+  if (!c || c.state !== 'running' || !SUARA.setel.musik || !buf) return null;
   try {
     var src = c.createBufferSource(), g = c.createGain(), t0 = c.currentTime + 0.08;
-    src.buffer = ARK.buf; src.loop = !!ulang; g.gain.setValueAtTime(vol, t0);
+    src.buffer = buf; src.loop = !!ulang; g.gain.setValueAtTime(vol, t0);
     src.connect(g); g.connect(SUARA.musik); src.start(t0);
-    ARK.musik = { src: src, g: g, t0: t0 };
+    ARK.musik = { src: src, g: g, t0: t0, game: game, file: ARK_MUSIK_FILE[game] };
     return t0;
   } catch (e) { ARK.musik = null; return null; }
 }
@@ -19263,8 +19302,11 @@ function arkRedam(ya) { /* musik suasana game diredam selama arkade terbuka (lag
   try { g.gain.cancelScheduledValues(c.currentTime); g.gain.setTargetAtTime(ya ? 0.0001 : 1, c.currentTime, ya ? 0.12 : 0.6); } catch (e) { /* abaikan */ }
   ARK.redam = ya ? g : null;
 }
-function arkMusikLatar() { /* menu / capit / balap: lagu loop pelan; dansa memutar sendiri dari ketuk 0 */
-  if (!ARK.aktif || ARK.musik || (ARK.tahap === 'main' && ARK.game === 'dansa')) return;
+function arkMusikLatar() { /* menu + main capit/balap: lagu GAME ITU diputar berulang (pelan di menu); dansa saat main memutar sendiri dari ketuk 0 */
+  if (!ARK.aktif || (ARK.tahap === 'main' && ARK.game === 'dansa')) return;
+  if (ARK.musik && ARK.musik.game !== ARK.game) arkMusikStop(); /* pindah game: lagu lama berhenti, tidak pernah terbawa */
+  if (ARK.musik) return;
+  if (!ARK.buf[ARK.game]) { arkMusikMuat(ARK.game); return; } /* belum siap: dimuat; putaran berikutnya (tiap 0,5 dtk) yang memutar */
   arkMusikMulai(true, ARK.tahap === 'main' ? 0.8 : 0.45);
 }
 
@@ -19340,17 +19382,18 @@ var ARK_MAIN = {};
 ARK_MAIN.capit = {
   mulai: function () {
     var benih = (Date.now() ^ (Math.random() * 1e9)) >>> 0;
-    return { boneka: arkCapitSusun(benih), acak: arkAcak(benih ^ 0x5bd1e995), x: 0.55, v: 0, ayun: 0, ayunV: 0, gx: 0.55, fase: 'geser', tf: 0, y: 0,
+    var boneka = arkCapitSusun(benih);
+    return { boneka: boneka, slot: boneka.map(function (b) { return b.x; }), benih: benih, tg: 0, goyang: 0, merosot: false, xMerosot: 0, acak: arkAcak(benih ^ 0x5bd1e995), x: 0.55, v: 0, ayun: 0, ayunV: 0, gx: 0.55, fase: 'geser', tf: 0, y: 0,
       koin: ARK_CAPIT.koin, sisa: ARK_CAPIT.detik, skor: 0, dapat: 0, pegang: -1, presisi: 0, lepas: false, tLepas: 0, jatuh: [], tunggu: 0, cincin: 0 };
   },
   kontrol: function () { return { kiri: [{ a: 'kiri', t: '◀', tahan: true }, { a: 'kanan', t: '▶', tahan: true }], kanan: [{ a: 'aksi', t: 'CAPIT!', lebar: true }] }; },
   masuk: function (s, a, tekan) {
-    if (a === 'aksi') { if (tekan && s.fase === 'geser' && s.koin > 0 && s.sisa > 0) { s.koin -= 1; s.fase = 'turun'; s.tf = 0; s.gx = arkJepit(s.x + s.ayun, 0.03, 0.97); s.pegang = -1; bunyi('arkTurun'); } }
+    if (a === 'aksi') { if (tekan && s.fase === 'geser' && s.koin > 0 && s.sisa > 0) { s.koin -= 1; s.fase = 'turun'; s.tf = 0; s.gx = arkJepit(s.x + s.ayun + s.goyang, 0.03, 0.97); s.ayun += s.goyang; s.goyang = 0; s.tg = 0; s.pegang = -1; bunyi('arkTurun'); } }
   },
   maju: function (s, dt) {
     var M = ARK_CAPIT_MAIN, arah = (ARK.tekan.kanan ? 1 : 0) - (ARK.tekan.kiri ? 1 : 0), P = ARK.P;
     s.tf += dt; s.cincin += dt;
-    for (var q = s.jatuh.length - 1; q >= 0; q--) { var J = s.jatuh[q]; J.vy += 2.6 * dt; J.y += J.vy * dt; if (J.y >= 1) { J.b.jy = 0; J.b.goyang = 0.5; s.jatuh.splice(q, 1); } else J.b.jy = 1 - J.y; }
+    for (var q = s.jatuh.length - 1; q >= 0; q--) { var J = s.jatuh[q]; J.vy += 2.6 * dt; J.y += J.vy * dt; if (J.tx != null) J.b.x += (J.tx - J.b.x) * Math.min(1, dt * 7); if (J.y >= 1) { J.b.jy = 0; J.b.goyang = 0.5; if (J.tx != null) J.b.x = J.tx; s.jatuh.splice(q, 1); } else J.b.jy = 1 - J.y; }
     s.boneka.forEach(function (b) { if (b.goyang > 0) b.goyang = Math.max(0, b.goyang - dt); });
     if (s.fase === 'geser') {
       s.sisa -= dt;
@@ -19358,7 +19401,8 @@ ARK_MAIN.capit = {
       var nx = arkJepit(s.x + s.v * dt, M.kiri, M.kanan); if (nx === M.kiri || nx === M.kanan) s.v = 0; s.x = nx;
       var ax = (s.v - v0) / Math.max(dt, 0.001);
       s.ayunV += (-30 * s.ayun - 1.1 * s.ayunV - ax * 0.42) * dt; s.ayun = arkJepit(s.ayun + s.ayunV * dt, -0.075, 0.075);
-      s.gx = s.x + s.ayun;
+      s.tg += dt; s.goyang = s.koin > 0 ? arkCapitGoyang(s.benih, ARK_CAPIT.koin - s.koin, s.tg) : 0; /* capit tidak pernah diam: tekan pas melintas */
+      s.gx = arkJepit(s.x + s.ayun + s.goyang, 0.03, 0.97);
       if (s.sisa <= 0 || s.koin <= 0 || !s.boneka.some(function (b) { return b.ada; })) { s.tunggu += dt; if (s.tunggu > 0.7) arkSelesai(s.skor, s.dapat); }
       return;
     }
@@ -19367,7 +19411,8 @@ ARK_MAIN.capit = {
       s.y = Math.min(1, s.tf / 0.85);
       if (s.y >= 1) {
         var r = arkCapitSasaran(s.boneka, s.gx); s.fase = 'jepit'; s.tf = 0; s.pegang = r.i; s.presisi = r.presisi;
-        if (r.i >= 0) { s.lepas = s.acak() < arkCapitPeluangLepas(r.presisi, s.boneka[r.i].berat); s.tLepas = 0.3 + 0.45 * s.acak(); bunyi('arkTik'); }
+        if (r.i >= 0) { s.lepas = s.acak() < arkCapitPeluangLepas(r.presisi, s.boneka[r.i].berat); s.tLepas = 0.3 + 0.45 * s.acak(); bunyi('arkTik');
+          arkApung(r.presisi >= M.presisiBonus ? 'PAS!' : (r.presisi >= M.bawaAman ? 'Lumayan pas' : 'Miring…'), P.x + s.gx * P.w, P.y + P.h * 0.56, r.presisi >= M.presisiBonus ? '#7cf5ff' : (r.presisi >= M.bawaAman ? '#b8f5c8' : '#ffb0c8'), 18); }
         else { arkApung('Meleset!', P.x + s.gx * P.w, P.y + P.h * 0.62, '#ff9bd0', 22); bunyi('arkLewat'); }
       }
     } else if (s.fase === 'jepit') { if (s.tf > 0.32) { s.fase = 'naik'; s.tf = 0; }
@@ -19377,10 +19422,15 @@ ARK_MAIN.capit = {
         var b = s.boneka[s.pegang]; s.jatuh.push({ b: b, y: p > 0.98 ? 0.02 : 1 - p, vy: 0 }); b.jy = p; b.x = arkJepit(b.x + (s.acak() - 0.5) * 0.03, 0.24, 0.93);
         arkApung('Yah, merosot…', P.x + s.gx * P.w, P.y + P.h * 0.4, '#ffb0c8', 22); bunyi('arkLepas'); s.pegang = -1;
       }
-      if (p >= 1) { if (s.pegang >= 0) { s.fase = 'bawa'; s.tf = 0; } else { s.fase = 'geser'; s.tunggu = 0; } }
+      if (p >= 1) { if (s.pegang >= 0) { s.fase = 'bawa'; s.tf = 0; var jr = s.gx - M.lubang * 0.5, bb = s.boneka[s.pegang];
+          s.merosot = s.acak() < arkCapitPeluangMerosot(s.presisi, bb.berat, jr); s.xMerosot = M.lubang * 0.5 + jr * (0.3 + 0.55 * s.acak()); } else { s.fase = 'geser'; s.tunggu = 0; } }
     } else if (s.fase === 'bawa') {
       s.gx = Math.max(M.lubang * 0.5, s.gx - 0.62 * dt);
-      if (s.gx <= M.lubang * 0.5) { s.fase = 'buka'; s.tf = 0; }
+      if (s.pegang >= 0 && s.merosot && s.gx <= s.xMerosot && s.gx > M.lubang + 0.05) { /* jepitan miring: merosot di tengah jalan, jatuh ke celah kosong terdekat */
+        var bm = s.boneka[s.pegang], xj = arkJepit(s.gx, 0.24, 0.93); bm.x = xj; bm.jy = 1; s.jatuh.push({ b: bm, y: 0, vy: 0, tx: arkCapitCelah(s.boneka, s.slot, xj, s.pegang) });
+        arkApung('Merosot di jalan!', P.x + s.gx * P.w, P.y + P.h * 0.34, '#ffb0c8', 20); bunyi('arkLepas'); s.pegang = -1; s.merosot = false; s.fase = 'buka'; s.tf = 0.2;
+      }
+      else if (s.gx <= M.lubang * 0.5) { s.fase = 'buka'; s.tf = 0; }
     } else if (s.fase === 'buka') {
       if (s.pegang >= 0 && s.tf > 0.12) {
         var d = s.boneka[s.pegang], n = arkCapitNilai(d, s.presisi), px = P.x + s.gx * P.w, py = P.y + P.h * 0.5;
@@ -19421,11 +19471,11 @@ ARK_MAIN.capit = {
     });
     /* rel + troli + capit */
     c.fillStyle = '#3d2a9a'; c.fillRect(P.x + 10, yRel - 5, P.w - 20, 8); c.fillStyle = '#7cf5ff'; c.fillRect(P.x + 10, yRel - 5, P.w - 20, 2);
-    var tx = X(s.x), cx = X(s.gx), turun = s.y * (yLantai - yRel - 46 - skala * 0.1), cy = yRel + 26 + turun;
+    var tx = arkJepit(X(s.x), P.x + 26, P.x + P.w - 26), cx = X(s.gx), turun = s.y * (yLantai - yRel - 46 - skala * 0.1), cy = yRel + 26 + turun;
     c.strokeStyle = '#d7dcff'; c.lineWidth = 2.5; c.beginPath(); c.moveTo(tx, yRel + 6); c.lineTo(cx, cy - 8); c.stroke();
     arkRR(c, tx - 20, yRel - 11, 40, 20, 6); c.fillStyle = '#ff5fb0'; c.fill(); c.lineWidth = 2; c.strokeStyle = '#fff'; c.stroke();
     var buka = (s.fase === 'geser' || s.fase === 'turun' || (s.fase === 'buka' && s.tf > 0.1)) ? 0.62 : 0.2, jr = skala * 0.07;
-    if (s.pegang >= 0) { var pb = s.boneka[s.pegang]; arkLukisBoneka(c, pb.jenis, cx, cy + jr * 0.5 + tinggiB(pb) * 0.92, pb.r * skala, Math.sin(ARK.t * 5) * 0.07); }
+    if (s.pegang >= 0) { var pb = s.boneka[s.pegang]; var longgar = Math.max(0, M.presisiAman - s.presisi); arkLukisBoneka(c, pb.jenis, cx + Math.sin(ARK.t * 9) * longgar * 5, cy + jr * 0.5 + tinggiB(pb) * (0.92 + longgar * 0.22), pb.r * skala, Math.sin(ARK.t * (5 + longgar * 9)) * (0.07 + longgar * 0.45)); } /* jepitan miring: boneka menggantung lebih rendah + goyang liar */
     c.strokeStyle = '#eef0ff'; c.lineWidth = 4; c.lineCap = 'round';
     [-1, 1].forEach(function (k) { c.beginPath(); c.moveTo(cx, cy); c.quadraticCurveTo(cx + k * jr * (0.9 + buka), cy + jr * 0.5, cx + k * jr * buka * 1.25, cy + jr * 1.35); c.stroke(); });
     c.fillStyle = '#ffe45c'; c.beginPath(); c.arc(cx, cy - 2, 7, 0, 6.283); c.fill(); c.strokeStyle = '#fff'; c.lineWidth = 2; c.stroke();
@@ -19468,15 +19518,16 @@ ARK_MAIN.balap = {
     var arahP = s.jalur - s.pos, langkah = dt / M.pindah; s.pos = Math.abs(arahP) <= langkah ? s.jalur : s.pos + Math.sign(arahP) * langkah;
     while (s.sNext - s.rel < 64) {
       var B = arkBalapBaris(s.benih, s.n);
-      s.baris.push({ s: s.sNext, tutup: B.tutup, kena: [false, false, false], w: [0, 1, 2].map(function (k) { return ARK_MOBIL_WARNA[(s.n * 3 + k * 5 + s.benih) % ARK_MOBIL_WARNA.length]; }), mental: 0 });
+      s.baris.push({ s: s.sNext, tutup: B.tutup, geser: B.geser ? { dari: B.geser.dari, ke: B.geser.ke, p: 0 } : null, kena: [false, false, false], w: [0, 1, 2].map(function (k) { return ARK_MOBIL_WARNA[(s.n * 3 + k * 5 + s.benih) % ARK_MOBIL_WARNA.length]; }), mental: 0 });
       s.n += 1; s.sNext += arkBalapJarakBaris(arkBalapBaris(s.benih, s.n).jeda, arkBalapLaju(s.t));
     }
     for (var i = s.baris.length - 1; i >= 0; i--) {
       var r = s.baris[i], ds = r.s - s.rel;
       if (ds < -18) { s.baris.splice(i, 1); continue; }
       if (r.mental) r.mental += dt;
+      if (r.geser && r.geser.p < 1 && ds < arkBalapGeserJarak(v)) r.geser.p = Math.min(1, r.geser.p + dt / M.geserLama); /* mobil bersein menyeberang saat sudah dekat */
       if (s.kebal > 0) continue;
-      for (var l = 0; l < M.jalur; l++) if (r.tutup[l] && !r.kena[l] && arkBalapKena(s.pos, l, ds)) {
+      for (var l = 0; l < M.jalur; l++) if (r.tutup[l] && !r.kena[l] && arkBalapKena(s.pos, r.geser && r.geser.dari === l ? arkBalapPosGeser(r.geser, r.geser.p) : l, ds)) {
         r.kena[l] = true; r.mental = 0.001; s.nyawa -= 1; s.kebal = M.kebal; s.sejak = 0; ARK.getar = 0.35; bunyi('arkTabrak');
         var G = this.geo(), px = G.x0 + (s.pos + 0.5) * G.lw; arkSembur(px, G.yP - 20, '#ffd84a', 22, 260); arkSembur(px, G.yP - 20, '#ff5f7e', 12, 200);
         arkApung(s.nyawa > 0 ? 'BRAK! −1 nyawa' : 'BRAK!', px, G.yP - 70, '#ff8fa3', 24);
@@ -19518,8 +19569,13 @@ ARK_MAIN.balap = {
       var y = G.yP - (r.s - s.rel) * G.ppm;
       if (y < P.y - ch || y > P.y + P.h + ch) return;
       for (var l = 0; l < M.jalur; l++) if (r.tutup[l]) {
-        var kn = r.kena[l], mt = kn ? r.mental : 0;
-        arkLukisMobil(c, G.x0 + (l + 0.5) * G.lw + (kn ? (l <= s.pos ? -1 : 1) * mt * 160 : 0), y - (kn ? mt * 90 : 0), cw, ch, r.w[l], false, kn ? mt * 7 : 0);
+        var kn = r.kena[l], mt = kn ? r.mental : 0, gs = r.geser && r.geser.dari === l ? r.geser : null, lj = gs ? arkBalapPosGeser(gs, gs.p) : l;
+        var mx = G.x0 + (lj + 0.5) * G.lw + (kn ? (lj <= s.pos ? -1 : 1) * mt * 160 : 0), my = y - (kn ? mt * 90 : 0), arahG = gs ? Math.sign(gs.ke - gs.dari) : 0;
+        arkLukisMobil(c, mx, my, cw, ch, r.w[l], false, kn ? mt * 7 : (gs && gs.p > 0 && gs.p < 1 ? arahG * 0.2 * Math.sin(gs.p * 3.1416) : 0));
+        if (gs && gs.p < 1 && !kn && Math.floor(ARK.t * 6) % 2 === 0) { /* lampu sein: kedip oranye + panah ke jalur tujuan */
+          c.fillStyle = '#ffa41c'; c.beginPath(); c.arc(mx + arahG * cw * 0.5, my - ch * 0.36, Math.max(3.5, cw * 0.12), 0, 6.283); c.arc(mx + arahG * cw * 0.5, my + ch * 0.36, Math.max(3.5, cw * 0.12), 0, 6.283); c.fill();
+          arkTeks(c, arahG > 0 ? '▶' : '◀', mx + arahG * (cw * 0.5 + 13), my, 17, '#ffa41c', 'center', '#3a1c00');
+        }
       }
     });
     /* mobil kita */
@@ -19741,7 +19797,7 @@ function arkAksi(daftar) { var w = arkEl('div', 'ark-aksi'); daftar.forEach(func
 function arkMenu(game) {
   if (game) ARK.game = game; game = ARK.game;
   var G = ARK_GAME[game], I = ARK_INFO[game], p = document.getElementById('arkPanel'), urut = ++ARK.urut;
-  arkTahap('menu'); arkMusikVol(0.45); ARK.s = null; arkKontrolBangun(''); arkTata();
+  arkTahap('menu'); if (ARK.musik && ARK.musik.game !== game) arkMusikStop(); arkMusikVol(0.45); ARK.s = null; arkKontrolBangun(''); arkTata();
   document.getElementById('arkJudul').textContent = G.nama;
   var isi = function () {
     p.textContent = ''; p.scrollTop = 0;
@@ -19863,7 +19919,8 @@ function arkadeBuka(game) {
   ARK.el.classList.add('buka'); ARK.el.setAttribute('aria-hidden', 'false');
   arkRedam(true); bunyi('arkade');
   arkMenu(game);
-  arkMusikMuat().then(function () { arkMusikLatar(); });
+  if (ARK.bufGagal[game]) { ARK.bufGagal[game] = false; ARK.bufJanji[game] = null; }
+  arkMusikMuat(game).then(function () { arkMusikLatar(); });
   ARK.raf = requestAnimationFrame(arkPutar);
 }
 function arkadeTutup() {

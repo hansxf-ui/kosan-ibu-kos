@@ -16,10 +16,10 @@ const GAME_ID = Object.keys(GAME);
 const punya = (o, k) => typeof k === 'string' && Object.prototype.hasOwnProperty.call(o, k);
 function gameDari(id) { return punya(GAME, id) ? GAME[id] : null; }
 
-/* ---- Capit: 6 koin, satu boneka paling banyak per koin ---- */
-const CAPIT = { koin: 6, detik: 75, nilaiMaks: 50, bonusPresisi: 10, detikPerKoin: 2.5, hadiahDapat: 3 };
-/* ---- Balap: laju naik terus, selesai paling lama 60 detik ---- */
-const BALAP = { v0: 22, naik: 0.7, detik: 60, nyawa: 3, toleransi: 30 };
+/* ---- Capit: 6 koin, satu boneka paling banyak per koin (ronde 2: 60 dtk; batas skor per koin tidak berubah) ---- */
+const CAPIT = { koin: 6, detik: 60, nilaiMaks: 50, bonusPresisi: 10, detikPerKoin: 2.5, hadiahDapat: 3 };
+/* ---- Balap: laju naik terus, selesai paling lama 60 detik (ronde 2: 26 m/dtk + 1,1/dtk -> sempurna 60 dtk = 3.540 m) ---- */
+const BALAP = { v0: 26, naik: 1.1, detik: 60, nyawa: 3, toleransi: 30 };
 function balapLaju(t) { return BALAP.v0 + BALAP.naik * Math.max(0, Math.min(BALAP.detik, t)); } /* m/dtk */
 function balapJarakIdeal(t) { const d = Math.max(0, Math.min(BALAP.detik, t)); return BALAP.v0 * d + 0.5 * BALAP.naik * d * d; }
 /* ---- Dansa: peta not deterministik di atas lagu 128 BPM, 96 ketuk (45 detik) ---- */
