@@ -295,6 +295,23 @@ function buatFakeDb({ penghuni, sekarang = () => Date.now() }) {
     /* Foto profil (18 Nov) — kunci objek = nomor kamar; _fotoUnggah menaruh
        objek seolah sudah di-PUT ke Storage lewat signed URL. */
     fotoUrlPublik(room) { return 'https://foto.test/foto-profil/' + room; },
+    /* Warna Kamar — meniru kosan_kamar_gaya + kosan_gaya_baca / kosan_gaya_simpan (supabase/migrations/20261127_warna_kamar.sql).
+       t.gayaRusak = true meniru tabel yang belum dimigrasi (PostgREST 404). */
+    async gayaBaca({ room, nama }) {
+      panggilan.push('gayaBaca');
+      if (t.gayaRusak) { const e = new Error('Could not find the function public.kosan_gaya_baca'); e.status = 404; throw e; }
+      const g = (t.gaya || (t.gaya = new Map())).get(kunciP(room, nama));
+      return g ? Object.assign({}, g) : null;
+    },
+    async gayaSimpan({ room, nama, dinding, lantai, selimut }) {
+      panggilan.push('gayaSimpan');
+      if (t.gayaRusak) { const e = new Error('Could not find the function public.kosan_gaya_simpan'); e.status = 404; throw e; }
+      if (!Number.isInteger(room) || room < 1 || room > 60) raise('kamar tidak valid');
+      if (typeof nama !== 'string' || nama.length < 1 || nama.length > 30) raise('nama tidak valid');
+      if (!/^d[0-9]{1,2}$/.test(dinding) || !/^l[0-9]{1,2}$/.test(lantai) || !/^s[0-9]{1,2}$/.test(selimut)) raise('pilihan tidak valid');
+      (t.gaya || (t.gaya = new Map())).set(kunciP(room, nama), { dinding, lantai, selimut });
+      return { dinding, lantai, selimut };
+    },
     async fotoAmbil(room) { return t.foto.get(room) || null; },
     async fotoSimpan(room, url) { t.foto.set(room, { url, diperbarui: iso(sekarang()) }); },
     async fotoMintaUrl(room) { return { unggah: 'https://foto.test/unggah/' + room + '?token=uji' }; },

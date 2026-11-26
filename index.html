@@ -1384,6 +1384,88 @@
     #arkPanel .ark-rinci { margin-bottom: 6px; } #arkPanel .ark-rekor { margin-bottom: 5px; } #arkPanel .ark-satuan { margin-bottom: 4px; }
     #arkPanel .ark-catatan { margin-top: 6px; font-size: 11.5px; }
   }
+  /* ===== Warna Kamar (26 Nov) — tombol "Warna" (hanya di kamar sendiri) + panel pemilih (pola #rupaPanel: tanpa latar gelap, kamar tetap kelihatan) ===== */
+  #actionbar { flex-wrap: wrap; row-gap: 6px; }
+  #warnaBtn { background: #fff; color: var(--kb-biru); }
+  #warnaBtn .uicon { color: #e2762c; }
+  #warnaBtn[aria-expanded="true"] { background: var(--kb-biru-muda); box-shadow: inset 0 0 0 2px var(--kb-biru-2), 0 2px 8px rgba(0,0,0,.3); }
+  #warnaPanel { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 35;
+    display: none; max-width: 420px; margin: 0 auto; background: #fff; border-radius: 22px; padding: 12px 14px 12px;
+    box-shadow: var(--kb-bayang-2), inset 0 0 0 1px rgba(255,255,255,.7); }
+  #warnaPanel.open { display: block; animation: kbMuncul .2s ease-out; }
+  #warnaPanel h2 { display: flex; align-items: center; gap: 7px; font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 18px; line-height: 1.2;
+    color: var(--kb-biru); margin: 0 40px 6px 0; }
+  #warnaPanel h2 svg { width: 21px; height: 21px; color: #e2762c; flex: none; }
+  #warnaPanel h2 small { font-family: 'Nunito', sans-serif; font-size: 11.5px; font-weight: 800; color: var(--kb-teks-2);
+    background: var(--kb-isi); border-radius: 999px; padding: 2px 8px; white-space: nowrap; }
+  #warnaClose { position: absolute; top: 9px; right: 11px; width: 30px; height: 30px; border: none; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; background: var(--kb-isi); color: var(--kb-teks-2); cursor: pointer; }
+  .wk-tab { display: flex; gap: 3px; padding: 3px; border-radius: 13px; background: var(--kb-isi); }
+  .wk-tab button { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 2px; border: none;
+    border-radius: 10px; background: transparent; cursor: pointer; font-family: 'Nunito', sans-serif; font-size: 12.5px; font-weight: 800;
+    color: var(--kb-teks-2); white-space: nowrap; transition: background .15s, color .15s, box-shadow .15s; }
+  .wk-tab button[aria-selected="true"] { background: #fff; color: var(--kb-biru); box-shadow: 0 2px 8px rgba(13,38,76,.12); }
+  .wk-titik { width: 14px; height: 14px; border-radius: 50%; flex: none; background: #ccc center / cover; box-shadow: inset 0 0 0 1px rgba(19,37,58,.22); }
+  /* daftar pilihan: tinggi tetap + digulir di dalam panel (panel tidak bertambah tinggi walau pilihannya banyak) */
+  .wk-bungkus { position: relative; margin: 9px 0 0; }
+  .wk-bungkus::before, .wk-bungkus::after { content: ''; position: absolute; left: 0; right: 8px; height: 14px; pointer-events: none; opacity: 0; transition: opacity .15s; z-index: 1; }
+  .wk-bungkus::before { top: 0; background: linear-gradient(180deg, #fff, rgba(255,255,255,0)); }
+  .wk-bungkus::after { bottom: 0; background: linear-gradient(0deg, #fff, rgba(255,255,255,0)); }
+  .wk-bungkus.atas::before, .wk-bungkus.bawah::after { opacity: 1; }
+  .wk-isi { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: max-content; gap: 7px; height: 127px; align-content: start; padding: 1px 4px 2px 1px;
+    overflow-y: scroll; overflow-x: hidden; overscroll-behavior: contain; touch-action: pan-y; -webkit-overflow-scrolling: touch; outline: none;
+    scrollbar-width: thin; scrollbar-color: #9fb3c9 var(--kb-isi); animation: kbPudar .18s ease-out; }
+  .wk-isi::-webkit-scrollbar { width: 5px; }
+  .wk-isi::-webkit-scrollbar-track { background: var(--kb-isi); border-radius: 3px; }
+  .wk-isi::-webkit-scrollbar-thumb { background: #9fb3c9; border-radius: 3px; }
+  .wk-isi[data-tab="lantai"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .wk-jumlah { margin: 2px 0 6px; font-family: 'Nunito', sans-serif; font-size: 10px; font-weight: 700; line-height: 12px; color: #6b7d92; text-align: center; }
+  .wk-pil { position: relative; display: flex; flex-direction: column; align-items: stretch; gap: 3px; min-width: 0; flex: none; padding: 4px 4px 3px; border: none;
+    border-radius: 13px; background: var(--kb-isi); cursor: pointer; overflow: hidden; box-shadow: inset 0 0 0 1px rgba(19,37,58,.06);
+    transition: transform .08s, background .15s, box-shadow .15s; touch-action: pan-y; }
+  .wk-pil:active { transform: scale(.95); }
+  .wk-pil[aria-checked="true"] { background: var(--kb-biru-muda); box-shadow: inset 0 0 0 2px var(--kb-biru-2); }
+  .wk-contoh { position: relative; display: block; flex: none; height: 34px; border-radius: 9px; overflow: hidden; box-shadow: inset 0 0 0 1px rgba(19,37,58,.22); }
+  .wk-contoh canvas { display: block; width: 100%; height: 100%; }
+  /* dinding: seluruh kotak = warna tiga dinding (= namanya); strip kecil di kiri = dinding belakang kasur (nada lebih tua) */
+  .wk-aksen { position: absolute; left: 0; top: 0; bottom: 0; width: 18%; box-shadow: 1px 0 0 rgba(19,37,58,.18); }
+  .wk-asli { position: absolute; left: 50%; bottom: 3px; transform: translateX(-50%); padding: 0 5px; border-radius: 999px; background: rgba(255,255,255,.9);
+    color: #33475c; font-family: 'Nunito', sans-serif; font-size: 8.5px; font-weight: 800; font-style: normal; line-height: 12px; letter-spacing: .02em; }
+  /* selimut: jahitan lipatan */
+  .wk-contoh.wk-selimut::after { content: ''; position: absolute; left: 5px; right: 5px; top: 8px; border-top: 1.5px dashed rgba(255,255,255,.5); mix-blend-mode: difference; opacity: .5; }
+  .wk-nama { display: block; flex: none; font-family: 'Nunito', sans-serif; font-size: 10.5px; font-weight: 800; line-height: 1.2; color: var(--kb-teks-2);
+    text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wk-pil[aria-checked="true"] .wk-nama { color: var(--kb-biru); }
+  .wk-centang { position: absolute; top: 7px; right: 7px; width: 17px; height: 17px; border-radius: 50%; display: none; align-items: center;
+    justify-content: center; background: var(--kb-biru-2); color: #fff; box-shadow: 0 0 0 2px #fff; }
+  .wk-centang svg { width: 11px; height: 11px; }
+  .wk-pil[aria-checked="true"] .wk-centang { display: flex; }
+  .wk-kaki { display: flex; align-items: center; gap: 8px; }
+  #warnaPulih { flex: none; display: inline-flex; align-items: center; gap: 5px; padding: 9px 11px; border: none; border-radius: 13px; cursor: pointer;
+    background: var(--kb-isi); color: var(--kb-teks-2); font-family: 'Nunito', sans-serif; font-size: 12.5px; font-weight: 800; white-space: nowrap; }
+  #warnaPulih svg { width: 14px; height: 14px; }
+  #warnaPulih:disabled { opacity: .45; cursor: default; }
+  #warnaStatus { flex: 1; min-width: 0; font-size: 11px; font-weight: 800; color: #6b7d92; text-align: center; line-height: 1.2; }
+  #warnaStatus.ok { color: #1d8a55; }
+  #warnaStatus.gagal { color: #c2452d; }
+  #warnaSelesai { flex: none; padding: 9px 20px; border: none; border-radius: 13px; cursor: pointer; font-family: 'Baloo 2', 'Nunito', sans-serif;
+    font-size: 15px; font-weight: 800; color: #fff; background: linear-gradient(180deg, #3a8de6, #1f6fc9); }
+  @media (orientation: landscape) and (min-width: 900px) and (min-height: 501px) {
+    #warnaPanel { left: auto; right: 16px; top: 72px; bottom: auto; width: 360px; margin: 0; max-height: calc(100dvh - 88px); overflow-y: auto; }
+  }
+  @media (max-height: 500px) and (orientation: landscape) {
+    #warnaPanel { left: auto; right: 12px; top: 52px; bottom: auto; width: 304px; max-width: none; margin: 0; max-height: calc(100dvh - 60px);
+      overflow-y: auto; padding: 9px 12px 10px; }
+    #warnaPanel h2 { font-size: 16px; margin-bottom: 4px; }
+    .wk-tab button { padding: 4px 1px; font-size: 11.5px; }
+    .wk-bungkus { margin: 6px 0 7px; }
+    .wk-isi { gap: 5px; height: 113px; }
+    .wk-jumlah { display: none; }
+    .wk-contoh { height: 27px; }
+    .wk-contoh.wk-selimut::after { top: 6px; }
+    #warnaPulih, #warnaSelesai { padding: 6px 10px; }
+    #warnaSelesai { padding: 6px 16px; font-size: 14px; }
+  }
 </style>
 <script type="importmap">
 {
@@ -1507,6 +1589,8 @@
     </div>
     <!-- Kerja & Belanja — saldo Rupiah (penghuni saja; diisi JS dari /api/dompet), ketuk = panel Dompet -->
     <button id="dompetPill" type="button" title="Dompet: saldo Rupiah, kerja, toko" style="display:none"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><rect x="4" y="7.5" width="16" height="11.5" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 13.2h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="16.2" cy="13.2" r="1" fill="currentColor"/></svg> <span id="dompetPillTeks">Rp0</span></button>
+    <!-- Warna Kamar (26 Nov) — hanya tampil untuk penghuni di kamarnya sendiri (diatur warnaKamarSelaras) -->
+    <button id="warnaBtn" type="button" title="Ganti warna dinding, lantai, dan selimut kamarmu" aria-expanded="false" aria-controls="warnaPanel" style="display:none"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3.5" width="14" height="6" rx="2" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M17 6.5h2.5a1.5 1.5 0 0 1 1.5 1.5v2.5a1.5 1.5 0 0 1-1.5 1.5H12v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><rect x="10.5" y="15" width="3" height="6" rx="1.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Warna</button>
   </div>
 </div>
 
@@ -1595,6 +1679,24 @@
   <button id="pgtNamaBtn" class="pgt-saklar" type="button" title="Nama di atas kepala pemain tampil/sembunyi"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-5l-3 3.5L9 15H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M7.5 10h9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Nama pemain <span id="pgtNamaStatus" class="menu-status">Tampil</span><i class="pgt-tuas"></i></button>
   <button id="pgtSelesai" type="button">Selesai</button>
 </div>
+<!-- Warna Kamar (26 Nov) — pemilih warna dinding / lantai / selimut. Pratinjau langsung di kamar; isi di-render warnaRender(). Pola #rupaPanel (tanpa latar gelap). -->
+<div id="warnaPanel" role="dialog" aria-modal="false" aria-labelledby="warnaJudul">
+  <button id="warnaClose" type="button" aria-label="Tutup"><svg class="kb-x" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button>
+  <h2 id="warnaJudul"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3.5" width="14" height="6" rx="2" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M17 6.5h2.5a1.5 1.5 0 0 1 1.5 1.5v2.5a1.5 1.5 0 0 1-1.5 1.5H12v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><rect x="10.5" y="15" width="3" height="6" rx="1.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Warna Kamar <small id="warnaKamarNo"></small></h2>
+  <div class="wk-tab" role="tablist" aria-label="Bagian kamar">
+    <button type="button" role="tab" id="wkTab-dinding" data-tab="dinding" aria-controls="wkIsi" aria-selected="true"><i class="wk-titik" aria-hidden="true"></i>Dinding</button>
+    <button type="button" role="tab" id="wkTab-lantai" data-tab="lantai" aria-controls="wkIsi" aria-selected="false"><i class="wk-titik" aria-hidden="true"></i>Lantai</button>
+    <button type="button" role="tab" id="wkTab-selimut" data-tab="selimut" aria-controls="wkIsi" aria-selected="false"><i class="wk-titik" aria-hidden="true"></i>Selimut</button>
+  </div>
+  <div class="wk-bungkus" id="wkBungkus"><div class="wk-isi" id="wkIsi" role="radiogroup" aria-label="Pilihan warna" data-tab="dinding" tabindex="-1"></div></div>
+  <p class="wk-jumlah" id="wkJumlah" aria-hidden="true"></p>
+  <div class="wk-kaki">
+    <button id="warnaPulih" type="button" title="Kembalikan dinding, lantai, dan selimut ke tampilan awal"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5v5h5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.6 10A8 8 0 1 1 6 16.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg> Balikin ke awal</button>
+    <span id="warnaStatus" role="status" aria-live="polite"></span>
+    <button id="warnaSelesai" type="button">Selesai</button>
+  </div>
+</div>
+
 <div id="rupaPanel" role="dialog" aria-modal="false" aria-labelledby="rupaJudul">
   <button id="rupaClose" type="button" aria-label="Tutup"><svg class="kb-x" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button>
   <h2 id="rupaJudul">Tampilan</h2>
@@ -9465,6 +9567,7 @@ function dompetMuat() {
     }
     else DOMPET.galat = pesanApi(r, 'Server dompet belum bisa dihubungi. Coba lagi sebentar ya.');
     dompetHudPerbarui(); dekorTerapkan(); aksesoriSayaTerapkan(); ktaPerbaruiBila();
+    if (typeof warnaKamarDariServer === 'function') warnaKamarDariServer(); /* Warna Kamar: field gaya dari /api/dompet (typeof: tes lama memotong dompetMuat sendirian) */
     if (JSON.stringify(aksesoriSayaMp()) !== aksLama) { mpKirimPresence(); mpKirimPos(); } /* barang milik baru diketahui: pemain lain ikut melihat aksesori */
     if (dompetTerbuka()) dompetRender();
     if (cardEl.classList.contains('open') && document.getElementById('ibuGelembung')) ibuSewaTombol();
@@ -12031,6 +12134,7 @@ window.addEventListener('popstate', function () {
   if (ktaO && ktaO.classList.contains('open')) { dorongStateLagi(); ktaTutup(); return; }
   var profilO = document.getElementById('profilOverlay');
   if (profilO && profilO.classList.contains('open')) { dorongStateLagi(); profilTutup(); return; }
+  if (WK.buka) { dorongStateLagi(); warnaTutup(); return; } /* Warna Kamar */
   if (rupaPanel && rupaPanel.classList.contains('open')) { dorongStateLagi(); rupaTutup(); return; } /* Karakter v2 */
   if (dompetTerbuka()) { dorongStateLagi(); dompetTutup(); return; } /* Kerja & Belanja — panel Dompet */
   if (menuDrop && menuDrop.classList.contains('open')) { dorongStateLagi(); menuTutup(); return; }
@@ -14123,7 +14227,342 @@ function mpKirimPresence() {
   try { klien.publish(MP_TOPICS.presence + playerId, JSON.stringify(msg), { retain: true }); } catch (e) {}
   lastPresenceSent = Date.now();
 }
+/* ==== WARNA-KAMAR-START ==== */
+/* Warna Kamar (Ryan 26 Nov: "pilih warna kamar sendiri"). Penghuni memilih warna dinding + jenis lantai + warna
+   selimut kamarnya dari pilihan JADI; gratis; tersimpan di server per penghuni (ikut ke HP lain).
+   - Satu roomScene dipakai semua kamar dan hanya pemilik yang bisa masuk kamarnya, jadi cukup mengubah BAHAN
+     (IN.dindingK, IN.aksenK, IN.lantaiK, IN.selimut): tanpa mesh / tris / lampu baru.
+   - IN.aksenK juga dipakai dinding Toko Dekor -> begitu keluar dari kamar, bahan DIPULIHKAN ke bawaan
+     (warnaKamarSelaras dipanggil tiap pindah alam).
+   - Daftar id di bawah = daftar putih server (api/_lib/gaya.js); indeks 0 = bawaan (nilai bahan asli, tidak dihitung ulang).
+   - cat / aksen / kain = warna yang TERLIHAT (sRGB) = warna kotak contoh; bahan dihitung lewat WK_KAL (kalibrasi terukur terhadap lampu kamar yang hangat,
+     supaya putih terbaca putih dan nama cocok dengan hasil di kamar). Koreksi Ryan 26 Nov 23:50: "nama harus sesuai warna palet, warnanya kasih lengkap". */
+var WARNA_KAMAR = {
+  /* nama = warna yang TERLIHAT: cat = warna tiga dinding (kotak contoh), aksen = dinding belakang kasur (nada lebih tua dari warna yang sama; strip kecil di kotak) */
+  dinding: [
+    { id: 'd0', nama: 'Krem Abu', cat: '#d0c6b8', aksen: '#82878d' },
+    { id: 'd1', nama: 'Putih', cat: '#f6f6f4', aksen: '#dfe0de' },
+    { id: 'd2', nama: 'Gading', cat: '#f0e7cf', aksen: '#dccba3' },
+    { id: 'd3', nama: 'Krem', cat: '#e3d3a8', aksen: '#c6ab70' },
+    { id: 'd4', nama: 'Abu Muda', cat: '#cfd2d6', aksen: '#a1a7af' },
+    { id: 'd5', nama: 'Abu', cat: '#989ca3', aksen: '#6d727a' },
+    { id: 'd6', nama: 'Arang', cat: '#54575e', aksen: '#383b41' },
+    { id: 'd7', nama: 'Hitam', cat: '#232428', aksen: '#131416' },
+    { id: 'd8', nama: 'Kuning', cat: '#f3d85a', aksen: '#dcb22c' },
+    { id: 'd9', nama: 'Mustard', cat: '#c9992c', aksen: '#a1781a' },
+    { id: 'd10', nama: 'Peach', cat: '#f8bd97', aksen: '#e6905f' },
+    { id: 'd11', nama: 'Oranye', cat: '#ee8c38', aksen: '#cc691c' },
+    { id: 'd12', nama: 'Terakota', cat: '#bf6748', aksen: '#974a31' },
+    { id: 'd13', nama: 'Merah', cat: '#c83437', aksen: '#9c2226' },
+    { id: 'd14', nama: 'Maroon', cat: '#782431', aksen: '#541621' },
+    { id: 'd15', nama: 'Pink Muda', cat: '#f7ccd6', aksen: '#e89db0' },
+    { id: 'd16', nama: 'Pink', cat: '#e9779b', aksen: '#c85277' },
+    { id: 'd17', nama: 'Ungu Muda', cat: '#cfc0e7', aksen: '#a188cb' },
+    { id: 'd18', nama: 'Ungu', cat: '#7a4fb8', aksen: '#58368e' },
+    { id: 'd19', nama: 'Biru Muda', cat: '#b8d6ef', aksen: '#7db0db' },
+    { id: 'd20', nama: 'Biru', cat: '#3c7ccb', aksen: '#285ca1' },
+    { id: 'd21', nama: 'Navy', cat: '#25375e', aksen: '#162543' },
+    { id: 'd22', nama: 'Tosca', cat: '#2ca8a0', aksen: '#1a7f79' },
+    { id: 'd23', nama: 'Mint', cat: '#bfe7d2', aksen: '#8dcdae' },
+    { id: 'd24', nama: 'Sage', cat: '#a8b996', aksen: '#7c916e' },
+    { id: 'd25', nama: 'Hijau', cat: '#3c9a4b', aksen: '#29763a' },
+    { id: 'd26', nama: 'Kopi Susu', cat: '#c7a17a', aksen: '#a07b56' },
+    { id: 'd27', nama: 'Cokelat', cat: '#7b5137', aksen: '#583825' }
+  ],
+  /* rata = warna rata-rata tekstur (titik di tab); jenis + cat = pelukis tekstur; warna = pengali bahan (penyeimbang lampu hangat) */
+  lantai: [
+    { id: 'l0', nama: 'Kayu Gelap', rata: '#442b1a', jenis: 'kayu', cat: '#7a5641' },
+    { id: 'l1', nama: 'Kayu Terang', rata: '#c4a07a', jenis: 'kayu', cat: '#c4a07a', biji: 5, nat: 0.76 },
+    { id: 'l2', nama: 'Kayu Cokelat', rata: '#8b6040', jenis: 'kayu', cat: '#8b6040', biji: 11, nat: 0.66 },
+    { id: 'l3', nama: 'Kayu Abu', rata: '#99938a', jenis: 'kayu', cat: '#99938a', biji: 17, nat: 0.7 },
+    { id: 'l4', nama: 'Ubin Putih', rata: '#ebebe8', jenis: 'ubin', cat: [236, 236, 233], nat: '#b4b4b0', biji: 911 },
+    { id: 'l5', nama: 'Ubin Krem', rata: '#d8d2c6', jenis: 'ubin', cat: [225, 220, 211], nat: '#aaa398', biji: 733 },
+    { id: 'l6', nama: 'Semen Abu', rata: '#a3a4a4', jenis: 'semen', cat: [163, 164, 164], biji: 257 },
+    { id: 'l7', nama: 'Karpet Abu', rata: '#a09b94', jenis: 'karpet', cat: [163, 157, 149], biji: 419 },
+    { id: 'l8', nama: 'Karpet Krem', rata: '#d3c4a6', jenis: 'karpet', cat: [213, 198, 168], biji: 631 }
+  ],
+  selimut: [
+    { id: 's0', nama: 'Mocca', kain: '#886e4f' },
+    { id: 's1', nama: 'Putih', kain: '#f4f4f1' },
+    { id: 's2', nama: 'Abu', kain: '#9a9da3' },
+    { id: 's3', nama: 'Arang', kain: '#50535a' },
+    { id: 's4', nama: 'Hitam', kain: '#222327' },
+    { id: 's5', nama: 'Kuning', kain: '#f0cf4c' },
+    { id: 's6', nama: 'Oranye', kain: '#ea8733' },
+    { id: 's7', nama: 'Merah', kain: '#c5383b' },
+    { id: 's8', nama: 'Maroon', kain: '#77222f' },
+    { id: 's9', nama: 'Pink Muda', kain: '#f5c4d0' },
+    { id: 's10', nama: 'Pink', kain: '#e5739a' },
+    { id: 's11', nama: 'Ungu', kain: '#7b52b6' },
+    { id: 's12', nama: 'Biru Muda', kain: '#aecfec' },
+    { id: 's13', nama: 'Biru', kain: '#4379c4' },
+    { id: 's14', nama: 'Navy', kain: '#26385f' },
+    { id: 's15', nama: 'Tosca', kain: '#2fa59e' },
+    { id: 's16', nama: 'Hijau', kain: '#3f964a' },
+    { id: 's17', nama: 'Cokelat', kain: '#5c3c2b' },
+    { id: 's18', nama: 'Krem', kain: '#e3d4b1' }
+  ]
+};
+function wkBawaan() { return { dinding: WARNA_KAMAR.dinding[0].id, lantai: WARNA_KAMAR.lantai[0].id, selimut: WARNA_KAMAR.selimut[0].id }; }
+function wkCari(jenis, id) { var a = WARNA_KAMAR[jenis]; for (var i = 0; i < a.length; i++) if (a[i].id === id) return a[i]; return a[0]; }
+function wkRapikan(g) { g = g || {}; return { dinding: wkCari('dinding', g.dinding).id, lantai: wkCari('lantai', g.lantai).id, selimut: wkCari('selimut', g.selimut).id }; } /* kode tak dikenal -> bawaan */
+function wkSama(a, b) { return !!a && !!b && a.dinding === b.dinding && a.lantai === b.lantai && a.selimut === b.selimut; }
+function wkAwal(g) { return wkSama(g, wkBawaan()); }
+/* ==== WARNA-KAMAR-END ==== */
+/* ==== WARNA-KAMAR-UI-START ==== */
+var WK = { pilih: wkBawaan(), tersimpan: wkBawaan(), untuk: null, kotor: false, menyimpan: false, timer: 0, asli: null, tek: {}, terpasang: false, buka: false, tab: 'dinding', isiTab: '', kecil: {} };
+function wkRgb(c, f, a) { /* [r,g,b] x f -> 'rgb(...)' / 'rgba(...)' */
+  var k = function (v) { return Math.max(0, Math.min(255, Math.round(v * f))); };
+  return (a === undefined ? 'rgb(' : 'rgba(') + k(c[0]) + ',' + k(c[1]) + ',' + k(c[2]) + (a === undefined ? ')' : ',' + a + ')');
+}
+function wkLukisUbin(o) { /* ubin 60 x 60 (4 x 4 per petak 2,4 m): awan halus + bintik + kilap lembut, nat tipis; mulus berulang */
+  return function (ctx, w, h) {
+    ctx.fillStyle = o.nat; ctx.fillRect(0, 0, w, h);
+    var r = acak(o.biji), b = w / 4, i, j, k, c = o.cat;
+    for (j = 0; j < 4; j++) for (i = 0; i < 4; i++) {
+      var g = Math.floor(r() * 9) - 4, x0 = i * b + 1, y0 = j * b + 1, s = b - 2;
+      ctx.fillStyle = 'rgb(' + (c[0] + g) + ',' + (c[1] + g) + ',' + (c[2] + g) + ')'; ctx.fillRect(x0, y0, s, s);
+      ctx.save(); ctx.beginPath(); ctx.rect(x0, y0, s, s); ctx.clip();
+      for (k = 0; k < 5; k++) { /* awan warna (terang / gelap) */
+        var ax = x0 + r() * s, ay = y0 + r() * s, ar = s * (0.45 + r() * 0.4), gw = ctx.createRadialGradient(ax, ay, 0, ax, ay, ar);
+        gw.addColorStop(0, r() < 0.6 ? 'rgba(255,255,255,0.13)' : wkRgb(c, 0.72, 0.06)); gw.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = gw; ctx.fillRect(x0, y0, s, s);
+      }
+      for (k = 0; k < 150; k++) { ctx.fillStyle = wkRgb(c, 0.68 + r() * 0.38, 0.30); ctx.fillRect(x0 + r() * s, y0 + r() * s, 1.3, 1.3); }
+      var gk = ctx.createLinearGradient(x0, y0, x0 + s, y0 + s);
+      gk.addColorStop(0, 'rgba(255,255,255,0.12)'); gk.addColorStop(0.5, 'rgba(255,255,255,0)'); gk.addColorStop(1, 'rgba(0,0,0,0.05)');
+      ctx.fillStyle = gk; ctx.fillRect(x0, y0, s, s);
+      ctx.restore();
+      ctx.fillStyle = 'rgba(255,255,255,0.28)'; ctx.fillRect(x0, y0, s, 1.5); ctx.fillRect(x0, y0, 1.5, s); /* bevel terang */
+    }
+  };
+}
+function wkLukisKarpet(o) { /* karpet polos dari dinding ke dinding: bulu simpul rapat, baris tenun samar, serat terang/gelap acak (tanpa garis yang bisa putus di tepi) */
+  return function (ctx, w, h) {
+    ctx.fillStyle = wkRgb(o.cat, 1); ctx.fillRect(0, 0, w, h);
+    var r = acak(o.biji), x, y, k;
+    for (y = 0; y < h; y += 4) { ctx.fillStyle = wkRgb(o.cat, 0.36, 0.05 + r() * 0.05); ctx.fillRect(0, y + 3, w, 1); } /* celah antar baris simpul */
+    for (y = 0; y < h; y += 4) for (x = (y % 8 ? 2 : 0); x < w; x += 4) { /* simpul 4 px selang-seling */
+      var v = r();
+      ctx.fillStyle = v < 0.5 ? 'rgba(255,252,246,' + (0.05 + v * 0.22) + ')' : wkRgb(o.cat, 0.34, 0.03 + (v - 0.5) * 0.2);
+      ctx.fillRect(x, y, 3, 3);
+    }
+    for (k = 0; k < 2600; k++) { /* serat heather */
+      var t = r();
+      ctx.fillStyle = t < 0.45 ? wkRgb(o.cat, 1.42, 0.34) : (t < 0.8 ? wkRgb(o.cat, 0.56, 0.30) : wkRgb(o.cat, 0.9, 0.30));
+      ctx.fillRect(r() * w, r() * h, 1 + r() * 2, 1);
+    }
+  };
+}
+function wkLukisSemen(o) { /* semen ekspos poles: awan besar + bercak halus + pori, nat muai tipis tiap 1,2 m (2 x 2 per petak 2,4 m); semua digambar berulang di tepi -> mulus */
+  return function (ctx, w, h) {
+    ctx.fillStyle = wkRgb(o.cat, 1); ctx.fillRect(0, 0, w, h);
+    var r = acak(o.biji), k, dx, dy;
+    for (k = 0; k < 46; k++) { /* awan: gelap / terang, dibungkus di tepi */
+      var ax = r() * w, ay = r() * h, ar = w * (0.1 + r() * 0.22), terang = r() < 0.5, a = 0.025 + r() * 0.035; /* awan halus: 27 Nov, versi awal terlalu belang (kelihatan kotor) */
+      for (dx = -1; dx <= 1; dx++) for (dy = -1; dy <= 1; dy++) {
+        var cx = ax + dx * w, cy = ay + dy * h;
+        if (cx + ar < 0 || cx - ar > w || cy + ar < 0 || cy - ar > h) continue;
+        var gw = ctx.createRadialGradient(cx, cy, 0, cx, cy, ar);
+        gw.addColorStop(0, terang ? 'rgba(255,255,255,' + a + ')' : wkRgb(o.cat, 0.72, a)); gw.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = gw; ctx.fillRect(cx - ar, cy - ar, ar * 2, ar * 2);
+      }
+    }
+    for (k = 0; k < 5200; k++) { var t = r(); ctx.fillStyle = t < 0.5 ? wkRgb(o.cat, 1.28, 0.22) : wkRgb(o.cat, 0.62, 0.2); ctx.fillRect(r() * w, r() * h, 1 + r() * 1.4, 1 + r() * 1.4); } /* butir */
+    for (k = 0; k < 90; k++) { ctx.fillStyle = wkRgb(o.cat, 0.42, 0.35); ctx.beginPath(); ctx.arc(r() * w, r() * h, 0.6 + r() * 1.1, 0, 6.3); ctx.fill(); } /* pori */
+    ctx.fillStyle = wkRgb(o.cat, 0.6, 0.55); /* nat muai */
+    ctx.fillRect(0, 0, w, 1.5); ctx.fillRect(0, h / 2, w, 1.5); ctx.fillRect(0, 0, 1.5, h); ctx.fillRect(w / 2, 0, 1.5, h);
+    ctx.fillStyle = 'rgba(255,255,255,0.16)';
+    ctx.fillRect(0, 1.5, w, 1); ctx.fillRect(0, h / 2 + 1.5, w, 1); ctx.fillRect(1.5, 0, 1, h); ctx.fillRect(w / 2 + 1.5, 0, 1, h);
+  };
+}
+function wkLantaiLukis(id) {
+  var o = wkCari('lantai', id);
+  if (o.jenis === 'ubin') return wkLukisUbin(o);
+  if (o.jenis === 'karpet') return wkLukisKarpet(o);
+  if (o.jenis === 'semen') return wkLukisSemen(o);
+  return lukisPapanLantai(o.cat, o.biji || 3, o.nat);
+}
+function wkLantaiTekstur(id) { /* dibuat malas: hanya saat lantai itu dipilih (kanvas 512, ulang per petak 2,4 m seperti lantai bawaan) */
+  if (!WK.tek[id]) { var t = teksturLukis(512, 512, wkLantaiLukis(id), [1, 1]); t.anisotropy = 1; WK.tek[id] = t; }
+  return WK.tek[id];
+}
+/* Kalibrasi TERUKUR (alat/ukur.js, kamar 41, lampu tidur nyala): warna terlihat = albedo x E + emissive per kanal, E = cahaya kamar (hangat: merah > biru).
+   Pengali di bawah membuat warna terlihat = warna kotak contoh di tengah dinding (bukan lebih krem). a = pengali albedo per kanal, e = pengali emissive. */
+var WK_KAL = /*KAL*/{ dinding: { a: [0.8, 0.8, 0.8], e: [0.778, 0.828, 0.886] }, aksen: { a: [0.8, 0.8, 0.8], e: [0.832, 0.867, 0.902] }, selimut: [2.426, 3.157, 4.955], lantai: [3.077, 3.545, 4.638] }/*KAL*/;
+var wkWarnaT = null;
+function warnaKamarPasang(g) { /* pasang pilihan g ke bahan kamar; false = kamar belum dibangun */
+  if (typeof IN === 'undefined' || !IN || !IN.emisiKamar) return false;
+  var I = IN, eD = null, eA = null;
+  I.emisiKamar.forEach(function (q) { if (q.m === I.dindingK) eD = q; if (q.m === I.aksenK) eA = q; });
+  if (!eD || !eA) return false;
+  if (!WK.asli) WK.asli = { dC: I.dindingK.color.clone(), dE: eD.e.clone(), aC: I.aksenK.color.clone(), aE: eA.e.clone(),
+    lMap: I.lantaiK.map, lC: I.lantaiK.color.clone(), sC: I.selimut.color.clone() };
+  if (!wkWarnaT) wkWarnaT = new THREE.Color();
+  var A = WK.asli, T = wkWarnaT, d = wkCari('dinding', g.dinding), l = wkCari('lantai', g.lantai), s = wkCari('selimut', g.selimut);
+  if (d === WARNA_KAMAR.dinding[0]) { I.dindingK.color.copy(A.dC); eD.e.copy(A.dE); I.aksenK.color.copy(A.aC); eA.e.copy(A.aE); }
+  else {
+    var K = WK_KAL.dinding, KA = WK_KAL.aksen;
+    T.set(d.cat); I.dindingK.color.setRGB(T.r * K.a[0], T.g * K.a[1], T.b * K.a[2]); eD.e.setRGB(T.r * K.e[0], T.g * K.e[1], T.b * K.e[2]);
+    T.set(d.aksen); I.aksenK.color.setRGB(T.r * KA.a[0], T.g * KA.a[1], T.b * KA.a[2]); eA.e.setRGB(T.r * KA.e[0], T.g * KA.e[1], T.b * KA.e[2]);
+  }
+  interiorKamarNyala(lampuKamarLevel); /* emissive dinding mengikuti lampu tidur (basis baru) */
+  if (l === WARNA_KAMAR.lantai[0]) { I.lantaiK.map = A.lMap; I.lantaiK.color.copy(A.lC); }
+  else { I.lantaiK.map = wkLantaiTekstur(l.id); I.lantaiK.color.setRGB(WK_KAL.lantai[0], WK_KAL.lantai[1], WK_KAL.lantai[2]); }
+  if (s === WARNA_KAMAR.selimut[0]) I.selimut.color.copy(A.sC);
+  else { T.set(s.kain); I.selimut.color.setRGB(T.r * WK_KAL.selimut[0], T.g * WK_KAL.selimut[1], T.b * WK_KAL.selimut[2]); }
+  WK.terpasang = !wkAwal({ dinding: d.id, lantai: l.id, selimut: s.id });
+  return true;
+}
+function warnaDiKamarSendiri() { return !!(typeof myRealm === 'string' && visitorRoom && myRealm === 'room-' + visitorRoom && ktaIsResident()); }
+function warnaKamarSelaras() { /* dipanggil tiap pindah alam + tiap dompet dimuat: di kamar sendiri = warna pilihan; di luar = bahan bawaan (Toko Dekor memakai IN.aksenK) */
+  var btn = document.getElementById('warnaBtn'), di = warnaDiKamarSendiri();
+  if (btn) btn.style.display = di ? '' : 'none';
+  if (!di) { if (WK.buka) warnaTutup(); if (WK.terpasang) warnaKamarPasang(wkBawaan()); return; }
+  warnaKamarPasang(WK.pilih);
+  if (WK.buka) warnaRender();
+  if (WK.kotor && !WK.timer && !WK.menyimpan && !WK.buka) wkSimpan(); /* simpanan yang sempat gagal: coba lagi */
+  if (wkAwal(WK.pilih) && !WK.buka) { try { if (!localStorage.getItem('kosan.warna.tahu')) { localStorage.setItem('kosan.warna.tahu', '1'); toastKosan('🎨 Baru: ketuk "Warna" buat ganti warna kamarmu'); } } catch (e) { /* abaikan */ } }
+}
+function warnaKamarDariServer() { /* sesudah /api/dompet dimuat (field gaya); pilihan yang belum tersimpan tidak ditimpa */
+  var kunci = DOMPET.untuk || '', d = DOMPET.data;
+  if (WK.untuk !== kunci) { clearTimeout(WK.timer); WK.timer = 0; WK.untuk = kunci; WK.pilih = wkBawaan(); WK.tersimpan = wkBawaan(); WK.kotor = false; }
+  if (d && !WK.kotor && !WK.menyimpan) { WK.pilih = d.gaya ? wkRapikan(d.gaya) : wkBawaan(); WK.tersimpan = wkRapikan(WK.pilih); }
+  warnaKamarSelaras();
+}
+function wkStatus(jenis, teks) {
+  var el = document.getElementById('warnaStatus'); if (!el) return;
+  el.className = jenis === 'ok' ? 'ok' : (jenis === 'gagal' ? 'gagal' : '');
+  el.textContent = jenis === 'ok' ? 'Tersimpan ✓' : (jenis === 'simpan' ? 'Menyimpan…' : (jenis === 'gagal' ? (teks || 'Belum tersimpan') : ''));
+}
+function wkSimpanNanti() { WK.kotor = true; clearTimeout(WK.timer); WK.timer = setTimeout(wkSimpan, 1500); wkStatus('simpan'); }
+function wkSimpan() { /* POST /api/belanja {aksi:'gaya'} — menumpang endpoint belanja (tanpa fungsi Vercel / fetch baru) */
+  clearTimeout(WK.timer); WK.timer = 0;
+  if (!WK.kotor || WK.menyimpan) return;
+  if (!ktaIsResident()) { WK.kotor = false; return; }
+  var kirim = wkRapikan(WK.pilih), untuk = WK.untuk;
+  if (wkSama(kirim, WK.tersimpan)) { WK.kotor = false; wkStatus('ok'); return; }
+  WK.menyimpan = true; wkStatus('simpan');
+  apiKosan('POST', '/api/belanja', { aksi: 'gaya', dinding: kirim.dinding, lantai: kirim.lantai, selimut: kirim.selimut }).then(function (r) {
+    WK.menyimpan = false;
+    if (untuk !== WK.untuk) return; /* ganti akun saat menyimpan */
+    if (r.status === 200) {
+      WK.tersimpan = kirim;
+      if (DOMPET.data) DOMPET.data.gaya = wkRapikan(kirim);
+      if (wkSama(kirim, WK.pilih)) { WK.kotor = false; wkStatus('ok'); } else wkSimpanNanti(); /* sudah diganti lagi selama menyimpan */
+    } else {
+      wkStatus('gagal', r.status === 429 ? 'Kebanyakan ganti — coba lagi nanti' : 'Belum tersimpan');
+      if (!WK.buka) toastKosan('🎨 Warna kamar belum tersimpan — ' + pesanApi(r, 'coba lagi sebentar ya.'));
+    }
+  });
+}
+function wkKecil(id) { /* contoh lantai untuk tombol: kanvas kecil dari pelukis yang sama dengan lantai aslinya */
+  if (!WK.kecil[id]) {
+    var besar = document.createElement('canvas'); besar.width = besar.height = 256;
+    wkLantaiLukis(id)(besar.getContext('2d'), 256, 256);
+    var cv = document.createElement('canvas'); cv.width = 144; cv.height = 80;
+    cv.getContext('2d').drawImage(besar, 0, 0, 180, 100, 0, 0, 144, 80);
+    WK.kecil[id] = cv;
+  }
+  return WK.kecil[id];
+}
+function wkGulirTanda() { /* bayangan atas / bawah = masih ada pilihan di luar layar */
+  var isi = document.getElementById('wkIsi'), bk = document.getElementById('wkBungkus'); if (!isi || !bk) return;
+  bk.classList.toggle('atas', isi.scrollTop > 2); bk.classList.toggle('bawah', isi.scrollTop + isi.clientHeight < isi.scrollHeight - 2);
+}
+function warnaRender() {
+  var isi = document.getElementById('wkIsi'), p = WK.pilih, jenis = WK.tab, d = wkCari('dinding', p.dinding), l = wkCari('lantai', p.lantai), s = wkCari('selimut', p.selimut);
+  [].forEach.call(document.querySelectorAll('#warnaPanel .wk-tab [role="tab"]'), function (b) {
+    var j = b.dataset.tab, t = b.querySelector('.wk-titik');
+    b.setAttribute('aria-selected', j === jenis ? 'true' : 'false'); b.tabIndex = j === jenis ? 0 : -1;
+    if (t) t.style.background = j === 'dinding' ? d.cat : (j === 'lantai' ? l.rata : s.kain);
+  });
+  if (WK.isiTab !== jenis || !isi.firstChild) { /* daftar dibangun hanya saat ganti tab: posisi gulir tidak lompat tiap ketuk */
+    WK.isiTab = jenis; isi.dataset.tab = jenis; isi.innerHTML = '';
+    WARNA_KAMAR[jenis].forEach(function (o, idx) {
+      var b = document.createElement('button'), c = document.createElement('span'), n = document.createElement('span'), v = document.createElement('span');
+      b.type = 'button'; b.className = 'wk-pil'; b.dataset.id = o.id; b.setAttribute('role', 'radio');
+      b.setAttribute('aria-label', o.nama + (idx === 0 ? ' (warna asli kamar)' : ''));
+      c.className = 'wk-contoh wk-' + jenis;
+      if (jenis === 'dinding') { c.style.background = o.cat; var k = document.createElement('i'); k.className = 'wk-aksen'; k.style.background = o.aksen; c.appendChild(k); }
+      else if (jenis === 'selimut') c.style.background = o.kain;
+      else { var kc = c.appendChild(wkKecil(o.id).cloneNode(false)), kx = kc.getContext('2d'); kx.drawImage(wkKecil(o.id), 0, 0);
+        if (typeof o.cat === 'string' && o.rata !== o.cat) { /* lantai asli: kotak contoh digelapkan ke warna yang TERUKUR di kamar (lampu kamar meredupkan kayu) */
+          var p1 = parseInt(o.rata.slice(1), 16), p2 = parseInt(o.cat.slice(1), 16), kali = function (g) { return Math.min(255, Math.round(255 * ((p1 >> g) & 255) / Math.max(1, (p2 >> g) & 255))); };
+          kx.globalCompositeOperation = 'multiply'; kx.fillStyle = 'rgb(' + kali(16) + ',' + kali(8) + ',' + kali(0) + ')'; kx.fillRect(0, 0, kc.width, kc.height); kx.globalCompositeOperation = 'source-over'; } }
+      if (idx === 0) { var a = document.createElement('em'); a.className = 'wk-asli'; a.textContent = 'asli'; c.appendChild(a); }
+      n.className = 'wk-nama'; n.textContent = o.nama;
+      v.className = 'wk-centang'; v.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      b.appendChild(c); b.appendChild(n); b.appendChild(v);
+      b.addEventListener('click', function () { warnaPilih(jenis, o.id); });
+      isi.appendChild(b);
+    });
+    isi.scrollTop = 0;
+    var kini = isi.querySelector('[data-id="' + p[jenis] + '"]'); /* pilihan yang sedang dipakai langsung kelihatan */
+    if (kini && kini.offsetTop + kini.offsetHeight > isi.clientHeight) isi.scrollTop = Math.max(0, kini.offsetTop - 6);
+  }
+  [].forEach.call(isi.children, function (b) { b.setAttribute('aria-checked', p[jenis] === b.dataset.id ? 'true' : 'false'); });
+  var jml = document.getElementById('wkJumlah'); if (jml) jml.textContent = WARNA_KAMAR[jenis].length + ' pilihan · geser buat lihat semua';
+  wkGulirTanda();
+  var pulih = document.getElementById('warnaPulih'); if (pulih) pulih.disabled = wkAwal(p);
+  var no = document.getElementById('warnaKamarNo'); if (no) no.textContent = 'Kamar ' + (visitorRoom || '');
+}
+function warnaPilih(jenis, id) { /* sekali ketuk: langsung terlihat di kamar, tersimpan sendiri */
+  if (!warnaDiKamarSendiri()) return;
+  var o = wkCari(jenis, id);
+  if (WK.pilih[jenis] === o.id) return;
+  WK.pilih[jenis] = o.id;
+  warnaKamarPasang(WK.pilih); warnaRender(); wkSimpanNanti();
+  bunyi(jenis === 'selimut' ? 'kain' : 'saklar');
+}
+function warnaBuka() {
+  if (!warnaDiKamarSendiri()) { toastKosan('🎨 Warna kamar cuma bisa diganti dari dalam kamarmu sendiri'); return; }
+  if (typeof rupaTutup === 'function') rupaTutup();
+  if (typeof dompetTerbuka === 'function' && dompetTerbuka()) dompetTutup();
+  if (typeof pgtTutup === 'function') pgtTutup();
+  closeCard(); menuTutup();
+  WK.buka = true; WK.isiTab = ''; /* daftar dibangun ulang sesudah panel tampak (ukuran gulir baru terukur) */
+  document.getElementById('warnaPanel').classList.add('open');
+  warnaRender(); wkStatus(WK.kotor ? 'simpan' : '');
+  document.getElementById('warnaBtn').setAttribute('aria-expanded', 'true');
+}
+function warnaTutup() {
+  if (!WK.buka) return;
+  WK.buka = false;
+  document.getElementById('warnaPanel').classList.remove('open');
+  document.getElementById('warnaBtn').setAttribute('aria-expanded', 'false');
+  if (WK.kotor) wkSimpan(); /* jangan menunggu jeda: simpan sekarang */
+}
+(function () {
+  var panel = document.getElementById('warnaPanel');
+  document.getElementById('warnaBtn').addEventListener('click', function () { if (WK.buka) warnaTutup(); else warnaBuka(); });
+  document.getElementById('warnaClose').addEventListener('click', function () { warnaTutup(); });
+  document.getElementById('wkIsi').addEventListener('scroll', wkGulirTanda, { passive: true });
+  document.getElementById('warnaSelesai').addEventListener('click', function () { warnaTutup(); });
+  document.getElementById('warnaPulih').addEventListener('click', function () {
+    if (!warnaDiKamarSendiri() || wkAwal(WK.pilih)) return;
+    WK.pilih = wkBawaan(); WK.isiTab = ''; warnaKamarPasang(WK.pilih); warnaRender(); wkSimpanNanti(); bunyi('saklar');
+    toastKosan('↺ Kamar balik ke warna awal');
+  });
+  [].forEach.call(panel.querySelectorAll('.wk-tab [role="tab"]'), function (b) {
+    b.addEventListener('click', function () { WK.tab = b.dataset.tab; warnaRender(); });
+    b.addEventListener('keydown', function (e) { /* panah kiri/kanan pindah tab (pola tablist) */
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      var tab = ['dinding', 'lantai', 'selimut'], i = tab.indexOf(WK.tab);
+      WK.tab = tab[(i + (e.key === 'ArrowRight' ? 1 : 2)) % 3]; warnaRender();
+      var baru = document.getElementById('wkTab-' + WK.tab); if (baru) baru.focus();
+      e.preventDefault(); e.stopPropagation(); /* panah di tab tidak ikut menggerakkan avatar */
+    });
+  });
+  ['pointerdown', 'touchstart', 'mousedown', 'wheel'].forEach(function (n) { panel.addEventListener(n, function (e) { e.stopPropagation(); }, { passive: true }); }); /* sentuhan di panel tidak menggerakkan kamera / joystick */
+  ['rupaBtn', 'dompetPill', 'pgtBtn', 'masukBtn', 'emoteBtn', 'menuBtn'].forEach(function (id) { /* panel lain dibuka: panel warna menyingkir (tidak menumpuk) */
+    var el = document.getElementById(id); if (el) el.addEventListener('click', function () { warnaTutup(); });
+  });
+})();
+/* ==== WARNA-KAMAR-UI-END ==== */
+
 function mpSaatPindahAlam() { /* kontrak §8.3: realm baru -> publish segera + snap */
+  warnaKamarSelaras(); /* Warna Kamar: di kamar sendiri = warna pilihan; di luar = bahan bawaan + tombol hilang */
   if (!KERJA) myRealmLihat = myRealm; /* Alam Kerja (17 Nov): pindah alam biasa -> alam lihat ikut alam utama (tanpa ini myRealmLihat basi: habis masuk jalan, filter tetap 'yard' dan pemain jalan tidak tampil) */
   for (var id in remotePlayers) {
     if (remotePlayers[id].realm === myRealm) remotePlayers[id].snapped = false;

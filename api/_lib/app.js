@@ -12,6 +12,7 @@
    dikembalikan, tidak pernah ditulis ke log. */
 const I = require('./inti');
 const K = require('./kerja');
+const G = require('./gaya'); /* Warna Kamar: daftar putih pilihan warna kamar */
 const A = require('./arkade');
 
 const MENIT = 60 * 1000, JAM = 60 * MENIT, HARI = 24 * JAM;
@@ -32,7 +33,7 @@ const BATAS = { masuk: 20, daftar: 20, kamar: 60, papan: 240 }; /* per jaringan 
 const GERBANG = { maks: 5, jendelaDetik: 15 * 60, kunciDetik: 20 * 60 };
 /* Kerja & Belanja: batas per KAMAR (bukan per IP — penghuni di balik CGNAT operator seluler
    berbagi IP) per jam. Pemakaian wajar jauh di bawahnya (3 shift sehari = 9-12 panggilan). */
-const BATAS_PENGHUNI = { dompet: 600, kerja: 120, belanja: 60, foto: 30, skor: 240 };
+const BATAS_PENGHUNI = { gaya: 120, dompet: 600, kerja: 120, belanja: 60, foto: 30, skor: 240 };
 const PESAN_KERJA = {
   belum_daftar: 'Daftar dulu di papan lowongan ya.',
   batas_hari: 'Jatah kerja hari ini sudah habis (' + K.BATAS_KERJA.shiftHari + ' shift). Besok lagi ya!',
@@ -322,8 +323,12 @@ function buatApp({ db, rahasia, sekarang = () => Date.now(), aman = true }) {
   async function dompet(ctx) {
     const p = await penghuniSesi(ctx, 'dompet'); if (p.tolak) return p.tolak;
     const now = sekarang();
-    const d = await db.dompetBaca({ room: p.room, nama: p.nama, tanggal: K.tanggalWib(now), bulan: K.bulanWib(now), maksDetik: K.BATAS_KERJA.maksDetik });
-    return balas(200, bentukDompet(d || {}));
+    /* Warna Kamar: pilihan warna ikut dibaca (paralel). Gagal dibaca (mis. tabel belum dimigrasi) = null -> kamar bawaan; dompet TIDAK ikut gagal. */
+    const [d, gaya] = await Promise.all([
+      db.dompetBaca({ room: p.room, nama: p.nama, tanggal: K.tanggalWib(now), bulan: K.bulanWib(now), maksDetik: K.BATAS_KERJA.maksDetik }),
+      Promise.resolve().then(() => db.gayaBaca({ room: p.room, nama: p.nama })).then(G.rapikan, () => null)
+    ]);
+    return balas(200, Object.assign(bentukDompet(d || {}), { gaya }));
   }
 
   /* POST /api/foto-profil {aksi: 'lihat'|'minta'|'selesai'} — foto profil
@@ -403,9 +408,20 @@ function buatApp({ db, rahasia, sekarang = () => Date.now(), aman = true }) {
   }
 
   /* POST /api/belanja {aksi: 'beli', barang} | {aksi: 'sewa'} — harga dari katalog server */
+  /* POST /api/belanja {aksi:'gaya', dinding, lantai, selimut} — Warna Kamar: simpan pilihan warna kamar SENDIRI.
+     Menumpang endpoint belanja (batas 12 fungsi Vercel). Kamar + nama dari SESI (badan tidak bisa menunjuk kamar lain);
+     pilihan wajib ada di daftar putih (api/_lib/gaya.js); gratis (saldo tidak disentuh); batas laju sendiri per kamar. */
+  async function gayaSimpan(ctx) {
+    const pilih = G.sahkan(ctx.body);
+    if (!pilih) return galat(400, 'format', 'Pilihan warna tidak dikenal.');
+    const p = await penghuniSesi(ctx, 'gaya'); if (p.tolak) return p.tolak;
+    await db.gayaSimpan({ room: p.room, nama: p.nama, dinding: pilih.dinding, lantai: pilih.lantai, selimut: pilih.selimut });
+    return balas(200, { gaya: pilih });
+  }
   async function belanja(ctx) {
     const tolak = cekPermintaan(ctx); if (tolak) return tolak;
     const { aksi, barang } = ctx.body;
+    if (aksi === 'gaya') return gayaSimpan(ctx); /* Warna Kamar */
     if (aksi !== 'beli' && aksi !== 'sewa') return galat(400, 'format', 'Aksi tidak dikenal.');
     const item = aksi === 'beli' ? K.barangDari(barang) : null;
     if (aksi === 'beli' && !item) return galat(400, 'format', 'Barang tidak dikenal.');
