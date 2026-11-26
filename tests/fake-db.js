@@ -12,6 +12,8 @@ function buatFakeDb({ penghuni, sekarang = () => Date.now() }) {
   const t = { akun: new Map(), sesi: [], log: [], batas: new Map(), gerbang: new Map(),
     /* Kerja & Belanja — meniru tabel supabase/migrations/20261116_kerja_belanja.sql */
     dompet: new Map(), mutasi: [], pekerjaan: new Map(), shift: [], barang: new Map(), sewa: new Map(),
+    /* Arkade Ria — meniru tabel kosan_skor (supabase/migrations/20261126_arkade_skor.sql) */
+    skor: new Map(),
     /* Foto profil — meniru tabel kosan_foto_profil + objek Storage `foto-profil` (18 Nov) */
     foto: new Map(), fotoObjek: new Map() };
   const raise = (m) => { const e = new Error(m); e.status = 400; throw e; }; /* RAISE EXCEPTION -> PostgREST 400 */
@@ -261,6 +263,34 @@ function buatFakeDb({ penghuni, sekarang = () => Date.now() }) {
       t.dompet.set(k, saldo - jumlah);
       catatMutasi(room, nama, -jumlah, 'sewa', keterangan, saldo - jumlah);
       return { saldo: saldo - jumlah, bulan };
+    },
+    /* ---- Arkade Ria: tiruan kosan_skor_kirim / kosan_skor_papan (atomik: tanpa await di dalam) ---- */
+    async skorKirim({ room, nama, game, minggu, skor, hadiah }) {
+      panggilan.push('skorKirim');
+      if (!(Number.isInteger(room) && room >= 1 && room <= 60)) raise('kamar tidak valid');
+      if (['capit', 'balap', 'dansa'].indexOf(game) === -1) raise('game tidak valid');
+      if (!(Number.isInteger(skor) && skor >= 0 && skor <= 100000)) raise('skor tidak valid');
+      const k = kunciP(room, nama) + '|' + game + '|' + minggu;
+      const lama = t.skor.get(k);
+      const rekor = !lama || skor > lama.skor;
+      if (!lama) t.skor.set(k, { room, nama_norm: nama, game, minggu, skor, main: 1, diperbarui: sekarang() });
+      else { lama.main += 1; if (rekor) { lama.skor = skor; lama.diperbarui = sekarang(); } }
+      let hadiahBaru = false;
+      if (hadiah) {
+        const kp = kunciP(room, nama), milik = t.barang.get(kp) || new Set();
+        if (!milik.has(hadiah)) { milik.add(hadiah); t.barang.set(kp, milik); hadiahBaru = true; }
+      }
+      return { terbaik: t.skor.get(k).skor, rekor, hadiah_baru: hadiahBaru };
+    },
+    async skorPapan({ minggu, batas }) {
+      panggilan.push('skorPapan');
+      const out = [];
+      for (const g of ['capit', 'balap', 'dansa']) {
+        [...t.skor.values()].filter((r) => r.game === g && r.minggu === minggu && r.skor > 0)
+          .sort((a, b) => b.skor - a.skor || a.diperbarui - b.diperbarui).slice(0, batas)
+          .forEach((r) => out.push({ game: g, nama: r.nama_norm, skor: r.skor }));
+      }
+      return out;
     },
     /* Foto profil (18 Nov) — kunci objek = nomor kamar; _fotoUnggah menaruh
        objek seolah sudah di-PUT ke Storage lewat signed URL. */

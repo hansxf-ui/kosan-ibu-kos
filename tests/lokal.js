@@ -27,11 +27,12 @@ const rute = {
   '/api/kamar/masuk': jalankan('kamarMasuk', 'POST', () => app),
   '/api/dompet': jalankan('dompet', 'GET', () => app), /* Kerja & Belanja */
   '/api/kerja': jalankan('kerja', 'POST', () => app),
-  '/api/belanja': jalankan('belanja', 'POST', () => app)
+  '/api/belanja': jalankan('belanja', 'POST', () => app),
+  '/api/skor': jalankan('skor', 'POST', () => app) /* Arkade Ria */
 };
 const cfg = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
 const TIPE = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css',
-  '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.woff2': 'font/woff2' };
+  '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.woff2': 'font/woff2', '.mp3': 'audio/mpeg' };
 const DILARANG = /^\/(api|tests|supabase|docs|\.git|\.kiro)(\/|$)/;
 
 const srv = http.createServer((req, res) => {

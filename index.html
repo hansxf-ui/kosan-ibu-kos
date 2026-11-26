@@ -1299,6 +1299,91 @@
     #kotaMuat .load-gedung { width: 96px; height: 96px; }
     #kotaMuat .km-dunia { transform: scale(.82); transform-origin: 50% 100%; left: -11%; right: -11%; }
   }
+  /* ---------- Arkade Ria (26 Nov): layar game 2D di atas mesin arkade (3D dijeda selama terbuka) ---------- */
+  #arkade { position: fixed; inset: 0; z-index: 90; display: none; background: #120a2e; overflow: hidden;
+    touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
+    font-family: 'Baloo 2', 'Nunito', system-ui, sans-serif; color: #fff; }
+  #arkade.buka { display: block; }
+  #arkKanvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  #arkAtas { position: absolute; left: 0; right: 0; top: 0; height: calc(52px + env(safe-area-inset-top, 0px));
+    padding: env(safe-area-inset-top, 0px) calc(10px + env(safe-area-inset-right, 0px)) 0 calc(14px + env(safe-area-inset-left, 0px));
+    display: flex; align-items: center; gap: 10px; background: linear-gradient(180deg, rgba(10, 4, 30, 0.92), rgba(10, 4, 30, 0.55));
+    border-bottom: 2px solid #ff4fa8; box-shadow: 0 0 18px rgba(255, 79, 168, 0.55); }
+  #arkMerek { font-size: 11px; font-weight: 800; letter-spacing: 2px; color: #7cf5ff; text-transform: uppercase; line-height: 1; }
+  #arkJudul { font-size: 20px; font-weight: 800; line-height: 1.05; color: #ffe45c; text-shadow: 0 0 10px rgba(255, 228, 92, 0.6); white-space: nowrap; }
+  #arkAtas .ark-kiri { flex: 1; min-width: 0; overflow: hidden; }
+  #arkKeluar { flex: none; height: 40px; padding: 0 16px; border-radius: 20px; border: 2px solid #fff; background: #ff3d6e; color: #fff;
+    font: 800 15px 'Baloo 2', 'Nunito', sans-serif; cursor: pointer; box-shadow: 0 3px 0 #a31443; }
+  #arkKeluar:active { transform: translateY(2px); box-shadow: 0 1px 0 #a31443; }
+  .ark-gugus { position: absolute; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); display: none; gap: 10px; align-items: flex-end; }
+  #arkGugusKiri { left: calc(12px + env(safe-area-inset-left, 0px)); }
+  #arkGugusKanan { right: calc(12px + env(safe-area-inset-right, 0px)); }
+  #arkade.main .ark-gugus { display: flex; }
+  .ark-tombol { width: 76px; height: 76px; border-radius: 22px; border: 3px solid rgba(255, 255, 255, 0.9); color: #fff; cursor: pointer;
+    font: 800 30px 'Baloo 2', 'Nunito', sans-serif; line-height: 1; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(180deg, #5b3df5, #3a1fc4); box-shadow: 0 6px 0 #22107a, 0 0 16px rgba(124, 245, 255, 0.35); padding: 0; }
+  .ark-tombol.tekan, .ark-tombol:active { transform: translateY(4px); box-shadow: 0 2px 0 #22107a, 0 0 22px rgba(124, 245, 255, 0.7); }
+  .ark-tombol.lebar { width: 150px; font-size: 22px; letter-spacing: 1px; background: linear-gradient(180deg, #ff5fb0, #e0207c); box-shadow: 0 6px 0 #8d0f4c, 0 0 18px rgba(255, 95, 176, 0.5); }
+  .ark-tombol.lebar.tekan, .ark-tombol.lebar:active { box-shadow: 0 2px 0 #8d0f4c, 0 0 24px rgba(255, 95, 176, 0.8); }
+  .ark-tombol.j0 { background: linear-gradient(180deg, #ff5fb0, #d81f78); box-shadow: 0 6px 0 #8d0f4c; }
+  .ark-tombol.j1 { background: linear-gradient(180deg, #38d8ff, #0d8fd0); box-shadow: 0 6px 0 #075a86; }
+  .ark-tombol.j2 { background: linear-gradient(180deg, #ffd84a, #f09a00); box-shadow: 0 6px 0 #9a5f00; }
+  .ark-tombol.j3 { background: linear-gradient(180deg, #5cf08a, #12a84c); box-shadow: 0 6px 0 #0a6a2e; }
+  .ark-tombol.j0.tekan, .ark-tombol.j1.tekan, .ark-tombol.j2.tekan, .ark-tombol.j3.tekan { box-shadow: 0 2px 0 rgba(0, 0, 0, 0.5), 0 0 22px rgba(255, 255, 255, 0.7); }
+  .ark-tombol svg { width: 38px; height: 38px; display: block; pointer-events: none; }
+  #arkPanel { position: absolute; left: 50%; top: calc(50% + 22px); transform: translate(-50%, -50%); display: none;
+    width: min(92vw, 430px); max-height: calc(100% - 84px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y;
+    background: linear-gradient(180deg, rgba(44, 22, 110, 0.97), rgba(24, 10, 66, 0.97)); border: 3px solid #7cf5ff; border-radius: 22px;
+    box-shadow: 0 0 0 4px rgba(18, 10, 46, 0.9), 0 0 34px rgba(124, 245, 255, 0.5), 0 18px 40px rgba(0, 0, 0, 0.5); padding: 16px 16px 14px; }
+  #arkade.panel #arkPanel { display: block; }
+  #arkPanel h2 { margin: 0; font-size: 26px; line-height: 1.1; font-weight: 800; color: #ffe45c; text-align: center; text-shadow: 0 0 12px rgba(255, 228, 92, 0.55); }
+  #arkPanel .ark-sub { margin: 2px 0 10px; text-align: center; font: 700 13.5px 'Nunito', sans-serif; color: #cfd6ff; }
+  #arkPanel .ark-cara { margin: 0 0 10px; padding: 9px 12px; border-radius: 14px; background: rgba(255, 255, 255, 0.08); font: 700 13.5px/1.45 'Nunito', sans-serif; color: #eef0ff; }
+  #arkPanel .ark-cara b { color: #7cf5ff; }
+  #arkPanel .ark-angka { text-align: center; font-size: 54px; line-height: 1; font-weight: 800; color: #fff; text-shadow: 0 0 18px rgba(255, 79, 168, 0.9), 0 3px 0 #a31443; margin: 6px 0 0; }
+  #arkPanel .ark-satuan { text-align: center; font: 800 13px 'Nunito', sans-serif; letter-spacing: 2px; text-transform: uppercase; color: #ff9bd0; margin-bottom: 8px; }
+  #arkPanel .ark-rekor { display: block; width: fit-content; margin: 0 auto 8px; padding: 3px 14px; border-radius: 99px; background: #ffe45c; color: #47270a; font-weight: 800; font-size: 14px; animation: arkDenyut 0.9s ease-in-out infinite; }
+  @keyframes arkDenyut { 50% { transform: scale(1.08); } }
+  #arkPanel .ark-rinci { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 0 0 10px; }
+  #arkPanel .ark-rinci span { padding: 4px 10px; border-radius: 10px; background: rgba(255, 255, 255, 0.1); font: 800 12.5px 'Nunito', sans-serif; color: #eef0ff; white-space: nowrap; }
+  #arkPanel .ark-status { margin: 0 0 10px; padding: 8px 12px; border-radius: 12px; background: rgba(124, 245, 255, 0.12); border: 1px solid rgba(124, 245, 255, 0.45); font: 700 13px/1.4 'Nunito', sans-serif; color: #dffbff; text-align: center; }
+  #arkPanel .ark-status.hadiah { background: rgba(255, 228, 92, 0.16); border-color: #ffe45c; color: #fff3b8; }
+  #arkPanel .ark-papan { margin: 0 0 10px; border-radius: 14px; background: rgba(8, 4, 28, 0.55); border: 1px solid rgba(255, 79, 168, 0.55); overflow: hidden; }
+  #arkPanel .ark-papan-judul { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 6px 12px; background: rgba(255, 79, 168, 0.22); font-weight: 800; font-size: 14px; color: #ffd0e8; }
+  #arkPanel .ark-papan-judul span { white-space: nowrap; }
+  #arkPanel .ark-papan-judul small { font: 700 11px 'Nunito', sans-serif; color: #e9c6ff; white-space: nowrap; }
+  #arkPanel .ark-baris { display: flex; align-items: center; gap: 8px; padding: 5px 12px; font: 800 14px 'Nunito', sans-serif; border-top: 1px solid rgba(255, 255, 255, 0.07); }
+  #arkPanel .ark-baris .no { flex: none; width: 24px; height: 24px; border-radius: 50%; background: #3a2a8c; color: #fff; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+  #arkPanel .ark-baris:nth-child(2) .no { background: #ffd84a; color: #47270a; }
+  #arkPanel .ark-baris:nth-child(3) .no { background: #d5dbe6; color: #2a3340; }
+  #arkPanel .ark-baris:nth-child(4) .no { background: #e59a5b; color: #3a1c05; }
+  #arkPanel .ark-baris .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #arkPanel .ark-baris .sk { flex: none; color: #7cf5ff; }
+  #arkPanel .ark-baris.aku { background: rgba(255, 228, 92, 0.16); }
+  #arkPanel .ark-baris.aku .nm { color: #ffe45c; }
+  #arkPanel .ark-kosong { padding: 9px 12px; font: 700 13px 'Nunito', sans-serif; color: #c9c4ee; text-align: center; }
+  #arkPanel .ark-aksi { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  #arkPanel .ark-aksi button { flex: 1 1 120px; min-height: 48px; border-radius: 16px; border: 2px solid rgba(255, 255, 255, 0.85); color: #fff; cursor: pointer;
+    font: 800 16px 'Baloo 2', 'Nunito', sans-serif; background: linear-gradient(180deg, #5b3df5, #3a1fc4); box-shadow: 0 4px 0 #22107a; padding: 4px 10px; }
+  #arkPanel .ark-aksi button.utama { flex-basis: 100%; min-height: 58px; font-size: 22px; letter-spacing: 1px; background: linear-gradient(180deg, #ffd84a, #f08a00); color: #47270a; border-color: #fff6c9; box-shadow: 0 5px 0 #9a5200, 0 0 20px rgba(255, 216, 74, 0.5); }
+  #arkPanel .ark-aksi button:active { transform: translateY(3px); box-shadow: 0 1px 0 #22107a; }
+  #arkPanel .ark-catatan { margin: 9px 0 0; font: 700 12px/1.4 'Nunito', sans-serif; color: #b9b6e6; text-align: center; }
+  @media (orientation: landscape) and (max-height: 520px) {
+    #arkAtas { height: calc(44px + env(safe-area-inset-top, 0px)); }
+    #arkJudul { font-size: 17px; } #arkKeluar { height: 34px; font-size: 14px; }
+    .ark-tombol { width: 66px; height: 66px; border-radius: 18px; } .ark-tombol.lebar { width: 128px; font-size: 19px; }
+    #arkPanel { width: min(94vw, 640px); top: calc(50% + 20px); max-height: calc(100% - 60px); padding: 10px 14px; }
+    #arkPanel h2 { font-size: 21px; } #arkPanel .ark-angka { font-size: 40px; margin-top: 2px; }
+    #arkPanel .ark-dua { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; align-items: start; }
+    #arkPanel .ark-aksi button { min-height: 42px; font-size: 15px; flex: 1 1 100px; }
+    #arkPanel .ark-aksi button.utama { flex-basis: 100%; min-height: 46px; font-size: 19px; }
+    #arkPanel { width: min(96vw, 700px); }
+    #arkPanel .ark-dua > div { display: flex; flex-direction: column; min-width: 0; } #arkPanel .ark-dua .ark-aksi { order: -1; margin-bottom: 8px; } /* lanskap: tombol di ATAS papan -> MULAI selalu kelihatan walau papan penuh 5 baris */
+    #arkPanel .ark-sub { margin: 0 0 6px; font-size: 12.5px; } #arkPanel .ark-cara { margin-bottom: 6px; padding: 6px 10px; font-size: 12.5px; line-height: 1.35; }
+    #arkPanel .ark-status { margin-bottom: 6px; padding: 5px 10px; font-size: 12.5px; } #arkPanel .ark-papan { margin-bottom: 6px; } #arkPanel .ark-baris { padding: 3px 12px; font-size: 13px; }
+    #arkPanel .ark-rinci { margin-bottom: 6px; } #arkPanel .ark-rekor { margin-bottom: 5px; } #arkPanel .ark-satuan { margin-bottom: 4px; }
+    #arkPanel .ark-catatan { margin-top: 6px; font-size: 11.5px; }
+  }
 </style>
 <script type="importmap">
 {
@@ -1432,6 +1517,19 @@
 <div class="hud" id="hint" title="Ketuk untuk menyembunyikan">Sentuh kiri layar buat jalan · seret kanan putar kamera · cubit buat zoom · ketuk pintu kamar</div>
 <button id="hintToggle" class="hud" type="button" aria-label="Tampilkan petunjuk" title="Tampilkan petunjuk"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9.5 9.3a2.5 2.5 0 1 1 3.4 2.4c-.8.3-.9 1-.9 1.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 17h.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
 <div class="hud" id="toast" role="status" aria-live="polite"></div>
+
+<!-- Arkade Ria (26 Nov): layar game arkade (Capit Boneka, Balap Kota, Lantai Dansa) — lapisan 2D, bukan benda 3D -->
+<div id="arkade" aria-hidden="true">
+  <canvas id="arkKanvas"></canvas>
+  <div id="arkAtas">
+    <div class="ark-kiri"><div id="arkMerek">Arkade Ria</div><div id="arkJudul"></div></div>
+    <button id="arkKeluar" type="button">✕ Keluar</button>
+  </div>
+  <div class="ark-gugus" id="arkGugusKiri"></div>
+  <div class="ark-gugus" id="arkGugusKanan"></div>
+  <div id="arkPanel" role="dialog" aria-label="Arkade Ria"></div>
+</div>
+
 
 <div id="roomCard">
   <div id="cardHead">
@@ -7698,6 +7796,7 @@ function bangunDekorKamar() {
 function dekorObjek(id) { return DEKOR[id === 'lampu_tumblr' ? 'lampu' : id]; }
 function lampuHiasNyala() { try { return localStorage.getItem('kosan3d-lampu-tumblr') !== '0'; } catch (e) { return true; } }
 function dekorTerapkan() {
+  bonekaTerapkan(); /* Arkade Ria: boneka hadiah capit (bukan barang toko) */
   var d = DOMPET.data, punya = function (id) { return !!(d && ktaIsResident() && d.barang.indexOf(id) >= 0); };
   if (!DEKOR && !DEKOR_IDS.some(punya)) return;
   if (!DEKOR) bangunDekorKamar();
@@ -14488,6 +14587,11 @@ function bunyi(nama, opsi) {
    situlah file-file ini dirender; kalau musik mau di-render ulang, pakai data itu. */
 var MUSIK_FILE = { siang: 'assets/musik/siang.mp3', senja: 'assets/musik/senja.mp3', malam: 'assets/musik/malam.mp3', hujan: 'assets/musik/hujan.mp3' };
 var MUSIK = { file: {}, src: null, srcG: null, suasana: '', memuat: false };
+function musikAmbil(url) { /* unduh + decode SATU file audio -> Promise<AudioBuffer> (dipakai musik suasana + lagu Arkade Ria) */
+  var c = SUARA.ctx;
+  return fetch(url).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
+    .then(function (ab) { return c.decodeAudioData(ab); });
+}
 function musikMuat() {
   /* unduh + decode 4 file (sekali, saat context audio dibuat); mulai main begitu file suasana
      kini siap. Gagal unduh/decode = musik diam, game tetap jalan (tanpa throw). */
@@ -14495,8 +14599,7 @@ function musikMuat() {
   if (!c || MUSIK.memuat) return;
   MUSIK.memuat = true;
   Object.keys(MUSIK_FILE).forEach(function (nama) {
-    fetch(MUSIK_FILE[nama]).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
-      .then(function (ab) { return c.decodeAudioData(ab); })
+    musikAmbil(MUSIK_FILE[nama])
       .then(function (buf) {
         MUSIK.file[nama] = buf;
         if (nama === musikSuasana(suasanaKini) && SUARA.setel.musik) musikPutar(nama);
@@ -18922,7 +19025,9 @@ function kotaKetukRuang(id) {
   daftar.forEach(function (q) { if (q.id === id) o = q; });
   if (!o) return;
   if (Math.hypot(avatarPos.x - o.x, avatarPos.z - o.z) > o.jarak) { toastKosan('🚶 Jalan ke ' + o.nama.toLowerCase() + ' dulu ya'); return; }
-  if (id === 'capitDalam') { if (kotaRuangAnim.capit) return; kotaRuangAnim.capit = { mulai: now, dapat: Math.random() < 0.4 }; bunyi('capit'); toastKosan('🕹 Capit jumbo turun pelan-pelan…'); return; }
+  if (id === 'capitDalam') { arkadeBuka('capit'); return; } /* Arkade Ria (26 Nov): tiga mesin = game beneran (layar 2D) */
+  if (id === 'balap') { kotaEfekMulai(id); arkadeBuka('balap'); return; }
+  if (id === 'dansa') { kotaEfekMulai(id); arkadeBuka('dansa'); return; }
   var e = KOTA_RUANG_EFEK[R] && KOTA_RUANG_EFEK[R][id]; if (e && now - e.mulai < 1800) return; /* tunggu reaksi sebelumnya selesai */
   kotaEfekMulai(id);
   if (id === 'bel') { bunyi('bel'); toastKosan('🛎 Ting! Resepsionis: "Selamat datang di Hotel Kencana"'); }
@@ -18930,8 +19035,6 @@ function kotaKetukRuang(id) {
   else if (id === 'mesinKopi') { bunyi('mesinKopi'); toastKosan('☕ Barista menyeduh espresso — aroma kopinya harum'); }
   else if (id === 'cermin') { bunyi('saklar'); toastKosan('🪞 Penampilanmu hari ini: kece maksimal!'); }
   else if (id === 'tas') { bunyi('kasir'); toastKosan('👜 Tas Luna Noir — cuma dipajang, harganya bikin pusing 😄'); }
-  else if (id === 'balap') { bunyi('arkade'); toastKosan('🏎 Ngeeeng! Kamu juara 1 di Sirkuit Kota'); }
-  else if (id === 'dansa') { bunyi('arkade'); toastKosan('💃 Kombo 32x — panggung dansa menyala!'); }
 }
 function kotaRuangTick(dt, now) {
   var R = kotaRuangKini, S = kotaRuangScene[R], k = typeof suasanaKini !== 'undefined' ? suasanaKini : null;
@@ -18949,6 +19052,856 @@ function kotaRuangTick(dt, now) {
     C.position.y = y;
   }
 }
+/* ==== ARKADE-START ==== */
+/* Arkade Ria (Ryan 26 Nov: "Gas, Arkade dulu") — aturan MURNI tiga game arkade di interior Kota.
+   Konstanta + fungsi bertanda (server) adalah SALINAN api/_lib/arkade.js; tests/arkade.test.js
+   memastikan keduanya sama. Skor dihitung di sini (klien), lalu server menjepitnya terhadap waktu
+   yang benar-benar berlalu sejak tiket main dibuat. Tanpa DOM, tanpa jaringan. */
+var ARK_GAME = {
+  capit: { nama: 'Capit Boneka', satuan: 'poin', minDetik: 12, maksDetik: 240 },
+  balap: { nama: 'Balap Kota', satuan: 'm', minDetik: 5, maksDetik: 240 },
+  dansa: { nama: 'Lantai Dansa', satuan: 'poin', minDetik: 40, maksDetik: 240 }
+};
+var ARK_CAPIT = { koin: 6, detik: 75, nilaiMaks: 50, bonusPresisi: 10, detikPerKoin: 2.5, hadiahDapat: 3 };
+var ARK_BALAP = { v0: 22, naik: 0.7, detik: 60, nyawa: 3, toleransi: 30 };
+var ARK_DANSA = { bpm: 128, ketuk: 96, mulai: 8, akhir: 92, benih: 20261126, jendela: [0.07, 0.13, 0.19], nilai: [100, 60, 30], komboTiap: 10, komboMaks: 10 };
+var ARK_HADIAH = { barang: 'boneka_capit', nama: 'Boneka beruang Arkade Ria' };
+function arkBalapLaju(t) { return ARK_BALAP.v0 + ARK_BALAP.naik * Math.max(0, Math.min(ARK_BALAP.detik, t)); } /* m/dtk (server) */
+function arkBalapJarakIdeal(t) { var d = Math.max(0, Math.min(ARK_BALAP.detik, t)); return ARK_BALAP.v0 * d + 0.5 * ARK_BALAP.naik * d * d; } /* (server) */
+function arkDansaPeta() { /* (server) [{ k: ketuk, j: jalur 0..3 }] — deterministik */
+  var s = ARK_DANSA.benih >>> 0;
+  var acak = function () { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; };
+  var peta = [], lalu = -1;
+  for (var k = ARK_DANSA.mulai; k < ARK_DANSA.akhir; k += 0.5) {
+    var bagian = Math.floor((k - ARK_DANSA.mulai) / 16);
+    var utuh = k === Math.floor(k);
+    var r = acak(), r2 = acak(), ada;
+    if (utuh) ada = bagian === 0 ? (k % 2 === 0 || r < 0.35) : r < 0.86;
+    else ada = bagian >= 2 && r < (bagian >= 4 ? 0.42 : 0.26);
+    if (!ada) continue;
+    var j = Math.floor(r2 * 4);
+    if (j === lalu) j = (j + 1 + Math.floor(acak() * 3)) % 4;
+    peta.push({ k: k, j: j }); lalu = j;
+  }
+  return peta;
+}
+function arkDansaPengali(kombo) { return 1 + Math.min(ARK_DANSA.komboMaks, Math.floor(Math.max(0, kombo) / ARK_DANSA.komboTiap)) * 0.1; } /* (server) */
+function arkDansaNilai(selisihDetik) { /* (server) 0 sempurna, 1 bagus, 2 lumayan, -1 lewat */
+  var a = Math.abs(selisihDetik);
+  for (var i = 0; i < ARK_DANSA.jendela.length; i++) if (a <= ARK_DANSA.jendela[i]) return i;
+  return -1;
+}
+function arkMingguWib(ms) { /* (server) kunci minggu = tanggal Senin WIB */
+  var d = new Date(ms + 7 * 3600 * 1000);
+  var mundur = (d.getUTCDay() + 6) % 7;
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - mundur)).toISOString().slice(0, 10);
+}
+function arkMingguSisaDetik(ms) { /* (server) */
+  var awal = Date.parse(arkMingguWib(ms) + 'T00:00:00Z') - 7 * 3600 * 1000;
+  return Math.max(0, Math.ceil((awal + 7 * 86400000 - ms) / 1000));
+}
+function arkAcak(benih) { /* pembangkit acak berbenih (LCG) -> fungsi 0..1 */
+  var s = (benih >>> 0) || 1;
+  return function () { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; };
+}
+function arkJepit(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+/* ---- Capit Boneka ----
+   Bak selebar 0..1; lubang hadiah di kiri (x < 0,17). 7 boneka berjajar; capit digeser lalu
+   diturunkan. Presisi = seberapa tepat capit di atas tengah boneka (1 = pas, 0 = di pinggir).
+   Peluang lepas BUKAN acak murni: makin pas makin aman; presisi >= 0,9 tidak pernah lepas;
+   boneka mahal lebih berat (lebih gampang merosot). */
+var ARK_BONEKA = {
+  kelinci: { nama: 'Kelinci', nilai: 20, berat: 0.8, r: 0.042 },
+  bebek: { nama: 'Bebek', nilai: 30, berat: 1.0, r: 0.039 },
+  beruang: { nama: 'Beruang', nilai: 50, berat: 1.3, r: 0.036 }
+};
+var ARK_CAPIT_MAIN = { lubang: 0.17, kiri: 0.06, kanan: 0.94, laju: 0.4, jangkau: 1.15, presisiAman: 0.9, presisiBonus: 0.85 };
+function arkCapitSusun(benih) { /* -> [{ jenis, x, r, nilai, berat, ada: true }] urut kiri ke kanan */
+  var acak = arkAcak(benih), jenis = ['kelinci', 'kelinci', 'kelinci', 'bebek', 'bebek', 'beruang', 'beruang'], i;
+  for (i = jenis.length - 1; i > 0; i--) { var j = Math.floor(acak() * (i + 1)), t = jenis[i]; jenis[i] = jenis[j]; jenis[j] = t; }
+  var awal = 0.26, akhir = 0.92, langkah = (akhir - awal) / (jenis.length - 1);
+  return jenis.map(function (id, n) {
+    var B = ARK_BONEKA[id];
+    return { jenis: id, x: awal + n * langkah + (acak() - 0.5) * 0.01, r: B.r, nilai: B.nilai, berat: B.berat, ada: true };
+  });
+}
+function arkCapitSasaran(daftar, x) { /* boneka terdekat yang masih ada dan terjangkau -> { i, presisi } (i = -1: meleset) */
+  var best = -1, bd = 1e9;
+  for (var i = 0; i < daftar.length; i++) {
+    var b = daftar[i]; if (!b.ada) continue;
+    var d = Math.abs(b.x - x);
+    if (d <= b.r * ARK_CAPIT_MAIN.jangkau && d < bd) { bd = d; best = i; }
+  }
+  if (best < 0) return { i: -1, presisi: 0 };
+  return { i: best, presisi: arkJepit(1 - bd / daftar[best].r, 0, 1) };
+}
+function arkCapitPeluangLepas(presisi, berat) { return arkJepit((ARK_CAPIT_MAIN.presisiAman - presisi) * berat, 0, 0.9); }
+function arkCapitNilai(boneka, presisi) { return boneka.nilai + (presisi >= ARK_CAPIT_MAIN.presisiBonus ? ARK_CAPIT.bonusPresisi : 0); }
+
+/* ---- Balap Kota ----
+   3 jalur. Lalu lintas melaju searah, lebih pelan (ARK_BALAP_MAIN.lalu x laju kita). Baris ke-i
+   menutup 1-2 jalur (tidak pernah semua). Jarak ke baris berikutnya = dua panjang tabrak (kita harus
+   lolos dari baris lama dulu) + `jeda` detik jalan bebas untuk pindah jalur; jeda mengecil sampai
+   batas refleks (0,5 dtk = pindah dua jalur 0,24 dtk + sisa). Tabrak = nyawa -1 + laju anjlok sebentar. Skor = meter. */
+var ARK_BALAP_MAIN = { jalur: 3, lalu: 0.45, panjang: 7, kebal: 1.3, anjlok: 0.45, pulih: 1.6, jedaAwal: 0.85, jedaAkhir: 0.5, jedaTurun: 0.007, pindah: 0.12 };
+function arkBalapBaris(benih, i) { /* -> { tutup: [bool x3], jeda } */
+  var acak = arkAcak((benih + Math.imul(i + 1, 7919)) >>> 0); acak();
+  var dua = i >= 4 && acak() < Math.min(0.55, 0.2 + i * 0.008);
+  var bebas = Math.floor(acak() * 3), tutup = [false, false, false];
+  if (dua) { tutup = [true, true, true]; tutup[bebas] = false; }
+  else tutup[Math.floor(acak() * 3)] = true;
+  return { tutup: tutup, jeda: Math.max(ARK_BALAP_MAIN.jedaAkhir, ARK_BALAP_MAIN.jedaAwal - i * ARK_BALAP_MAIN.jedaTurun) };
+}
+function arkBalapJarakBaris(jeda, laju) { /* meter (relatif lalu lintas) antara dua baris */
+  return 2 * ARK_BALAP_MAIN.panjang * 0.86 + jeda * laju * (1 - ARK_BALAP_MAIN.lalu);
+}
+function arkBalapKena(posJalur, jalurMobil, selisihMeter) { /* posJalur boleh pecahan (sedang pindah) */
+  return Math.abs(selisihMeter) < ARK_BALAP_MAIN.panjang * 0.86 && Math.abs(posJalur - jalurMobil) < 0.62;
+}
+function arkBalapLajuNyata(t, sejakTabrak) { /* laju sesudah tabrakan pulih bertahap -> tidak pernah melebihi laju ideal */
+  var f = sejakTabrak >= ARK_BALAP_MAIN.pulih ? 1 : ARK_BALAP_MAIN.anjlok + (1 - ARK_BALAP_MAIN.anjlok) * arkJepit(sejakTabrak / ARK_BALAP_MAIN.pulih, 0, 1);
+  return arkBalapLaju(t) * f;
+}
+
+/* ---- Lantai Dansa ----
+   Not jatuh ke garis; ketuk panah jalurnya pas di ketukan. Kombo menaikkan pengali (maks x2). */
+function arkDansaDetik(ketuk) { return ketuk * 60 / ARK_DANSA.bpm; }
+function arkDansaBaru() { return { skor: 0, kombo: 0, komboMaks: 0, mutu: [0, 0, 0], lewat: 0 }; }
+function arkDansaCari(peta, kena, jalur, t) { /* indeks not terdekat di jalur yang belum kena & masih dalam jendela; -1 = tidak ada */
+  var best = -1, bd = 1e9, batas = ARK_DANSA.jendela[ARK_DANSA.jendela.length - 1];
+  for (var i = 0; i < peta.length; i++) {
+    if (kena[i] || peta[i].j !== jalur) continue;
+    var d = Math.abs(arkDansaDetik(peta[i].k) - t);
+    if (d <= batas && d < bd) { bd = d; best = i; }
+  }
+  return best;
+}
+function arkDansaKena(st, mutu) { /* mutu 0..2 = kena; -1 = lewat */
+  if (mutu < 0) { st.kombo = 0; st.lewat += 1; return 0; }
+  st.kombo += 1; if (st.kombo > st.komboMaks) st.komboMaks = st.kombo;
+  st.mutu[mutu] += 1;
+  var n = Math.round(ARK_DANSA.nilai[mutu] * arkDansaPengali(st.kombo));
+  st.skor += n;
+  return n;
+}
+function arkNamaTampil(nama) { /* 'budi santoso' -> 'Budi Santoso' (nama penghuni sudah publik di game) */
+  return String(nama || '').slice(0, 30).replace(/(^|\s)(\S)/g, function (m, a, b) { return a + b.toUpperCase(); });
+}
+function arkSisaTeks(detik) {
+  var h = Math.floor(detik / 86400), j = Math.floor((detik % 86400) / 3600);
+  return h >= 1 ? h + ' hari ' + j + ' jam lagi' : (j >= 1 ? j + ' jam lagi' : Math.max(1, Math.ceil(detik / 60)) + ' menit lagi');
+}
+/* ==== ARKADE-END ==== */
+/* ==== ARKADE-UI-START ==== */
+/* Arkade Ria (26 Nov) — layar game 2D di atas tiga mesin arkade interior Kota. TIDAK menambah benda
+   3D: satu kanvas 2D + tombol DOM; selama layar ini terbuka animate() berhenti menggambar 3D
+   (lihat `if (ARK.aktif)` di awal animate) supaya enteng di HP. Lagu = FILE MP3 (lihat ARK_MUSIK_FILE,
+   dirender dulu oleh alat/render-musik.py: 128 BPM, 96 ketuk = 45 dtk, loop) — bukan sintesis live;
+   hanya efek pendek yang live. Sakelar Musik / Efek suara di Pengaturan dihormati (bus SUARA).
+   Penghuni: skor dikirim ke /api/skor (tiket server + dijepit server). Tamu: skor lokal saja. */
+var ARK = { aktif: false, game: '', tahap: '', el: null, cv: null, c: null, W: 0, H: 0, dpr: 1, P: { x: 0, y: 0, w: 1, h: 1 }, bg: null,
+  raf: 0, ts: 0, t: 0, s: null, apung: [], partikel: [], getar: 0, buf: null, bufJanji: null, musik: null, redam: null, redamCek: 0,
+  papan: null, papanMs: 0, papanJanji: null, tiket: null, tekan: {}, hasil: null, urut: 0 };
+var ARK_MUSIK_FILE = 'assets/musik/arkade.mp3';
+var ARK_INFO = {
+  capit: { ikon: '🧸', warna: '#ff5fb0', sub: '6 koin · 75 detik · makin pas makin aman',
+    cara: 'Tahan <b>◀ ▶</b> buat geser capit, lalu tekan <b>CAPIT!</b> pas di atas boneka. Capitnya berayun — tunggu diam biar jepitannya <b>pas di tengah</b>. Meleng dikit, bonekanya merosot.' },
+  balap: { ikon: '🏎\uFE0F', warna: '#38d8ff', sub: '3 nyawa · 60 detik · makin lama makin ngebut',
+    cara: 'Ketuk <b>◀ ▶</b> (atau sisi kiri/kanan layar) buat pindah jalur. Hindari mobil lain, kejar <b>jarak terjauh</b>. Nabrak = nyawa berkurang dan laju anjlok.' },
+  dansa: { ikon: '💃', warna: '#ffd84a', sub: '45 detik · ikuti irama · kombo = poin dobel',
+    cara: 'Panah turun mengikuti lagu. Ketuk tombol panah yang sama <b>pas panahnya nempel garis</b>. Jangan putus — kombo panjang bikin poin sampai <b>2x</b>.' }
+};
+var ARK_WARNA_JALUR = ['#ff5fb0', '#38d8ff', '#ffd84a', '#5cf08a'];
+
+/* efek pendek (live, sekali bunyi) */
+BUNYI.arkTik = function (c, out, t) { suaraNada(c, out, t, { tipe: 'square', f: 880, vol: 0.012, dur: 0.05 }); };
+BUNYI.arkMulai = function (c, out, t) { [523, 784, 1047].forEach(function (f, i) { suaraNada(c, out, t + i * 0.09, { tipe: 'square', f: f, vol: 0.02, dur: 0.1 }); }); };
+BUNYI.arkTurun = function (c, out, t) { suaraNada(c, out, t, { tipe: 'sawtooth', f: 180, f1: 90, geser: 0.8, vol: 0.02, a: 0.05, dur: 0.85 }); };
+BUNYI.arkDapat = function (c, out, t) { [784, 988, 1175, 1568].forEach(function (f, i) { suaraNada(c, out, t + i * 0.07, { tipe: 'triangle', f: f, vol: 0.045, dur: 0.22 }); }); };
+BUNYI.arkLepas = function (c, out, t) { suaraNada(c, out, t, { tipe: 'triangle', f: 520, f1: 150, geser: 0.4, vol: 0.05, dur: 0.45 }); };
+BUNYI.arkPindah = function (c, out, t) { suaraNada(c, out, t, { tipe: 'sine', f: 420, f1: 640, geser: 0.08, vol: 0.02, dur: 0.09 }); };
+BUNYI.arkTabrak = function (c, out, t) { suaraDesis(c, out, t, { filter: 'lowpass', f: 900, vol: 0.16, dur: 0.3 }); suaraNada(c, out, t, { tipe: 'sawtooth', f: 160, f1: 50, geser: 0.3, vol: 0.06, dur: 0.35 }); };
+BUNYI.arkPas = function (c, out, t) { suaraNada(c, out, t, { tipe: 'triangle', f: 1568, vol: 0.022, dur: 0.07 }); };
+BUNYI.arkKena = function (c, out, t) { suaraNada(c, out, t, { tipe: 'triangle', f: 1175, vol: 0.016, dur: 0.06 }); };
+BUNYI.arkLewat = function (c, out, t) { suaraNada(c, out, t, { tipe: 'square', f: 150, vol: 0.02, dur: 0.1 }); };
+BUNYI.arkSelesai = function (c, out, t) { [659, 784, 988, 1319, 1568].forEach(function (f, i) { suaraNada(c, out, t + i * 0.1, { tipe: 'square', f: f, vol: 0.022, dur: 0.18 }); }); };
+
+function arkEl(tag, kelas, teks) { var e = document.createElement(tag); if (kelas) e.className = kelas; if (teks != null) e.textContent = teks; return e; }
+function arkAngka(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+function arkPenghuni() { return typeof ktaIsResident === 'function' && ktaIsResident(); }
+function arkLokalBaca() { try { var p = JSON.parse(localStorage.getItem('kosan3d-arkade') || '{}') || {}; return { capit: +p.capit || 0, balap: +p.balap || 0, dansa: +p.dansa || 0 }; } catch (e) { return { capit: 0, balap: 0, dansa: 0 }; } }
+function arkLokalTulis(game, skor) { var p = arkLokalBaca(); if (skor > p[game]) { p[game] = skor; try { localStorage.setItem('kosan3d-arkade', JSON.stringify(p)); } catch (e) { /* abaikan */ } return true; } return false; }
+
+/* ---- lagu arkade (file) ---- */
+function arkMusikMuat() { /* unduh + decode sekali, saat arkade pertama dibuka (bukan saat muat game) */
+  if (ARK.bufJanji || !SUARA.ctx) return ARK.bufJanji || Promise.resolve(null);
+  ARK.bufJanji = musikAmbil(ARK_MUSIK_FILE).then(function (b) { ARK.buf = b; return b; }).catch(function () { ARK.bufJanji = null; return null; });
+  return ARK.bufJanji;
+}
+function arkMusikStop() {
+  var m = ARK.musik, c = SUARA.ctx; ARK.musik = null;
+  if (!m || !c) return;
+  try { var t = c.currentTime; m.g.gain.cancelScheduledValues(t); m.g.gain.setValueAtTime(m.g.gain.value, t); m.g.gain.linearRampToValueAtTime(0.0001, t + 0.2); m.src.stop(t + 0.25); } catch (e) { /* abaikan */ }
+}
+function arkMusikMulai(ulang, vol) { /* -> waktu mulai (jam AudioContext) atau null kalau tidak bisa / Musik dimatikan */
+  arkMusikStop();
+  var c = SUARA.ctx;
+  if (!c || c.state !== 'running' || !SUARA.setel.musik || !ARK.buf) return null;
+  try {
+    var src = c.createBufferSource(), g = c.createGain(), t0 = c.currentTime + 0.08;
+    src.buffer = ARK.buf; src.loop = !!ulang; g.gain.setValueAtTime(vol, t0);
+    src.connect(g); g.connect(SUARA.musik); src.start(t0);
+    ARK.musik = { src: src, g: g, t0: t0 };
+    return t0;
+  } catch (e) { ARK.musik = null; return null; }
+}
+function arkMusikVol(vol) { var m = ARK.musik, c = SUARA.ctx; if (m && c) { try { m.g.gain.setTargetAtTime(vol, c.currentTime, 0.15); } catch (e) { /* abaikan */ } } }
+function arkRedam(ya) { /* musik suasana game diredam selama arkade terbuka (lagu arkade yang main), dipulihkan saat keluar */
+  var c = SUARA.ctx, g = MUSIK.srcG;
+  if (!c || !g) return;
+  try { g.gain.cancelScheduledValues(c.currentTime); g.gain.setTargetAtTime(ya ? 0.0001 : 1, c.currentTime, ya ? 0.12 : 0.6); } catch (e) { /* abaikan */ }
+  ARK.redam = ya ? g : null;
+}
+function arkMusikLatar() { /* menu / capit / balap: lagu loop pelan; dansa memutar sendiri dari ketuk 0 */
+  if (!ARK.aktif || ARK.musik || (ARK.tahap === 'main' && ARK.game === 'dansa')) return;
+  arkMusikMulai(true, ARK.tahap === 'main' ? 0.8 : 0.45);
+}
+
+/* ---- tata letak ---- */
+function arkTata() {
+  var el = ARK.el, W = el.clientWidth || window.innerWidth, H = el.clientHeight || window.innerHeight, cv = ARK.cv;
+  var dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  ARK.W = W; ARK.H = H; ARK.dpr = dpr;
+  var atas = document.getElementById('arkAtas').offsetHeight || 52, potret = H >= W;
+  var gk = document.getElementById('arkGugusKiri'), gn = document.getElementById('arkGugusKanan');
+  var main = ARK.tahap === 'main', tb = main ? Math.max(gk.offsetHeight, gn.offsetHeight, 66) : 0;
+  if (potret) {
+    ARK.P = { x: 10, y: atas + 8, w: W - 20, h: H - atas - 8 - (main ? tb + 30 : 10) };
+    if (main && ARK.game === 'capit') { var hc = Math.min(ARK.P.h, Math.round(ARK.P.w * 1.2)); ARK.P.y += Math.round((ARK.P.h - hc) / 2); ARK.P.h = hc; } /* lemari capit tidak menjulang kosong di layar tinggi */
+  }
+  else {
+    var kiri = main ? gk.offsetWidth + 26 : 12, kanan = main ? gn.offsetWidth + 26 : 12, sisi = Math.max(kiri, kanan);
+    ARK.P = { x: sisi, y: atas + 6, w: W - sisi * 2, h: H - atas - 12 };
+  }
+  var b = ARK.bg || (ARK.bg = document.createElement('canvas')); b.width = cv.width; b.height = cv.height;
+  var g = b.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  var gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, '#1b0b4d'); gr.addColorStop(0.55, '#2a0f5e'); gr.addColorStop(1, '#0d0628');
+  g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  g.strokeStyle = 'rgba(124,245,255,0.07)'; g.lineWidth = 1; g.beginPath();
+  for (var x = (W % 44) / 2; x < W; x += 44) { g.moveTo(x, 0); g.lineTo(x, H); }
+  for (var y = 0; y < H; y += 44) { g.moveTo(0, y); g.lineTo(W, y); }
+  g.stroke();
+  var rg = g.createRadialGradient(W / 2, H * 0.45, 10, W / 2, H * 0.45, Math.max(W, H) * 0.7);
+  rg.addColorStop(0, 'rgba(255,79,168,0.20)'); rg.addColorStop(1, 'rgba(255,79,168,0)'); g.fillStyle = rg; g.fillRect(0, 0, W, H);
+}
+function arkRR(c, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); c.beginPath(); c.moveTo(x + r, y); c.lineTo(x + w - r, y); c.quadraticCurveTo(x + w, y, x + w, y + r); c.lineTo(x + w, y + h - r); c.quadraticCurveTo(x + w, y + h, x + w - r, y + h); c.lineTo(x + r, y + h); c.quadraticCurveTo(x, y + h, x, y + h - r); c.lineTo(x, y + r); c.quadraticCurveTo(x, y, x + r, y); c.closePath(); }
+function arkF(px, tebal) { return (tebal || 800) + ' ' + Math.round(px) + 'px "Baloo 2", Nunito, system-ui, sans-serif'; }
+function arkTeks(c, teks, x, y, px, warna, rata, garis) {
+  c.font = arkF(px); c.textAlign = rata || 'center'; c.textBaseline = 'middle';
+  if (garis) { c.lineWidth = Math.max(3, px * 0.16); c.lineJoin = 'round'; c.strokeStyle = garis; c.strokeText(teks, x, y); }
+  c.fillStyle = warna; c.fillText(teks, x, y);
+}
+function arkApung(teks, x, y, warna, px) { ARK.apung.push({ teks: teks, x: x, y: y, warna: warna || '#fff', px: px || 22, t: 0 }); if (ARK.apung.length > 12) ARK.apung.shift(); }
+function arkSembur(x, y, warna, n, laju) {
+  for (var i = 0; i < n; i++) { var a = Math.random() * 6.283, v = (laju || 160) * (0.35 + Math.random() * 0.65); ARK.partikel.push({ x: x, y: y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 60, t: 0, u: 0.5 + Math.random() * 0.4, w: warna, r: 2 + Math.random() * 3 }); }
+  if (ARK.partikel.length > 140) ARK.partikel.splice(0, ARK.partikel.length - 140);
+}
+function arkChip(c, x, y, teks, warna, rata) { /* kapsul HUD; x = tepi kiri ('left') / kanan ('right') / tengah */
+  c.font = arkF(15); var w = c.measureText(teks).width + 20, h = 28, x0 = rata === 'right' ? x - w : (rata === 'center' ? x - w / 2 : x);
+  arkRR(c, x0, y, w, h, 14); c.fillStyle = 'rgba(10,4,30,0.72)'; c.fill(); c.lineWidth = 1.5; c.strokeStyle = warna; c.stroke();
+  arkTeks(c, teks, x0 + w / 2, y + h / 2 + 1, 15, '#fff'); return w;
+}
+
+/* ---- Capit Boneka ---- */
+var ARK_BONEKA_WARNA = { kelinci: ['#ff9ccb', '#ffd3e8', '#e0629f'], bebek: ['#ffd84a', '#fff0a8', '#e89a00'], beruang: ['#c98a55', '#f0cda4', '#8a5630'] };
+function arkLukisBoneka(c, jenis, x, yDasar, R, miring) { /* yDasar = telapak; R = setengah lebar badan */
+  var w = ARK_BONEKA_WARNA[jenis];
+  c.save(); c.translate(x, yDasar); if (miring) c.rotate(miring);
+  c.fillStyle = w[2]; c.beginPath(); c.ellipse(-R * 0.55, -R * 0.12, R * 0.34, R * 0.2, 0, 0, 6.283); c.ellipse(R * 0.55, -R * 0.12, R * 0.34, R * 0.2, 0, 0, 6.283); c.fill(); /* kaki */
+  c.fillStyle = w[0]; c.beginPath(); c.ellipse(0, -R * 0.78, R * 0.92, R * 0.8, 0, 0, 6.283); c.fill(); /* badan */
+  c.beginPath(); c.ellipse(-R * 0.95, -R * 0.95, R * 0.28, R * 0.42, 0.5, 0, 6.283); c.ellipse(R * 0.95, -R * 0.95, R * 0.28, R * 0.42, -0.5, 0, 6.283); c.fill(); /* tangan */
+  c.fillStyle = w[1]; c.beginPath(); c.ellipse(0, -R * 0.7, R * 0.52, R * 0.5, 0, 0, 6.283); c.fill(); /* perut */
+  var hy = -R * 2.05, hr = R * 0.82;
+  c.fillStyle = w[0];
+  if (jenis === 'kelinci') { c.beginPath(); c.ellipse(-hr * 0.45, hy - hr * 1.25, hr * 0.24, hr * 0.72, -0.12, 0, 6.283); c.ellipse(hr * 0.45, hy - hr * 1.25, hr * 0.24, hr * 0.72, 0.12, 0, 6.283); c.fill(); c.fillStyle = w[1]; c.beginPath(); c.ellipse(-hr * 0.45, hy - hr * 1.2, hr * 0.11, hr * 0.48, -0.12, 0, 6.283); c.ellipse(hr * 0.45, hy - hr * 1.2, hr * 0.11, hr * 0.48, 0.12, 0, 6.283); c.fill(); c.fillStyle = w[0]; }
+  else if (jenis === 'beruang') { c.beginPath(); c.arc(-hr * 0.72, hy - hr * 0.7, hr * 0.36, 0, 6.283); c.arc(hr * 0.72, hy - hr * 0.7, hr * 0.36, 0, 6.283); c.fill(); c.fillStyle = w[1]; c.beginPath(); c.arc(-hr * 0.72, hy - hr * 0.7, hr * 0.18, 0, 6.283); c.arc(hr * 0.72, hy - hr * 0.7, hr * 0.18, 0, 6.283); c.fill(); c.fillStyle = w[0]; }
+  else { c.beginPath(); c.moveTo(-hr * 0.1, hy - hr * 0.9); c.quadraticCurveTo(hr * 0.1, hy - hr * 1.5, hr * 0.42, hy - hr * 1.12); c.quadraticCurveTo(hr * 0.2, hy - hr * 1.1, hr * 0.2, hy - hr * 0.85); c.fill(); }
+  c.beginPath(); c.arc(0, hy, hr, 0, 6.283); c.fill(); /* kepala */
+  if (jenis === 'bebek') { c.fillStyle = w[2]; c.beginPath(); c.ellipse(0, hy + hr * 0.28, hr * 0.46, hr * 0.2, 0, 0, 6.283); c.fill(); }
+  else { c.fillStyle = w[1]; c.beginPath(); c.ellipse(0, hy + hr * 0.3, hr * 0.42, hr * 0.3, 0, 0, 6.283); c.fill(); c.fillStyle = '#3a2218'; c.beginPath(); c.ellipse(0, hy + hr * 0.2, hr * 0.12, hr * 0.085, 0, 0, 6.283); c.fill(); }
+  c.fillStyle = '#2a1a22'; c.beginPath(); c.arc(-hr * 0.36, hy - hr * 0.08, hr * 0.11, 0, 6.283); c.arc(hr * 0.36, hy - hr * 0.08, hr * 0.11, 0, 6.283); c.fill();
+  c.fillStyle = '#fff'; c.beginPath(); c.arc(-hr * 0.32, hy - hr * 0.12, hr * 0.04, 0, 6.283); c.arc(hr * 0.4, hy - hr * 0.12, hr * 0.04, 0, 6.283); c.fill();
+  c.fillStyle = 'rgba(255,90,130,0.45)'; c.beginPath(); c.arc(-hr * 0.62, hy + hr * 0.22, hr * 0.13, 0, 6.283); c.arc(hr * 0.62, hy + hr * 0.22, hr * 0.13, 0, 6.283); c.fill();
+  c.restore();
+}
+var ARK_MAIN = {};
+ARK_MAIN.capit = {
+  mulai: function () {
+    var benih = (Date.now() ^ (Math.random() * 1e9)) >>> 0;
+    return { boneka: arkCapitSusun(benih), acak: arkAcak(benih ^ 0x5bd1e995), x: 0.55, v: 0, ayun: 0, ayunV: 0, gx: 0.55, fase: 'geser', tf: 0, y: 0,
+      koin: ARK_CAPIT.koin, sisa: ARK_CAPIT.detik, skor: 0, dapat: 0, pegang: -1, presisi: 0, lepas: false, tLepas: 0, jatuh: [], tunggu: 0, cincin: 0 };
+  },
+  kontrol: function () { return { kiri: [{ a: 'kiri', t: '◀', tahan: true }, { a: 'kanan', t: '▶', tahan: true }], kanan: [{ a: 'aksi', t: 'CAPIT!', lebar: true }] }; },
+  masuk: function (s, a, tekan) {
+    if (a === 'aksi') { if (tekan && s.fase === 'geser' && s.koin > 0 && s.sisa > 0) { s.koin -= 1; s.fase = 'turun'; s.tf = 0; s.gx = arkJepit(s.x + s.ayun, 0.03, 0.97); s.pegang = -1; bunyi('arkTurun'); } }
+  },
+  maju: function (s, dt) {
+    var M = ARK_CAPIT_MAIN, arah = (ARK.tekan.kanan ? 1 : 0) - (ARK.tekan.kiri ? 1 : 0), P = ARK.P;
+    s.tf += dt; s.cincin += dt;
+    for (var q = s.jatuh.length - 1; q >= 0; q--) { var J = s.jatuh[q]; J.vy += 2.6 * dt; J.y += J.vy * dt; if (J.y >= 1) { J.b.jy = 0; J.b.goyang = 0.5; s.jatuh.splice(q, 1); } else J.b.jy = 1 - J.y; }
+    s.boneka.forEach(function (b) { if (b.goyang > 0) b.goyang = Math.max(0, b.goyang - dt); });
+    if (s.fase === 'geser') {
+      s.sisa -= dt;
+      var target = arah * M.laju, v0 = s.v; s.v += (target - s.v) * Math.min(1, dt * 9);
+      var nx = arkJepit(s.x + s.v * dt, M.kiri, M.kanan); if (nx === M.kiri || nx === M.kanan) s.v = 0; s.x = nx;
+      var ax = (s.v - v0) / Math.max(dt, 0.001);
+      s.ayunV += (-30 * s.ayun - 1.1 * s.ayunV - ax * 0.42) * dt; s.ayun = arkJepit(s.ayun + s.ayunV * dt, -0.075, 0.075);
+      s.gx = s.x + s.ayun;
+      if (s.sisa <= 0 || s.koin <= 0 || !s.boneka.some(function (b) { return b.ada; })) { s.tunggu += dt; if (s.tunggu > 0.7) arkSelesai(s.skor, s.dapat); }
+      return;
+    }
+    s.ayun *= Math.exp(-5 * dt); s.x += (s.gx - s.ayun - s.x) * Math.min(1, dt * 6);
+    if (s.fase === 'turun') {
+      s.y = Math.min(1, s.tf / 0.85);
+      if (s.y >= 1) {
+        var r = arkCapitSasaran(s.boneka, s.gx); s.fase = 'jepit'; s.tf = 0; s.pegang = r.i; s.presisi = r.presisi;
+        if (r.i >= 0) { s.lepas = s.acak() < arkCapitPeluangLepas(r.presisi, s.boneka[r.i].berat); s.tLepas = 0.3 + 0.45 * s.acak(); bunyi('arkTik'); }
+        else { arkApung('Meleset!', P.x + s.gx * P.w, P.y + P.h * 0.62, '#ff9bd0', 22); bunyi('arkLewat'); }
+      }
+    } else if (s.fase === 'jepit') { if (s.tf > 0.32) { s.fase = 'naik'; s.tf = 0; }
+    } else if (s.fase === 'naik') {
+      var p = Math.min(1, s.tf / 1.0); s.y = 1 - p;
+      if (s.pegang >= 0 && s.lepas && p >= s.tLepas) {
+        var b = s.boneka[s.pegang]; s.jatuh.push({ b: b, y: p > 0.98 ? 0.02 : 1 - p, vy: 0 }); b.jy = p; b.x = arkJepit(b.x + (s.acak() - 0.5) * 0.03, 0.24, 0.93);
+        arkApung('Yah, merosot…', P.x + s.gx * P.w, P.y + P.h * 0.4, '#ffb0c8', 22); bunyi('arkLepas'); s.pegang = -1;
+      }
+      if (p >= 1) { if (s.pegang >= 0) { s.fase = 'bawa'; s.tf = 0; } else { s.fase = 'geser'; s.tunggu = 0; } }
+    } else if (s.fase === 'bawa') {
+      s.gx = Math.max(M.lubang * 0.5, s.gx - 0.62 * dt);
+      if (s.gx <= M.lubang * 0.5) { s.fase = 'buka'; s.tf = 0; }
+    } else if (s.fase === 'buka') {
+      if (s.pegang >= 0 && s.tf > 0.12) {
+        var d = s.boneka[s.pegang], n = arkCapitNilai(d, s.presisi), px = P.x + s.gx * P.w, py = P.y + P.h * 0.5;
+        d.ada = false; s.skor += n; s.dapat += 1; s.pegang = -1; s.masuk = { jenis: d.jenis, t: 0 };
+        arkApung('+' + n, px + 30, py, '#ffe45c', 34); if (s.presisi >= M.presisiBonus) arkApung('PAS BANGET! +' + ARK_CAPIT.bonusPresisi, px + 60, py + 34, '#7cf5ff', 18);
+        arkSembur(px, py + 40, ARK_BONEKA_WARNA[d.jenis][0], 26, 220); arkSembur(px, py + 40, '#ffe45c', 14, 180); bunyi('arkDapat');
+      }
+      if (s.tf > 0.6) { s.fase = 'geser'; s.tunggu = 0; }
+    }
+    if (s.masuk) { s.masuk.t += dt; if (s.masuk.t > 0.5) s.masuk = null; }
+  },
+  lukis: function (s, c) {
+    var P = ARK.P, M = ARK_CAPIT_MAIN, X = function (u) { return P.x + u * P.w; };
+    var yRel = P.y + 52, yLantai = P.y + P.h - 22, skala = Math.min(P.w, P.h * 1.5), tinggiB = function (b) { return b.r * skala * 3.3; };
+    /* kabinet kaca */
+    arkRR(c, P.x, P.y, P.w, P.h, 18); c.fillStyle = 'rgba(40,18,100,0.72)'; c.fill();
+    var kg = c.createLinearGradient(0, P.y, 0, P.y + P.h); kg.addColorStop(0, 'rgba(124,245,255,0.16)'); kg.addColorStop(0.5, 'rgba(124,245,255,0.03)'); kg.addColorStop(1, 'rgba(255,79,168,0.14)'); c.fillStyle = kg; c.fill();
+    c.lineWidth = 3; c.strokeStyle = '#7cf5ff'; c.stroke();
+    /* lampu jalan di atas kabinet */
+    for (var i = 0; i < 12; i++) { var on = (Math.floor(ARK.t * 5) + i) % 3 === 0; c.fillStyle = on ? '#ffe45c' : 'rgba(255,228,92,0.25)'; c.beginPath(); c.arc(P.x + 18 + (P.w - 36) * i / 11, P.y + 4, 3.2, 0, 6.283); c.fill(); }
+    /* lubang hadiah */
+    var lw = M.lubang * P.w - 8; arkRR(c, P.x + 6, yLantai - P.h * 0.2, lw, P.h * 0.2 + 16, 10); c.fillStyle = 'rgba(8,4,28,0.85)'; c.fill(); c.lineWidth = 2; c.strokeStyle = '#ffe45c'; c.setLineDash([6, 5]); c.stroke(); c.setLineDash([]);
+    arkTeks(c, 'HADIAH', P.x + 6 + lw / 2, yLantai - P.h * 0.2 + 13, Math.min(12, lw * 0.22), '#ffe45c');
+    arkTeks(c, '▼', P.x + 6 + lw / 2, yLantai - P.h * 0.2 + 30 + Math.sin(ARK.t * 6) * 3, 14, '#ffe45c');
+    if (s.masuk) arkLukisBoneka(c, s.masuk.jenis, P.x + 6 + lw / 2, yLantai - P.h * 0.02 + s.masuk.t * 60, skala * 0.045 * (1 - s.masuk.t * 0.6), s.masuk.t * 2);
+    /* lantai bola-bola */
+    c.save(); arkRR(c, P.x + 2, P.y + 2, P.w - 4, P.h - 4, 16); c.clip();
+    var wb = ['#ff8fc4', '#8fe3ff', '#ffe27a', '#a8f0b4', '#c9a8ff'];
+    for (i = 0; i < 26; i++) { var bx = X(M.lubang + 0.01 + (0.99 - M.lubang) * ((i * 0.618) % 1)); c.fillStyle = wb[i % 5]; c.globalAlpha = 0.5; c.beginPath(); c.arc(bx, yLantai + 14 + (i % 3) * 5, 13, 0, 6.283); c.fill(); }
+    c.globalAlpha = 1; c.restore();
+    /* boneka (digambar 1,19x jangkauan logisnya: tumpukan boneka rapat) */
+    skala *= 1.19;
+    s.boneka.forEach(function (b, n) {
+      if (!b.ada || n === s.pegang) return;
+      var R = b.r * skala, y = yLantai - (b.jy || 0) * (yLantai - yRel - 60), m = b.goyang ? Math.sin(b.goyang * 30) * 0.18 * b.goyang : Math.sin(ARK.t * 1.6 + n) * 0.03;
+      arkLukisBoneka(c, b.jenis, X(b.x), y, R, m);
+      if (!(b.jy > 0)) { arkRR(c, X(b.x) - 15, yLantai + 3, 30, 15, 7); c.fillStyle = b.jenis === 'beruang' ? '#ffe45c' : 'rgba(255,255,255,0.85)'; c.fill(); arkTeks(c, String(b.nilai), X(b.x), yLantai + 11, 11, '#3a1c5a'); }
+    });
+    /* rel + troli + capit */
+    c.fillStyle = '#3d2a9a'; c.fillRect(P.x + 10, yRel - 5, P.w - 20, 8); c.fillStyle = '#7cf5ff'; c.fillRect(P.x + 10, yRel - 5, P.w - 20, 2);
+    var tx = X(s.x), cx = X(s.gx), turun = s.y * (yLantai - yRel - 46 - skala * 0.1), cy = yRel + 26 + turun;
+    c.strokeStyle = '#d7dcff'; c.lineWidth = 2.5; c.beginPath(); c.moveTo(tx, yRel + 6); c.lineTo(cx, cy - 8); c.stroke();
+    arkRR(c, tx - 20, yRel - 11, 40, 20, 6); c.fillStyle = '#ff5fb0'; c.fill(); c.lineWidth = 2; c.strokeStyle = '#fff'; c.stroke();
+    var buka = (s.fase === 'geser' || s.fase === 'turun' || (s.fase === 'buka' && s.tf > 0.1)) ? 0.62 : 0.2, jr = skala * 0.07;
+    if (s.pegang >= 0) { var pb = s.boneka[s.pegang]; arkLukisBoneka(c, pb.jenis, cx, cy + jr * 0.5 + tinggiB(pb) * 0.92, pb.r * skala, Math.sin(ARK.t * 5) * 0.07); }
+    c.strokeStyle = '#eef0ff'; c.lineWidth = 4; c.lineCap = 'round';
+    [-1, 1].forEach(function (k) { c.beginPath(); c.moveTo(cx, cy); c.quadraticCurveTo(cx + k * jr * (0.9 + buka), cy + jr * 0.5, cx + k * jr * buka * 1.25, cy + jr * 1.35); c.stroke(); });
+    c.fillStyle = '#ffe45c'; c.beginPath(); c.arc(cx, cy - 2, 7, 0, 6.283); c.fill(); c.strokeStyle = '#fff'; c.lineWidth = 2; c.stroke();
+    /* garis bidik saat menggeser */
+    if (s.fase === 'geser' && s.koin > 0) { c.strokeStyle = 'rgba(255,228,92,0.5)'; c.lineWidth = 2; c.setLineDash([4, 7]); c.beginPath(); c.moveTo(cx, cy + jr * 1.5); c.lineTo(cx, yLantai - 6); c.stroke(); c.setLineDash([]); }
+    /* HUD */
+    var hx = P.x + 12; for (i = 0; i < ARK_CAPIT.koin; i++) { c.beginPath(); c.arc(hx + 9 + i * 21, P.y + 26, 8.5, 0, 6.283); c.fillStyle = i < s.koin ? '#ffd84a' : 'rgba(255,255,255,0.14)'; c.fill(); if (i < s.koin) { c.strokeStyle = '#b97800'; c.lineWidth = 2; c.stroke(); } }
+    arkChip(c, P.x + P.w - 12, P.y + 12, '★ ' + arkAngka(s.skor), '#ffe45c', 'right');
+    arkChip(c, P.x + P.w / 2 + 34, P.y + 12, '⏱ ' + Math.max(0, Math.ceil(s.sisa)), s.sisa < 10 ? '#ff5f7e' : '#7cf5ff', 'center');
+  }
+};
+
+/* ---- Balap Kota ---- */
+var ARK_MOBIL_WARNA = ['#ff5f7e', '#ffd84a', '#5cf08a', '#c98bff', '#ff9a4a', '#f2f4ff'];
+function arkLukisMobil(c, x, y, w, h, warna, lampu, putar) { /* (x, y) = tengah */
+  c.save(); c.translate(x, y); if (putar) c.rotate(putar);
+  c.fillStyle = 'rgba(0,0,0,0.35)'; arkRR(c, -w / 2 + 3, -h / 2 + 5, w, h, w * 0.3); c.fill();
+  c.fillStyle = '#17132b'; [[-1, -0.3], [1, -0.3], [-1, 0.3], [1, 0.3]].forEach(function (q) { arkRR(c, q[0] * w * 0.5 - w * 0.09, q[1] * h - h * 0.11, w * 0.18, h * 0.22, 3); c.fill(); });
+  arkRR(c, -w / 2, -h / 2, w, h, w * 0.3); c.fillStyle = warna; c.fill();
+  c.fillStyle = 'rgba(255,255,255,0.28)'; arkRR(c, -w * 0.12, -h / 2 + 2, w * 0.24, h - 4, 4); c.fill();
+  c.fillStyle = '#152a4a'; arkRR(c, -w * 0.36, -h * 0.24, w * 0.72, h * 0.2, 5); c.fill(); arkRR(c, -w * 0.34, h * 0.14, w * 0.68, h * 0.15, 5); c.fill();
+  c.fillStyle = 'rgba(170,225,255,0.5)'; arkRR(c, -w * 0.3, -h * 0.22, w * 0.25, h * 0.07, 3); c.fill();
+  c.fillStyle = lampu ? '#fff7c2' : '#ff3d4f'; arkRR(c, -w * 0.42, (lampu ? -h / 2 : h / 2 - 5), w * 0.24, 5, 2); c.fill(); arkRR(c, w * 0.18, (lampu ? -h / 2 : h / 2 - 5), w * 0.24, 5, 2); c.fill();
+  c.restore();
+}
+ARK_MAIN.balap = {
+  mulai: function () { return { benih: (Date.now() ^ (Math.random() * 1e9)) >>> 0, t: 0, jarak: 0, rel: 0, jalur: 1, pos: 1, nyawa: ARK_BALAP.nyawa, kebal: 0, sejak: 99, baris: [], n: 0, sNext: 46, usai: 0, laju: ARK_BALAP.v0 }; },
+  kontrol: function () { return { kiri: [{ a: 'kiri', t: '◀' }], kanan: [{ a: 'kanan', t: '▶' }] }; },
+  masuk: function (s, a, tekan) {
+    if (!tekan || s.usai) return;
+    var j = s.jalur + (a === 'kiri' ? -1 : (a === 'kanan' ? 1 : 0)); j = arkJepit(j, 0, ARK_BALAP_MAIN.jalur - 1);
+    if (j !== s.jalur) { s.jalur = j; bunyi('arkPindah'); }
+  },
+  ketukKanvas: function (s, x) { this.masuk(s, x < ARK.W / 2 ? 'kiri' : 'kanan', true); },
+  maju: function (s, dt) {
+    var M = ARK_BALAP_MAIN;
+    if (s.usai) { s.usai += dt; if (s.usai > 1.1) arkSelesai(Math.floor(s.jarak), 0); return; }
+    s.t += dt; s.sejak += dt; s.kebal = Math.max(0, s.kebal - dt);
+    var v = arkBalapLajuNyata(s.t, s.sejak); s.laju = v; s.jarak += v * dt; s.rel += v * (1 - M.lalu) * dt;
+    var arahP = s.jalur - s.pos, langkah = dt / M.pindah; s.pos = Math.abs(arahP) <= langkah ? s.jalur : s.pos + Math.sign(arahP) * langkah;
+    while (s.sNext - s.rel < 64) {
+      var B = arkBalapBaris(s.benih, s.n);
+      s.baris.push({ s: s.sNext, tutup: B.tutup, kena: [false, false, false], w: [0, 1, 2].map(function (k) { return ARK_MOBIL_WARNA[(s.n * 3 + k * 5 + s.benih) % ARK_MOBIL_WARNA.length]; }), mental: 0 });
+      s.n += 1; s.sNext += arkBalapJarakBaris(arkBalapBaris(s.benih, s.n).jeda, arkBalapLaju(s.t));
+    }
+    for (var i = s.baris.length - 1; i >= 0; i--) {
+      var r = s.baris[i], ds = r.s - s.rel;
+      if (ds < -18) { s.baris.splice(i, 1); continue; }
+      if (r.mental) r.mental += dt;
+      if (s.kebal > 0) continue;
+      for (var l = 0; l < M.jalur; l++) if (r.tutup[l] && !r.kena[l] && arkBalapKena(s.pos, l, ds)) {
+        r.kena[l] = true; r.mental = 0.001; s.nyawa -= 1; s.kebal = M.kebal; s.sejak = 0; ARK.getar = 0.35; bunyi('arkTabrak');
+        var G = this.geo(), px = G.x0 + (s.pos + 0.5) * G.lw; arkSembur(px, G.yP - 20, '#ffd84a', 22, 260); arkSembur(px, G.yP - 20, '#ff5f7e', 12, 200);
+        arkApung(s.nyawa > 0 ? 'BRAK! −1 nyawa' : 'BRAK!', px, G.yP - 70, '#ff8fa3', 24);
+        if (navigator.vibrate) { try { navigator.vibrate(60); } catch (e) { /* abaikan */ } }
+        break;
+      }
+    }
+    if (s.nyawa <= 0 || s.t >= ARK_BALAP.detik) { s.usai = 0.001; if (s.nyawa > 0) arkApung('FINIS!', ARK.P.x + ARK.P.w / 2, ARK.P.y + ARK.P.h * 0.4, '#ffe45c', 44); }
+  },
+  geo: function () { var P = ARK.P, rw = Math.min(P.w, P.h * 0.66, 380), ppm = P.h / 60; return { rw: rw, x0: P.x + (P.w - rw) / 2, lw: rw / 3, ppm: ppm, yP: P.y + P.h - 13 * ppm }; },
+  lukis: function (s, c) {
+    var P = ARK.P, G = this.geo(), M = ARK_BALAP_MAIN, i, gulir = (s.jarak * G.ppm) % 1e6;
+    c.save(); arkRR(c, P.x, P.y, P.w, P.h, 18); c.clip();
+    c.fillStyle = '#0c0a24'; c.fillRect(P.x, P.y, P.w, P.h);
+    /* kota di kiri-kanan: blok gedung + jendela menyala, bergulir */
+    var sisi = (P.w - G.rw) / 2;
+    if (sisi > 14) for (var k = 0; k < 2; k++) {
+      var bx = k ? G.x0 + G.rw + 6 : P.x, bw = sisi - 6, gh = 120, o = (gulir * 0.9) % gh;
+      for (var y = -gh + o; y < P.h; y += gh) {
+        var idx = Math.floor((y - o) / gh + 1000 + k * 7 + Math.floor(gulir * 0.9 / gh)) % 5;
+        c.fillStyle = ['#1c1650', '#231a63', '#191246', '#2a1f70', '#1f1758'][Math.abs(idx)]; arkRR(c, bx + 4, P.y + y + 6, bw - 8, gh - 12, 8); c.fill();
+        c.fillStyle = ['#ffd84a', '#7cf5ff', '#ff8fc4'][Math.abs(idx) % 3]; c.globalAlpha = 0.75;
+        for (var wy = 0; wy < 3; wy++) for (var wx = 0; wx * 18 + 16 < bw - 12; wx++) if ((wx + wy + Math.abs(idx)) % 3) c.fillRect(bx + 12 + wx * 18, P.y + y + 20 + wy * 28, 9, 13);
+        c.globalAlpha = 1;
+      }
+    }
+    /* jalan */
+    c.fillStyle = '#2b2748'; c.fillRect(G.x0, P.y, G.rw, P.h);
+    c.fillStyle = '#ff4fa8'; c.fillRect(G.x0 - 4, P.y, 4, P.h); c.fillStyle = '#7cf5ff'; c.fillRect(G.x0 + G.rw, P.y, 4, P.h);
+    c.fillStyle = 'rgba(255,255,255,0.7)'; var dash = 46, od = gulir % dash;
+    for (i = 1; i < M.jalur; i++) for (var dy = -dash + od; dy < P.h; dy += dash) c.fillRect(G.x0 + i * G.lw - 2, P.y + dy, 4, dash * 0.5);
+    /* garis laju */
+    c.strokeStyle = 'rgba(255,255,255,' + Math.min(0.28, (s.laju - 20) / 160) + ')'; c.lineWidth = 2; c.beginPath();
+    for (i = 0; i < 7; i++) { var lx = G.x0 + ((i * 0.37 + 0.11) % 1) * G.rw, ly = P.y + ((gulir * 1.7 + i * 131) % (P.h + 80)) - 40; c.moveTo(lx, ly); c.lineTo(lx, ly + 34); }
+    c.stroke();
+    /* mobil lain */
+    var cw = G.lw * 0.56, ch = M.panjang * G.ppm;
+    s.baris.forEach(function (r) {
+      var y = G.yP - (r.s - s.rel) * G.ppm;
+      if (y < P.y - ch || y > P.y + P.h + ch) return;
+      for (var l = 0; l < M.jalur; l++) if (r.tutup[l]) {
+        var kn = r.kena[l], mt = kn ? r.mental : 0;
+        arkLukisMobil(c, G.x0 + (l + 0.5) * G.lw + (kn ? (l <= s.pos ? -1 : 1) * mt * 160 : 0), y - (kn ? mt * 90 : 0), cw, ch, r.w[l], false, kn ? mt * 7 : 0);
+      }
+    });
+    /* mobil kita */
+    var px = G.x0 + (s.pos + 0.5) * G.lw, kedip = s.kebal > 0 && Math.floor(ARK.t * 14) % 2 === 0;
+    if (!kedip) {
+      c.fillStyle = 'rgba(124,245,255,0.35)'; c.beginPath(); c.moveTo(px - cw * 0.3, G.yP + ch * 0.5); c.lineTo(px + cw * 0.3, G.yP + ch * 0.5); c.lineTo(px, G.yP + ch * (0.75 + Math.random() * 0.25 + s.laju / 140)); c.fill();
+      arkLukisMobil(c, px, G.yP, cw, ch, '#38d8ff', true, (s.jalur - s.pos) * 0.22);
+    }
+    c.restore();
+    c.lineWidth = 3; c.strokeStyle = '#7cf5ff'; arkRR(c, P.x, P.y, P.w, P.h, 18); c.stroke();
+    /* HUD */
+    arkTeks(c, arkAngka(s.jarak) + ' m', P.x + P.w / 2, P.y + 30, 30, '#fff', 'center', '#1a0b4a');
+    var hati = ''; for (i = 0; i < ARK_BALAP.nyawa; i++) hati += i < s.nyawa ? '♥' : '♡';
+    arkChip(c, P.x + 10, P.y + 54, hati, '#ff5f7e', 'left');
+    arkChip(c, P.x + P.w - 10, P.y + 54, Math.round(s.laju * 3.6) + ' km/j', '#7cf5ff', 'right');
+    var sisa = Math.max(0, 1 - s.t / ARK_BALAP.detik); arkRR(c, P.x + 12, P.y + P.h - 14, P.w - 24, 6, 3); c.fillStyle = 'rgba(255,255,255,0.18)'; c.fill();
+    arkRR(c, P.x + 12, P.y + P.h - 14, (P.w - 24) * sisa, 6, 3); c.fillStyle = '#ffe45c'; c.fill();
+  }
+};
+
+/* ---- Lantai Dansa ---- */
+var ARK_PANAH_SUDUT = [-Math.PI / 2, Math.PI, 0, Math.PI / 2]; /* jalur: kiri, bawah, atas, kanan */
+function arkLukisPanah(c, x, y, s, j, isi, garis) {
+  c.save(); c.translate(x, y); c.rotate(ARK_PANAH_SUDUT[j]);
+  c.beginPath(); c.moveTo(0, -s * 0.5); c.lineTo(s * 0.48, 0); c.lineTo(s * 0.2, 0); c.lineTo(s * 0.2, s * 0.48); c.lineTo(-s * 0.2, s * 0.48); c.lineTo(-s * 0.2, 0); c.lineTo(-s * 0.48, 0); c.closePath();
+  if (isi) { c.fillStyle = isi; c.fill(); }
+  if (garis) { c.lineWidth = Math.max(2, s * 0.08); c.lineJoin = 'round'; c.strokeStyle = garis; c.stroke(); }
+  c.restore();
+}
+function arkPanahSvg(j) { return '<svg viewBox="-12 -12 24 24" aria-hidden="true"><path transform="rotate(' + Math.round(ARK_PANAH_SUDUT[j] * 180 / Math.PI) + ')" d="M0 -10 L9.5 0 L4 0 L4 9.5 L-4 9.5 L-4 0 L-9.5 0 Z" fill="#fff" stroke="rgba(0,0,0,0.35)" stroke-width="1.2" stroke-linejoin="round"/></svg>'; }
+var ARK_MUTU = [['SEMPURNA!', '#ffe45c'], ['BAGUS!', '#7cf5ff'], ['LUMAYAN', '#b8f5c8'], ['LEWAT', '#ff8fa3']];
+ARK_MAIN.dansa = {
+  jatuh: 1.5,
+  mulai: function () {
+    var t0 = arkMusikMulai(false, 1), c = SUARA.ctx;
+    return { peta: arkDansaPeta(), kena: [], st: arkDansaBaru(), t: 0, t0: t0, jam: performance.now(), latensi: t0 != null && c ? Math.min(0.25, (c.outputLatency || c.baseLatency || 0)) : 0,
+      kilat: [0, 0, 0, 0], mutu: -2, mutuT: 9, usai: 0, awal: 0 };
+  },
+  kontrol: function () { var b = function (j) { return { a: 'j' + j, svg: arkPanahSvg(j), kelas: 'j' + j, label: ['Kiri', 'Bawah', 'Atas', 'Kanan'][j] }; }; return { kiri: [b(0), b(1)], kanan: [b(2), b(3)] }; },
+  jamKini: function (s) { var c = SUARA.ctx; return (s.t0 != null && c && ARK.musik) ? c.currentTime - s.t0 - s.latensi : (performance.now() - s.jam) / 1000 - 0.08; },
+  geo: function () { var P = ARK.P, lw = Math.min(P.w / 4, 104, P.h * 0.26), x0 = P.x + (P.w - lw * 4) / 2; return { lw: lw, x0: x0, yG: P.y + P.h - Math.max(52, lw * 0.7), yA: P.y + 46 }; },
+  masuk: function (s, a, tekan) {
+    if (!tekan || a.charAt(0) !== 'j') return;
+    s.t = this.jamKini(s); /* jam SAAT ketukan (bukan jam bingkai terakhir): akurat walau fps rendah */
+    var j = +a.charAt(1), G = this.geo(), i = arkDansaCari(s.peta, s.kena, j, s.t), x = G.x0 + (j + 0.5) * G.lw;
+    s.kilat[j] = 1;
+    if (i < 0) return;
+    var m = arkDansaNilai(arkDansaDetik(s.peta[i].k) - s.t), n = arkDansaKena(s.st, m);
+    s.kena[i] = 1; s.mutu = m; s.mutuT = 0;
+    arkSembur(x, G.yG, ARK_WARNA_JALUR[j], m === 0 ? 16 : 8, m === 0 ? 240 : 160);
+    ARK.apung = ARK.apung.filter(function (q) { return q.x !== x; }); /* satu angka per jalur: tidak menumpuk saat not rapat */
+    arkApung('+' + n, x, G.yG - 44, '#fff', 18);
+    bunyi(m === 0 ? 'arkPas' : 'arkKena');
+  },
+  ketukKanvas: function (s, x, y) { var G = this.geo(), j = Math.floor((x - G.x0) / G.lw); if (j >= 0 && j < 4) this.masuk(s, 'j' + j, true); },
+  maju: function (s, dt) {
+    s.t = this.jamKini(s);
+    for (var j = 0; j < 4; j++) s.kilat[j] = Math.max(0, s.kilat[j] - dt * 5);
+    s.mutuT += dt;
+    var batas = ARK_DANSA.jendela[2];
+    for (var i = s.awal; i < s.peta.length; i++) {
+      var tn = arkDansaDetik(s.peta[i].k);
+      if (tn > s.t + 0.01) break;
+      if (!s.kena[i] && s.t - tn > batas) { s.kena[i] = 2; arkDansaKena(s.st, -1); s.mutu = 3; s.mutuT = 0; bunyi('arkLewat'); }
+      if (s.kena[i] && i === s.awal) s.awal += 1;
+    }
+    if (!s.usai && s.t >= arkDansaDetik(ARK_DANSA.ketuk) - 0.4) { s.usai = 0.001; arkApung('SELESAI!', ARK.P.x + ARK.P.w / 2, ARK.P.y + ARK.P.h * 0.4, '#ffe45c', 40); }
+    if (s.usai) { s.usai += dt; if (s.usai > 1.0) arkSelesai(s.st.skor, 0); }
+  },
+  lukis: function (s, c) {
+    var P = ARK.P, G = this.geo(), i, j, ketuk = s.t * ARK_DANSA.bpm / 60, denyut = Math.max(0, 1 - (ketuk - Math.floor(ketuk)) * 2.2);
+    arkRR(c, P.x, P.y, P.w, P.h, 18); c.fillStyle = 'rgba(14,6,44,0.86)'; c.fill();
+    c.save(); arkRR(c, P.x, P.y, P.w, P.h, 18); c.clip();
+    /* lantai dansa: ubin warna berdenyut ikut ketukan di kiri-kanan jalur */
+    var ub = 44, nb = Math.floor(ketuk);
+    for (var ux = P.x; ux < P.x + P.w; ux += ub) { if (ux + ub > G.x0 && ux < G.x0 + G.lw * 4) continue; for (var uy = P.y; uy < P.y + P.h; uy += ub) { var q = (Math.floor(ux / ub) * 7 + Math.floor(uy / ub) * 13 + nb * 5) % 4; c.fillStyle = ARK_WARNA_JALUR[Math.abs(q)]; c.globalAlpha = 0.07 + 0.2 * denyut * ((Math.abs(q) + nb) % 2); c.fillRect(ux + 2, uy + 2, ub - 4, ub - 4); } }
+    c.globalAlpha = 1;
+    for (j = 0; j < 4; j++) {
+      var x = G.x0 + j * G.lw, lg = c.createLinearGradient(0, G.yA, 0, G.yG + 30); lg.addColorStop(0, 'rgba(255,255,255,0.02)'); lg.addColorStop(1, 'rgba(255,255,255,' + (0.07 + 0.12 * s.kilat[j] + 0.04 * denyut) + ')');
+      c.fillStyle = lg; c.fillRect(x + 2, P.y, G.lw - 4, P.h);
+      c.fillStyle = ARK_WARNA_JALUR[j]; c.globalAlpha = 0.5; c.fillRect(x, P.y, 2, P.h); c.fillRect(x + G.lw - 2, P.y, 2, P.h); c.globalAlpha = 1;
+    }
+    var sz = G.lw * 0.62;
+    /* garis sasaran + penerima */
+    c.fillStyle = 'rgba(255,255,255,' + (0.25 + 0.3 * denyut) + ')'; c.fillRect(G.x0, G.yG - 2, G.lw * 4, 4);
+    for (j = 0; j < 4; j++) arkLukisPanah(c, G.x0 + (j + 0.5) * G.lw, G.yG, sz * (1 + 0.12 * s.kilat[j]), j, 'rgba(255,255,255,' + (0.08 + 0.5 * s.kilat[j]) + ')', ARK_WARNA_JALUR[j]);
+    /* not */
+    for (i = s.awal; i < s.peta.length; i++) {
+      var n = s.peta[i], dtn = arkDansaDetik(n.k) - s.t;
+      if (dtn > this.jatuh) break;
+      if (s.kena[i]) continue;
+      var y = G.yG - dtn / this.jatuh * (G.yG - G.yA + sz);
+      if (dtn < 0) c.globalAlpha = Math.max(0, 1 + dtn / ARK_DANSA.jendela[2]); /* telat: memudar sesudah garis, tidak menabrak bilah bawah */
+      arkLukisPanah(c, G.x0 + (n.j + 0.5) * G.lw, y, sz, n.j, ARK_WARNA_JALUR[n.j], '#fff'); c.globalAlpha = 1;
+    }
+    c.restore();
+    c.lineWidth = 3; c.strokeStyle = '#ff4fa8'; arkRR(c, P.x, P.y, P.w, P.h, 18); c.stroke();
+    /* HUD */
+    arkChip(c, P.x + 10, P.y + 10, '★ ' + arkAngka(s.st.skor), '#ffe45c', 'left');
+    arkChip(c, P.x + P.w - 10, P.y + 10, 'x' + arkDansaPengali(s.st.kombo).toFixed(1), '#7cf5ff', 'right');
+    var maju = arkJepit(s.t / arkDansaDetik(ARK_DANSA.ketuk), 0, 1); arkRR(c, P.x + 12, P.y + P.h - 12, P.w - 24, 5, 3); c.fillStyle = 'rgba(255,255,255,0.18)'; c.fill(); arkRR(c, P.x + 12, P.y + P.h - 12, (P.w - 24) * maju, 5, 3); c.fillStyle = '#ff5fb0'; c.fill();
+    var cxm = P.x + P.w / 2, cym = P.y + P.h * 0.36;
+    if (ketuk < ARK_DANSA.mulai - 0.2) { var sisa = Math.ceil(ARK_DANSA.mulai - ketuk - 4); arkTeks(c, ketuk < 4 ? 'SIAP-SIAP…' : (sisa > 0 ? String(sisa) : 'GO!'), cxm, cym, ketuk < 4 ? 34 : 64 + 14 * denyut, '#ffe45c', 'center', '#3a0f5a'); if (s.t0 == null) arkTeks(c, '♪ Musik mati — ikuti kedipan garis', cxm, cym + 44, 14, '#cfd6ff'); }
+    else {
+      if (s.mutu >= 0 && s.mutuT < 0.55) { var Mq = ARK_MUTU[s.mutu]; c.globalAlpha = 1 - s.mutuT / 0.55; arkTeks(c, Mq[0], cxm, cym - s.mutuT * 30, 30 + (s.mutuT < 0.1 ? 8 : 0), Mq[1], 'center', '#1a0b4a'); c.globalAlpha = 1; }
+      if (s.st.kombo >= 3) arkTeks(c, 'KOMBO ' + s.st.kombo, cxm, cym + 40, 20 + 4 * denyut, '#fff', 'center', '#a31443');
+    }
+  }
+};
+
+/* ---- putaran gambar ---- */
+function arkPutar(ts) {
+  if (!ARK.aktif) return;
+  ARK.raf = requestAnimationFrame(arkPutar);
+  /* HP lambat: jam game tetap ikut jam dinding sampai 4 bingkai/dtk — fisika dimajukan dalam langkah <= 0,05 dtk
+     (bukan diperlambat), jadi 60 detik tetap 60 detik dan tiket skor tidak kedaluwarsa gara-gara HP berat */
+  var dt = Math.min(0.25, Math.max(0, (ts - ARK.ts) / 1000)); ARK.ts = ts; ARK.t += dt;
+  for (var sisaDt = dt, urutDt = ARK.urut; sisaDt > 1e-6 && ARK.tahap === 'main' && ARK.s && ARK.urut === urutDt; sisaDt -= 0.05) ARK_MAIN[ARK.game].maju(ARK.s, Math.min(0.05, sisaDt));
+  ARK.redamCek += dt; if (ARK.redamCek > 0.5) { ARK.redamCek = 0; if (MUSIK.srcG && MUSIK.srcG !== ARK.redam) arkRedam(true); arkMusikLatar(); }
+  arkLukis(dt);
+}
+function arkLukis(dt) {
+  var c = ARK.c, W = ARK.W, H = ARK.H, i;
+  c.setTransform(ARK.dpr, 0, 0, ARK.dpr, 0, 0);
+  if (ARK.bg) c.drawImage(ARK.bg, 0, 0, W, H); else { c.fillStyle = '#120a2e'; c.fillRect(0, 0, W, H); }
+  /* bintang neon melayang (hidup juga di menu) */
+  for (i = 0; i < 22; i++) { var bx = (i * 97.3 + ARK.t * (6 + i % 5 * 3)) % (W + 40) - 20, by = (i * 53.7 + Math.sin(ARK.t * 0.7 + i) * 14) % H; c.fillStyle = ARK_WARNA_JALUR[i % 4]; c.globalAlpha = 0.25 + 0.25 * Math.sin(ARK.t * 2 + i * 1.7); c.fillRect(bx, by, 3 + i % 3, 3 + i % 3); }
+  c.globalAlpha = 1;
+  if (ARK.tahap === 'main' && ARK.s) {
+    c.save(); if (ARK.getar > 0) { ARK.getar = Math.max(0, ARK.getar - dt); var g = ARK.getar * 22; c.translate(Math.sin(ARK.t * 90) * g, Math.cos(ARK.t * 70) * g * 0.6); }
+    ARK_MAIN[ARK.game].lukis(ARK.s, c);
+    c.restore();
+  }
+  for (i = ARK.partikel.length - 1; i >= 0; i--) { var p = ARK.partikel[i]; p.t += dt; if (p.t >= p.u) { ARK.partikel.splice(i, 1); continue; } p.vy += 520 * dt; p.x += p.vx * dt; p.y += p.vy * dt; c.globalAlpha = 1 - p.t / p.u; c.fillStyle = p.w; c.fillRect(p.x - p.r, p.y - p.r, p.r * 2, p.r * 2); }
+  c.globalAlpha = 1;
+  for (i = ARK.apung.length - 1; i >= 0; i--) { var a = ARK.apung[i]; a.t += dt; if (a.t >= 1) { ARK.apung.splice(i, 1); continue; } c.globalAlpha = a.t < 0.7 ? 1 : (1 - a.t) / 0.3; arkTeks(c, a.teks, arkJepit(a.x, 70, W - 70), a.y - a.t * 46, a.px * (a.t < 0.12 ? 0.7 + a.t * 2.5 : 1), a.warna, 'center', '#1a0b4a'); }
+  c.globalAlpha = 1;
+}
+
+/* ---- tombol + masukan ---- */
+function arkKontrolBangun(game) {
+  var K = game ? ARK_MAIN[game].kontrol() : { kiri: [], kanan: [] };
+  [['arkGugusKiri', K.kiri], ['arkGugusKanan', K.kanan]].forEach(function (q) {
+    var g = document.getElementById(q[0]); g.textContent = '';
+    q[1].forEach(function (b) {
+      var e = arkEl('button', 'ark-tombol' + (b.lebar ? ' lebar' : '') + (b.kelas ? ' ' + b.kelas : ''));
+      e.type = 'button'; if (b.svg) e.innerHTML = b.svg; else e.textContent = b.t; /* svg = panah buatan sendiri (tanpa data luar) */
+      e.setAttribute('aria-label', b.label || b.t); e.setAttribute('data-ark', b.a);
+      var lepas = function (ev) { if (ev) ev.preventDefault(); e.classList.remove('tekan'); arkMasukan(b.a, false); };
+      e.addEventListener('pointerdown', function (ev) { ev.preventDefault(); ev.stopPropagation(); try { e.setPointerCapture(ev.pointerId); } catch (x) { /* abaikan */ } e.classList.add('tekan'); arkMasukan(b.a, true); });
+      e.addEventListener('pointerup', lepas); e.addEventListener('pointercancel', lepas); e.addEventListener('lostpointercapture', lepas);
+      e.addEventListener('contextmenu', function (ev) { ev.preventDefault(); });
+      g.appendChild(e);
+    });
+  });
+}
+function arkMasukan(a, tekan) {
+  if (!ARK.aktif) return;
+  if (tekan && ARK.tekan[a]) return; /* ulangan tombol keyboard */
+  ARK.tekan[a] = !!tekan;
+  if (ARK.tahap === 'main' && ARK.s) ARK_MAIN[ARK.game].masuk(ARK.s, a, !!tekan);
+}
+var ARK_TOMBOL_KB = {
+  capit: { ArrowLeft: 'kiri', KeyA: 'kiri', ArrowRight: 'kanan', KeyD: 'kanan', Space: 'aksi', Enter: 'aksi', ArrowDown: 'aksi', KeyS: 'aksi' },
+  balap: { ArrowLeft: 'kiri', KeyA: 'kiri', ArrowRight: 'kanan', KeyD: 'kanan' },
+  dansa: { ArrowLeft: 'j0', ArrowDown: 'j1', ArrowUp: 'j2', ArrowRight: 'j3', KeyD: 'j0', KeyF: 'j1', KeyJ: 'j2', KeyK: 'j3' }
+};
+function arkKunci(e, tekan) {
+  if (!ARK.aktif) return;
+  e.stopImmediatePropagation(); /* tombol tidak bocor ke gerak avatar selama arkade terbuka */
+  if (e.code === 'Escape') { e.preventDefault(); if (tekan) arkKeluarTekan(); return; }
+  if (ARK.tahap !== 'main') { if (tekan && (e.code === 'Enter' || e.code === 'Space') && ARK.tahap === 'menu' && !e.repeat) { e.preventDefault(); arkMainMulai(); } return; }
+  var a = ARK_TOMBOL_KB[ARK.game][e.code];
+  if (a) { e.preventDefault(); if (!e.repeat) arkMasukan(a, tekan); }
+}
+
+/* ---- papan skor (hanya di dalam arkade) ---- */
+function arkPapanMuat(paksa) {
+  if (ARK.papanJanji) return ARK.papanJanji;
+  if (!paksa && ARK.papan && Date.now() - ARK.papanMs < 30000) return Promise.resolve(ARK.papan);
+  ARK.papanJanji = apiKosan('POST', '/api/skor', { aksi: 'papan' }).then(function (r) {
+    ARK.papanJanji = null;
+    if (r.status === 200 && r.data && r.data.papan) arkPapanSimpan(r.data);
+    return ARK.papan;
+  });
+  return ARK.papanJanji;
+}
+function arkPapanSimpan(d) { /* bentuk jawaban server: { minggu, sisaDetik, papan: { capit: [{nama, skor}], ... } } */
+  var out = { minggu: String(d.minggu || ''), sisaDetik: +d.sisaDetik || 0, papan: {} };
+  Object.keys(ARK_GAME).forEach(function (g) {
+    out.papan[g] = (Array.isArray(d.papan[g]) ? d.papan[g] : []).slice(0, 5).map(function (r) { return { nama: String(r && r.nama || '').slice(0, 30), skor: Math.max(0, Math.round(+(r && r.skor) || 0)) }; });
+  });
+  ARK.papan = out; ARK.papanMs = Date.now();
+}
+function arkPapanEl(game, ringkas) {
+  var G = ARK_GAME[game], kotak = arkEl('div', 'ark-papan'), judul = arkEl('div', 'ark-papan-judul');
+  judul.appendChild(arkEl('span', '', (ringkas ? '🏆 Minggu ini' : ARK_INFO[game].ikon + ' ' + G.nama)));
+  if (ringkas) judul.appendChild(arkEl('small', '', ARK.papan ? 'reset Senin · ' + arkSisaTeks(ARK.papan.sisaDetik) : ''));
+  kotak.appendChild(judul);
+  var D = ARK.papan && ARK.papan.papan[game], aku = arkPenghuni() ? String(visitorName || '').trim().toLowerCase() : '';
+  if (!ARK.papan) kotak.appendChild(arkEl('div', 'ark-kosong', ARK.papanJanji ? 'Memuat papan skor…' : 'Papan skor belum bisa dimuat — coba lagi nanti ya.'));
+  else if (!D.length) kotak.appendChild(arkEl('div', 'ark-kosong', 'Belum ada skor minggu ini — jadi yang pertama! ✨'));
+  else D.forEach(function (r, i) {
+    var b = arkEl('div', 'ark-baris' + (aku && r.nama === aku ? ' aku' : ''));
+    b.appendChild(arkEl('span', 'no', String(i + 1))); b.appendChild(arkEl('span', 'nm', arkNamaTampil(r.nama))); b.appendChild(arkEl('span', 'sk', arkAngka(r.skor) + ' ' + G.satuan));
+    kotak.appendChild(b);
+  });
+  return kotak;
+}
+
+/* ---- panel: menu / hasil / papan ---- */
+function arkTahap(tahap) {
+  ARK.tahap = tahap; var el = ARK.el;
+  el.classList.toggle('main', tahap === 'main'); el.classList.toggle('panel', tahap !== 'main');
+  document.getElementById('arkKeluar').textContent = tahap === 'main' ? '✕ Udahan' : '✕ Keluar';
+  ARK.tekan = {};
+}
+function arkAksi(daftar) { var w = arkEl('div', 'ark-aksi'); daftar.forEach(function (q) { var b = arkEl('button', q[2] ? 'utama' : '', q[0]); b.type = 'button'; b.addEventListener('click', function () { bunyi('arkTik'); q[1](); }); w.appendChild(b); }); return w; }
+function arkMenu(game) {
+  if (game) ARK.game = game; game = ARK.game;
+  var G = ARK_GAME[game], I = ARK_INFO[game], p = document.getElementById('arkPanel'), urut = ++ARK.urut;
+  arkTahap('menu'); arkMusikVol(0.45); ARK.s = null; arkKontrolBangun(''); arkTata();
+  document.getElementById('arkJudul').textContent = G.nama;
+  var isi = function () {
+    p.textContent = ''; p.scrollTop = 0;
+    p.appendChild(arkEl('h2', '', I.ikon + ' ' + G.nama)); p.appendChild(arkEl('div', 'ark-sub', I.sub));
+    var dua = arkEl('div', 'ark-dua'), kiri = arkEl('div'), kanan = arkEl('div');
+    var cara = arkEl('div', 'ark-cara'); cara.innerHTML = I.cara; /* teks tetap dari ARK_INFO (bukan data luar) */
+    kiri.appendChild(cara);
+    var terbaik = arkLokalBaca()[game];
+    kiri.appendChild(arkEl('div', 'ark-status', terbaik > 0 ? 'Skor terbaikmu di HP ini: ' + arkAngka(terbaik) + ' ' + G.satuan : 'Belum pernah main — gas cobain!'));
+    kanan.appendChild(arkPapanEl(game, true));
+    kanan.appendChild(arkAksi([['▶ MULAI', arkMainMulai, true], ['🏆 Papan', arkPapanPanel], ['🚪 Keluar', arkadeTutup]]));
+    dua.appendChild(kiri); dua.appendChild(kanan); p.appendChild(dua);
+    p.appendChild(arkEl('div', 'ark-catatan', arkPenghuni() ? 'Skor terbaikmu minggu ini otomatis masuk papan. Tanpa uang — murni gengsi' + (game === 'capit' ? ' (+ boneka buat kamar kalau jago).' : '.')
+      : 'Kamu main sebagai tamu: skor cuma kesimpan di HP ini. Penghuni kos namanya nongol di papan mingguan ✨'));
+  };
+  isi();
+  arkPapanMuat(false).then(function () { if (ARK.aktif && ARK.tahap === 'menu' && ARK.urut === urut) isi(); });
+}
+function arkPapanPanel() {
+  var p = document.getElementById('arkPanel'), urut = ++ARK.urut;
+  arkTahap('papan'); document.getElementById('arkJudul').textContent = 'Papan Skor';
+  var isi = function () {
+    p.textContent = ''; p.scrollTop = 0;
+    p.appendChild(arkEl('h2', '', '🏆 Papan Skor Mingguan')); p.appendChild(arkEl('div', 'ark-sub', '5 teratas tiap game' + (ARK.papan ? ' · reset Senin, ' + arkSisaTeks(ARK.papan.sisaDetik) : '')));
+    Object.keys(ARK_GAME).forEach(function (g) { p.appendChild(arkPapanEl(g, false)); });
+    p.appendChild(arkAksi([['← Balik', function () { arkMenu(); }, true]]));
+  };
+  isi();
+  arkPapanMuat(true).then(function () { if (ARK.aktif && ARK.tahap === 'papan' && ARK.urut === urut) isi(); });
+}
+function arkMainMulai() {
+  if (!ARK.aktif || ARK.tahap === 'main') return;
+  var game = ARK.game;
+  suaraBuka(); bunyi('arkMulai');
+  ARK.apung = []; ARK.partikel = []; ARK.getar = 0; ARK.hasil = null;
+  /* tiket main (penghuni): diminta saat mulai, dipakai saat kirim skor — server yang mengukur durasinya */
+  ARK.tiket = arkPenghuni() ? apiKosan('POST', '/api/skor', { aksi: 'mulai', game: game }).then(function (r) { return r.status === 200 && r.data && typeof r.data.tiket === 'string' ? r.data.tiket : null; }) : null;
+  arkTahap('main'); arkKontrolBangun(game); arkTata();
+  document.getElementById('arkJudul').textContent = ARK_GAME[game].nama;
+  if (game === 'dansa') arkMusikStop(); else if (ARK.musik) arkMusikVol(0.8); else arkMusikLatar();
+  ARK.s = ARK_MAIN[game].mulai();
+}
+function arkSelesai(skor, dapat) {
+  if (ARK.tahap !== 'main') return;
+  var game = ARK.game, G = ARK_GAME[game], s = ARK.s, urut = ++ARK.urut, p = document.getElementById('arkPanel');
+  skor = Math.max(0, Math.round(skor));
+  var rinci = [];
+  if (game === 'capit') { rinci.push('🧸 ' + s.dapat + ' boneka'); rinci.push('🪙 sisa ' + s.koin + ' koin'); }
+  else if (game === 'balap') { rinci.push('⏱ ' + Math.round(s.t) + ' detik'); rinci.push('♥ sisa ' + Math.max(0, s.nyawa) + ' nyawa'); rinci.push('🚀 ' + Math.round(arkBalapLaju(s.t) * 3.6) + ' km/j'); }
+  else { rinci.push('Sempurna ' + s.st.mutu[0]); rinci.push('Bagus ' + s.st.mutu[1]); rinci.push('Lumayan ' + s.st.mutu[2]); rinci.push('Lewat ' + s.st.lewat); rinci.push('Kombo ' + s.st.komboMaks); }
+  var rekorLokal = arkLokalTulis(game, skor), penghuni = arkPenghuni(), tiket = ARK.tiket;
+  var H = ARK.hasil = { game: game, skor: skor, status: penghuni ? 'Menyimpan skor…' : '', hadiah: '', rekor: rekorLokal && skor > 0 };
+  arkTahap('hasil'); arkKontrolBangun(''); arkTata(); arkMusikVol(0.45); arkMusikLatar(); bunyi('arkSelesai');
+  arkSembur(ARK.W / 2, ARK.H * 0.3, '#ffe45c', 40, 320); arkSembur(ARK.W / 2, ARK.H * 0.3, '#ff5fb0', 30, 260);
+  var isi = function () {
+    var h = H; p.textContent = ''; p.scrollTop = 0;
+    p.appendChild(arkEl('h2', '', ARK_INFO[game].ikon + ' ' + (skor > 0 ? 'Mantap!' : 'Yah…')));
+    var dua = arkEl('div', 'ark-dua'), kiri = arkEl('div'), kanan = arkEl('div');
+    kiri.appendChild(arkEl('div', 'ark-angka', arkAngka(skor))); kiri.appendChild(arkEl('div', 'ark-satuan', G.satuan));
+    if (h.rekor) kiri.appendChild(arkEl('span', 'ark-rekor', '⭐ Rekor baru!'));
+    var r = arkEl('div', 'ark-rinci'); rinci.forEach(function (t) { r.appendChild(arkEl('span', '', t)); }); kiri.appendChild(r);
+    if (h.hadiah) kiri.appendChild(arkEl('div', 'ark-status hadiah', h.hadiah));
+    kiri.appendChild(arkEl('div', 'ark-status', h.status || 'Kamu main sebagai tamu — skor ini kesimpan di HP ini aja. Kalau jadi penghuni, namamu bisa nongol di papan mingguan ✨'));
+    kanan.appendChild(arkPapanEl(game, true));
+    kanan.appendChild(arkAksi([['↻ MAIN LAGI', arkMainMulai, true], ['🏆 Papan', arkPapanPanel], ['🚪 Keluar', arkadeTutup]])); /* di kolom kanan: lanskap tombol selalu kelihatan tanpa gulir */
+    dua.appendChild(kiri); dua.appendChild(kanan); p.appendChild(dua);
+  };
+  if (!penghuni && game === 'capit' && dapat >= ARK_CAPIT.hadiahDapat) H.hadiah = '🧸 ' + dapat + ' boneka! Kalau penghuni, satu boneka beruang dipajang di kamarmu.';
+  isi();
+  var segar = function () { if (ARK.aktif && ARK.tahap === 'hasil' && ARK.urut === urut) isi(); };
+  if (!penghuni) { arkPapanMuat(false).then(segar); return; }
+  (tiket || Promise.resolve(null)).then(function (tk) {
+    if (!tk) return { status: -1, data: null };
+    var badan = { aksi: 'kirim', tiket: tk, skor: skor }; if (game === 'capit') badan.dapat = dapat;
+    return apiKosan('POST', '/api/skor', badan);
+  }).then(function (res) {
+    var h = H; /* objek hasil ronde INI (ronde baru punya objek sendiri) */
+    var d = res.data;
+    if (res.status === 200 && d) {
+      if (d.papan) arkPapanSimpan(d);
+      var urutan = -1, aku = String(visitorName || '').trim().toLowerCase(); (ARK.papan ? ARK.papan.papan[game] : []).forEach(function (q, i) { if (q.nama === aku && urutan < 0) urutan = i + 1; });
+      h.rekor = d.rekor === true && skor > 0;
+      h.status = (d.rekor ? '✅ Tersimpan — skor terbaikmu minggu ini' : '✅ Tersimpan. Terbaikmu minggu ini masih ' + arkAngka(d.terbaik) + ' ' + G.satuan) + (urutan > 0 ? ' · peringkat #' + urutan : '') + (d.skor < skor ? ' (dicatat ' + arkAngka(d.skor) + ')' : '');
+      if (d.hadiah === ARK_HADIAH.barang) {
+        h.hadiah = '🧸 Hadiah! ' + ARK_HADIAH.nama + ' dikirim ke kamarmu — cek di samping lampu tidur.';
+        if (DOMPET.data && Array.isArray(DOMPET.data.barang) && DOMPET.data.barang.indexOf(ARK_HADIAH.barang) < 0) DOMPET.data.barang.push(ARK_HADIAH.barang);
+        bonekaHadiah.punya = true; bonekaTerapkan(); bunyi('arkDapat');
+      } else if (game === 'capit' && dapat >= ARK_CAPIT.hadiahDapat) h.hadiah = '🧸 Boneka beruangmu sudah nangkring di kamar — hadiahnya cuma sekali ya.';
+    } else if (res.status === 409) h.status = 'Skor nggak dicatat: ' + ((d && d.pesan) || 'mainnya terlalu singkat.');
+    else if (res.status === 401) h.status = 'Sesi penghunimu habis — masuk lagi biar skor berikutnya tercatat.';
+    else if (res.status === 429) h.status = 'Kebanyakan kirim skor — istirahat bentar, nanti coba lagi.';
+    else h.status = 'Skor belum bisa disimpan (koneksi). Tetap kesimpan di HP ini.';
+    segar();
+  });
+}
+
+/* ---- buka / tutup ---- */
+function arkKeluarTekan() { bunyi('arkTik'); if (ARK.tahap === 'main') arkMenu(); else if (ARK.tahap === 'papan') arkMenu(); else arkadeTutup(); }
+function arkadeSiap() {
+  if (ARK.el) return;
+  ARK.el = document.getElementById('arkade'); ARK.cv = document.getElementById('arkKanvas'); ARK.c = ARK.cv.getContext('2d');
+  document.getElementById('arkKeluar').addEventListener('click', arkKeluarTekan);
+  ARK.cv.addEventListener('pointerdown', function (e) {
+    if (ARK.tahap !== 'main' || !ARK.s) return;
+    e.preventDefault(); var M = ARK_MAIN[ARK.game], r = ARK.cv.getBoundingClientRect();
+    if (M.ketukKanvas) M.ketukKanvas(ARK.s, e.clientX - r.left, e.clientY - r.top);
+  });
+  window.addEventListener('keydown', function (e) { arkKunci(e, true); }, true);
+  window.addEventListener('keyup', function (e) { arkKunci(e, false); }, true);
+  window.addEventListener('resize', function () { if (ARK.aktif) arkTata(); });
+  window.addEventListener('orientationchange', function () { if (ARK.aktif) setTimeout(arkTata, 250); });
+  document.addEventListener('visibilitychange', function () { if (ARK.aktif && document.hidden && ARK.tahap === 'main') arkMenu(); }); /* tab disembunyikan saat main: batal (jam game tidak boleh loncat) */
+}
+function arkadeBuka(game) {
+  if (ARK.aktif || !ARK_GAME[game]) return;
+  arkadeSiap(); suaraBuka();
+  keys.up = keys.down = keys.left = keys.right = false; joy.x = 0; joy.y = 0; joy.active = false;
+  ARK.aktif = true; ARK.t = 0; ARK.ts = performance.now(); ARK.apung = []; ARK.partikel = [];
+  ARK.el.classList.add('buka'); ARK.el.setAttribute('aria-hidden', 'false');
+  arkRedam(true); bunyi('arkade');
+  arkMenu(game);
+  arkMusikMuat().then(function () { arkMusikLatar(); });
+  ARK.raf = requestAnimationFrame(arkPutar);
+}
+function arkadeTutup() {
+  if (!ARK.aktif) return;
+  ARK.aktif = false; cancelAnimationFrame(ARK.raf); ARK.s = null; ARK.tahap = ''; ARK.tekan = {};
+  arkMusikStop(); arkRedam(false);
+  ARK.el.classList.remove('buka', 'main', 'panel'); ARK.el.setAttribute('aria-hidden', 'true');
+  keys.up = keys.down = keys.left = keys.right = false;
+}
+
+/* ---- hadiah: boneka beruang pajangan kamar (hanya penghuni yang memilikinya; tidak dijual) ---- */
+var bonekaHadiah = { mesh: null, punya: false };
+function bonekaBangun() { /* plush beruang 24 cm duduk di nakas, samping lampu tidur (lampu di x -1,8 z -3,13; kap r 0,125) */
+  var G = new THREE.Group(), R = new DekorRakit(), bulat = function (r, x, y, z, sx, sy, sz, bahan) { return R.geo(bahan || 'kain', new THREE.SphereGeometry(r, 18, 12), x, y, z, 0, 0, 0, sx || 1, sy || 1, sz || 1); };
+  G.position.set(-1.57, 0.74, -2.94); G.rotation.y = 0.35;
+  R.cat(0xc98a55); bulat(0.06, 0, 0.058, 0, 1, 0.95, 0.9); /* badan */
+  bulat(0.052, 0, 0.158, 0.004, 1.05, 0.96, 0.95); /* kepala */
+  bulat(0.02, -0.042, 0.202, 0, 1, 1, 0.55); bulat(0.02, 0.042, 0.202, 0, 1, 1, 0.55); /* telinga */
+  bulat(0.022, -0.06, 0.082, 0.02, 0.8, 1.5, 0.8); bulat(0.022, 0.06, 0.082, 0.02, 0.8, 1.5, 0.8); /* tangan */
+  bulat(0.026, -0.036, 0.024, 0.06, 0.85, 0.85, 1.5); bulat(0.026, 0.036, 0.024, 0.06, 0.85, 0.85, 1.5); /* kaki menjulur */
+  R.cat(0xf0d2ac); bulat(0.024, 0, 0.146, 0.044, 1, 0.8, 0.7); bulat(0.034, 0, 0.056, 0.03, 1, 1.05, 0.75); /* moncong + perut */
+  bulat(0.012, -0.042, 0.202, 0.007, 1, 1, 0.5); bulat(0.012, 0.042, 0.202, 0.007, 1, 1, 0.5); /* dalam telinga */
+  bulat(0.016, -0.036, 0.024, 0.094, 1, 1, 0.3); bulat(0.016, 0.036, 0.024, 0.094, 1, 1, 0.3); /* telapak kaki */
+  R.cat(0x2a1a14); bulat(0.0062, -0.019, 0.168, 0.05, 1, 1, 0.6, 'polos'); bulat(0.0062, 0.019, 0.168, 0.05, 1, 1, 0.6, 'polos'); bulat(0.0075, 0, 0.152, 0.06, 1.2, 0.8, 0.6, 'polos'); /* mata + hidung */
+  R.cat(0xe0457b); bulat(0.016, -0.02, 0.112, 0.048, 1.2, 0.8, 0.5); bulat(0.016, 0.02, 0.112, 0.048, 1.2, 0.8, 0.5); bulat(0.009, 0, 0.112, 0.054, 1, 1, 0.8); /* pita */
+  var hasil = R.jadi(G);
+  if (hasil.lam) { hasil.lam.castShadow = true; }
+  roomScene.add(G);
+  return G;
+}
+function bonekaTerapkan() {
+  var d = DOMPET.data, punya = !!(arkPenghuni() && ((d && Array.isArray(d.barang) && d.barang.indexOf(ARK_HADIAH.barang) >= 0) || (bonekaHadiah.punya && d)));
+  if (!d || !arkPenghuni()) bonekaHadiah.punya = false;
+  if (!punya && !bonekaHadiah.mesh) return;
+  if (!bonekaHadiah.mesh) bonekaHadiah.mesh = bonekaBangun();
+  bonekaHadiah.mesh.visible = punya;
+}
+/* ==== ARKADE-UI-END ==== */
 /* ---------- KOTA: integrasi alam — scene, masuk/keluar, interior, centang per bingkai ----------
    Pola Jalan Kampung: alam 'kota' = scene sendiri (kotaScene). Interior = alam 'kota-<id>' dengan
    scene sendiri (pola ruang tamu / dapur). Scene KOSONG dibuat saat muat (murah: pemain lain di
@@ -20148,6 +21101,7 @@ function suasanaPengingat() {
 suasanaSiapkan();
 function animate() {
   requestAnimationFrame(animate);
+  if (ARK.aktif) { clock.getDelta(); return; } /* Arkade Ria: layar game 2D menutup penuh — 3D tidak digambar (enteng di HP); jam tetap dibuang supaya dt tidak loncat */
   var dt = Math.min(clock.getDelta(), 0.05);
 
   /* gerak avatar ala open-world-fantasy (main.js): joystick + keyboard

@@ -123,6 +123,10 @@ function buatDb({ url, kunci, fetchFn = globalThis.fetch }) {
     kerjaBatal: async (a) => rpc('kosan_kerja_batal', { p_room: angka(a.room), p_nama: nama(a.nama), p_shift: uuid(a.shift) }),
     beli: async (a) => rpc('kosan_beli', { p_room: angka(a.room), p_nama: nama(a.nama), p_barang: kode(a.barang), p_harga: uang(a.harga), p_unik: a.unik === true, p_keterangan: ket(a.keterangan) }),
     sewaBayar: async (a) => rpc('kosan_sewa_bayar', { p_room: angka(a.room), p_nama: nama(a.nama), p_bulan: bulan(a.bulan), p_jumlah: uang(a.jumlah), p_keterangan: ket(a.keterangan) }),
+    /* ---- Arkade Ria (26 Nov): fungsi SQL supabase/migrations/20261126_arkade_skor.sql ---- */
+    skorKirim: async (a) => rpc('kosan_skor_kirim', { p_room: angka(a.room), p_nama: nama(a.nama), p_game: kode(a.game), p_minggu: tanggal(a.minggu),
+      p_skor: uang(a.skor), p_hadiah: a.hadiah ? kode(a.hadiah) : null }),
+    skorPapan: async (a) => (await rpc('kosan_skor_papan', { p_minggu: tanggal(a.minggu), p_batas: uang(a.batas) })) || [],
     /* ---- Foto profil (18 Nov) — Storage `foto-profil`, kunci objek = nomor kamar ---- */
     fotoUrlPublik: (room) => url.replace(/\/+$/, '') + '/storage/v1/object/public/' + FOTO_BUCKET + '/' + angka(room),
     fotoAmbil: async (room) => {

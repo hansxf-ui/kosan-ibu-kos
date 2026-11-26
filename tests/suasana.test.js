@@ -154,8 +154,8 @@ test('Suasana: kabel ke index.html (tick sebelum render, langkah, menu, tanpa fi
      efek + alam tetap Web Audio (tanpa file), tanpa OGG/WAV (OGG tidak jalan di Safari) */
   assert.doesNotMatch(HTML, /new Audio\(|<audio|\.ogg|\.wav['"]/, 'efek + alam tetap Web Audio (tanpa file)');
   assert.deepEqual([...HTML.matchAll(/assets\/musik\/\w+\.mp3/g)].map((m) => m[0]).sort(),
-    ['assets/musik/hujan.mp3', 'assets/musik/malam.mp3', 'assets/musik/senja.mp3', 'assets/musik/siang.mp3'],
-    'musik = 4 file MP3 loop');
+    ['assets/musik/arkade.mp3', 'assets/musik/hujan.mp3', 'assets/musik/malam.mp3', 'assets/musik/senja.mp3', 'assets/musik/siang.mp3'],
+    'musik = 4 file MP3 loop suasana + 1 lagu Arkade Ria (26 Nov; dimuat saat arkade pertama dibuka)');
   const rt = antara('/* ================= Suasana (runtime)', 'function suasanaPengingat(');
   assert.doesNotMatch(rt, /new THREE\.\w*Light\(/, 'jumlah lampu tidak berubah (tanpa kompilasi ulang shader)');
   assert.doesNotMatch(rt, /transparent: true|AdditiveBlending/, 'tanpa bidang transparan / aditif baru');

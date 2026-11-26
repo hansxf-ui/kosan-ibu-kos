@@ -12,12 +12,13 @@
    dikembalikan, tidak pernah ditulis ke log. */
 const I = require('./inti');
 const K = require('./kerja');
+const A = require('./arkade');
 
 const MENIT = 60 * 1000, JAM = 60 * MENIT, HARI = 24 * JAM;
 const UMUR_INGAT = 30 * HARI; /* "Ingat saya": 30 hari, diperpanjang saat dipakai */
 const UMUR_BIASA = 12 * JAM; /* tanpa "Ingat saya": batas server 12 jam */
 const PERPANJANG_TIAP = JAM; /* tulis ulang dipakai/kedaluwarsa maks sekali per jam */
-const BATAS = { masuk: 20, daftar: 20, kamar: 60 }; /* per jaringan (HMAC IP, IPv6 per /64) per jam */
+const BATAS = { masuk: 20, daftar: 20, kamar: 60, papan: 240 }; /* per jaringan (HMAC IP, IPv6 per /64) per jam */
 /* Gerbang percobaan PIN per kamar, DICADANGKAN sebelum verifikasi (atomik
    di DB), jadi permintaan paralel tidak bisa melewatinya. Percobaan yang
    berhasil dikembalikan. Selama terkunci, PIN benar maupun salah dijawab
@@ -31,7 +32,7 @@ const BATAS = { masuk: 20, daftar: 20, kamar: 60 }; /* per jaringan (HMAC IP, IP
 const GERBANG = { maks: 5, jendelaDetik: 15 * 60, kunciDetik: 20 * 60 };
 /* Kerja & Belanja: batas per KAMAR (bukan per IP — penghuni di balik CGNAT operator seluler
    berbagi IP) per jam. Pemakaian wajar jauh di bawahnya (3 shift sehari = 9-12 panggilan). */
-const BATAS_PENGHUNI = { dompet: 600, kerja: 120, belanja: 60, foto: 30 };
+const BATAS_PENGHUNI = { dompet: 600, kerja: 120, belanja: 60, foto: 30, skor: 240 };
 const PESAN_KERJA = {
   belum_daftar: 'Daftar dulu di papan lowongan ya.',
   batas_hari: 'Jatah kerja hari ini sudah habis (' + K.BATAS_KERJA.shiftHari + ' shift). Besok lagi ya!',
@@ -310,7 +311,7 @@ function buatApp({ db, rahasia, sekarang = () => Date.now(), aman = true }) {
       shiftAktif: a ? { id: a.id, pekerjaan: a.pekerjaan, detik: Math.max(0, Math.floor((nowDb - Date.parse(a.mulai)) / 1000)) } : null,
       rondaBuka: K.rondaBuka(sekarang()),
       sewa: { bulan: d.sewa_bulan || K.bulanWib(sekarang()), label: K.bulanLabel(d.sewa_bulan || K.bulanWib(sekarang())), lunas: !!d.sewa_lunas, harga: K.SEWA_HARGA },
-      barang: (Array.isArray(d.barang) ? d.barang : []).filter((b) => !!K.barangDari(b)),
+      barang: (Array.isArray(d.barang) ? d.barang : []).filter((b) => !!K.barangDari(b) || b === A.HADIAH.barang), /* + boneka hadiah Arkade Ria (bukan barang katalog: tidak bisa dibeli) */
       riwayat: (Array.isArray(d.riwayat) ? d.riwayat : []).slice(0, 10).map((r) => ({
         jumlah: Number(r.jumlah) || 0, jenis: String(r.jenis || ''), ket: String(r.keterangan || '').slice(0, 80),
         saldo: Number(r.saldo_sesudah) || 0, waktu: r.dibuat || null }))
@@ -423,7 +424,57 @@ function buatApp({ db, rahasia, sekarang = () => Date.now(), aman = true }) {
     }
   }
 
-  return { masuk, setupPin: masuk, daftar, sesi, keluar, kamarMasuk, dompet, kerja, belanja, fotoProfil };
+  /* ================= Arkade Ria (Ryan 26 Nov) =================
+     POST /api/skor {aksi: 'papan'} — papan skor minggu ini (Senin–Minggu WIB), 5 teratas per
+       game. Boleh tanpa sesi (tamu ikut melihat); dibatasi per jaringan.
+     POST /api/skor {aksi: 'mulai', game} — penghuni saja: tiket main (HMAC server atas kamar +
+       nama + game + waktu mulai). Tanpa tabel: tiket tidak bisa dibuat/diubah klien.
+     POST /api/skor {aksi: 'kirim', tiket, skor, dapat?} — penghuni saja: skor dijepit ke batas
+       yang mungkin dicapai dalam waktu yang berlalu sejak tiket dibuat (api/_lib/arkade.js),
+       durasi minimum ditegakkan, lalu disimpan sebagai skor TERBAIK minggu ini (atomik di DB).
+       Tiket yang sama boleh dikirim ulang: hasilnya tetap dijepit dan hanya yang terbaik disimpan.
+     Tidak ada uang. Hadiah: boneka pajangan kamar, sekali per penghuni (capit, >= 3 boneka). */
+  const tiketMac = (room, nama, game, mulai) => I.sha256hex(I.subKunci(rahasia, 'arkade').toString('hex') + '|' + room + '|' + nama + '|' + game + '|' + mulai).slice(0, 32);
+  function bentukPapan(rows, now) {
+    const papan = {};
+    A.GAME_ID.forEach((id) => { papan[id] = []; });
+    (Array.isArray(rows) ? rows : []).forEach((r) => {
+      if (!r || !A.gameDari(r.game) || papan[r.game].length >= 5) return;
+      papan[r.game].push({ nama: String(r.nama || '').slice(0, 30), skor: Number(r.skor) || 0 });
+    });
+    return { minggu: A.mingguWib(now), sisaDetik: A.mingguSisaDetik(now), papan };
+  }
+  async function skor(ctx) {
+    const tolak = cekPermintaan(ctx); if (tolak) return tolak;
+    const { aksi, game, tiket, dapat } = ctx.body;
+    const now = sekarang();
+    if (aksi === 'papan') {
+      if (await lewatBatas('papan', ctx)) return galat(429, 'terkunci', PESAN.batas);
+      return balas(200, bentukPapan(await db.skorPapan({ minggu: A.mingguWib(now), batas: 5 }), now));
+    }
+    if (aksi !== 'mulai' && aksi !== 'kirim') return galat(400, 'format', 'Aksi tidak dikenal.');
+    if (aksi === 'mulai' && !A.gameDari(game)) return galat(400, 'format', 'Game tidak dikenal.');
+    let t = null;
+    if (aksi === 'kirim') {
+      const m = typeof tiket === 'string' ? /^(capit|balap|dansa)\.(\d{13})\.([0-9a-f]{32})$/.exec(tiket) : null;
+      if (!m) return galat(400, 'format', 'Tiket main tidak valid.');
+      if (!Number.isInteger(ctx.body.skor) || ctx.body.skor < 0 || ctx.body.skor > 1000000) return galat(400, 'format', 'Skor tidak valid.');
+      t = { game: m[1], mulai: +m[2], mac: m[3] };
+    }
+    const p = await penghuniSesi(ctx, 'skor'); if (p.tolak) return p.tolak;
+    if (aksi === 'mulai') return balas(200, { tiket: game + '.' + now + '.' + tiketMac(p.room, p.nama, game, now), game, minDetik: A.GAME[game].minDetik });
+    if (!I.samaAman(t.mac, tiketMac(p.room, p.nama, t.game, t.mulai))) return galat(400, 'format', 'Tiket main tidak valid.');
+    const detik = (now - t.mulai) / 1000, G = A.GAME[t.game];
+    if (detik < G.minDetik) return balas(409, { galat: 'terlalu_cepat', pesan: 'Mainnya belum selesai.' });
+    if (detik > G.maksDetik) return balas(409, { galat: 'kedaluwarsa', pesan: 'Tiket main sudah kedaluwarsa — main lagi ya.' });
+    const nilai = A.skorJepit(t.game, ctx.body.skor, detik);
+    const hadiah = t.game === 'capit' && A.capitHadiah(nilai, dapat) ? A.HADIAH.barang : null;
+    const r = (await db.skorKirim({ room: p.room, nama: p.nama, game: t.game, minggu: A.mingguWib(now), skor: nilai, hadiah })) || {};
+    const papan = bentukPapan(await db.skorPapan({ minggu: A.mingguWib(now), batas: 5 }), now);
+    return balas(200, Object.assign({ game: t.game, skor: nilai, terbaik: Number(r.terbaik) || nilai, rekor: r.rekor === true, hadiah: r.hadiah_baru === true ? A.HADIAH.barang : null }, papan));
+  }
+
+  return { masuk, setupPin: masuk, daftar, sesi, keluar, kamarMasuk, dompet, kerja, belanja, fotoProfil, skor };
 }
 
 module.exports = { buatApp, UMUR_INGAT, UMUR_BIASA, BATAS, GERBANG, PESAN, JUMLAH_KAMAR, KUNCI_CD, KUNCI_EF, BATAS_PENGHUNI, PESAN_KERJA, fotoValidasi };
