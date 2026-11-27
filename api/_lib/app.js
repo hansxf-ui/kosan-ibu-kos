@@ -12,6 +12,7 @@
    dikembalikan, tidak pernah ditulis ke log. */
 const I = require('./inti');
 const K = require('./kerja');
+const KK = require('./kerjakota'); /* Kerja di Kota: aturan murni (sama persis dengan blok KERJA-KOTA klien) */
 const G = require('./gaya'); /* Warna Kamar: daftar putih pilihan warna kamar */
 const A = require('./arkade');
 
@@ -301,12 +302,19 @@ function buatApp({ db, rahasia, sekarang = () => Date.now(), aman = true }) {
       const n = Number(p && p.shift_total) || 0;
       if (p && K.pekerjaanDari(p.pekerjaan)) pek[p.pekerjaan] = { terdaftar: true, shift: n, pangkat: K.pangkatDari(n) };
     });
+    const pekKota = {};
+    KK.KK_IDS.forEach((id) => { pekKota[id] = { terdaftar: false, shift: 0, pangkat: 0 }; });
+    (Array.isArray(d.pekerjaan) ? d.pekerjaan : []).forEach((p) => {
+      const n = Number(p && p.shift_total) || 0;
+      if (p && KK.kkPekerjaan(p.pekerjaan)) pekKota[p.pekerjaan] = { terdaftar: true, shift: n, pangkat: KK.kkPangkat(n) };
+    });
     const nowDb = Date.parse(d.sekarang) || sekarang();
     const terakhir = d.terakhir_selesai ? Date.parse(d.terakhir_selesai) : 0;
     const a = d.shift_aktif && typeof d.shift_aktif.id === 'string' ? d.shift_aktif : null;
     return {
       saldo: Number(d.saldo) || 0,
       pekerjaan: pek,
+      pekerjaanKota: pekKota, /* Kerja di Kota (field terpisah: bentuk `pekerjaan` lama tidak berubah) */
       hariIni: { shift: Number(d.shift_hari_ini) || 0, maks: K.BATAS_KERJA.shiftHari },
       jedaDetik: terakhir ? Math.max(0, Math.ceil((terakhir + K.BATAS_KERJA.jedaDetik * 1000 - nowDb) / 1000)) : 0,
       shiftAktif: a ? { id: a.id, pekerjaan: a.pekerjaan, detik: Math.max(0, Math.floor((nowDb - Date.parse(a.mulai)) / 1000)) } : null,
@@ -364,12 +372,24 @@ function buatApp({ db, rahasia, sekarang = () => Date.now(), aman = true }) {
     return galat(400, 'format', 'Aksi tidak dikenal.');
   }
 
+  /* Kerja di Kota: benih soal per shift (32 bit) dari sub-kunci rahasia server + id shift — tidak disimpan, tidak bisa ditebak sebelum shift dibuat */
+  const benihKota = (shift) => parseInt(I.sha256hex(I.subKunci(rahasia, 'kerjakota').toString('hex') + '|' + shift).slice(0, 8), 16);
+  /* jawaban dari klien dibersihkan: larik maks `n`, tiap isi [teks pendek, ms] — selain itu dianggap tamu tidak dilayani */
+  const sahkanJawab = (jawab, n) => {
+    const a = Array.isArray(jawab) ? jawab.slice(0, n) : [], h = [];
+    for (let i = 0; i < n; i++) {
+      const e = a[i];
+      h.push(Array.isArray(e) && e.length === 2 && typeof e[0] === 'string' && e[0].length <= 24 && /^[a-z0-9|]*$/.test(e[0]) && Number.isFinite(e[1]) && e[1] >= 0 && e[1] <= 600000 ? [e[0], Math.floor(e[1])] : null);
+    }
+    return h;
+  };
   /* POST /api/kerja {aksi: 'daftar'|'mulai'|'selesai'|'batal', pekerjaan?, shift?, hasil?} */
   async function kerja(ctx) {
     const tolak = cekPermintaan(ctx); if (tolak) return tolak;
-    const { aksi, pekerjaan, shift, hasil } = ctx.body;
+    const { aksi, pekerjaan, shift, hasil, jawab } = ctx.body;
     if (['daftar', 'mulai', 'selesai', 'batal'].indexOf(aksi) === -1) return galat(400, 'format', 'Aksi tidak dikenal.');
-    if ((aksi === 'daftar' || aksi === 'mulai') && !K.pekerjaanDari(pekerjaan)) return galat(400, 'format', 'Pekerjaan tidak dikenal.');
+    const kota = KK.kkPekerjaan(pekerjaan); /* Kerja di Kota: barista / resepsionis / pramuniaga */
+    if ((aksi === 'daftar' || aksi === 'mulai') && !K.pekerjaanDari(pekerjaan) && !kota) return galat(400, 'format', 'Pekerjaan tidak dikenal.');
     if ((aksi === 'selesai' || aksi === 'batal') && !(typeof shift === 'string' && UUID_RE.test(shift))) return galat(400, 'format', 'Shift tidak valid.');
     const p = await penghuniSesi(ctx, 'kerja'); if (p.tolak) return p.tolak;
     const now = sekarang();
@@ -382,6 +402,10 @@ function buatApp({ db, rahasia, sekarang = () => Date.now(), aman = true }) {
         if (pekerjaan === 'ronda' && !K.rondaBuka(now)) return balas(409, { galat: 'belum_buka', pesan: PESAN_KERJA.belum_buka });
         const r = await db.kerjaMulai({ room: p.room, nama: p.nama, pekerjaan, tanggal: K.tanggalWib(now),
           maksHari: K.BATAS_KERJA.shiftHari, jedaDetik: K.BATAS_KERJA.jedaDetik, maksDetik: K.BATAS_KERJA.maksDetik });
+        if (kota) { /* soal shift ini = turunan rahasia server + id shift: klien menampilkan, server membangkitkan ulang saat menilai */
+          const sk = await db.kerjaShift({ room: p.room, nama: p.nama, shift: r.id });
+          return balas(200, { shift: r.id, pekerjaan, pesanan: kota.pesanan, minDetik: kota.minDetik, benih: benihKota(r.id), pangkat: KK.kkPangkat(Number(sk && sk.shift_total) || 0) });
+        }
         const job = K.PEKERJAAN[pekerjaan];
         return balas(200, { shift: r.id, pekerjaan, pesanan: job.pesanan, minDetik: job.minDetik });
       }
@@ -393,6 +417,20 @@ function buatApp({ db, rahasia, sekarang = () => Date.now(), aman = true }) {
          lalu DB mengunci atomik: status aktif, milik kamar ini, durasi >= minDetik, < 20 menit */
       const s = await db.kerjaShift({ room: p.room, nama: p.nama, shift });
       if (!s) return balas(409, { galat: 'shift_tidak_ada', pesan: PESAN_KERJA.shift_tidak_ada });
+      const jobKota = KK.kkPekerjaan(s.pekerjaan);
+      if (jobKota) {
+        /* Kerja di Kota: klien mengirim JAWABAN mentah (bukan nilai). Server membangkitkan ulang soal dari benih shift,
+           menilai sendiri (benar / setengah / salah / tamu pergi / kecepatan), mencocokkan dengan umur shift menurut jam DB,
+           lalu menghitung upah. Durasi minimal + status + pemilik shift tetap dikunci atomik di DB. */
+        const total0 = Number(s.shift_total) || 0, pk = KK.kkPangkat(total0);
+        const nl = KK.kkNilai(s.pekerjaan, benihKota(shift), pk, sahkanJawab(jawab, jobKota.pesanan), Number(s.detik) || 0);
+        const uk = KK.kkUpah(s.pekerjaan, total0, nl);
+        const rk = await db.kerjaSelesai({ room: p.room, nama: p.nama, shift, gaji: uk.gaji, tip: uk.tip, benar: nl.sempurna, salah: nl.salah,
+          minDetik: jobKota.minDetik, maksDetik: K.BATAS_KERJA.maksDetik, keterangan: 'Gaji ' + jobKota.nama + (uk.tip ? ' + tip' : '') });
+        const tk = Number(rk.shift_total) || 0;
+        return balas(200, { gaji: uk.gaji, tip: uk.tip, saldo: Number(rk.saldo) || 0, pekerjaan: s.pekerjaan, shift: tk, pangkat: KK.kkPangkat(tk), naikPangkat: KK.kkPangkat(tk) > uk.pangkat,
+          nilai: { sempurna: nl.sempurna, setengah: nl.setengah, salah: nl.salah, lewat: nl.lewat, sah: nl.sah } });
+      }
       const job = K.pekerjaanDari(s.pekerjaan);
       if (!job) throw new Error('pekerjaan shift tidak dikenal');
       const u = K.upahShift(s.pekerjaan, Number(s.shift_total) || 0, hasil);

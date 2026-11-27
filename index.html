@@ -1466,6 +1466,166 @@
     #warnaPulih, #warnaSelesai { padding: 6px 10px; }
     #warnaSelesai { padding: 6px 16px; font-size: 14px; }
   }
+  /* ---------- Kerja di Kota (27 Nov): layar kerja 2D di interior Kota (3D dijeda selama terbuka, seperti Arkade Ria) ---------- */
+  #kkTombol { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(222px + env(safe-area-inset-bottom, 0px)); z-index: 28; display: none;
+    align-items: center; gap: 8px; padding: 10px 18px 10px 14px; border: 0; border-radius: 999px; cursor: pointer;
+    font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 15px; font-weight: 800; white-space: nowrap; color: #3a2a06; background: linear-gradient(180deg, #ffe08a, #f4b93a);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35), inset 0 -3px 0 rgba(150, 95, 0, 0.35); animation: kkDenyut 2.2s ease-in-out infinite; }
+  #kkTombol.tampil { display: inline-flex; }
+  #kkTombol svg { width: 20px; height: 20px; flex: none; }
+  @keyframes kkDenyut { 0%, 100% { box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35), inset 0 -3px 0 rgba(150, 95, 0, 0.35), 0 0 0 0 rgba(255, 214, 110, 0.7); } 50% { box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35), inset 0 -3px 0 rgba(150, 95, 0, 0.35), 0 0 0 10px rgba(255, 214, 110, 0); } }
+  @media (orientation: landscape) and (max-height: 520px) { #kkTombol { bottom: calc(66px + env(safe-area-inset-bottom, 0px)); padding: 8px 16px 8px 12px; font-size: 14px; } /* di atas petunjuk kontrol (#hint), tidak menimpanya */ }
+
+  #kkLayar { position: fixed; inset: 0; z-index: 90; display: none; overflow: hidden; touch-action: manipulation; user-select: none; -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent; font-family: 'Nunito', system-ui, sans-serif; color: var(--kk-teks);
+    --kk-dasar: #17261d; --kk-dasar2: #24392c; --kk-kartu: #fbf4e6; --kk-teks: #2b2218; --kk-aksen: #c98a2b; --kk-aksen2: #2f6b4a; --kk-garis: rgba(60, 40, 10, 0.16);
+    background: radial-gradient(120% 90% at 50% 0%, var(--kk-dasar2), var(--kk-dasar)); }
+  #kkLayar.buka { display: flex; flex-direction: column; }
+  #kkLayar[data-kerja="resepsionis"] { --kk-dasar: #101a33; --kk-dasar2: #1d2c54; --kk-kartu: #fbf6ea; --kk-aksen: #c9a13a; --kk-aksen2: #1f3a7a; }
+  #kkLayar[data-kerja="pramuniaga"] { --kk-dasar: #2a1c26; --kk-dasar2: #4a2f40; --kk-kartu: #fdf6f3; --kk-aksen: #c58a6a; --kk-aksen2: #7a2f55; }
+  #kkLayar button { font-family: 'Baloo 2', 'Nunito', sans-serif; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  #kkAtas { flex: none; display: flex; align-items: center; gap: 10px; height: calc(52px + env(safe-area-inset-top, 0px));
+    padding: env(safe-area-inset-top, 0px) calc(10px + env(safe-area-inset-right, 0px)) 0 calc(14px + env(safe-area-inset-left, 0px));
+    background: rgba(0, 0, 0, 0.28); border-bottom: 2px solid var(--kk-aksen); }
+  #kkAtas .kk-kiri { flex: 1; min-width: 0; }
+  #kkMerek { font-size: 10px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--kk-aksen); line-height: 1.1; }
+  #kkJudul { font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 17px; font-weight: 800; color: #fff; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #kkKeluar { flex: none; height: 40px; padding: 0 14px; border-radius: 999px; border: 1.5px solid rgba(255, 255, 255, 0.55); background: rgba(255, 255, 255, 0.1); color: #fff; font-size: 13px; font-weight: 800; }
+  #kkHud { flex: none; display: none; align-items: center; gap: 10px; padding: 7px calc(12px + env(safe-area-inset-right, 0px)) 7px calc(12px + env(safe-area-inset-left, 0px)); background: rgba(0, 0, 0, 0.18); }
+  #kkLayar.main #kkHud { display: flex; }
+  #kkTitik { display: flex; gap: 4px; flex: none; }
+  #kkTitik i { width: 13px; height: 13px; border-radius: 50%; background: rgba(255, 255, 255, 0.16); border: 1.5px solid rgba(255, 255, 255, 0.3); box-sizing: border-box; }
+  #kkTitik i.kini { border-color: #fff; background: rgba(255, 255, 255, 0.45); }
+  #kkTitik i.n1 { background: #58d68d; border-color: #58d68d; } #kkTitik i.n5 { background: #f4c542; border-color: #f4c542; } #kkTitik i.n0 { background: #e8604f; border-color: #e8604f; } #kkTitik i.nl { background: #7d8590; border-color: #7d8590; }
+  #kkSabar { flex: 1; min-width: 0; height: 12px; border-radius: 999px; background: rgba(255, 255, 255, 0.16); overflow: hidden; }
+  #kkSabarIsi { height: 100%; width: 100%; border-radius: 999px; background: #58d68d; transform-origin: 0 50%; }
+  #kkSabarTeks { flex: none; min-width: 34px; text-align: right; font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 14px; font-weight: 800; color: #fff; }
+  #kkArena { flex: 1; min-height: 0; display: none; gap: 10px; padding: 10px calc(12px + env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) calc(12px + env(safe-area-inset-left, 0px));
+    grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); box-sizing: border-box; position: relative; }
+  #kkLayar.main #kkArena { display: grid; }
+  .kk-tamu, .kk-kerja { background: var(--kk-kartu); border-radius: 18px; box-shadow: 0 8px 22px rgba(0, 0, 0, 0.3); min-width: 0; min-height: 0; box-sizing: border-box; position: relative; overflow: hidden; }
+  .kk-tamu { display: flex; align-items: center; gap: 10px; padding: 10px 12px; animation: kkMasuk 0.35s cubic-bezier(0.2, 1.3, 0.4, 1); }
+  @keyframes kkMasuk { from { transform: translateX(-40px); opacity: 0; } to { transform: none; opacity: 1; } }
+  .kk-orang { flex: none; width: 62px; height: 62px; }
+  .kk-orang svg { width: 100%; height: 100%; display: block; }
+  .kk-ucap { flex: 1; min-width: 0; }
+  .kk-ucap small { display: block; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--kk-aksen2); }
+  .kk-ucap b { display: block; font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 19px; font-weight: 800; line-height: 1.15; color: var(--kk-teks); }
+  .kk-ucap span { display: block; font-size: 12.5px; font-weight: 700; color: #6b5a44; line-height: 1.25; margin-top: 2px; }
+  .kk-ucap .kk-lencana { display: inline-block; margin-top: 4px; padding: 2px 9px; border-radius: 999px; background: #c0392b; color: #fff; font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 12px; font-weight: 800; letter-spacing: 0.5px; line-height: 1.5; }
+  .kk-kerja { padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .kk-petunjuk { flex: none; font-size: 12.5px; font-weight: 800; color: #6b5a44; text-align: center; line-height: 1.2; }
+  .kk-cap { position: absolute; left: 50%; top: 50%; z-index: 5; transform: translate(-50%, -50%) rotate(-7deg); padding: 8px 22px; border-radius: 14px; border: 4px solid currentColor;
+    font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 28px; font-weight: 800; letter-spacing: 1px; white-space: nowrap; background: rgba(255, 255, 255, 0.93); pointer-events: none; animation: kkCap 0.3s cubic-bezier(0.2, 1.6, 0.4, 1); }
+  .kk-cap small { display: block; font-size: 13px; letter-spacing: 0; text-align: center; font-weight: 800; }
+  .kk-cap.n1 { color: #1e9e58; } .kk-cap.n5 { color: #c98a00; } .kk-cap.n0 { color: #d0402f; } .kk-cap.nl { color: #5b6470; }
+  @keyframes kkCap { from { transform: translate(-50%, -50%) rotate(-7deg) scale(2.2); opacity: 0; } to { transform: translate(-50%, -50%) rotate(-7deg) scale(1); opacity: 1; } }
+
+  /* barista */
+  .kk-bar { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; gap: 22px; } /* potret: gelas + tiket di atas, bahan di bawah (dekat jempol) */
+  .kk-gelasWadah { flex: none; display: flex; flex-direction: row; align-items: flex-end; justify-content: center; min-height: 0; gap: 14px; }
+  .kk-resep { display: flex; flex-direction: column-reverse; gap: 4px; width: 180px; max-width: 60%; }
+  .kk-resep div { display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 800; color: #4a3b28; padding: 7px 10px; border-radius: 9px; background: rgba(0, 0, 0, 0.05); white-space: nowrap; overflow: hidden; }
+  .kk-resep div i { flex: none; width: 13px; height: 13px; border-radius: 4px; border: 1px solid rgba(0, 0, 0, 0.3); }
+  .kk-resep div.sudah { background: rgba(46, 160, 90, 0.22); }
+  .kk-resep div.lanjut { outline: 2px solid var(--kk-aksen); background: #fff; }
+  .kk-gelas { flex: none; width: 108px; height: clamp(120px, 24vh, 190px); border: 3px solid #8a7a66; border-top: 0; border-radius: 4px 4px 14px 14px; background: rgba(255, 255, 255, 0.6); display: flex; flex-direction: column-reverse; overflow: hidden; box-shadow: inset 6px 0 0 rgba(255, 255, 255, 0.5); }
+  .kk-gelas div { flex: none; animation: kkTuang 0.22s ease-out; }
+  @keyframes kkTuang { from { height: 0; } }
+  .kk-bahan { flex: 0 1 auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(48px, 92px); gap: 10px; min-height: 0; } /* HP pendek: baris menyusut sampai 48 px */
+  .kk-bahan button { display: flex; align-items: center; gap: 7px; padding: 0 10px; min-width: 0; min-height: 44px; overflow: hidden; border-radius: 13px; border: 2px solid var(--kk-garis); background: #fff; color: var(--kk-teks); font-size: 16px; font-weight: 800; text-align: left; line-height: 1.05; box-shadow: 0 3px 0 rgba(0, 0, 0, 0.12); }
+  .kk-bahan button:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.12); }
+  .kk-bahan button i { flex: none; width: 22px; height: 22px; border-radius: 7px; border: 1.5px solid rgba(0, 0, 0, 0.35); }
+  .kk-takar { flex: 0 1 240px; min-height: 130px; display: flex; flex-direction: column; justify-content: center; gap: 12px; } /* tinggi = tiga baris bahan: gelas tidak loncat saat pindah ke takaran */
+  .kk-takarBar { position: relative; height: 38px; border-radius: 12px; background: linear-gradient(90deg, #e8604f, #f4c542 30%, #f4c542 70%, #e8604f); border: 2px solid rgba(0, 0, 0, 0.25); overflow: hidden; }
+  .kk-takarZona { position: absolute; top: 0; bottom: 0; background: #37c878; border-left: 2px solid #fff; border-right: 2px solid #fff; }
+  .kk-takarJarum { position: absolute; top: -3px; bottom: -3px; width: 6px; margin-left: -3px; border-radius: 3px; background: #1c1410; box-shadow: 0 0 0 2px #fff; left: 0; }
+  .kk-besar { flex: none; height: 54px; border: 0; border-radius: 15px; background: linear-gradient(180deg, var(--kk-aksen), color-mix(in srgb, var(--kk-aksen) 78%, #000)); color: #fff; font-size: 19px; font-weight: 800; letter-spacing: 0.5px; box-shadow: 0 4px 0 rgba(0, 0, 0, 0.25); }
+  .kk-besar:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.25); }
+  .kk-besar:disabled { filter: grayscale(0.85); opacity: 0.55; box-shadow: none; }
+
+  /* resepsionis */
+  .kk-tarif { flex: none; display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 10px; font-size: 11.5px; font-weight: 800; color: #4a3b28; }
+  .kk-tarif span { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+  .kk-tarif i, .kk-kunci i { display: inline-block; width: 11px; height: 11px; border-radius: 3px; }
+  .kk-tS { background: #6aa6d8; } .kk-tD { background: #b06ad8; } .kk-tU { background: #e2b13c; }
+  .kk-papan { flex: 1; min-height: 0; display: grid; grid-template-columns: auto repeat(4, minmax(0, 1fr)); grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .kk-lantai { display: flex; align-items: center; justify-content: center; padding: 0 4px; font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 12px; font-weight: 800; color: #7a6a52; writing-mode: horizontal-tb; }
+  .kk-kunci { min-width: 0; min-height: 40px; padding: 2px; overflow: hidden; border-radius: 11px; border: 2px solid var(--kk-garis); background: #fff; color: var(--kk-teks); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; line-height: 1.05; box-shadow: 0 3px 0 rgba(0, 0, 0, 0.12); }
+  .kk-kunci b { font-size: 16px; font-weight: 800; } .kk-kunci em { font-style: normal; font-size: 10.5px; font-weight: 800; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+  .kk-kunci u { text-decoration: none; font-family: 'Nunito', sans-serif; font-size: 10px; font-weight: 800; padding: 0 5px; border-radius: 999px; white-space: nowrap; }
+  .kk-kunci.kosong u { background: #d9f5e3; color: #17753f; } .kk-kunci.terisi u { background: #fbdcd7; color: #a8301f; } .kk-kunci.dibersihkan u { background: #fdf0c4; color: #8a6400; }
+  .kk-kunci.terisi, .kk-kunci.dibersihkan { background: #f3efe8; }
+  .kk-kunci.pilih { border-color: var(--kk-aksen2); background: #e8efff; box-shadow: 0 0 0 3px color-mix(in srgb, var(--kk-aksen2) 35%, transparent); }
+  .kk-harga { flex: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+  .kk-harga button { min-width: 0; height: 48px; padding: 0; overflow: hidden; border-radius: 13px; border: 2px solid var(--kk-aksen); background: #fff; color: var(--kk-teks); font-size: 15px; font-weight: 800; box-shadow: 0 3px 0 rgba(0, 0, 0, 0.14); }
+  .kk-harga button:disabled { opacity: 0.4; border-color: var(--kk-garis); box-shadow: none; }
+
+  /* pramuniaga */
+  .kk-kartuGaya { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 4px; }
+  .kk-kartuGaya div { min-width: 0; overflow: hidden; border-radius: 10px; background: #fff; border: 1.5px solid var(--kk-garis); padding: 4px 2px 3px; text-align: center; font-size: 10.5px; font-weight: 800; color: #4a3b28; line-height: 1.1; }
+  .kk-kartuGaya svg { width: 30px; height: 30px; display: block; margin: 0 auto 1px; }
+  .kk-kartuGaya.tutup div { background: repeating-linear-gradient(45deg, #efe4dc, #efe4dc 6px, #e6d6cb 6px, #e6d6cb 12px); color: transparent; }
+  .kk-kartuGaya.tutup svg { visibility: hidden; }
+  .kk-hafal { height: 6px; border-radius: 999px; background: rgba(0, 0, 0, 0.1); overflow: hidden; margin-top: 5px; }
+  .kk-hafal i { display: block; height: 100%; background: var(--kk-aksen2); transform-origin: 0 50%; }
+  .kk-rak { flex: 1; min-height: 0; display: grid; grid-template-rows: repeat(4, minmax(0, 74px)); align-content: center; gap: 8px; }
+  .kk-baris { display: grid; grid-template-columns: 56px repeat(6, minmax(0, 1fr)); gap: 5px; align-items: center; min-height: 0; height: 100%; }
+  .kk-baris > span { font-size: 11.5px; font-weight: 800; color: #4a3b28; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; min-width: 0; white-space: nowrap; line-height: 1.05; }
+  .kk-baris > span svg { width: 22px; height: 22px; flex: none; }
+  .kk-warna { min-width: 0; height: 100%; min-height: 34px; max-height: 56px; padding: 0; border-radius: 12px; border: 2.5px solid rgba(0, 0, 0, 0.22); box-shadow: 0 3px 0 rgba(0, 0, 0, 0.14); position: relative; overflow: hidden; }
+  .kk-warna.pilih { border-color: #111; box-shadow: 0 0 0 3px #fff, 0 0 0 6px var(--kk-aksen2); z-index: 1; }
+  .kk-warna.pilih::after { content: ''; position: absolute; left: 50%; top: 46%; width: 7px; height: 13px; margin: -9px 0 0 -4px; border: solid #fff; border-width: 0 3px 3px 0; transform: rotate(45deg); filter: drop-shadow(0 0 1.5px #000); }
+  .kk-rak.kunci { opacity: 0.35; pointer-events: none; }
+
+  /* panel (lowongan / tutup shift / hasil / berhenti) */
+  #kkPanel { position: absolute; inset: calc(54px + env(safe-area-inset-top, 0px)) 0 0 0; display: none; align-items: center; justify-content: center; padding: 12px; box-sizing: border-box; background: rgba(8, 8, 12, 0.45); z-index: 8; overflow: auto; }
+  #kkLayar.panel #kkPanel { display: flex; }
+  .kk-kotak { width: min(430px, 100%); max-height: 100%; overflow: auto; box-sizing: border-box; background: var(--kk-kartu); border-radius: 20px; padding: 16px 16px 14px; box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5); border-top: 6px solid var(--kk-aksen); }
+  .kk-kotak h3 { margin: 0 0 2px; font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 21px; font-weight: 800; color: var(--kk-teks); line-height: 1.15; }
+  .kk-kotak p { margin: 6px 0; font-size: 13.5px; font-weight: 700; color: #5a4a36; line-height: 1.35; }
+  .kk-kotak .kk-kecil { font-size: 12px; color: #7a6a52; }
+  .kk-angka { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; margin: 10px 0; }
+  .kk-angka div { min-width: 0; background: #fff; border: 1.5px solid var(--kk-garis); border-radius: 12px; padding: 6px 4px; text-align: center; }
+  .kk-angka small { display: block; font-size: 10.5px; font-weight: 800; color: #7a6a52; text-transform: uppercase; letter-spacing: 0.5px; }
+  .kk-angka b { display: block; font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 16px; font-weight: 800; color: var(--kk-teks); white-space: nowrap; }
+  .kk-total { margin: 8px 0 4px; text-align: center; font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 34px; font-weight: 800; color: #1e8f52; line-height: 1; }
+  .kk-rinci { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; margin: 8px 0; }
+  .kk-rinci span { padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 800; color: #fff; }
+  .kk-rinci .n1 { background: #2fa866; } .kk-rinci .n5 { background: #c9960a; } .kk-rinci .n0 { background: #d0402f; } .kk-rinci .nl { background: #6b7480; }
+  .kk-tombol { display: flex; gap: 8px; margin-top: 6px; padding-top: 6px; position: sticky; bottom: 0; background: var(--kk-kartu); box-shadow: 0 16px 0 var(--kk-kartu); } /* lengket di dasar kotak: tombol selalu utuh walau isi kotak perlu digulir (lanskap pendek) */
+  .kk-tombol button { flex: 1; min-width: 0; height: 48px; border: 0; border-radius: 14px; font-size: 16px; font-weight: 800; color: #fff; background: var(--kk-aksen2); box-shadow: 0 4px 0 rgba(0, 0, 0, 0.22); }
+  .kk-tombol button.sekunder { background: #fff; color: var(--kk-teks); border: 2px solid var(--kk-garis); box-shadow: none; }
+  .kk-tombol button:disabled { opacity: 0.5; box-shadow: none; }
+  .kk-putar { width: 34px; height: 34px; margin: 6px auto; border-radius: 50%; border: 4px solid rgba(0, 0, 0, 0.12); border-top-color: var(--kk-aksen2); animation: kkPutar 0.8s linear infinite; }
+  @keyframes kkPutar { to { transform: rotate(360deg); } }
+  .dp-kota { margin: 10px 0 4px; }
+
+  /* lanskap HP: tamu di kiri, meja kerja di kanan */
+  @media (orientation: landscape) and (max-height: 520px) {
+    #kkAtas { height: calc(44px + env(safe-area-inset-top, 0px)); } #kkJudul { font-size: 15px; } #kkKeluar { height: 36px; }
+    #kkHud { padding-top: 5px; padding-bottom: 5px; }
+    #kkArena { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.6fr); grid-template-rows: minmax(0, 1fr); padding-top: 8px; padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }
+    .kk-tamu { flex-direction: column; justify-content: center; text-align: center; padding: 8px; }
+    .kk-orang { width: 54px; height: 54px; }
+    .kk-ucap { flex: none; width: 100%; } .kk-ucap b { font-size: 17px; }
+    .kk-kerja { padding: 8px; gap: 6px; }
+    .kk-bar { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.5fr); align-items: center; gap: 10px; }
+    .kk-gelasWadah { flex-direction: column; align-items: center; justify-content: center; gap: 4px; } .kk-resep { width: 100%; max-width: none; gap: 2px; }
+    .kk-resep div { font-size: 11.5px; padding: 2px 6px; }
+    .kk-bahan { grid-auto-rows: minmax(40px, 54px); gap: 7px; } .kk-takar { flex: 0 1 auto; min-height: 0; }
+    .kk-bahan button { font-size: 14px; }
+    .kk-gelas { width: 56px; height: 66px; }
+    .kk-besar { height: 44px; font-size: 17px; }
+    .kk-takar { gap: 8px; } .kk-takarBar { height: 32px; }
+    .kk-kunci { min-height: 34px; } .kk-kunci b { font-size: 14px; }
+    .kk-harga button { height: 40px; }
+    .kk-kartuGaya { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .kk-warna { min-height: 30px; max-height: 44px; } .kk-rak { gap: 5px; } .kk-baris { grid-template-columns: 78px repeat(6, minmax(0, 1fr)); } .kk-baris > span { flex-direction: row; justify-content: flex-start; gap: 4px; font-size: 12px; } .kk-baris > span svg { width: 18px; height: 18px; }
+    #kkPanel { inset: calc(46px + env(safe-area-inset-top, 0px)) 0 0 0; padding: 8px; }
+    .kk-kotak { width: min(560px, 100%); padding: 12px 14px 10px; } .kk-kotak h3 { font-size: 18px; } .kk-total { font-size: 28px; }
+    .kk-kotak p { margin: 4px 0; font-size: 12.5px; } .kk-angka { margin: 6px 0; } .kk-angka div { padding: 3px 4px; } .kk-tombol { margin-top: 4px; padding-top: 4px; } .kk-tombol button { height: 42px; }
+  }
 </style>
 <script type="importmap">
 {
@@ -1614,6 +1774,18 @@
   <div id="arkPanel" role="dialog" aria-label="Arkade Ria"></div>
 </div>
 
+
+<!-- Kerja di Kota (27 Nov): layar kerja 2D (barista Kafe Bulan, resepsionis Hotel Kencana, pramuniaga Maison Luna) — lapisan DOM, bukan benda 3D -->
+<button id="kkTombol" type="button" aria-label="Kerja di sini"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2.5" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7M3 12.5h18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg><span id="kkTombolTeks">Kerja di sini</span></button>
+<div id="kkLayar" aria-hidden="true">
+  <div id="kkAtas">
+    <div class="kk-kiri"><div id="kkMerek"></div><div id="kkJudul"></div></div>
+    <button id="kkKeluar" type="button">✕ Keluar</button>
+  </div>
+  <div id="kkHud"><div id="kkTitik"></div><div id="kkSabar"><div id="kkSabarIsi"></div></div><div id="kkSabarTeks"></div></div>
+  <div id="kkArena"></div>
+  <div id="kkPanel" role="dialog" aria-label="Kerja di Kota"></div>
+</div>
 
 <div id="roomCard">
   <div id="cardHead">
@@ -9649,6 +9821,7 @@ function dompetHtmlKerja(d, res) {
     h += '<div class="dp-job">' + iconSvg(KERJA_IKON[id]) + '<div class="dp-isi"><div class="dp-nama">' + p.nama + '</div><div class="dp-meta">'
       + 'Gaji ' + rupiah(p.gaji[0]) + '–' + rupiah(p.gaji[2]) + ' + tip s.d. ' + rupiah(p.tipMaks) + ' · ' + p.tempat + '</div>' + pangkat + '</div>' + tombol + '</div>';
   });
+  h += kkDompetHtml(d, res); /* Kerja di Kota */
   return h + '<p class="dp-catatan">Gaji dihitung server dari hasil kerjamu: makin cepat dan teliti, makin besar tipnya. Maks '
     + KERJA_BATAS.shiftHari + ' shift sehari (semua pekerjaan), istirahat 10 menit antar shift, naik pangkat sesudah 5 dan 15 shift.</p>';
 }
@@ -12134,6 +12307,7 @@ window.addEventListener('popstate', function () {
   if (ktaO && ktaO.classList.contains('open')) { dorongStateLagi(); ktaTutup(); return; }
   var profilO = document.getElementById('profilOverlay');
   if (profilO && profilO.classList.contains('open')) { dorongStateLagi(); profilTutup(); return; }
+  if (KK.aktif) { dorongStateLagi(); kkKembali(); return; } /* Kerja di Kota */
   if (WK.buka) { dorongStateLagi(); warnaTutup(); return; } /* Warna Kamar */
   if (rupaPanel && rupaPanel.classList.contains('open')) { dorongStateLagi(); rupaTutup(); return; } /* Karakter v2 */
   if (dompetTerbuka()) { dorongStateLagi(); dompetTutup(); return; } /* Kerja & Belanja — panel Dompet */
@@ -19467,6 +19641,7 @@ function kotaKetukRuang(id) {
   if (id === 'capitDalam') { arkadeBuka('capit'); return; } /* Arkade Ria (26 Nov): tiga mesin = game beneran (layar 2D) */
   if (id === 'balap') { kotaEfekMulai(id); arkadeBuka('balap'); return; }
   if (id === 'dansa') { kotaEfekMulai(id); arkadeBuka('dansa'); return; }
+  if (KK_OBJEK[id] && KK_RUANG[R] === KK_OBJEK[id]) { kotaEfekMulai(id); bunyi(id === 'bel' ? 'bel' : (id === 'mesinKopi' ? 'mesinKopi' : 'kasir')); kkBuka(KK_OBJEK[id]); return; } /* Kerja di Kota (27 Nov): objek kerja tiap interior */
   var e = KOTA_RUANG_EFEK[R] && KOTA_RUANG_EFEK[R][id]; if (e && now - e.mulai < 1800) return; /* tunggu reaksi sebelumnya selesai */
   kotaEfekMulai(id);
   if (id === 'bel') { bunyi('bel'); toastKosan('🛎 Ting! Resepsionis: "Selamat datang di Hotel Kencana"'); }
@@ -21594,10 +21769,476 @@ function suasanaPengingat() {
   if (pl && !SU.pelangiTadi && entered && (myRealm === 'yard' || myRealm === 'jalan' || myRealm === 'kota')) toastKosan('🌈 Ada pelangi sesudah hujan — lihat ke langit barat laut!');
   SU.pelangiTadi = pl;
 }
+/* ==== KERJA-KOTA-START ==== */
+/* Kerja di Kota (27 Nov) — aturan MURNI tiga pekerjaan Kota: Barista Kafe Bulan, Resepsionis Hotel Kencana,
+   Pramuniaga Maison Luna. Teks blok ini SAMA PERSIS di server (api/_lib/kerjakota.js) dan klien (index.html);
+   tests/kerja-kota.test.js memastikan keduanya identik. Tanpa DOM, tanpa jaringan, tanpa jam.
+   Cara kerja: server memberi BENIH per shift (turunan rahasia server + id shift). Dari benih itu soal dibangkitkan
+   (klien menampilkan, server membangkitkan ULANG), klien mengirim JAWABAN mentah tiap pesanan + lama mengerjakannya,
+   dan server sendiri yang menilai benar / salah / cepat lalu menghitung upah. Klien tidak pernah mengirim angka nilai. */
+var KK_PEKERJAAN = {
+  barista: { nama: 'Barista Kafe Bulan', tempat: 'Kafe Bulan, Kota', ruang: 'kafe', pangkat: ['Barista Magang', 'Barista Kota', 'Kepala Barista'],
+    gaji: [10500, 13500, 16500], tipMaks: 6000, pesanan: 10, minDetik: 70 },
+  resepsionis: { nama: 'Resepsionis Hotel Kencana', tempat: 'Hotel Kencana, Kota', ruang: 'hotel', pangkat: ['Resepsionis Magang', 'Resepsionis', 'Kepala Resepsionis'],
+    gaji: [10500, 13500, 16500], tipMaks: 6000, pesanan: 10, minDetik: 70 },
+  pramuniaga: { nama: 'Pramuniaga Maison Luna', tempat: 'Butik Maison Luna, Kota', ruang: 'butik', pangkat: ['Pramuniaga Magang', 'Pramuniaga', 'Penata Gaya'],
+    gaji: [10500, 13500, 16500], tipMaks: 6000, pesanan: 10, minDetik: 70 }
+};
+var KK_IDS = Object.keys(KK_PEKERJAAN);
+var KK_PANGKAT_SHIFT = [0, 5, 15]; /* sama dengan pekerjaan kampung */
+var KK_SABAR_MS = [15000, 13500, 12000]; /* kesabaran tamu per pangkat: lewat dari ini pesanan hangus */
+var KK_JEDA_MS = 1300; /* jeda antar tamu */
+var KK_UPAH = { dasar: 0.25, pangkatMutu: 1.6, potongSalah: 0.05, potongMaks: 0.3, tipMutuMin: 0.6, tipSalahMaks: 4, tipPotong: 0.15, tipDasar: 0.2 };
+
+/* ---- Barista: racik lapis demi lapis (bawah ke atas) lalu hentikan jarum takaran di zona hijau ---- */
+var KK_BAHAN = [ /* huruf = kode jawaban */
+  { k: 'e', nama: 'Espresso', warna: '#5a3520' }, { k: 's', nama: 'Susu', warna: '#f6efe2' }, { k: 'i', nama: 'Es batu', warna: '#bfe6f5' },
+  { k: 'c', nama: 'Cokelat', warna: '#7b4a2d' }, { k: 'm', nama: 'Matcha', warna: '#8fbf5a' }, { k: 'b', nama: 'Busa susu', warna: '#fffaf0' }
+];
+var KK_MENU = [
+  { nama: 'Es Kopi Susu', resep: 'ies' }, { nama: 'Latte', resep: 'esb' }, { nama: 'Mocha', resep: 'cesb' }, { nama: 'Matcha Latte', resep: 'msb' },
+  { nama: 'Es Matcha', resep: 'ims' }, { nama: 'Es Cokelat', resep: 'ics' }, { nama: 'Dirty Matcha', resep: 'imse' }, { nama: 'Cappuccino', resep: 'ebc' }
+];
+var KK_TAKARAN = { setengah: [0.115, 0.095, 0.08], periodeMs: [1700, 1500, 1350] }; /* setengah lebar zona hijau + lama satu ayunan jarum, per pangkat */
+
+/* ---- Resepsionis: cari kamar yang cocok (tipe + lantai + kosong) lalu pilih total tagihan yang benar ---- */
+var KK_KAMAR_TIPE = [{ k: 'S', nama: 'Standar', tarif: 300 }, { k: 'D', nama: 'Deluxe', tarif: 450 }, { k: 'U', nama: 'Suite', tarif: 700 }]; /* tarif ribu rupiah per malam */
+var KK_KAMAR_STATUS = ['kosong', 'terisi', 'dibersihkan'];
+
+/* ---- Pramuniaga: hafalkan padanan tamu (4 barang berwarna) sebelum kartunya ditutup, lalu ambil dari rak ---- */
+var KK_GAYA_JENIS = ['Atasan', 'Bawahan', 'Tas', 'Sepatu'];
+var KK_GAYA_WARNA = [{ nama: 'Merah', hex: '#d8434f' }, { nama: 'Biru', hex: '#3f6fd8' }, { nama: 'Hijau', hex: '#3d9a63' }, { nama: 'Emas', hex: '#e2b13c' }, { nama: 'Hitam', hex: '#26262c' }, { nama: 'Putih', hex: '#f5f1e8' }];
+var KK_GAYA_TAMPIL_MS = [3200, 2800, 2400];
+
+/* waktu "cekatan" (tip kecepatan penuh) + waktu paling cepat yang masih manusiawi, per pekerjaan */
+function kkCepatMs(id, pangkat) { return id === 'pramuniaga' ? KK_GAYA_TAMPIL_MS[pangkat] + 3600 : (id === 'resepsionis' ? 5200 : 5600); }
+function kkMinMs(id, pangkat) { return id === 'pramuniaga' ? KK_GAYA_TAMPIL_MS[pangkat] + 900 : 1500; }
+
+function kkPangkat(total) { var n = Number(total) || 0; return n >= KK_PANGKAT_SHIFT[2] ? 2 : (n >= KK_PANGKAT_SHIFT[1] ? 1 : 0); }
+function kkPekerjaan(id) { return typeof id === 'string' && Object.prototype.hasOwnProperty.call(KK_PEKERJAAN, id) ? KK_PEKERJAAN[id] : null; }
+function kkAcak(benih) { /* mulberry32: deret sama di server + klien */
+  var s = (Number(benih) >>> 0) || 1;
+  return function () { s = (s + 0x6D2B79F5) >>> 0; var t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+function kkPilih(u, n) { return Math.min(n - 1, Math.floor(u() * n)); }
+function kkKocok(u, a) { for (var i = a.length - 1; i > 0; i--) { var j = kkPilih(u, i + 1), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+
+function kkSoalBarista(u, pangkat, lalu) {
+  var m = kkPilih(u, KK_MENU.length);
+  if (lalu && lalu.menu === m) m = (m + 1 + kkPilih(u, KK_MENU.length - 1)) % KK_MENU.length; /* tidak dua kali berturut */
+  var resep = KK_MENU[m].resep, dobel = resep.indexOf('e') !== -1 && u() < 0.35; /* "dobel espresso": espresso dituang dua kali */
+  if (dobel) resep = resep.replace('e', 'ee');
+  return { menu: m, nama: KK_MENU[m].nama, dobel: dobel, resep: resep, zona: 0.2 + u() * 0.6, setengah: KK_TAKARAN.setengah[pangkat], periodeMs: KK_TAKARAN.periodeMs[pangkat], fase: u() };
+}
+function kkSoalResepsionis(u) {
+  var kamar = [], l, n, i;
+  for (l = 1; l <= 3; l++) for (n = 1; n <= 4; n++) kamar.push({ no: l * 100 + n, lantai: l, tipe: KK_KAMAR_TIPE[kkPilih(u, 3)].k, status: KK_KAMAR_STATUS[u() < 0.5 ? 0 : (u() < 0.6 ? 1 : 2)] });
+  var t = kkPilih(u, 12), T = kamar[t]; T.status = 'kosong';
+  for (i = 0; i < 12; i++) if (i !== t && kamar[i].tipe === T.tipe && kamar[i].lantai === T.lantai && kamar[i].status === 'kosong') kamar[i].status = u() < 0.5 ? 'terisi' : 'dibersihkan';
+  /* pengecoh wajib: satu kamar tipe sama + kosong di lantai LAIN, satu kamar lantai sama + kosong tipe LAIN */
+  var lain = [], se = [];
+  for (i = 0; i < 12; i++) if (i !== t) { if (kamar[i].lantai !== T.lantai) lain.push(i); else se.push(i); }
+  var a = kamar[lain[kkPilih(u, lain.length)]]; a.tipe = T.tipe; a.status = 'kosong';
+  var b = kamar[se[kkPilih(u, se.length)]], tipeLain = KK_KAMAR_TIPE[(kkTipeIdx(T.tipe) + 1 + kkPilih(u, 2)) % 3].k; b.tipe = tipeLain; b.status = 'kosong';
+  var malam = 2 + kkPilih(u, 3), tarif = KK_KAMAR_TIPE[kkTipeIdx(T.tipe)].tarif, benar = tarif * malam;
+  var salah1 = KK_KAMAR_TIPE[kkTipeIdx(tipeLain)].tarif * malam, salah2 = tarif * (malam + (u() < 0.5 ? 1 : -1));
+  if (salah2 === salah1 || salah2 === benar) salah2 = benar + 150;
+  var harga = kkKocok(u, [benar, salah1, salah2]);
+  return { kamar: kamar, tipe: T.tipe, lantai: T.lantai, malam: malam, harga: harga, no: T.no, total: benar };
+}
+function kkTipeIdx(k) { return k === 'S' ? 0 : (k === 'D' ? 1 : 2); }
+function kkSoalPramuniaga(u, pangkat) {
+  var g = '';
+  for (var i = 0; i < KK_GAYA_JENIS.length; i++) g += String(kkPilih(u, KK_GAYA_WARNA.length));
+  return { gaya: g, tampilMs: KK_GAYA_TAMPIL_MS[pangkat] };
+}
+/* semua soal satu shift (deterministik dari benih + pangkat) */
+function kkSoal(id, benih, pangkat) {
+  var p = kkPekerjaan(id); if (!p) return null;
+  var pk = pangkat === 1 || pangkat === 2 ? pangkat : 0, u = kkAcak(benih), daftar = [], lalu = null;
+  for (var i = 0; i < p.pesanan; i++) {
+    lalu = id === 'barista' ? kkSoalBarista(u, pk, lalu) : (id === 'resepsionis' ? kkSoalResepsionis(u) : kkSoalPramuniaga(u, pk));
+    daftar.push(lalu);
+  }
+  return daftar;
+}
+/* nilai satu jawaban: 1 = sempurna, 0.5 = setengah (urutan benar tapi takaran meleset / kamar benar tagihan salah / 3 dari 4 barang), 0 = salah */
+function kkNilaiSatu(id, soal, jawab) {
+  if (typeof jawab !== 'string' || jawab.length > 24) return 0;
+  var bagian = jawab.split('|');
+  if (id === 'barista') {
+    if (bagian.length !== 2 || bagian[0] !== soal.resep || !/^\d{1,4}$/.test(bagian[1])) return 0;
+    return Math.abs(Number(bagian[1]) / 1000 - soal.zona) <= soal.setengah + 1e-9 ? 1 : 0.5;
+  }
+  if (id === 'resepsionis') {
+    if (bagian.length !== 2 || bagian[0] !== String(soal.no)) return 0;
+    return bagian[1] === String(soal.total) ? 1 : 0.5;
+  }
+  if (bagian.length !== 1 || jawab.length !== soal.gaya.length) return 0;
+  var cocok = 0; for (var i = 0; i < jawab.length; i++) if (jawab.charAt(i) === soal.gaya.charAt(i)) cocok++;
+  return cocok === soal.gaya.length ? 1 : (cocok === soal.gaya.length - 1 ? 0.5 : 0);
+}
+/* nilai satu shift. jawab = larik sepanjang pesanan: [jawaban, ms] atau null (tamu tidak dilayani).
+   detik = lama shift menurut JAM SERVER. Laporan yang mustahil (mengaku mengerjakan lebih lama dari umur shift) = tidak sah. */
+function kkNilai(id, benih, pangkat, jawab, detik) {
+  var p = kkPekerjaan(id), pk = pangkat === 1 || pangkat === 2 ? pangkat : 0, soal = kkSoal(id, benih, pk);
+  var h = { sempurna: 0, setengah: 0, salah: 0, lewat: 0, mutu: 0, cepat: 0, sah: true };
+  if (!p) return h;
+  var a = Array.isArray(jawab) ? jawab : [], sabar = KK_SABAR_MS[pk], cepatMs = kkCepatMs(id, pk), minMs = kkMinMs(id, pk), jumlahMs = 0, q = 0, c = 0;
+  for (var i = 0; i < p.pesanan; i++) {
+    var e = a[i], ms = Array.isArray(e) && typeof e[1] === 'number' && isFinite(e[1]) ? Math.floor(e[1]) : -1;
+    if (!Array.isArray(e) || ms < 0 || ms > sabar) { h.lewat++; jumlahMs += sabar; continue; } /* tidak dilayani / kehabisan sabar */
+    jumlahMs += ms;
+    var n = ms < minMs ? 0 : kkNilaiSatu(id, soal[i], e[0]); /* lebih cepat dari gerak manusia = tidak dihitung */
+    if (n === 1) h.sempurna++; else if (n === 0.5) h.setengah++; else h.salah++;
+    q += n;
+    if (n > 0) c += n * Math.max(0, Math.min(1, (sabar - ms) / (sabar - cepatMs)));
+  }
+  if (typeof detik === 'number' && isFinite(detik) && jumlahMs > (detik + 4) * 1000) { h.sah = false; h.sempurna = 0; h.setengah = 0; h.salah = p.pesanan - h.lewat; q = 0; c = 0; }
+  h.mutu = q / p.pesanan; h.cepat = c / p.pesanan;
+  return h;
+}
+function kkKe500(v) { return Math.max(0, Math.floor(v / 500 + 1e-9) * 500); }
+/* upah: gaji pokok pangkat x (dasar + sisanya x mutu^1,6) dipotong 5% per kesalahan (maks 30%);
+   tip hanya kalau mutu >= 60% dan salah < 4: tipMaks x mutu x (1 - 15% per salah) x (20% + 80% x kecepatan) */
+function kkUpah(id, shiftTotal, nilai) {
+  var p = kkPekerjaan(id); if (!p) return null;
+  var pangkat = kkPangkat(shiftTotal), U = KK_UPAH, n = nilai || { mutu: 0, cepat: 0, salah: 0 };
+  var mutu = Math.max(0, Math.min(1, Number(n.mutu) || 0)), cepat = Math.max(0, Math.min(1, Number(n.cepat) || 0)), salah = Math.max(0, Math.floor(Number(n.salah) || 0));
+  var gaji = kkKe500(p.gaji[pangkat] * (U.dasar + (1 - U.dasar) * Math.pow(mutu, U.pangkatMutu)) * (1 - Math.min(U.potongMaks, salah * U.potongSalah)));
+  var tip = mutu >= U.tipMutuMin && salah < U.tipSalahMaks ? kkKe500(p.tipMaks * mutu * Math.max(0, 1 - salah * U.tipPotong) * (U.tipDasar + (1 - U.tipDasar) * cepat)) : 0;
+  return { gaji: gaji, tip: tip, total: gaji + tip, pangkat: pangkat };
+}
+/* ==== KERJA-KOTA-END ==== */
+/* ==== KERJA-KOTA-UI-START ==== */
+/* Kerja di Kota — layar kerja (DOM) + alur shift. Aturan/nilai/upah ada di blok KERJA-KOTA di atas (sama dengan server).
+   Selama layar terbuka 3D tidak digambar (lihat `KK.aktif` di awal animate). Klien hanya MENAMPILKAN soal dari benih server
+   dan mengirim jawaban mentah; nilai di layar selama main = perkiraan, yang sah = jawaban server di layar gajian.
+   Tamu boleh melihat lowongan, tidak bisa kerja (tidak ada mode latihan di Kota). */
+var KK = { aktif: false, tahap: '', id: '', shift: '', soal: null, i: 0, jawab: [], nilai: [], t0: 0, s: null, raf: 0, mulaiMs: 0, minDetik: 0, pangkat: 0, sibuk: false, laporan: null, coba: 0, tunggu: 0, urut: 0, el: null };
+var KK_RUANG = { kafe: 'barista', hotel: 'resepsionis', butik: 'pramuniaga' };
+var KK_OBJEK = { mesinKopi: 'barista', bel: 'resepsionis', tas: 'pramuniaga' };
+var KK_TEMA = {
+  barista: { merek: 'Kafe Bulan', sapa: 'Pesanan', cara: 'Racik lapis demi lapis dari BAWAH ke atas sesuai tiket, lalu hentikan jarum takaran di zona hijau. Salah bahan = minuman dibuang.' },
+  resepsionis: { merek: 'Hotel Kencana', sapa: 'Tamu', cara: 'Cari kamar yang cocok (tipe + lantai, dan harus KOSONG), lalu pilih total tagihan yang benar: tarif × jumlah malam.' },
+  pramuniaga: { merek: 'Maison Luna', sapa: 'Pelanggan', cara: 'Hafalkan 4 barang di kartu pelanggan sebelum kartunya ditutup, lalu ambil warna yang sama dari rak dan bungkus.' }
+};
+var KK_IKON = {
+  Atasan: '<path d="M8 4l4 2 4-2 5 4-3 3-2-1.5V20H8V9.5L6 11 3 8z"/>', Bawahan: '<path d="M7 3h10l1.5 18h-5L12 9l-1.5 12h-5z"/>',
+  Tas: '<path d="M5 9h14l1.5 11h-17z"/><path d="M8.5 9V7.5a3.5 3.5 0 0 1 7 0V9" fill="none"/>', Sepatu: '<path d="M3 17v-6l4 .5 3 3 7 1.5c2.5.5 4 1.5 4 3.5H3z"/>'
+};
+function kkEl(id) { return document.getElementById(id); }
+function kkAman(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function kkIkon(jenis, hex) { return '<svg viewBox="0 0 24 24" aria-hidden="true" fill="' + hex + '" stroke="#2b2218" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round">' + KK_IKON[jenis] + '</svg>'; }
+function kkOrang(n, hati) { /* tamu: kepala + rambut + bahu, warna bergilir; hati 0 senang, 1 datar, 2 kesal */
+  var kulit = ['#f2c9a0', '#d9a273', '#f6d7b8', '#b9814f'][n % 4], rambut = ['#2b1b12', '#5a3418', '#111', '#7a4a22', '#3a2a3a'][n % 5], baju = ['#d8434f', '#3f6fd8', '#3d9a63', '#e2b13c', '#8a5bd0', '#e07a3a'][n % 6];
+  var mulut = hati === 0 ? '<path d="M25 37q7 6 14 0" fill="none" stroke="#5a2a1a" stroke-width="2.2" stroke-linecap="round"/>' : (hati === 1 ? '<path d="M26 39h12" stroke="#5a2a1a" stroke-width="2.2" stroke-linecap="round"/>' : '<path d="M25 41q7 -6 14 0" fill="none" stroke="#5a2a1a" stroke-width="2.2" stroke-linecap="round"/>');
+  var alis = hati === 2 ? '<path d="M22 25l7 2M42 25l-7 2" stroke="#3a2212" stroke-width="2" stroke-linecap="round"/>' : '';
+  return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M8 64c0-13 10-19 24-19s24 6 24 19z" fill="' + baju + '"/><rect x="27" y="40" width="10" height="9" rx="3" fill="' + kulit + '"/><circle cx="32" cy="29" r="15" fill="' + kulit + '"/>'
+    + (n % 2 ? '<path d="M16 30c-2-16 8-22 16-22s18 6 16 22c-3-8-8-11-16-11s-13 3-16 11z" fill="' + rambut + '"/>' : '<path d="M15 34c-4-18 6-27 17-27s21 9 17 27c0 6-1 12-3 15-1-12 0-18-3-23-5 3-17 3-22 0-3 5-2 11-3 23-2-3-3-9-3-15z" fill="' + rambut + '"/>')
+    + '<circle cx="26" cy="30" r="2" fill="#2b1b12"/><circle cx="38" cy="30" r="2" fill="#2b1b12"/>' + alis + mulut + '</svg>';
+}
+function kkPekerjaanSaya(id) { var d = DOMPET.data, k = d && d.pekerjaanKota ? d.pekerjaanKota[id] : null; return k || { terdaftar: false, shift: 0, pangkat: 0 }; }
+function kkTombolSegar() {
+  var b = kkEl('kkTombol'); if (!b) return;
+  var id = (typeof kotaRuangKini !== 'undefined' && kotaRuangKini) ? KK_RUANG[kotaRuangKini] : '';
+  var tampil = !!id && entered && String(myRealm).indexOf('kota') === 0 && !KK.aktif && !ARK.aktif
+    && !document.querySelector('#dompetPanel.open, #kerjaPanel.open') && !document.body.classList.contains('card-open'); /* panel lain terbuka: tombol minggir, tidak menimpa */
+  if (tampil) kkEl('kkTombolTeks').textContent = 'Kerja di ' + KK_TEMA[id].merek;
+  if (b.classList.contains('tampil') !== tampil) b.classList.toggle('tampil', tampil);
+}
+function kkSiap() {
+  if (KK.el) return;
+  KK.el = kkEl('kkLayar');
+  kkEl('kkKeluar').addEventListener('click', function () { kkKembali(); });
+  kkEl('kkPanel').addEventListener('click', function (e) { var b = e.target.closest ? e.target.closest('button[data-kk]') : null; if (b && !b.disabled) kkAksi(b.getAttribute('data-kk')); });
+  kkEl('kkArena').addEventListener('click', function (e) { var b = e.target.closest ? e.target.closest('button[data-k]') : null; if (b && !b.disabled) kkKetuk(b.getAttribute('data-k'), b.getAttribute('data-v')); });
+}
+function kkBuka(id) {
+  if (KK.aktif || ARK.aktif || !kkPekerjaan(id)) return;
+  kkSiap(); suaraBuka();
+  keys.up = keys.down = keys.left = keys.right = false; joy.x = 0; joy.y = 0; joy.active = false;
+  KK.aktif = true; KK.id = id; KK.urut++; KK.shift = ''; KK.soal = null; KK.sibuk = false; KK.laporan = null; KK.coba = 0; KK.tunggu = 0;
+  KK.el.setAttribute('data-kerja', id); KK.el.classList.add('buka'); KK.el.setAttribute('aria-hidden', 'false');
+  kkEl('kkMerek').textContent = KK_TEMA[id].merek; kkEl('kkJudul').textContent = KK_PEKERJAAN[id].nama;
+  kkTombolSegar(); kkLowongan();
+  if (ktaIsResident()) { var urut = KK.urut; dompetMuat().then(function () { if (KK.aktif && KK.urut === urut && KK.tahap === 'lowongan') kkLowongan(); }); }
+  cancelAnimationFrame(KK.raf); KK.raf = requestAnimationFrame(kkPutar);
+}
+function kkTutup() {
+  if (!KK.aktif) return;
+  if (KK.shift && (KK.tahap === 'main' || KK.tahap === 'henti')) { apiKosan('POST', '/api/kerja', { aksi: 'batal', shift: KK.shift }).then(function () { dompetBerubah(); dompetMuat(); }); }
+  KK.aktif = false; KK.tahap = ''; KK.shift = ''; KK.soal = null; KK.s = null; cancelAnimationFrame(KK.raf);
+  KK.el.classList.remove('buka', 'main', 'panel'); KK.el.setAttribute('aria-hidden', 'true');
+  kkEl('kkArena').innerHTML = ''; kkEl('kkPanel').innerHTML = '';
+  keys.up = keys.down = keys.left = keys.right = false;
+  kkTombolSegar();
+}
+function kkKembali() { /* tombol Keluar + tombol kembali HP */
+  if (!KK.aktif) return;
+  if (KK.tahap === 'main') { kkPanel('henti'); return; }
+  if (KK.tahap === 'henti') { kkLanjut(); return; }
+  if (KK.tahap === 'tutup' && !(KK.laporan && KK.laporan.galat)) return; /* gaji sedang dicatat: tunggu */
+  kkTutup();
+}
+function kkTahap(t) { KK.tahap = t; KK.el.classList.toggle('main', t === 'main' || t === 'henti'); KK.el.classList.toggle('panel', t !== 'main'); }
+function kkKotak(html) { kkEl('kkPanel').innerHTML = '<div class="kk-kotak">' + html + '</div>'; }
+function kkAngkaGaji(p, pangkat) {
+  return '<div class="kk-angka"><div><small>Gaji pokok</small><b>' + rupiah(p.gaji[pangkat]) + '</b></div><div><small>Tip maks</small><b>' + rupiah(p.tipMaks) + '</b></div><div><small>Tamu / shift</small><b>' + p.pesanan + '</b></div></div>';
+}
+function kkLowongan() {
+  var id = KK.id, p = KK_PEKERJAAN[id], T = KK_TEMA[id], res = ktaIsResident(), d = DOMPET.data, h = '<h3>Lowongan: ' + kkAman(p.nama) + '</h3>';
+  kkTahap('lowongan');
+  if (!res) {
+    kkKotak(h + kkAngkaGaji(p, 0) + '<p>' + T.cara + '</p><p><b>Khusus penghuni kos.</b> Tamu boleh lihat-lihat, tapi belum bisa kerja di sini. Daftar jadi penghuni dulu lewat layar masuk ya.</p>'
+      + '<div class="kk-tombol"><button type="button" class="sekunder" data-kk="tutup">Tutup</button></div>');
+    return;
+  }
+  if (!d) {
+    kkKotak(h + '<div class="kk-putar"></div><p style="text-align:center">' + kkAman(DOMPET.galat || 'Memuat data kerja…') + '</p><div class="kk-tombol"><button type="button" class="sekunder" data-kk="tutup">Tutup</button>'
+      + (DOMPET.galat ? '<button type="button" data-kk="muat">Coba lagi</button>' : '') + '</div>');
+    return;
+  }
+  var st = kkPekerjaanSaya(id), kini = Date.now(), jeda = dompetJedaDetik(d, kini), habis = dompetJatahHabis(d, kini);
+  var jatah = (d.tanggalMuat === suasanaTanggal(kini) ? d.hariIni.shift : 0) + '/' + d.hariIni.maks;
+  h += kkAngkaGaji(p, st.pangkat) + '<p>' + T.cara + '</p>';
+  h += '<p class="kk-kecil">Gaji dihitung server dari hasil kerjamu: 25% gaji pokok kalau cuma hadir, sisanya dari tamu yang dilayani benar. Tiap kesalahan memotong gaji 5%; tip hanya untuk yang teliti (≥ 60% benar) dan makin besar kalau cekatan. Tamu pergi kalau menunggu lebih dari ' + Math.round(KK_SABAR_MS[st.pangkat] / 1000) + ' detik.</p>';
+  if (!st.terdaftar) {
+    kkKotak(h + '<p>Jatah hari ini: <b>' + jatah + ' shift</b> (gabungan semua pekerjaan).</p><div class="kk-tombol"><button type="button" class="sekunder" data-kk="tutup">Nanti</button><button type="button" data-kk="daftar"' + (KK.sibuk ? ' disabled' : '') + '>Daftar kerja</button></div>');
+    return;
+  }
+  var sisa = kerjaSisaPangkat(st.shift), alasan = habis ? 'Jatah kerja hari ini sudah habis (' + d.hariIni.maks + ' shift). Besok lagi ya!' : (jeda > 0 ? 'Istirahat dulu — shift berikutnya bisa ' + Math.ceil(jeda / 60) + ' menit lagi.' : '');
+  h += '<p>Pangkat: <b>' + kkAman(p.pangkat[st.pangkat]) + '</b> · ' + st.shift + ' shift' + (sisa ? ' · ' + sisa + ' lagi naik pangkat' : '') + '<br>Jatah hari ini: <b>' + jatah + ' shift</b></p>';
+  if (alasan) h += '<p><b>' + kkAman(alasan) + '</b></p>';
+  if (KK.pesan) { h += '<p><b>' + kkAman(KK.pesan) + '</b></p>'; KK.pesan = ''; }
+  kkKotak(h + '<div class="kk-tombol"><button type="button" class="sekunder" data-kk="tutup">Nanti</button><button type="button" data-kk="mulai"' + (alasan || KK.sibuk ? ' disabled' : '') + '>Mulai shift</button></div>');
+}
+function kkAksi(a) {
+  if (a === 'tutup') { kkTutup(); return; }
+  if (a === 'muat') { DOMPET.galat = ''; kkLowongan(); var u0 = KK.urut; dompetMuat().then(function () { if (KK.aktif && KK.urut === u0 && KK.tahap === 'lowongan') kkLowongan(); }); return; }
+  if (a === 'daftar') { kkDaftar(); return; }
+  if (a === 'mulai') { kkMulai(); return; }
+  if (a === 'lanjut') { kkLanjut(); return; }
+  if (a === 'berhenti') { kkTutup(); toastKosan('💼 Shift dihentikan — tanpa gaji'); return; }
+  if (a === 'ulang') { kkKirim(true); return; }
+  if (a === 'lagi') { KK.shift = ''; KK.laporan = null; kkLowongan(); return; }
+}
+function kkDaftar() {
+  if (KK.sibuk || !ktaIsResident()) return;
+  var id = KK.id, urut = KK.urut; KK.sibuk = true; kkLowongan();
+  apiKosan('POST', '/api/kerja', { aksi: 'daftar', pekerjaan: id }).then(function (r) {
+    if (!KK.aktif || KK.urut !== urut) { KK.sibuk = false; return; }
+    KK.sibuk = false;
+    if (r.status === 200) { if (DOMPET.data) { if (!DOMPET.data.pekerjaanKota) DOMPET.data.pekerjaanKota = {}; DOMPET.data.pekerjaanKota[id] = { terdaftar: true, shift: 0, pangkat: 0 }; } bunyi('benar'); KK.pesan = 'Diterima jadi ' + KK_PEKERJAAN[id].pangkat[0] + '! Ketuk Mulai shift kalau sudah siap.'; dompetBerubah(); dompetMuat(); }
+    else KK.pesan = pesanApi(r);
+    kkLowongan();
+  });
+}
+function kkMulai() {
+  if (KK.sibuk || !ktaIsResident()) return;
+  var id = KK.id, urut = KK.urut, untuk = DOMPET.untuk; KK.sibuk = true; kkLowongan();
+  apiKosan('POST', '/api/kerja', { aksi: 'mulai', pekerjaan: id }).then(function (r) {
+    var ok = r.status === 200 && r.data && r.data.shift && typeof r.data.benih === 'number';
+    if (!KK.aktif || KK.urut !== urut || untuk !== DOMPET.untuk) { if (ok && untuk === DOMPET.untuk) apiKosan('POST', '/api/kerja', { aksi: 'batal', shift: r.data.shift }); KK.sibuk = false; return; }
+    KK.sibuk = false;
+    if (!ok) { KK.pesan = pesanApi(r); dompetBerubah(); dompetMuat().then(function () { if (KK.aktif && KK.urut === urut && KK.tahap === 'lowongan') kkLowongan(); }); kkLowongan(); return; }
+    dompetBerubah();
+    KK.shift = r.data.shift; KK.pangkat = r.data.pangkat === 1 || r.data.pangkat === 2 ? r.data.pangkat : 0; KK.minDetik = Number(r.data.minDetik) || KK_PEKERJAAN[id].minDetik;
+    KK.soal = kkSoal(id, r.data.benih, KK.pangkat); KK.i = 0; KK.jawab = []; KK.nilai = []; KK.mulaiMs = Date.now(); KK.laporan = null; KK.coba = 0;
+    bunyi('bel'); kkTahap('main'); kkSoalMulai();
+  });
+}
+function kkTitik() {
+  var h = '';
+  for (var i = 0; i < KK.soal.length; i++) { var n = KK.nilai[i]; h += '<i class="' + (n === undefined ? (i === KK.i ? 'kini' : '') : (n === 1 ? 'n1' : (n === 0.5 ? 'n5' : (n === 0 ? 'n0' : 'nl')))) + '"></i>'; }
+  kkEl('kkTitik').innerHTML = h;
+}
+function kkTamuHtml(kecil, besar, ket, tambahan) {
+  var T = KK_TEMA[KK.id];
+  return '<div class="kk-tamu"><div class="kk-orang" id="kkOrang">' + kkOrang(KK.s.rupa, 0) + '</div><div class="kk-ucap"><small>' + T.sapa + ' ' + (KK.i + 1) + '/' + KK.soal.length + (kecil ? ' · ' + kecil : '') + '</small><b>' + besar + '</b>'
+    + (ket ? '<span>' + ket + '</span>' : '') + (tambahan || '') + '</div></div>';
+}
+function kkSoalMulai() {
+  var id = KK.id, q = KK.soal[KK.i], A = kkEl('kkArena'), h;
+  KK.s = { rupa: Math.floor(Math.random() * 60), seq: '', takar: false, kamar: 0, gaya: ['', '', '', ''], tutup: false, hati: 0, beres: false };
+  KK.t0 = performance.now(); kkTitik();
+  if (id === 'barista') {
+    h = kkTamuHtml('', kkAman(q.nama), 'Racik dari bawah ke atas', q.dobel ? '<span class="kk-lencana">DOBEL ESPRESSO</span>' : '')
+      + '<div class="kk-kerja"><div class="kk-bar"><div class="kk-gelasWadah"><div class="kk-resep" id="kkResep"></div><div class="kk-gelas" id="kkGelas"></div></div><div class="kk-bahan" id="kkKanan"></div></div></div>';
+    A.innerHTML = h; kkBaristaLukis();
+  } else if (id === 'resepsionis') {
+    var nt = KK_KAMAR_TIPE[kkTipeIdx(q.tipe)].nama;
+    h = kkTamuHtml('', 'Kamar ' + nt + ' · Lantai ' + q.lantai, 'Menginap <b style="display:inline;font-size:inherit">' + q.malam + ' malam</b> — kamarnya harus kosong')
+      + '<div class="kk-kerja"><div class="kk-tarif">' + KK_KAMAR_TIPE.map(function (t) { return '<span><i class="kk-t' + t.k + '"></i>' + t.nama + ' ' + t.tarif + ' rb/malam</span>'; }).join('') + '</div>'
+      + '<div class="kk-papan" id="kkPapan"></div><div class="kk-petunjuk" id="kkPetunjuk">1. Ketuk kunci kamar yang cocok</div><div class="kk-harga" id="kkHarga"></div></div>';
+    A.innerHTML = h; kkHotelLukis();
+  } else {
+    h = kkTamuHtml('', 'Padanan pesanan', '', '<div class="kk-kartuGaya" id="kkKartu">' + KK_GAYA_JENIS.map(function (j, n) { var w = KK_GAYA_WARNA[+q.gaya.charAt(n)]; return '<div>' + kkIkon(j, w.hex) + j + '<br>' + w.nama + '</div>'; }).join('') + '</div><div class="kk-hafal"><i id="kkHafal"></i></div>')
+      + '<div class="kk-kerja"><div class="kk-petunjuk" id="kkPetunjukB">Hafalkan dulu… rak dibuka sesudah kartu ditutup</div><div class="kk-rak kunci" id="kkRak"></div><button type="button" class="kk-besar" id="kkBungkus" data-k="bungkus" disabled>Bungkus</button></div>';
+    A.innerHTML = h; kkButikLukis();
+  }
+}
+function kkBaristaLukis() {
+  var q = KK.soal[KK.i], s = KK.s, r = '', g = '', tinggi = Math.floor(78 / q.resep.length), i, b;
+  for (i = 0; i < q.resep.length; i++) { b = kkBahan(q.resep.charAt(i)); r += '<div class="' + (i < s.seq.length ? 'sudah' : (i === s.seq.length && !s.beres ? 'lanjut' : '')) + '"><i style="background:' + b.warna + '"></i>' + (i + 1) + '. ' + b.nama + '</div>'; }
+  for (i = 0; i < s.seq.length; i++) { b = kkBahan(s.seq.charAt(i)); g += '<div style="height:' + tinggi + 'px;background:' + b.warna + '"></div>'; }
+  kkEl('kkResep').innerHTML = r; kkEl('kkGelas').innerHTML = g;
+  var K = kkEl('kkKanan');
+  if (s.takar) {
+    if (K.className !== 'kk-takar') {
+      K.className = 'kk-takar';
+      K.innerHTML = '<div class="kk-petunjuk">Takaran terakhir: hentikan jarum di zona HIJAU</div><div class="kk-takarBar"><div class="kk-takarZona" style="left:' + ((q.zona - q.setengah) * 100).toFixed(2) + '%;width:' + (q.setengah * 200).toFixed(2) + '%"></div><div class="kk-takarJarum" id="kkJarum"></div></div><button type="button" class="kk-besar" data-k="stop">STOP — tuang!</button>';
+    }
+  } else {
+    K.className = 'kk-bahan';
+    K.innerHTML = KK_BAHAN.map(function (x) { return '<button type="button" data-k="bahan" data-v="' + x.k + '"><i style="background:' + x.warna + '"></i>' + x.nama + '</button>'; }).join('');
+  }
+}
+function kkBahan(k) { for (var i = 0; i < KK_BAHAN.length; i++) if (KK_BAHAN[i].k === k) return KK_BAHAN[i]; return KK_BAHAN[0]; }
+function kkJarumPos(now) { var q = KK.soal[KK.i], x = (((now - KK.s.takarMulai) / q.periodeMs + q.fase) % 1 + 1) % 1; return x < 0.5 ? x * 2 : 2 - x * 2; }
+function kkHotelLukis() {
+  var q = KK.soal[KK.i], s = KK.s, h = '', l, n;
+  for (l = 3; l >= 1; l--) {
+    h += '<div class="kk-lantai">Lt ' + l + '</div>';
+    for (n = 0; n < 4; n++) { var k = q.kamar[(l - 1) * 4 + n], t = KK_KAMAR_TIPE[kkTipeIdx(k.tipe)];
+      h += '<button type="button" class="kk-kunci ' + k.status + (s.kamar === k.no ? ' pilih' : '') + '" data-k="kamar" data-v="' + k.no + '"><b>' + k.no + '</b><em><i class="kk-t' + k.tipe + '"></i>' + t.nama + '</em><u>' + k.status + '</u></button>'; }
+  }
+  kkEl('kkPapan').innerHTML = h;
+  kkEl('kkPetunjuk').textContent = s.kamar ? '2. Kamar ' + s.kamar + ' dipilih — sekarang total tagihannya?' : '1. Ketuk kunci kamar yang cocok';
+  kkEl('kkHarga').innerHTML = q.harga.map(function (x) { return '<button type="button" data-k="harga" data-v="' + x + '"' + (s.kamar ? '' : ' disabled') + '>' + rupiah(x * 1000) + '</button>'; }).join('');
+}
+function kkButikLukis() {
+  var s = KK.s, h = '';
+  KK_GAYA_JENIS.forEach(function (j, n) {
+    h += '<div class="kk-baris"><span>' + kkIkon(j, '#cfc4b8') + j + '</span>';
+    KK_GAYA_WARNA.forEach(function (w, c) { h += '<button type="button" class="kk-warna' + (s.gaya[n] === String(c) ? ' pilih' : '') + '" data-k="warna" data-v="' + n + c + '" style="background:' + w.hex + '" aria-label="' + j + ' ' + w.nama + '"></button>'; });
+    h += '</div>';
+  });
+  var R = kkEl('kkRak'); R.innerHTML = h; R.classList.toggle('kunci', !s.tutup);
+  kkEl('kkBungkus').disabled = !s.tutup || s.gaya.join('').length !== 4;
+}
+function kkKetuk(k, v) {
+  if (KK.tahap !== 'main' || !KK.s || KK.s.beres) return;
+  var q = KK.soal[KK.i], s = KK.s, now = performance.now();
+  if ((k === 'stop' || k === 'harga' || k === 'bungkus') && now - KK.t0 < kkMinMs(KK.id, KK.pangkat) + 60) return; /* server menolak jawaban secepat itu (bukan gerak manusia): jangan sampai layar bilang benar tapi server bilang salah */
+  if (k === 'bahan' && !s.takar) {
+    s.seq += v; bunyi(v === 'i' ? 'es' : (v === 'e' ? 'mesinKopi' : 'tuang'));
+    if (q.resep.indexOf(s.seq) !== 0) { kkJawab(s.seq + '|0'); return; } /* salah bahan: minuman dibuang */
+    if (s.seq.length === q.resep.length) { s.takar = true; s.takarMulai = now; }
+    kkBaristaLukis();
+  } else if (k === 'stop' && s.takar) { bunyi('gelas'); kkJawab(s.seq + '|' + Math.round(kkJarumPos(now) * 1000)); }
+  else if (k === 'kamar') { s.kamar = Number(v); bunyi('tit'); kkHotelLukis(); }
+  else if (k === 'harga' && s.kamar) { bunyi('kasir'); kkJawab(s.kamar + '|' + v); }
+  else if (k === 'warna' && s.tutup) { s.gaya[+v.charAt(0)] = v.charAt(1); bunyi('kain'); kkButikLukis(); }
+  else if (k === 'bungkus' && s.tutup && s.gaya.join('').length === 4) { bunyi('plastik'); kkJawab(s.gaya.join('')); }
+}
+function kkJawab(j) { /* j = jawaban mentah, null = tamu pergi (kehabisan sabar) */
+  var s = KK.s, id = KK.id, q = KK.soal[KK.i], ms = Math.round(performance.now() - KK.t0), sabar = KK_SABAR_MS[KK.pangkat];
+  if (!s || s.beres) return;
+  s.beres = true;
+  var n = j === null || ms > sabar ? -1 : kkNilaiSatu(id, q, j);
+  KK.jawab[KK.i] = n === -1 ? null : [j, ms]; KK.nilai[KK.i] = n; kkTitik();
+  var cap = n === 1 ? ['n1', 'SEMPURNA', ms <= kkCepatMs(id, KK.pangkat) ? 'cekatan!' : 'beres'] : (n === 0.5 ? ['n5', 'KURANG PAS', id === 'barista' ? 'takaran meleset' : (id === 'resepsionis' ? 'tagihan salah' : '1 barang keliru')]
+    : (n === 0 ? ['n0', 'SALAH', id === 'barista' ? (j.split('|')[0] === q.resep ? 'takaran' : 'bahan keliru — dibuang') : (id === 'resepsionis' ? 'bukan kamar itu' : 'padanan keliru')] : ['nl', 'TAMU PERGI', 'kelamaan menunggu']));
+  bunyi(n === 1 ? 'benar' : (n === 0.5 ? 'toast' : 'salah'));
+  var o = kkEl('kkOrang'); if (o) o.innerHTML = kkOrang(s.rupa, n === 1 ? 0 : (n === 0.5 ? 1 : 2));
+  if (id === 'pramuniaga') { var kt = kkEl('kkKartu'); if (kt) kt.classList.remove('tutup'); } /* kartu dibuka lagi: pemain melihat yang benar */
+  var c = document.createElement('div'); c.className = 'kk-cap ' + cap[0]; c.innerHTML = cap[1] + '<small>' + cap[2] + '</small>'; kkEl('kkArena').appendChild(c);
+  var urut = KK.urut, shift = KK.shift;
+  setTimeout(function () {
+    if (!KK.aktif || KK.urut !== urut || KK.shift !== shift) return;
+    KK.i++;
+    if (KK.i >= KK.soal.length) { kkTutupShift(); return; }
+    if (KK.tahap === 'main' || KK.tahap === 'henti') kkSoalMulai();
+  }, KK_JEDA_MS);
+}
+function kkPutar(now) {
+  if (!KK.aktif) return;
+  KK.raf = requestAnimationFrame(kkPutar);
+  if ((KK.tahap === 'main' || KK.tahap === 'henti') && KK.s && !KK.s.beres) {
+    var sabar = KK_SABAR_MS[KK.pangkat], sisa = sabar - (now - KK.t0), f = Math.max(0, sisa / sabar), s = KK.s, B = kkEl('kkSabarIsi');
+    B.style.transform = 'scaleX(' + f.toFixed(3) + ')'; B.style.background = f > 0.5 ? '#58d68d' : (f > 0.25 ? '#f4c542' : '#e8604f');
+    kkEl('kkSabarTeks').textContent = Math.max(0, Math.ceil(sisa / 1000)) + ' dtk';
+    var hati = f > 0.5 ? 0 : (f > 0.25 ? 1 : 2);
+    if (hati !== s.hati) { s.hati = hati; var o = kkEl('kkOrang'); if (o) o.innerHTML = kkOrang(s.rupa, hati); if (hati === 2) bunyi('tit'); }
+    if (KK.id === 'barista' && s.takar) { var J = kkEl('kkJarum'); if (J) J.style.left = (kkJarumPos(now) * 100).toFixed(2) + '%'; }
+    if (KK.id === 'pramuniaga' && !s.tutup) {
+      var tm = KK.soal[KK.i].tampilMs, lewat = now - KK.t0, H = kkEl('kkHafal'); if (H) H.style.transform = 'scaleX(' + Math.max(0, 1 - lewat / tm).toFixed(3) + ')';
+      if (lewat >= tm) { s.tutup = true; var kt = kkEl('kkKartu'); if (kt) kt.classList.add('tutup'); var P = kkEl('kkPetunjukB'); if (P) P.textContent = 'Ambil 4 barang dari rak sesuai kartu tadi, lalu Bungkus'; bunyi('saklar'); kkButikLukis(); }
+    }
+    if (sisa <= 0) kkJawab(null);
+  } else if (KK.tahap === 'tutup' && KK.tunggu) {
+    var sd = Math.ceil((KK.tunggu - Date.now()) / 1000), T = kkEl('kkTunggu');
+    if (T) T.textContent = sd > 0 ? 'Beres-beres meja… ' + sd + ' dtk' : 'Mencatat gaji…';
+    if (sd <= 0) { KK.tunggu = 0; kkKirim(false); }
+  }
+}
+function kkPanel(jenis) {
+  if (jenis === 'henti') {
+    kkTahap('henti');
+    kkKotak('<h3>Berhenti kerja?</h3><p>Shift ini hangus <b>tanpa gaji</b> kalau kamu berhenti sekarang. Tamu tetap menunggu selama kamu membaca ini.</p><div class="kk-tombol"><button type="button" class="sekunder" data-kk="berhenti">Berhenti</button><button type="button" data-kk="lanjut">Lanjut kerja</button></div>');
+  }
+}
+function kkLanjut() { if (KK.tahap !== 'henti') return; kkEl('kkPanel').innerHTML = ''; kkTahap('main'); if (KK.i >= KK.soal.length) kkTutupShift(); }
+function kkRingkas() { var r = { n1: 0, n5: 0, n0: 0, nl: 0 }; KK.nilai.forEach(function (n) { if (n === 1) r.n1++; else if (n === 0.5) r.n5++; else if (n === 0) r.n0++; else r.nl++; }); return r; }
+function kkRinciHtml(r) {
+  return '<div class="kk-rinci">' + (r.n1 ? '<span class="n1">' + r.n1 + ' sempurna</span>' : '') + (r.n5 ? '<span class="n5">' + r.n5 + ' kurang pas</span>' : '') + (r.n0 ? '<span class="n0">' + r.n0 + ' salah</span>' : '') + (r.nl ? '<span class="nl">' + r.nl + ' tamu pergi</span>' : '') + '</div>';
+}
+function kkTutupShift() {
+  if (KK.tahap === 'henti') { kkEl('kkPanel').innerHTML = ''; }
+  kkTahap('tutup'); kkEl('kkArena').innerHTML = '';
+  KK.tunggu = KK.mulaiMs + KK.minDetik * 1000 + 1500;
+  kkKotak('<h3>Shift selesai!</h3>' + kkRinciHtml(kkRingkas()) + '<div class="kk-putar"></div><p style="text-align:center" id="kkTunggu">Beres-beres meja…</p><p class="kk-kecil" style="text-align:center">Gaji dihitung server dari jawabanmu.</p>');
+}
+function kkKirim(ulang) {
+  if (KK.sibuk || !KK.shift) return;
+  var id = KK.id, urut = KK.urut, shift = KK.shift, untuk = DOMPET.untuk, r0 = kkRingkas();
+  KK.sibuk = true; KK.coba++; KK.laporan = null;
+  if (ulang) kkKotak('<h3>Shift selesai!</h3>' + kkRinciHtml(r0) + '<div class="kk-putar"></div><p style="text-align:center">Mencatat gaji…</p>');
+  apiKosan('POST', '/api/kerja', { aksi: 'selesai', shift: shift, jawab: KK.jawab }).then(function (r) {
+    var ok = !!(r.status === 200 && r.data), galat = r.data && r.data.galat, sama = untuk === DOMPET.untuk;
+    KK.sibuk = false;
+    if (sama && r.status !== 0) dompetBerubah();
+    if (ok && sama) { dompetSetSaldo(r.data.saldo); bunyi('gaji'); misiSelesai('kerja'); }
+    if (!KK.aktif || KK.urut !== urut || KK.shift !== shift) { if (ok && sama) toastKosan('💰 Gaji ' + KK_PEKERJAAN[id].nama + ' tercatat: +' + rupiah((Number(r.data.gaji) || 0) + (Number(r.data.tip) || 0))); if (sama) dompetMuat(); return; }
+    if (ok) { KK.shift = ''; kkHasil(r.data); dompetMuat(); return; }
+    if (galat === 'terlalu_cepat' && KK.coba < 6) { KK.tunggu = Date.now() + 2500; return; } /* jam server sedikit beda: tunggu lalu kirim lagi */
+    dompetMuat();
+    var bisa = r.status === 0 || r.status === 429 || r.status >= 500 || galat === 'terlalu_cepat';
+    KK.laporan = { galat: true };
+    kkTahap('tutup');
+    kkKotak('<h3>Gaji belum tercatat</h3>' + kkRinciHtml(r0) + '<p>' + kkAman(galat === 'shift_tidak_aktif' && KK.coba > 1 ? 'Shift ini sudah ditutup server. Kalau percobaan tadi sempat tercatat, gajinya sudah masuk — cek saldo + riwayat di Dompet ya.'
+      : (bisa ? 'Sinyal atau server lagi sibuk. Ketuk Coba lagi (shift disimpan sampai 20 menit sejak mulai).' : pesanApi(r, 'Server lagi sibuk.'))) + '</p>'
+      + '<div class="kk-tombol"><button type="button" class="sekunder" data-kk="tutup">Tutup</button>' + (bisa ? '<button type="button" data-kk="ulang">Coba lagi</button>' : '') + '</div>');
+  });
+}
+function kkHasil(d) {
+  var id = KK.id, p = KK_PEKERJAAN[id], n = d.nilai || {}, gaji = Number(d.gaji) || 0, tip = Number(d.tip) || 0;
+  kkTahap('hasil');
+  var r = { n1: Number(n.sempurna) || 0, n5: Number(n.setengah) || 0, n0: Number(n.salah) || 0, nl: Number(n.lewat) || 0 };
+  var komentar = r.n1 === p.pesanan ? 'Sempurna! Semua tamu puas.' : (r.n1 + r.n5 * 0.5 >= p.pesanan * 0.8 ? 'Kerja bagus — tinggal dirapikan sedikit lagi.' : (r.n1 + r.n5 * 0.5 >= p.pesanan * 0.5 ? 'Lumayan. Lebih teliti lagi supaya tipnya keluar.' : 'Manajer geleng-geleng… gaji dasar saja kali ini.'));
+  kkKotak('<h3>Gajian — ' + kkAman(p.nama) + '</h3>' + kkRinciHtml(r) + '<div class="kk-total">+' + rupiah(gaji + tip) + '</div>'
+    + '<div class="kk-angka"><div><small>Gaji</small><b>' + rupiah(gaji) + '</b></div><div><small>Tip</small><b>' + rupiah(tip) + '</b></div><div><small>Saldo</small><b>' + rupiah(Number(d.saldo) || 0) + '</b></div></div>'
+    + '<p style="text-align:center">' + komentar + '</p>'
+    + (d.naikPangkat ? '<p style="text-align:center"><b>Naik pangkat: ' + kkAman(p.pangkat[d.pangkat]) + '!</b> Gaji pokok naik, tamu makin tidak sabaran.</p>' : '<p class="kk-kecil" style="text-align:center">' + kkAman(p.pangkat[d.pangkat === 1 || d.pangkat === 2 ? d.pangkat : 0]) + ' · ' + (Number(d.shift) || 0) + ' shift' + (kerjaSisaPangkat(Number(d.shift) || 0) ? ' · ' + kerjaSisaPangkat(Number(d.shift) || 0) + ' lagi naik pangkat' : '') + '</p>')
+    + '<div class="kk-tombol"><button type="button" data-kk="tutup">Tutup</button></div>');
+}
+function kkDompetHtml(d, res) { /* daftar pekerjaan Kota di panel Dompet (tab Kerja) */
+  var h = '<p class="dp-bagian dp-kota">Kerja di Kota · gaji lebih besar, tamunya lebih rewel</p>';
+  KK_IDS.forEach(function (id) {
+    var p = KK_PEKERJAAN[id], st = d && d.pekerjaanKota && d.pekerjaanKota[id] ? d.pekerjaanKota[id] : { terdaftar: false, shift: 0, pangkat: 0 }, pangkat = '';
+    if (res && st.terdaftar) { var sisa = kerjaSisaPangkat(st.shift); pangkat = '<span class="dp-pangkat">' + p.pangkat[st.pangkat] + ' · ' + st.shift + ' shift' + (sisa ? ' · ' + sisa + ' lagi naik pangkat' : '') + '</span>'; }
+    h += '<div class="dp-job">' + (id === 'barista' ? iconSvg('kafe') : '<svg class="uicon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + (id === 'resepsionis' ? '<path d="M4 17a8 8 0 0 1 16 0zM3 20h18M12 9V6M10 6h4"/>' : '<path d="M5 9h14l1.2 11H3.8zM9 9V7a3 3 0 0 1 6 0v2"/>') + '</svg>') + '<div class="dp-isi"><div class="dp-nama">' + p.nama + '</div><div class="dp-meta">Gaji ' + rupiah(p.gaji[0]) + '–' + rupiah(p.gaji[2]) + ' + tip s.d. ' + rupiah(p.tipMaks) + ' · ' + p.tempat + '</div>' + pangkat + '</div></div>';
+  });
+  return h + '<p class="dp-info">' + (res ? 'Daftar + mulai shift langsung di tempatnya: naik MRT ke Kota, masuk gedungnya, lalu ketuk tombol <b>Kerja di …</b>.' : 'Kerja di Kota khusus penghuni.') + '</p>';
+}
+(function () { var b = kkEl('kkTombol'); if (b) b.addEventListener('click', function () { var id = (typeof kotaRuangKini !== 'undefined' && kotaRuangKini) ? KK_RUANG[kotaRuangKini] : ''; if (id) kkBuka(id); }); setInterval(kkTombolSegar, 400); })();
+/* ==== KERJA-KOTA-UI-END ==== */
 suasanaSiapkan();
 function animate() {
   requestAnimationFrame(animate);
   if (ARK.aktif) { clock.getDelta(); return; } /* Arkade Ria: layar game 2D menutup penuh — 3D tidak digambar (enteng di HP); jam tetap dibuang supaya dt tidak loncat */
+  if (KK.aktif) { clock.getDelta(); return; } /* Kerja di Kota: sama — layar kerja 2D menutup penuh */
   var dt = Math.min(clock.getDelta(), 0.05);
 
   /* gerak avatar ala open-world-fantasy (main.js): joystick + keyboard

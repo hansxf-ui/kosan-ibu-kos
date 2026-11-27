@@ -19,7 +19,7 @@ function buatFakeDb({ penghuni, sekarang = () => Date.now() }) {
   const raise = (m) => { const e = new Error(m); e.status = 400; throw e; }; /* RAISE EXCEPTION -> PostgREST 400 */
   const kunciP = (room, nama) => room + '|' + nama;
   let mutasiId = 0;
-  const PEKERJAAN_SQL = ['kafe', 'warung', 'ronda', 'laundry'];
+  const PEKERJAAN_SQL = ['kafe', 'warung', 'ronda', 'laundry', 'barista', 'resepsionis', 'pramuniaga']; /* + Kerja di Kota (migrasi 20261127_kerja_kota.sql) */
   function kedaluwarsakan(room, nama, maksDetik) {
     const now = sekarang();
     for (const s of t.shift) if (s.room === room && s.nama_norm === nama && s.status === 'aktif' && s.mulai < now - maksDetik * 1000) { s.status = 'kedaluwarsa'; s.selesai = now; }
@@ -217,7 +217,7 @@ function buatFakeDb({ penghuni, sekarang = () => Date.now() }) {
     },
     async kerjaSelesai({ room, nama, shift, gaji, tip, benar, salah, minDetik, maksDetik, keterangan }) {
       panggilan.push('kerjaSelesai');
-      if (!(gaji >= 0 && tip >= 0 && gaji + tip <= 20000)) raise('upah tidak valid');
+      if (!(gaji >= 0 && tip >= 0 && gaji <= 20000 && tip <= 20000 && gaji + tip <= 25000)) raise('upah tidak valid'); /* jumlah 25.000 = kosan_kerja_selesai sesudah migrasi Kerja di Kota; 20.000 per kolom = CHECK kosan_shift */
       const s = t.shift.find((x) => x.id === shift && x.room === room && x.nama_norm === nama);
       if (!s) raise('shift_tidak_ada');
       if (s.status !== 'aktif') raise('shift_tidak_aktif');
