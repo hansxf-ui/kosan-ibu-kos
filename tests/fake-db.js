@@ -312,6 +312,28 @@ function buatFakeDb({ penghuni, sekarang = () => Date.now() }) {
       (t.gaya || (t.gaya = new Map())).set(kunciP(room, nama), { dinding, lantai, selimut });
       return { dinding, lantai, selimut };
     },
+    /* Tata Kamar — meniru kosan_kamar_tata + kosan_tata_baca / kosan_tata_simpan + kosan_tata_sah (supabase/migrations/20261127_tata_kamar.sql).
+       t.tataRusak = true meniru tabel yang belum dimigrasi (PostgREST 404). */
+    async tataBaca({ room, nama }) {
+      panggilan.push('tataBaca');
+      if (t.tataRusak) { const e = new Error('Could not find the function public.kosan_tata_baca'); e.status = 404; throw e; }
+      const g = (t.tata || (t.tata = new Map())).get(kunciP(room, nama));
+      return g ? JSON.parse(g) : null;
+    },
+    async tataSimpan({ room, nama, tata }) {
+      panggilan.push('tataSimpan');
+      if (t.tataRusak) { const e = new Error('Could not find the function public.kosan_tata_simpan'); e.status = 404; throw e; }
+      if (!Number.isInteger(room) || room < 1 || room > 60) raise('kamar tidak valid');
+      if (typeof nama !== 'string' || nama.length < 1 || nama.length > 30) raise('nama tidak valid');
+      const m = t.tata || (t.tata = new Map());
+      if (tata === null || tata === undefined) { m.delete(kunciP(room, nama)); return null; }
+      const teks = JSON.stringify(tata), kunci = (tata && typeof tata === 'object' && !Array.isArray(tata)) ? Object.keys(tata) : null;
+      const sah = kunci && teks.length <= 700 && kunci.length >= 1 && kunci.length <= 16 && kunci.every((k) => /^[a-z][a-z_]{1,19}$/.test(k) && Array.isArray(tata[k]) && tata[k].length === 3 &&
+        tata[k].every(Number.isInteger) && Math.abs(tata[k][0]) <= 4000 && Math.abs(tata[k][1]) <= 3500 && tata[k][2] >= 0 && tata[k][2] <= 3);
+      if (!sah) raise('tata tidak valid');
+      m.set(kunciP(room, nama), teks);
+      return JSON.parse(teks);
+    },
     async fotoAmbil(room) { return t.foto.get(room) || null; },
     async fotoSimpan(room, url) { t.foto.set(room, { url, diperbarui: iso(sekarang()) }); },
     async fotoMintaUrl(room) { return { unggah: 'https://foto.test/unggah/' + room + '?token=uji' }; },

@@ -130,6 +130,9 @@ function buatDb({ url, kunci, fetchFn = globalThis.fetch }) {
     /* ---- Warna Kamar (26 Nov): fungsi SQL supabase/migrations/20261127_warna_kamar.sql ---- */
     gayaBaca: async (a) => (await rpc('kosan_gaya_baca', { p_room: angka(a.room), p_nama: nama(a.nama) })) || null,
     gayaSimpan: async (a) => rpc('kosan_gaya_simpan', { p_room: angka(a.room), p_nama: nama(a.nama), p_dinding: kode(a.dinding), p_lantai: kode(a.lantai), p_selimut: kode(a.selimut) }),
+    /* Tata Kamar (supabase/migrations/20261127_tata_kamar.sql) — tata null = hapus baris (balikin ke awal) */
+    tataBaca: async (a) => (await rpc('kosan_tata_baca', { p_room: angka(a.room), p_nama: nama(a.nama) })) || null,
+    tataSimpan: async (a) => rpc('kosan_tata_simpan', { p_room: angka(a.room), p_nama: nama(a.nama), p_tata: (a.tata && typeof a.tata === 'object' && !Array.isArray(a.tata)) ? a.tata : null }),
     /* ---- Foto profil (18 Nov) — Storage `foto-profil`, kunci objek = nomor kamar ---- */
     fotoUrlPublik: (room) => url.replace(/\/+$/, '') + '/storage/v1/object/public/' + FOTO_BUCKET + '/' + angka(room),
     fotoAmbil: async (room) => {

@@ -14,6 +14,7 @@ const I = require('./inti');
 const K = require('./kerja');
 const KK = require('./kerjakota'); /* Kerja di Kota: aturan murni (sama persis dengan blok KERJA-KOTA klien) */
 const G = require('./gaya'); /* Warna Kamar: daftar putih pilihan warna kamar */
+const TATA = require('./tata'); /* Tata Kamar: aturan tata letak (sama dengan klien) */
 const A = require('./arkade');
 
 const MENIT = 60 * 1000, JAM = 60 * MENIT, HARI = 24 * JAM;
@@ -34,7 +35,7 @@ const BATAS = { masuk: 20, daftar: 20, kamar: 60, papan: 240 }; /* per jaringan 
 const GERBANG = { maks: 5, jendelaDetik: 15 * 60, kunciDetik: 20 * 60 };
 /* Kerja & Belanja: batas per KAMAR (bukan per IP — penghuni di balik CGNAT operator seluler
    berbagi IP) per jam. Pemakaian wajar jauh di bawahnya (3 shift sehari = 9-12 panggilan). */
-const BATAS_PENGHUNI = { gaya: 120, dompet: 600, kerja: 120, belanja: 60, foto: 30, skor: 240 };
+const BATAS_PENGHUNI = { tata: 240, gaya: 120, dompet: 600, kerja: 120, belanja: 60, foto: 30, skor: 240 };
 const PESAN_KERJA = {
   belum_daftar: 'Daftar dulu di papan lowongan ya.',
   batas_hari: 'Jatah kerja hari ini sudah habis (' + K.BATAS_KERJA.shiftHari + ' shift). Besok lagi ya!',
@@ -332,11 +333,12 @@ function buatApp({ db, rahasia, sekarang = () => Date.now(), aman = true }) {
     const p = await penghuniSesi(ctx, 'dompet'); if (p.tolak) return p.tolak;
     const now = sekarang();
     /* Warna Kamar: pilihan warna ikut dibaca (paralel). Gagal dibaca (mis. tabel belum dimigrasi) = null -> kamar bawaan; dompet TIDAK ikut gagal. */
-    const [d, gaya] = await Promise.all([
+    const [d, gaya, tata] = await Promise.all([
       db.dompetBaca({ room: p.room, nama: p.nama, tanggal: K.tanggalWib(now), bulan: K.bulanWib(now), maksDetik: K.BATAS_KERJA.maksDetik }),
-      Promise.resolve().then(() => db.gayaBaca({ room: p.room, nama: p.nama })).then(G.rapikan, () => null)
+      Promise.resolve().then(() => db.gayaBaca({ room: p.room, nama: p.nama })).then(G.rapikan, () => null),
+      Promise.resolve().then(() => db.tataBaca({ room: p.room, nama: p.nama })).then(TATA.tataDariDb, () => null) /* Tata Kamar: gagal dibaca (mis. belum dimigrasi) = null -> tata letak bawaan */
     ]);
-    return balas(200, Object.assign(bentukDompet(d || {}), { gaya }));
+    return balas(200, Object.assign(bentukDompet(d || {}), { gaya, tata }));
   }
 
   /* POST /api/foto-profil {aksi: 'lihat'|'minta'|'selesai'} — foto profil
@@ -456,9 +458,23 @@ function buatApp({ db, rahasia, sekarang = () => Date.now(), aman = true }) {
     await db.gayaSimpan({ room: p.room, nama: p.nama, dinding: pilih.dinding, lantai: pilih.lantai, selimut: pilih.selimut });
     return balas(200, { gaya: pilih });
   }
+  /* POST /api/belanja {aksi:'tata', tata} — Tata Kamar: simpan tata letak perabot kamar SENDIRI (tata null = balikin ke awal).
+     Menumpang endpoint belanja (batas 12 fungsi Vercel). Kamar + nama dari SESI (badan tidak bisa menunjuk kamar lain);
+     id barang daftar putih, koordinat dijepit dalam kamar, putaran 0..3, tidak boleh tabrakan / menutup pintu (api/_lib/tata.js);
+     gratis (saldo tidak disentuh); batas laju sendiri per kamar. */
+  async function tataSimpan(ctx) {
+    const b = ctx.body;
+    let sah = null;
+    try { if (b && typeof b === 'object' && Object.prototype.hasOwnProperty.call(b, 'tata') && JSON.stringify(b.tata).length <= 700) sah = TATA.tataSahkan(b.tata); } catch (e) { sah = null; }
+    if (!sah) return galat(400, 'format', 'Tata letak tidak sah.');
+    const p = await penghuniSesi(ctx, 'tata'); if (p.tolak) return p.tolak;
+    await db.tataSimpan({ room: p.room, nama: p.nama, tata: sah.tata });
+    return balas(200, { tata: sah.tata });
+  }
   async function belanja(ctx) {
     const tolak = cekPermintaan(ctx); if (tolak) return tolak;
     const { aksi, barang } = ctx.body;
+    if (aksi === 'tata') return tataSimpan(ctx); /* Tata Kamar */
     if (aksi === 'gaya') return gayaSimpan(ctx); /* Warna Kamar */
     if (aksi !== 'beli' && aksi !== 'sewa') return galat(400, 'format', 'Aksi tidak dikenal.');
     const item = aksi === 'beli' ? K.barangDari(barang) : null;

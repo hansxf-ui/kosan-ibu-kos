@@ -1626,6 +1626,97 @@
     .kk-kotak { width: min(560px, 100%); padding: 12px 14px 10px; } .kk-kotak h3 { font-size: 18px; } .kk-total { font-size: 28px; }
     .kk-kotak p { margin: 4px 0; font-size: 12.5px; } .kk-angka { margin: 6px 0; } .kk-angka div { padding: 3px 4px; } .kk-tombol { margin-top: 4px; padding-top: 4px; } .kk-tombol button { height: 42px; }
   }
+  /* ===== Tata Kamar (27 Nov) — tombol "Tata" (hanya di kamar sendiri) + panel mode tata (pola #warnaPanel: tanpa latar gelap, kamar tetap kelihatan) ===== */
+  #tataBtn { background: #fff; color: var(--kb-biru); }
+  #tataBtn .uicon { color: #2f8f6b; }
+  #tataBtn[aria-expanded="true"] { background: var(--kb-biru-muda); box-shadow: inset 0 0 0 2px var(--kb-biru-2), 0 2px 8px rgba(0,0,0,.3); }
+  body.tata-aktif #actionbar, body.tata-aktif #hint, body.tata-aktif #hintToggle { display: none !important; } /* mode tata: layar lega, hanya kamar + panel */
+  #tataPanel { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 35;
+    display: none; max-width: 420px; margin: 0 auto; background: #fff; border-radius: 22px; padding: 12px 14px 12px;
+    box-shadow: var(--kb-bayang-2), inset 0 0 0 1px rgba(255,255,255,.7); }
+  #tataPanel.open { display: block; animation: kbMuncul .2s ease-out; }
+  #tataPanel h2 { display: flex; align-items: center; gap: 7px; font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 18px; line-height: 1.2;
+    color: var(--kb-biru); margin: 0 40px 4px 0; }
+  #tataPanel h2 svg { width: 21px; height: 21px; color: #2f8f6b; flex: none; }
+  #tataClose { position: absolute; top: 9px; right: 11px; width: 30px; height: 30px; border: none; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; background: var(--kb-isi); color: var(--kb-teks-2); cursor: pointer; }
+  #tataPetunjuk { margin: 0 0 8px; min-height: 31px; display: flex; align-items: center; font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 700; line-height: 1.3; color: var(--kb-teks-2); }
+  #tataPetunjuk.seret, #tataPetunjuk.tolak { color: #c2452d; font-weight: 800; }
+  #tataPetunjuk.info { color: #1d8a55; font-weight: 800; }
+  #tataDaftar { display: flex; gap: 6px; margin: 0 -14px 9px; padding: 1px 14px 3px; overflow-x: auto; overflow-y: hidden; overscroll-behavior: contain; touch-action: pan-x;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  #tataDaftar::-webkit-scrollbar { display: none; }
+  .tk-chip { flex: none; padding: 7px 11px; border: none; border-radius: 999px; cursor: pointer; background: var(--kb-isi); color: var(--kb-teks-2);
+    font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 800; white-space: nowrap; box-shadow: inset 0 0 0 1px rgba(19,37,58,.06); }
+  .tk-chip[aria-selected="true"] { background: var(--kb-biru-muda); color: var(--kb-biru); box-shadow: inset 0 0 0 2px var(--kb-biru-2); }
+  .tk-kaki { display: flex; align-items: center; gap: 7px; }
+  #tataPutar, #tataPulih { flex: none; display: inline-flex; align-items: center; gap: 5px; padding: 9px 11px; border: none; border-radius: 13px; cursor: pointer;
+    background: var(--kb-isi); color: var(--kb-teks-2); font-family: 'Nunito', sans-serif; font-size: 12.5px; font-weight: 800; white-space: nowrap; }
+  #tataPutar { background: var(--kb-biru-muda); color: var(--kb-biru); }
+  #tataPutar svg { width: 14px; height: 14px; }
+  #tataPutar:disabled, #tataPulih:disabled { opacity: .45; cursor: default; }
+  #tataPulih.tanya { background: #fde3dc; color: #c2452d; }
+  #tataStatus { position: absolute; top: 16px; right: 50px; font-size: 11.5px; font-weight: 800; color: #6b7d92; white-space: nowrap; }
+  .tk-sela { flex: 1; min-width: 0; }
+  #tataStatus.ok { color: #1d8a55; }
+  #tataStatus.gagal { color: #c2452d; }
+  #tataSelesai { flex: none; padding: 9px 16px; border: none; border-radius: 13px; cursor: pointer; font-family: 'Baloo 2', 'Nunito', sans-serif;
+    font-size: 15px; font-weight: 800; color: #fff; background: linear-gradient(180deg, #3a8de6, #1f6fc9); }
+  @media (orientation: landscape) and (min-width: 900px) and (min-height: 501px) {
+    #tataPanel { left: auto; right: 16px; top: 72px; bottom: auto; width: 340px; margin: 0; }
+    #tataDaftar { flex-wrap: wrap; overflow: visible; }
+  }
+  @media (max-height: 500px) and (orientation: landscape) {
+    #tataPanel { left: auto; right: 12px; top: 52px; bottom: auto; width: 264px; max-width: none; margin: 0; max-height: calc(100dvh - 60px); overflow-y: auto; padding: 9px 12px 10px; }
+    #tataPanel h2 { font-size: 16px; margin-bottom: 2px; }
+    #tataStatus { top: 12px; }
+    #tataPetunjuk { font-size: 11.5px; min-height: 30px; margin: 0 30px 6px 0; } /* sisakan tempat tombol tutup di kanan */
+    #tataDaftar { flex-wrap: wrap; overflow: visible; margin: 0 0 8px; padding: 0; gap: 5px; touch-action: auto; }
+    .tk-chip { padding: 5px 9px; font-size: 11.5px; }
+    .tk-kaki { flex-wrap: wrap; row-gap: 6px; }
+    #tataPutar, #tataPulih { padding: 6px 10px; }
+    #tataSelesai { padding: 6px 14px; font-size: 14px; }
+  }
+  /* ===== Bilah atas tidak saling menimpa (27 Nov) — cacat LAMA: di lanskap HP, saat tombol "Bangun" muncul (duduk/tidur) atau pil status
+     panjang ("Sendiri — ketuk untuk coba lagi"), deret pil pindah ke baris kedua dan tertimpa deret aksi (Pergi ke, Emote, dompet, Warna,
+     Tata) yang posisinya fixed di top 46px. Obat: di lanskap bilah atas SATU baris saja — identitas (lalu pil status) yang memendek pakai
+     elipsis, bukan pil yang turun baris. Keadaan normal (semua muat) tampilannya tidak berubah. ===== */
+  @media (max-height: 430px) and (orientation: landscape) {
+    #topbar { flex-wrap: nowrap; }
+    #hud-title { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 8px; align-items: baseline;
+      flex: 1 100 auto; min-width: 118px; }
+    #hud-title h1 { grid-column: 1 / -1; }
+    #hud-title #whoami { min-width: 0; overflow: hidden; overflow: clip; overflow-clip-margin: 8px; text-overflow: ellipsis; } /* clip + margin: bayangan teks tidak ikut terpotong */
+    #topbtns { flex: 0 1 auto; flex-wrap: nowrap; min-width: 0; }
+    #topbtns > * { flex: 0 0 auto; }
+    #topbtns > #mpPill { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  }
+  /* Layar tegak/sedang 421–760px (HP lebar 430px, tablet kecil): dulu ikut tata letak desktop — pil membungkus di kanan dan menabrak deret
+     aksi (fixed top 74px) atau terpotong tepi layar. Sekarang ikut tata letak HP tegak (semua di dalam alur, jadi tidak bisa menimpa). */
+  @media (min-width: 421px) and (max-width: 760px) and (min-height: 431px) {
+    #topbar { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 4px 8px; padding: 6px 10px 5px; }
+    #hud-title, #topbtns { display: contents; }
+    #hud-title h1 { font-size: 15px; order: 1; }
+    #hud-title .h1-sub { display: none; }
+    #hud-title #roomCount { font-size: 11px; order: 4; margin-top: 0; }
+    #hud-title #whoami { font-size: 11px; order: 5; margin-top: 0; }
+    #hud-title #whoami::before { content: "· "; }
+    #wakeBtn { order: 2; }
+    #mpPill, #clockWib, #menuWrap { order: 3; }
+    #topbar .uicon { width: 13px; height: 13px; }
+    #hud-title h1 .uicon { width: 15px; height: 15px; vertical-align: -2px; }
+    .pillbtn { font-size: 11px; padding: 5px 9px; }
+    #topbar #actionbar { position: static; flex: 0 1 auto; order: 8; flex-basis: 100%; max-width: calc(100vw - 20px); margin-top: 2px; gap: 6px; }
+    #actionbar button { font-size: 12px; padding: 6px 9px; }
+  }
+  /* HP tegak sempit, di kamar sendiri (tombol Warna + Tata tampil): deret aksi dirapatkan + label "Emote" disembunyikan (ikon saja)
+     supaya lima tombol muat sebaris; di luar kamar tampilan tidak berubah. */
+  @media (max-width: 420px) {
+    body.ada-tata #topbar #actionbar { gap: 5px; }
+    body.ada-tata #actionbar button { padding: 6px 7px; }
+    body.ada-tata #emoteBtn { font-size: 0; display: inline-flex; align-items: center; justify-content: center; padding: 6px 9px; min-height: 31px; }
+    body.ada-tata #emoteBtn .uicon { width: 16px; height: 16px; }
+  }
 </style>
 <script type="importmap">
 {
@@ -1751,6 +1842,8 @@
     <button id="dompetPill" type="button" title="Dompet: saldo Rupiah, kerja, toko" style="display:none"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><rect x="4" y="7.5" width="16" height="11.5" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 13.2h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="16.2" cy="13.2" r="1" fill="currentColor"/></svg> <span id="dompetPillTeks">Rp0</span></button>
     <!-- Warna Kamar (26 Nov) — hanya tampil untuk penghuni di kamarnya sendiri (diatur warnaKamarSelaras) -->
     <button id="warnaBtn" type="button" title="Ganti warna dinding, lantai, dan selimut kamarmu" aria-expanded="false" aria-controls="warnaPanel" style="display:none"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3.5" width="14" height="6" rx="2" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M17 6.5h2.5a1.5 1.5 0 0 1 1.5 1.5v2.5a1.5 1.5 0 0 1-1.5 1.5H12v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><rect x="10.5" y="15" width="3" height="6" rx="1.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg> Warna</button>
+    <!-- Tata Kamar (27 Nov) — hanya tampil untuk penghuni di kamarnya sendiri (diatur tkSelaras) -->
+    <button id="tataBtn" type="button" title="Atur tata letak perabot kamarmu" aria-expanded="false" aria-controls="tataPanel" style="display:none"><svg class="uicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M3 12h18M12 3l-2.6 2.6M12 3l2.6 2.6M12 21l-2.6-2.6M12 21l2.6-2.6M3 12l2.6-2.6M3 12l2.6 2.6M21 12l-2.6-2.6M21 12l-2.6 2.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Tata</button>
   </div>
 </div>
 
@@ -1866,6 +1959,21 @@
     <button id="warnaPulih" type="button" title="Kembalikan dinding, lantai, dan selimut ke tampilan awal"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5v5h5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.6 10A8 8 0 1 1 6 16.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg> Balikin ke awal</button>
     <span id="warnaStatus" role="status" aria-live="polite"></span>
     <button id="warnaSelesai" type="button">Selesai</button>
+  </div>
+</div>
+
+<!-- Tata Kamar (27 Nov) — mode tata letak perabot kamar sendiri. Kamar dilihat dari atas; isi di-render tkRender(). Pola #warnaPanel (tanpa latar gelap). -->
+<div id="tataPanel" role="dialog" aria-modal="false" aria-labelledby="tataJudul">
+  <button id="tataClose" type="button" aria-label="Tutup"><svg class="kb-x" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button>
+  <h2 id="tataJudul"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M3 12h18M12 3l-2.6 2.6M12 3l2.6 2.6M12 21l-2.6-2.6M12 21l2.6-2.6M3 12l2.6-2.6M3 12l2.6 2.6M21 12l-2.6-2.6M21 12l-2.6 2.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Tata Kamar</h2>
+  <span id="tataStatus" role="status" aria-live="polite"></span>
+  <p id="tataPetunjuk" role="status" aria-live="polite"></p>
+  <div id="tataDaftar" role="listbox" aria-label="Perabot di kamar"></div>
+  <div class="tk-kaki">
+    <button id="tataPutar" type="button" title="Putar perabot terpilih / pindah ke dinding berikutnya"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 5v5h-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M19.4 10A8 8 0 1 0 18 16.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg> Putar</button>
+    <button id="tataPulih" type="button" title="Kembalikan semua perabot ke tempat awal">Balikin ke awal</button>
+    <span class="tk-sela"></span>
+    <button id="tataSelesai" type="button">Selesai</button>
   </div>
 </div>
 
@@ -4934,8 +5042,10 @@ function bangunKulitKamar() { /* kamar 8 x 7 x 3,6 (dinding x +-4, z +-3,5) — 
   R.tempel(I.gelap, 'timur', 0.5, 1.08, 1.42, 0.04, 0.15, -0.05, null, null, 0xd9d2c6);
   /* headboard jok (bagian kasur) di dinding utara selebar kasur (x -4,0..-2,5):
      alas papan walnut + jok bersaluran; tebal total 7,5 cm < 8 cm (rangka kasur mulai z -3,42) */
-  R.tempel(I.gelap, 'utara', -3.25, 0.82, 1.5, 1.04, 0.025, 0, null, null, 0x3a2a1d);
-  R.tempel(I.jok, 'utara', -3.25, 0.84, 1.4, 0.96, 0.05, 0.025);
+  var RK = new RuangModern(tataKepalaGrup(), 8, 7, 3.6); /* Tata Kamar: headboard = grup sendiri (bentuk, bahan, posisi sama) supaya ikut kasur pindah */
+  RK.tempel(I.gelap, 'utara', -3.25, 0.82, 1.5, 1.04, 0.025, 0, null, null, 0x3a2a1d);
+  RK.tempel(I.jok, 'utara', -3.25, 0.84, 1.4, 0.96, 0.05, 0.025);
+  RK.K.selesai(false);
   R.K.selesai(false);
 }
 
@@ -6663,6 +6773,7 @@ function terapkanPoseKamar() {
   avatarPos.x = p.x; avatarPos.z = p.z;
   avatar.position.set(p.x, p.y, p.z);
   avatar.rotation.x = p.rotX; avatar.rotation.y = p.rotY;
+  avatar.rotation.z = (roomPose === 'sleep' && typeof myRealm === 'string' && myRealm.indexOf('room-') === 0) ? (POSE_SLEEP.rotZ || 0) : 0; /* Tata Kamar: tidur mengikuti arah kasur */
   avLegL.rotation.x = p.leg; avLegR.rotation.x = p.leg;
   avArmL.rotation.x = 0; avArmR.rotation.x = 0;
   avTubuh.rotation.y = 0;
@@ -6703,7 +6814,7 @@ function bangunDariKasur(diam) {
   poseTempat = null;
   jalanDiPosRonda = false; /* Tahap 3a — bale-bale pos ronda */
   kotaDudukId = null; /* Kota (22 Nov) — bangku / bibir bak tanaman */
-  avatar.rotation.x = 0;
+  avatar.rotation.x = 0; avatar.rotation.z = 0; /* Tata Kamar: rotZ = arah kasur saat tidur */
   avatarPos.x = w.x; avatarPos.z = w.z;
   avatar.rotation.y = w.rotY;
   avatar.position.set(w.x, 0, w.z);
@@ -12308,6 +12419,7 @@ window.addEventListener('popstate', function () {
   var profilO = document.getElementById('profilOverlay');
   if (profilO && profilO.classList.contains('open')) { dorongStateLagi(); profilTutup(); return; }
   if (KK.aktif) { dorongStateLagi(); kkKembali(); return; } /* Kerja di Kota */
+  if (TK.aktif) { dorongStateLagi(); tkTutup(); return; } /* Tata Kamar */
   if (WK.buka) { dorongStateLagi(); warnaTutup(); return; } /* Warna Kamar */
   if (rupaPanel && rupaPanel.classList.contains('open')) { dorongStateLagi(); rupaTutup(); return; } /* Karakter v2 */
   if (dompetTerbuka()) { dorongStateLagi(); dompetTutup(); return; } /* Kerja & Belanja — panel Dompet */
@@ -14735,8 +14847,568 @@ function warnaTutup() {
 })();
 /* ==== WARNA-KAMAR-UI-END ==== */
 
+/* ==== TATA-KAMAR-START ==== */
+/* Tata Kamar (pemilik 26 Nov: "atur tata letak sendiri ... mindah mindahin sendiri") — ATURAN MURNI tata letak perabot kamar.
+   Blok ini SAMA PERSIS dengan api/_lib/tata.js (dijaga tests/tata-kamar.test.js): klien memakainya untuk menolak posisi
+   tak sah saat diseret, server memakainya untuk menolak simpanan tak sah. Tanpa DOM dan tanpa pustaka 3D.
+   Satuan MILIMETER (bilangan bulat). Kamar 8 x 7 m: x -4000..4000 (barat..timur), z -3500..3500 (utara..selatan).
+   Simpanan: { id: [x, z, r] } — r = putaran 0..3 (rotY = r x 90 derajat). Barang di dinding: r = dinding
+   (0 utara, 1 barat, 2 selatan, 3 timur), koordinat tegak lurus dinding selalu dihitung ulang (tidak dipercaya).
+   Jenis: 'sandar' = berdiri di lantai, punggung menempel dinding; 'gantung' = menempel di dinding;
+          'bebas' = di lantai mana saja, bisa diputar; 'alas' = karpet (boleh di bawah perabot).
+   k = jejak [x0, z0, x1, z1] relatif titik pusat pada r 0 (sandar/gantung: z 0 = bidang dinding, +z = ke dalam kamar);
+   y = [bawah, atas]; d = jarak titik pusat dari dinding; a = posisi awal (= kamar sebelum fitur ini);
+   lega = jejak yang harus kosong (kaki kasur, depan bean bag). */
+var TATA_KAMAR = {
+  X: 4000, Z: 3500, R: 400, LANGKAH: 100,
+  JALAN: [-3100, -2600, 3100, 2600], /* = ROOM (batas jalan avatar) */
+  SPAWN: [900, -500], PINTU: [0, 2600],
+  TETAP: [ /* tidak bisa dipindah: [x0, z0, x1, z1, y0, y1, sebab] */
+    [-950, 2300, 950, 3500, 0, 3050, 'pintu'],
+    [3780, -420, 4000, 1420, 1150, 2900, 'jendela'],
+    [-4000, -3500, -2740, -3260, 2250, 3600, 'ac']
+  ],
+  URUT: ['kasur', 'nakas', 'tv', 'meja_belajar', 'meja_rias', 'rak_buku', 'akuarium', 'cermin', 'bean_bag', 'tanaman', 'poster', 'lampu_tumblr', 'karpet'],
+  BAWAAN: ['kasur', 'nakas', 'tv'],
+  B: {
+    kasur: { n: 'Kasur', j: 'sandar', d: 0, k: [-750, 0, 750, 2380], y: [0, 1340], a: [-3250, -3500, 0], lega: [-750, 2380, 750, 2980] },
+    nakas: { n: 'Nakas + lampu', j: 'bebas', k: [-400, -350, 400, 350], y: [0, 1130], a: [-1800, -3130, 0] },
+    tv: { n: 'TV dinding', j: 'gantung', d: 37.5, k: [-745, -40, 745, 30], y: [990, 1850], a: [-2375, 3500, 2] },
+    meja_belajar: { n: 'Meja belajar', j: 'sandar', d: 20, k: [-800, -20, 800, 1090], y: [0, 1140], a: [4000, 50, 3] },
+    meja_rias: { n: 'Meja rias', j: 'sandar', d: 20, k: [-600, -20, 600, 950], y: [0, 1600], a: [1850, 3500, 2] },
+    rak_buku: { n: 'Rak buku', j: 'sandar', d: 20, k: [-550, -20, 550, 330], y: [0, 2000], a: [-400, -3500, 0] },
+    akuarium: { n: 'Akuarium', j: 'sandar', d: 20, k: [-430, -20, 430, 410], y: [0, 1100], a: [2650, -3500, 0] },
+    cermin: { n: 'Cermin', j: 'sandar', d: 20, k: [-350, -20, 350, 300], y: [0, 1750], a: [-4000, 75, 1] },
+    bean_bag: { n: 'Bean bag', j: 'bebas', k: [-580, -620, 580, 440], y: [0, 800], a: [-2350, 1150, 0], lega: [-300, 440, 300, 900] },
+    tanaman: { n: 'Tanaman', j: 'bebas', k: [-350, -380, 380, 330], y: [0, 1730], a: [3620, -3120, 0] },
+    poster: { n: 'Poster', j: 'gantung', d: 30, k: [-500, -30, 500, 30], y: [1560, 2880], a: [1600, -3500, 0] },
+    lampu_tumblr: { n: 'Lampu tumblr', j: 'gantung', d: 50, k: [-40, -50, 6340, 50], y: [3050, 3330], a: [-2500, -3500, 0] },
+    karpet: { n: 'Karpet', j: 'alas', k: [-1150, -1150, 1150, 1150], y: [0, 30], a: [700, 250, 0] }
+  }
+};
+function tataPunya(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
+function tataBarang(id) { return (typeof id === 'string' && tataPunya(TATA_KAMAR.B, id)) ? TATA_KAMAR.B[id] : null; }
+function tataBulat(n) { return typeof n === 'number' && isFinite(n) && Math.floor(n) === n; }
+function tataPutar(k, r) { /* jejak [x0,z0,x1,z1] diputar r x 90 derajat (rotY): (x, z) -> (z, -x) */
+  if (r === 1) return [k[1], 0 - k[2], k[3], 0 - k[0]];
+  if (r === 2) return [0 - k[2], 0 - k[3], 0 - k[0], 0 - k[1]];
+  if (r === 3) return [0 - k[3], k[0], 0 - k[1], k[2]];
+  return [k[0], k[1], k[2], k[3]];
+}
+function tataJepit(v, a, b) { return v < a ? a : (v > b ? b : v); }
+/* posisi sungguhan titik pusat { x, z, r } (mm; koordinat tegak lurus dinding dihitung dari d) */
+function tataPos(id, v) {
+  var b = TATA_KAMAR.B[id], T = TATA_KAMAR, r = v[2];
+  if (b.j !== 'sandar' && b.j !== 'gantung') return { x: v[0], z: v[1], r: r };
+  if (r === 0) return { x: v[0], z: -T.Z + b.d, r: 0 };
+  if (r === 1) return { x: -T.X + b.d, z: v[1], r: 1 };
+  if (r === 2) return { x: v[0], z: T.Z - b.d, r: 2 };
+  return { x: T.X - b.d, z: v[1], r: 3 };
+}
+/* bentuk baku [x, z, r]: dijepit supaya jejak utuh di dalam kamar; barang dinding: koordinat dinding = bidang dinding. null = bukan bentuk sah */
+function tataRapikan(id, v) {
+  var b = tataBarang(id), T = TATA_KAMAR;
+  if (!b || !Array.isArray(v) || v.length !== 3 || !tataBulat(v[0]) || !tataBulat(v[1]) || !tataBulat(v[2]) || v[2] < 0 || v[2] > 3) return null;
+  var r = v[2], k = tataPutar(b.k, r), x = v[0], z = v[1];
+  if (b.j === 'sandar' || b.j === 'gantung') {
+    if (r === 0 || r === 2) { x = tataJepit(x, -T.X - k[0], T.X - k[2]); z = r === 0 ? -T.Z : T.Z; }
+    else { z = tataJepit(z, -T.Z - k[1], T.Z - k[3]); x = r === 1 ? -T.X : T.X; }
+  } else {
+    x = tataJepit(x, -T.X - k[0], T.X - k[2]); z = tataJepit(z, -T.Z - k[1], T.Z - k[3]);
+  }
+  return [Math.round(x), Math.round(z), r];
+}
+/* kotak dunia [x0, z0, x1, z1, y0, y1] */
+function tataKotak(id, v, jejak) {
+  var b = TATA_KAMAR.B[id], p = tataPos(id, v), k = tataPutar(jejak || b.k, p.r);
+  return [p.x + k[0], p.z + k[1], p.x + k[2], p.z + k[3], b.y[0], b.y[1]];
+}
+function tataTindih(a, b) { /* dua kotak bertumpang lebih dari 1 mm di ketiga sumbu */
+  return a[0] < b[2] - 1 && b[0] < a[2] - 1 && a[1] < b[3] - 1 && b[1] < a[3] - 1 && a[4] < b[5] - 1 && b[4] < a[5] - 1;
+}
+function tataTitik(id, v, lx, lz) { /* titik lokal -> dunia, dijepit ke batas jalan */
+  var p = tataPos(id, v), q = tataPutar([lx, lz, lx, lz], p.r), J = TATA_KAMAR.JALAN;
+  return [tataJepit(p.x + q[0], J[0], J[2]), tataJepit(p.z + q[1], J[1], J[3])];
+}
+function tataBangunKasur(v) { return tataTitik('kasur', v, 0, 3280); } /* 0,9 m di depan kaki kasur (= WAKE_SPOT) */
+function tataPadat(tata) { /* kotak yang menghalangi jalan avatar: semua barang lantai kecuali karpet */
+  var L = [];
+  for (var id in tata) if (tataPunya(tata, id)) { var b = TATA_KAMAR.B[id]; if (b.j === 'sandar' || b.j === 'bebas') L.push(tataKotak(id, tata[id])); }
+  return L;
+}
+function tataTerhalang(L, x, z) { /* titik (x, z) di dalam kotak padat yang digembungkan radius avatar (= resolveAABB r 0,4) */
+  var R = TATA_KAMAR.R;
+  for (var i = 0; i < L.length; i++) if (x > L[i][0] - R && x < L[i][2] + R && z > L[i][1] - R && z < L[i][3] + R) return true;
+  return false;
+}
+/* banjir-isi lantai yang bisa dijalani mulai dari titik masuk kamar -> fungsi sampai(x, z) */
+function tataJangkau(tata) {
+  var T = TATA_KAMAR, J = T.JALAN, S = T.LANGKAH, nx = Math.round((J[2] - J[0]) / S) + 1, nz = Math.round((J[3] - J[1]) / S) + 1;
+  var L = tataPadat(tata), peta = new Array(nx * nz), i, j;
+  for (i = 0; i < nx; i++) for (j = 0; j < nz; j++) peta[j * nx + i] = tataTerhalang(L, J[0] + i * S, J[1] + j * S) ? 0 : 1;
+  var sel = function (x, z) { return [tataJepit(Math.round((x - J[0]) / S), 0, nx - 1), tataJepit(Math.round((z - J[1]) / S), 0, nz - 1)]; };
+  var s = sel(T.SPAWN[0], T.SPAWN[1]), antre = [];
+  if (peta[s[1] * nx + s[0]] === 1) { peta[s[1] * nx + s[0]] = 2; antre.push(s[0], s[1]); }
+  for (var h = 0; h < antre.length; h += 2) {
+    var cx = antre[h], cz = antre[h + 1], N = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    for (var q = 0; q < 4; q++) {
+      var ax = cx + N[q][0], az = cz + N[q][1];
+      if (ax < 0 || az < 0 || ax >= nx || az >= nz || peta[az * nx + ax] !== 1) continue;
+      peta[az * nx + ax] = 2; antre.push(ax, az);
+    }
+  }
+  return function (x, z) { var c = sel(x, z); return peta[c[1] * nx + c[0]] === 2; };
+}
+function tataBangunBean(v, sampai) { /* titik berdiri dari bean bag: 1 m di kanan, kalau tertutup 1 m di kiri; null = dua-duanya tertutup */
+  var a = tataTitik('bean_bag', v, 1000, 0); if (sampai(a[0], a[1])) return a;
+  var b = tataTitik('bean_bag', v, -1000, 0); if (sampai(b[0], b[1])) return b;
+  return null;
+}
+/* periksa satu tata letak utuh. null = sah; kalau tidak { id, sebab, lawan } (sebab: format | tabrak | pintu | jendela | ac | lega | jalan) */
+function tataCek(tata) {
+  var T = TATA_KAMAR, ids = [], K = {}, Lg = {}, i, j, t, id;
+  if (!tata || typeof tata !== 'object' || Array.isArray(tata)) return { id: null, sebab: 'format' };
+  for (id in tata) if (tataPunya(tata, id)) {
+    var v = tataRapikan(id, tata[id]);
+    if (!v || v[0] !== tata[id][0] || v[1] !== tata[id][1] || v[2] !== tata[id][2]) return { id: id, sebab: 'format' };
+    ids.push(id); K[id] = tataKotak(id, v);
+    if (T.B[id].lega) Lg[id] = tataKotak(id, v, T.B[id].lega);
+  }
+  if (ids.length > T.URUT.length) return { id: null, sebab: 'format' };
+  for (i = 0; i < ids.length; i++) {
+    var a = ids[i], ba = T.B[a];
+    if (ba.j === 'alas') continue;
+    for (t = 0; t < T.TETAP.length; t++) if (tataTindih(K[a], T.TETAP[t])) return { id: a, sebab: T.TETAP[t][6] };
+    if (Lg[a]) {
+      var g = Lg[a];
+      if (g[0] < -T.X || g[1] < -T.Z || g[2] > T.X || g[3] > T.Z) return { id: a, sebab: 'lega' };
+      for (t = 0; t < T.TETAP.length; t++) if (T.TETAP[t][6] !== 'pintu' && tataTindih(g, T.TETAP[t])) return { id: a, sebab: 'lega' };
+    }
+    for (j = 0; j < ids.length; j++) {
+      var c = ids[j]; if (c === a || T.B[c].j === 'alas') continue;
+      if (j > i && tataTindih(K[a], K[c])) return { id: a, sebab: 'tabrak', lawan: c };
+      if (Lg[a] && tataTindih([Lg[a][0], Lg[a][1], Lg[a][2], Lg[a][3], 0, 1000], K[c])) return { id: a, sebab: 'lega', lawan: c };
+    }
+  }
+  var sampai = tataJangkau(tata);
+  if (!sampai(T.SPAWN[0], T.SPAWN[1]) || !sampai(T.PINTU[0], T.PINTU[1])) return { id: null, sebab: 'jalan' };
+  if (K.kasur) { var w = tataBangunKasur(tata.kasur); if (!sampai(w[0], w[1])) return { id: 'kasur', sebab: 'jalan' }; }
+  if (K.bean_bag && !tataBangunBean(tata.bean_bag, sampai)) return { id: 'bean_bag', sebab: 'jalan' };
+  return null;
+}
+function tataAwal(ada) { /* tata letak bawaan untuk daftar barang yang ada */
+  var o = {}, T = TATA_KAMAR;
+  for (var i = 0; i < T.URUT.length; i++) if (ada.indexOf(T.URUT[i]) >= 0) o[T.URUT[i]] = T.B[T.URUT[i]].a.slice();
+  return o;
+}
+function tataSama(a, b) {
+  var T = TATA_KAMAR;
+  for (var i = 0; i < T.URUT.length; i++) {
+    var id = T.URUT[i], pa = !!(a && tataPunya(a, id)), pb = !!(b && tataPunya(b, id));
+    if (pa !== pb) return false;
+    if (pa && (a[id][0] !== b[id][0] || a[id][1] !== b[id][1] || a[id][2] !== b[id][2])) return false;
+  }
+  return true;
+}
+/* cari tempat sah terdekat untuk satu barang di tengah tata letak yang sudah sah; null = tidak ada */
+function tataCariTempat(tata, id, mulai) {
+  var T = TATA_KAMAR, b = T.B[id], m = tataRapikan(id, mulai || b.a) || b.a.slice(), calon = [], r, u, x, z;
+  var coba = function (v) { var o = {}; for (var k in tata) if (tataPunya(tata, k) && k !== id) o[k] = tata[k]; o[id] = v; return tataCek(o) ? null : v; };
+  var jarak = function (v) { var p = tataPos(id, v), q = tataPos(id, m); return Math.abs(p.x - q.x) + Math.abs(p.z - q.z) + (v[2] === m[2] ? 0 : 1500); };
+  if (b.j === 'sandar' || b.j === 'gantung') {
+    for (r = 0; r < 4; r++) for (u = -4000; u <= 4000; u += 100) { var v = tataRapikan(id, (r === 0 || r === 2) ? [u, 0, r] : [0, u, r]); if (v) calon.push(v); }
+  } else {
+    for (r = 0; r < (b.j === 'alas' ? 1 : 4); r++) for (x = -3800; x <= 3800; x += 200) for (z = -3400; z <= 3400; z += 200) { var w = tataRapikan(id, [x, z, (m[2] + r) % 4]); if (w) calon.push(w); }
+  }
+  calon.sort(function (p, q) { return jarak(p) - jarak(q); });
+  var h = coba(m); if (h) return h;
+  for (var i = 0; i < calon.length; i++) { h = coba(calon[i]); if (h) return h; }
+  return null;
+}
+/* simpanan (boleh null / sebagian / basi) + daftar barang yang ada -> tata letak utuh yang PASTI sah */
+function tataSusun(simpanan, ada) {
+  var T = TATA_KAMAR, o = {}, s = (simpanan && typeof simpanan === 'object' && !Array.isArray(simpanan)) ? simpanan : {};
+  for (var i = 0; i < T.URUT.length; i++) {
+    var id = T.URUT[i]; if (ada.indexOf(id) < 0) continue;
+    var v = (tataPunya(s, id) && tataRapikan(id, s[id])) || T.B[id].a.slice();
+    o[id] = v;
+    if (tataCek(o)) { delete o[id]; var c = tataCariTempat(o, id, v); if (!c) return tataAwal(ada); o[id] = c; }
+  }
+  return o;
+}
+/* badan permintaan server -> { tata } sah, { tata: null } (balikin ke awal), atau null (ditolak) */
+function tataSahkan(t) {
+  if (t === null) return { tata: null };
+  if (!t || typeof t !== 'object' || Array.isArray(t)) return null;
+  var kunci = Object.keys(t), o = {};
+  if (kunci.length < 1 || kunci.length > TATA_KAMAR.URUT.length) return null;
+  for (var i = 0; i < kunci.length; i++) {
+    var v = tataBarang(kunci[i]) ? tataRapikan(kunci[i], t[kunci[i]]) : null;
+    if (!v) return null;
+    o[kunci[i]] = v;
+  }
+  for (i = 0; i < TATA_KAMAR.BAWAAN.length; i++) if (!tataPunya(o, TATA_KAMAR.BAWAAN[i])) return null;
+  if (tataCek(o)) return null;
+  return { tata: tataSusun(o, kunci) };
+}
+/* baris database -> simpanan yang bentuknya pasti sah (barang tak dikenal / bentuk rusak dibuang); tanpa baris -> null */
+function tataDariDb(t) {
+  if (!t || typeof t !== 'object' || Array.isArray(t)) return null;
+  var o = {}, n = 0;
+  for (var i = 0; i < TATA_KAMAR.URUT.length; i++) { var id = TATA_KAMAR.URUT[i]; if (tataPunya(t, id)) { var v = tataRapikan(id, t[id]); if (v) { o[id] = v; n++; } } }
+  return n ? o : null;
+}
+/* ==== TATA-KAMAR-END ==== */
+/* ==== TATA-KAMAR-UI-START ==== */
+/* Tata Kamar — sisi klien: grup perabot, mode tata (kamera dari atas, pilih, seret, putar), tabrakan + pose ikut posisi baru,
+   simpan otomatis lewat POST /api/belanja {aksi:'tata'} (tanpa fungsi Vercel / fetch baru). Kamar hanya bisa dimasuki pemiliknya,
+   jadi tata letak tidak disiarkan ke pemain lain. Di luar kamar sendiri semua perabot kembali ke posisi bawaan. */
+var TK = { siap: null, g: {}, peta: null, tata: null, simpanan: null, untuk: '', kotor: false, timer: 0, menyimpan: false, terpasang: false,
+  aktif: false, pilih: null, seret: null, sorot: null, garis: null, sinar: null, kam: null, kamUkuran: '', pulihTanya: 0, pesan: '', pesanJenis: '' };
+function tataKepalaGrup() { /* headboard kasur: grup sendiri (dulu tergabung ke kulit kamar) supaya ikut kasur pindah */
+  if (!tataKepalaGrup.g) { tataKepalaGrup.g = new THREE.Group(); tataKepalaGrup.g.name = 'kepalaKasur'; roomScene.add(tataKepalaGrup.g); }
+  return tataKepalaGrup.g;
+}
+function tkDiKamarSendiri() { return !!(typeof myRealm === 'string' && visitorRoom && myRealm === 'room-' + visitorRoom && ktaIsResident()); }
+function tkSiapkan() { /* sekali: kumpulkan mesh kasur + nakas ke grup (posisi dunia tetap); gagal mengenali = fitur mati, kamar tetap seperti biasa */
+  if (TK.siap !== null) return TK.siap;
+  TK.siap = false;
+  try {
+    var dekat = function (a, b) { return Math.abs(a - b) < 0.011; };
+    var kasur = roomClickables.filter(function (m) { return m.userData && m.userData.interact === 'bed' && m.parent === roomScene; });
+    var kepala = tataKepalaGrup().children.slice();
+    var lampu = roomClickables.filter(function (m) { return m.userData && m.userData.interact === 'lamp' && m.parent === roomScene; });
+    var daun = roomScene.children.filter(function (m) { return m.isMesh && dekat(m.position.x, -1.8) && dekat(m.position.y, 0.7) && dekat(m.position.z, -3.13); });
+    var kaki = roomScene.children.filter(function (m) { return m.isMesh && m.material === M.steelDark && dekat(m.position.y, 0.35) && m.position.x > -2.3 && m.position.x < -1.3 && m.position.z < -2.7; });
+    var tv = roomScene.getObjectByName('tvDindingKamar');
+    if (kasur.length !== 4 || kepala.length < 1 || lampu.length !== 3 || daun.length !== 1 || kaki.length !== 4 || !tv) throw new Error('perabot kamar tidak dikenali');
+    var grup = function (nama, x, z, isi) {
+      var G = new THREE.Group(); G.name = nama; G.position.set(x, 0, z); roomScene.add(G);
+      isi.forEach(function (m) { m.position.x -= x; m.position.z -= z; G.add(m); });
+      return G;
+    };
+    TK.g.kasur = grup('tataKasur', -3.25, -3.5, kasur.concat(kepala));
+    TK.g.nakas = grup('tataNakas', -1.8, -3.13, daun.concat(kaki, lampu));
+    TK.g.tv = tv;
+    ['tanaman', 'rak_buku', 'akuarium', 'cermin'].forEach(function (id) { if (!ROOM_DEKOR_PADAT[id]) ROOM_DEKOR_PADAT[id] = tkKotakJalan(id, TATA_KAMAR.B[id].a); });
+    var bahan = new THREE.MeshBasicMaterial({ color: 0x2f8fff, transparent: true, opacity: 0.2, depthWrite: false });
+    TK.sorot = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), bahan); TK.sorot.visible = false; TK.sorot.renderOrder = 5; roomScene.add(TK.sorot);
+    TK.garis = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1)), new THREE.LineBasicMaterial({ color: 0x2f8fff, depthTest: false }));
+    TK.garis.visible = false; TK.garis.renderOrder = 6; roomScene.add(TK.garis);
+    TK.sinar = new THREE.Raycaster();
+    var kotak = new THREE.Box3(); /* plafon + panel lampu plafon: disembunyikan selama mode tata (kamar dilihat dari atas) */
+    TK.plafon = roomScene.children.filter(function (m) { return m.isMesh && m.geometry && kotak.setFromObject(m).min.y > 3.3; });
+    TK.siap = true;
+  } catch (e) { try { console.warn('Tata Kamar dimatikan:', e && e.message); } catch (x) { /* abaikan */ } }
+  return TK.siap;
+}
+function tkObjek(id) { if (id === 'kasur' || id === 'nakas' || id === 'tv') return TK.g[id] || null; return DEKOR ? (dekorObjek(id) || null) : null; }
+function tkAda() { /* barang yang sekarang ada di kamar: bawaan + dekor yang dimiliki */
+  var L = TATA_KAMAR.BAWAAN.slice();
+  if (DEKOR) DEKOR_IDS.forEach(function (id) { var o = tataBarang(id) && dekorObjek(id); if (o && o.visible) L.push(id); });
+  return L;
+}
+function tkSalin(t) { var o = {}; for (var k in t) if (tataPunya(t, k)) o[k] = t[k].slice(); return o; }
+function tkKotakJalan(id, v) { var k = tataKotak(id, v); return { minX: k[0] / 1000, maxX: k[2] / 1000, minZ: k[1] / 1000, maxZ: k[3] / 1000 }; }
+function tkTaruh(id, v) { /* satu barang ke posisi v (hanya tampilan) */
+  var o = tkObjek(id); if (!o) return;
+  var p = tataPos(id, v);
+  o.position.x = p.x / 1000; o.position.z = p.z / 1000; o.rotation.y = p.r * Math.PI / 2;
+}
+function tkLokal(id, v, lx, lz) { var p = tataPos(id, v), q = tataPutar([lx, lz, lx, lz], p.r); return { x: (p.x + q[0]) / 1000, z: (p.z + q[1]) / 1000, rot: p.r * Math.PI / 2 }; }
+function tkPasang(tata) { /* tampilan + tabrakan avatar + pose kasur / bean bag + cahaya lampu nakas, semuanya ikut tata letak ini */
+  var id, isi = function (a, b) { a.minX = b.minX; a.maxX = b.maxX; a.minZ = b.minZ; a.maxZ = b.maxZ; };
+  for (id in tata) if (tataPunya(tata, id)) tkTaruh(id, tata[id]);
+  if (tata.kasur) {
+    isi(ROOM_BED, tkKotakJalan('kasur', tata.kasur));
+    var t = tkLokal('kasur', tata.kasur, 0, 2330), d = tkLokal('kasur', tata.kasur, 0, 2430), w = tataBangunKasur(tata.kasur);
+    POSE_SLEEP.x = t.x; POSE_SLEEP.z = t.z; POSE_SLEEP.rotZ = t.rot;
+    POSE_SIT.x = d.x; POSE_SIT.z = d.z; POSE_SIT.rotY = d.rot;
+    WAKE_SPOT.x = w[0] / 1000; WAKE_SPOT.z = w[1] / 1000; WAKE_SPOT.rotY = t.rot;
+  }
+  if (tata.nakas) {
+    isi(ROOM_TABLE, tkKotakJalan('nakas', tata.nakas));
+    var a = TATA_KAMAR.B.nakas.a, n = tata.nakas;
+    if (roomLampLight) {
+      if (n[0] === a[0] && n[1] === a[1]) roomLampLight.position.set(-1.8, 1.05, -2.65); /* bawaan: titik lama persis */
+      else { /* 0,48 m dari kap ke arah tengah kamar, minimal 0,85 m dari dinding (titik cahaya menempel dinding = bercak putih) */
+        var lx = n[0] / 1000, lz = n[1] / 1000, j = Math.hypot(lx, lz) || 1;
+        roomLampLight.position.set(Math.max(-3.15, Math.min(3.15, lx - 0.48 * lx / j)), 1.05, Math.max(-2.65, Math.min(2.65, lz - 0.48 * lz / j)));
+      }
+    }
+    if (bonekaHadiah.mesh) { /* boneka hadiah arkade duduk di nakas: ikut nakas */
+      if (bonekaHadiah.mesh.parent !== TK.g.nakas) { TK.g.nakas.add(bonekaHadiah.mesh); bonekaHadiah.mesh.position.set(0.23, 0.74, 0.19); }
+    }
+  }
+  for (id in ROOM_DEKOR_PADAT) if (tata[id]) isi(ROOM_DEKOR_PADAT[id], tkKotakJalan(id, tata[id]));
+  if (tata.bean_bag) {
+    var b = tkLokal('bean_bag', tata.bean_bag, 0, BEAN.zh * 1000), bg = tataBangunBean(tata.bean_bag, tataJangkau(tata)) || tataTitik('bean_bag', tata.bean_bag, 1000, 0);
+    BEANBAG_DUDUK.x = b.x; BEANBAG_DUDUK.z = b.z; BEANBAG_DUDUK.rotY = b.rot;
+    BEANBAG_DUDUK.bangun = { x: bg[0] / 1000, z: bg[1] / 1000, rotY: b.rot };
+  }
+  /* avatar tidak boleh berakhir di dalam perabot yang baru dipindah */
+  if (typeof myRealm === 'string' && myRealm.indexOf('room-') === 0 && !roomPose && avatar && tataTerhalang(tataPadat(tata), avatarPos.x * 1000, avatarPos.z * 1000)) {
+    avatarPos.x = TATA_KAMAR.SPAWN[0] / 1000; avatarPos.z = TATA_KAMAR.SPAWN[1] / 1000; avatar.position.set(avatarPos.x, 0, avatarPos.z);
+  }
+}
+function tkKunciSama(t, ada) { var n = 0; for (var k in t) if (tataPunya(t, k)) { if (ada.indexOf(k) < 0) return false; n++; } return n === ada.length; }
+function tkSelaras() { /* tiap pindah alam + tiap dompet / dekor berubah: di kamar sendiri = tata letak pilihan; di luar = bawaan */
+  var btn = document.getElementById('tataBtn'), di = tkDiKamarSendiri() && tkSiapkan();
+  if (btn) btn.style.display = di ? '' : 'none';
+  document.body.classList.toggle('ada-tata', !!di); /* HP tegak sempit: deret aksi dirapatkan supaya Warna + Tata muat sebaris (lihat CSS bilah atas) */
+  if (!TK.siap) return;
+  if (!di) {
+    if (TK.aktif) tkTutup();
+    if (TK.terpasang) { if (roomPose && (poseTempat === 'beanbag' || !poseTempat) && typeof myRealm === 'string' && myRealm.indexOf('room-') === 0) bangunDariKasur(true); tkPasang(tataAwal(TATA_KAMAR.URUT)); TK.terpasang = false; }
+    return;
+  }
+  var ada = tkAda();
+  if (!TK.tata || !tkKunciSama(TK.tata, ada)) TK.tata = tataSusun(TK.tata || TK.simpanan, ada);
+  tkPasang(TK.tata); TK.terpasang = true;
+  if (TK.aktif) tkRender();
+  if (TK.kotor && !TK.timer && !TK.menyimpan && !TK.aktif) tkSimpan(); /* simpanan yang sempat gagal: coba lagi */
+}
+function tkDariServer() { /* sesudah /api/dompet dimuat (field tata); susunan yang belum tersimpan tidak ditimpa */
+  var kunci = DOMPET.untuk || '', d = DOMPET.data;
+  if (TK.untuk !== kunci) { clearTimeout(TK.timer); TK.timer = 0; TK.untuk = kunci; TK.tata = null; TK.simpanan = null; TK.kotor = false; }
+  if (d && !TK.kotor && !TK.menyimpan && !TK.seret) { var s = tataDariDb(d.tata); if (!TK.tata || !tataSama(s, TK.simpanan)) { TK.simpanan = s; TK.tata = null; } }
+  tkSelaras();
+}
+var tkDekorTerapkanAsli = dekorTerapkan;
+dekorTerapkan = function () { tkDekorTerapkanAsli(); tkDariServer(); }; /* dekor dibeli / dompet dimuat / masuk kamar -> tata letak ikut */
+var tkDudukBeanAsli = dudukBeanBag;
+dudukBeanBag = function () { /* duduk menghadap ke arah bean bag (baris produksi tidak diubah: rotY dipasang sesudahnya) */
+  tkDudukBeanAsli();
+  if (poseTempat === 'beanbag' && poseJangkar && BEANBAG_DUDUK.rotY) { poseJangkar.rotY = BEANBAG_DUDUK.rotY; terapkanPoseKamar(); mpKirimPos(); }
+};
+
+/* ---------- mode tata ---------- */
+function tkStatus(jenis, teks) {
+  var el = document.getElementById('tataStatus'); if (!el) return;
+  el.className = jenis === 'ok' ? 'ok' : (jenis === 'gagal' ? 'gagal' : '');
+  el.textContent = jenis === 'ok' ? 'Tersimpan ✓' : (jenis === 'simpan' ? 'Menyimpan…' : (jenis === 'gagal' ? (teks || 'Belum tersimpan') : ''));
+}
+function tkSimpanNanti() { TK.kotor = true; clearTimeout(TK.timer); TK.timer = setTimeout(tkSimpan, 1200); tkStatus('simpan'); }
+function tkSimpan() { /* POST /api/belanja {aksi:'tata'} — menumpang endpoint belanja */
+  clearTimeout(TK.timer); TK.timer = 0;
+  if (!TK.kotor || TK.menyimpan || !TK.tata) return;
+  if (!ktaIsResident()) { TK.kotor = false; return; }
+  var ada = Object.keys(TK.tata), kirim = tataSama(TK.tata, tataAwal(ada)) ? null : tkSalin(TK.tata), untuk = TK.untuk;
+  if (tataSama(kirim, TK.simpanan) && !!kirim === !!TK.simpanan) { TK.kotor = false; tkStatus('ok'); return; }
+  TK.menyimpan = true; tkStatus('simpan');
+  apiKosan('POST', '/api/belanja', { aksi: 'tata', tata: kirim }).then(function (r) {
+    TK.menyimpan = false;
+    if (untuk !== TK.untuk) return; /* ganti akun saat menyimpan */
+    if (r.status === 200) {
+      TK.simpanan = kirim;
+      if (DOMPET.data) DOMPET.data.tata = kirim ? tkSalin(kirim) : null;
+      var kini = tataSama(TK.tata, tataAwal(Object.keys(TK.tata))) ? null : TK.tata;
+      if (tataSama(kirim, kini) && !!kirim === !!kini) { TK.kotor = false; tkStatus('ok'); } else tkSimpanNanti(); /* sudah digeser lagi selama menyimpan */
+    } else {
+      tkStatus('gagal', r.status === 429 ? 'Kebanyakan geser — coba lagi nanti' : 'Belum tersimpan');
+      if (!TK.aktif) toastKosan('🛋 Tata kamar belum tersimpan — ' + pesanApi(r, 'coba lagi sebentar ya.'));
+    }
+  });
+}
+var TK_SEBAB = { tabrak: 'Nabrak ', pintu: 'Jangan nutupin pintu ya', jendela: 'Ketutupan jendela', ac: 'Kena AC di atas', lega: 'Butuh ruang kosong di depannya', jalan: 'Jalan di kamar jadi ketutup', format: 'Nggak bisa di situ' };
+function tkPesanSebab(g, diri) { if (!g) return ''; if (g.sebab === 'tabrak') return 'Nabrak ' + TATA_KAMAR.B[g.lawan === diri ? g.id : g.lawan].n.toLowerCase(); if (g.sebab === 'lega' && g.lawan) return 'Terlalu mepet ' + TATA_KAMAR.B[g.lawan].n.toLowerCase(); return TK_SEBAB[g.sebab] || TK_SEBAB.format; }
+function tkSorot() { /* kotak sorot di barang terpilih: biru = sah, merah = tidak sah */
+  var id = TK.pilih, s = TK.seret;
+  if (!TK.aktif || !id || !TK.tata || !TK.tata[id]) { TK.sorot.visible = false; TK.garis.visible = false; return; }
+  var v = (s && s.id === id && s.calon) ? s.calon : TK.tata[id], k = tataKotak(id, v), merah = !!(s && s.id === id && s.gerak && !s.sah), warna = merah ? 0xff2d2d : 0x2f8fff, m = 0.03;
+  [TK.sorot, TK.garis].forEach(function (o) {
+    o.position.set((k[0] + k[2]) / 2000, (k[4] + k[5]) / 2000 + 0.012, (k[1] + k[3]) / 2000);
+    o.scale.set((k[2] - k[0]) / 1000 + m, Math.max(0.05, (k[5] - k[4]) / 1000 + m), (k[3] - k[1]) / 1000 + m);
+    o.material.color.setHex(warna); o.visible = true;
+  });
+  TK.sorot.material.opacity = merah ? 0.42 : 0.2;
+}
+function tkRender() {
+  var panel = document.getElementById('tataPanel'), daftar = document.getElementById('tataDaftar'), pet = document.getElementById('tataPetunjuk'), putar = document.getElementById('tataPutar'), pulih = document.getElementById('tataPulih');
+  if (!panel || !TK.tata) return;
+  var ada = TATA_KAMAR.URUT.filter(function (id) { return tataPunya(TK.tata, id); }), kunci = ada.join(',');
+  if (daftar.dataset.kunci !== kunci) {
+    daftar.dataset.kunci = kunci; daftar.textContent = '';
+    ada.forEach(function (id) { var b = document.createElement('button'); b.type = 'button'; b.className = 'tk-chip'; b.dataset.id = id; b.setAttribute('role', 'option'); b.textContent = TATA_KAMAR.B[id].n; daftar.appendChild(b); });
+  }
+  [].forEach.call(daftar.children, function (b) { var p = b.dataset.id === TK.pilih; b.setAttribute('aria-selected', p ? 'true' : 'false'); if (p && b.scrollIntoView && !TK.seret) { try { b.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (e) { /* abaikan */ } } });
+  var b = TK.pilih && TATA_KAMAR.B[TK.pilih], teks, jenis = '';
+  if (TK.pesan) { teks = TK.pesan; jenis = TK.pesanJenis; }
+  else if (!b) teks = 'Ketuk perabot atau namanya, lalu seret ke tempat baru.';
+  else if (b.j === 'gantung') teks = b.n + ' — seret di layar buat geser sepanjang dinding. Putar = pindah dinding.';
+  else if (b.j === 'sandar') teks = b.n + ' — nempel dinding: seret buat geser. Putar = pindah dinding.';
+  else if (b.j === 'alas') teks = b.n + ' — seret ke mana saja, boleh di bawah perabot.';
+  else teks = b.n + ' — seret ke mana saja. Putar = hadap lain.';
+  pet.textContent = teks; pet.className = jenis;
+  putar.disabled = !b || b.j === 'alas';
+  pulih.textContent = TK.pulihTanya ? 'Yakin? Ketuk lagi' : 'Balikin ke awal'; pulih.classList.toggle('tanya', !!TK.pulihTanya);
+  pulih.disabled = !TK.pulihTanya && tataSama(TK.tata, tataAwal(ada));
+  var no = document.getElementById('tataKamarNo'); if (no) no.textContent = visitorRoom ? 'Kamar ' + visitorRoom : '';
+  tkSorot();
+}
+function tkPesan(teks, jenis) { TK.pesan = teks || ''; TK.pesanJenis = jenis || ''; clearTimeout(TK.pesanTimer); if (teks && jenis !== 'seret') TK.pesanTimer = setTimeout(function () { TK.pesan = ''; if (TK.aktif) tkRender(); }, 2600); }
+function tkBuka() {
+  if (TK.aktif || !tkDiKamarSendiri() || !tkSiapkan() || !TK.tata) return;
+  if (roomPose) bangunDariKasur(true);
+  if (typeof closeCard === 'function') closeCard();
+  if (WK.buka) warnaTutup();
+  if (typeof rupaPanel !== 'undefined' && rupaPanel && rupaPanel.classList.contains('open') && typeof rupaTutup === 'function') rupaTutup();
+  resetJoy(); keys.up = keys.down = keys.left = keys.right = false;
+  TK.aktif = true; TK.pilih = null; TK.seret = null; TK.pulihTanya = 0; TK.pesan = ''; TK.kamUkuran = '';
+  document.body.classList.add('tata-aktif');
+  (TK.plafon || []).forEach(function (m) { m.userData.tkTampak = m.visible; m.visible = false; });
+  document.getElementById('tataPanel').classList.add('open');
+  var btn = document.getElementById('tataBtn'); if (btn) btn.setAttribute('aria-expanded', 'true');
+  tkStatus(TK.kotor ? 'simpan' : '');
+  tkRender();
+}
+function tkTutup() {
+  if (!TK.aktif) return;
+  TK.aktif = false; TK.seret = null; TK.pilih = null; TK.pulihTanya = 0; TK.pesan = '';
+  camera.up.set(0, 1, 0);
+  (TK.plafon || []).forEach(function (m) { m.visible = m.userData.tkTampak !== false; });
+  document.body.classList.remove('tata-aktif');
+  document.getElementById('tataPanel').classList.remove('open');
+  var btn = document.getElementById('tataBtn'); if (btn) btn.setAttribute('aria-expanded', 'false');
+  TK.sorot.visible = false; TK.garis.visible = false;
+  if (TK.tata) tkPasang(TK.tata);
+  if (TK.kotor && !TK.menyimpan) tkSimpan(); /* jangan menunggu jeda: langsung simpan saat ditutup */
+  keys.up = keys.down = keys.left = keys.right = false;
+}
+function tkKamera() { /* dipanggil tiap bingkai SESUDAH kamera main dihitung: timpa jadi pandangan dari atas (utara di atas layar), kamar muat di sisa layar di luar panel */
+  var w = window.innerWidth, h = window.innerHeight, ukuran = w + 'x' + h;
+  if (TK.kamUkuran !== ukuran || !TK.kam) {
+    TK.kamUkuran = ukuran;
+    var p = document.getElementById('tataPanel').getBoundingClientRect(), bar = document.getElementById('topbar'), atas = 0, bawah = 0, kanan = 0;
+    if (bar) { var rb = bar.getBoundingClientRect(); if (rb.height && rb.top < h * 0.4) atas = Math.min(h * 0.3, rb.bottom + 6); }
+    if (p.width > w * 0.7) bawah = Math.max(0, h - p.top + 6); else kanan = Math.max(0, w - p.left + 6);
+    var tv = Math.tan(camera.fov * Math.PI / 360), th = tv * w / h, uw = Math.max(0.3, (w - kanan) / w), uh = Math.max(0.3, (h - atas - bawah) / h);
+    var H = 3.6 + Math.max(4.0 / (th * uw * 0.98), 3.5 / (tv * uh * 0.98)); /* muat sampai puncak dinding (3,6 m), bukan cuma lantai */
+    TK.kam = { H: H, x: (kanan / w) * th * (H - 3.6), z: -((atas - bawah) / h) * tv * (H - 3.6) };
+  }
+  camera.up.set(0, 0, -1);
+  camera.position.set(TK.kam.x, TK.kam.H, TK.kam.z);
+  camera.lookAt(TK.kam.x, 0, TK.kam.z);
+}
+function tkSinarDari(e) {
+  var r = renderer.domElement.getBoundingClientRect();
+  TK.sinar.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), camera);
+  return TK.sinar.ray;
+}
+function tkTitikBidang(sinar, y) { /* titik potong sinar dengan bidang datar setinggi y (m) -> [x, z] mm */
+  var t = (y - sinar.origin.y) / (sinar.direction.y || -1e-6);
+  return [Math.round((sinar.origin.x + sinar.direction.x * t) * 1000), Math.round((sinar.origin.z + sinar.direction.z * t) * 1000)];
+}
+function tkKena(e) { /* barang yang kena ketuk (yang paling dekat kamera) */
+  var ids = Object.keys(TK.tata), objek = [], milik = [];
+  ids.forEach(function (id) { var o = tkObjek(id); if (o && o.visible) { objek.push(o); milik.push(id); } });
+  var hit = TK.sinar.intersectObjects(objek, true);
+  for (var i = 0; i < hit.length; i++) {
+    var o = hit[i].object, tampak = true, akar = o;
+    while (akar && objek.indexOf(akar) < 0) { if (!akar.visible) tampak = false; akar = akar.parent; }
+    if (akar && tampak && o.visible) return milik[objek.indexOf(akar)];
+  }
+  return null;
+}
+function tkBidangY(id) { var b = TATA_KAMAR.B[id]; return b.j === 'gantung' ? (b.y[0] + b.y[1]) / 2000 : 0; }
+function tkCalon(s, e) { /* posisi calon barang yang diseret: titik jari + selisih awal (barang tidak meloncat ke bawah jari) */
+  var id = s.id, b = TATA_KAMAR.B[id], T = TATA_KAMAR, P = tkTitikBidang(tkSinarDari(e), tkBidangY(id)), bulat = function (n) { return Math.round(n / 20) * 20; };
+  var qx = P[0] + s.gx, qz = P[1] + s.gz;
+  if (b.j === 'bebas' || b.j === 'alas') return tataRapikan(id, [bulat(qx), bulat(qz), TK.tata[id][2]]);
+  /* barang dinding: ikut dinding yang paling dekat dengan titik seret (pindah dinding kalau selisihnya jelas) */
+  var jarak = [qz + T.Z, qx + T.X, T.Z - qz, T.X - qx], r = s.r, dekat = 0, i;
+  for (i = 1; i < 4; i++) if (jarak[i] < jarak[dekat]) dekat = i;
+  var pindah = dekat !== r && jarak[dekat] < jarak[r] - 450;
+  if (pindah) r = dekat;
+  var v = tataRapikan(id, (r === 0 || r === 2) ? [bulat(qx), 0, r] : [0, bulat(qz), r]);
+  if (v && pindah) { var p = tataPos(id, v); s.r = r; s.gx = p.x - P[0]; s.gz = p.z - P[1]; }
+  return v;
+}
+function tkPointer(e) { /* dipasang di window (fase tangkap): selama mode tata, sentuhan kanvas tidak sampai ke joystick / orbit / ketuk objek */
+  if (!TK.aktif || !TK.tata) return;
+  var s = TK.seret, kanvas = e.target === renderer.domElement;
+  if (e.type === 'pointerdown') {
+    if (!kanvas) return;
+    e.stopImmediatePropagation(); e.preventDefault();
+    if (s) return;
+    tkSinarDari(e);
+    var id = tkKena(e) || TK.pilih; /* kena perabot = pilih + seret; kena lantai kosong = seret perabot yang sedang terpilih (barang tipis di dinding susah dikenai jari) */
+    TK.pulihTanya = 0; tkPesan('');
+    TK.pilih = id;
+    if (id && TK.tata[id]) {
+      var p = tataPos(id, TK.tata[id]), P = tkTitikBidang(TK.sinar.ray, tkBidangY(id));
+      TK.seret = { id: id, pid: e.pointerId, x0: e.clientX, y0: e.clientY, gerak: false, sah: true, calon: null, gx: p.x - P[0], gz: p.z - P[1], r: TK.tata[id][2] };
+    }
+    tkRender();
+    return;
+  }
+  if (!s || e.pointerId !== s.pid) { if (kanvas) { e.stopImmediatePropagation(); } return; }
+  e.stopImmediatePropagation();
+  if (e.type === 'pointermove') {
+    if (!s.gerak && Math.hypot(e.clientX - s.x0, e.clientY - s.y0) < 7) return;
+    s.gerak = true;
+    var v = tkCalon(s, e); if (!v) return;
+    if (s.calon && v[0] === s.calon[0] && v[1] === s.calon[1] && v[2] === s.calon[2]) return;
+    s.calon = v;
+    var o = tkSalin(TK.tata); o[s.id] = v;
+    var g = tataCek(o);
+    s.sah = !g;
+    if (!g) { TK.tata = o; tkPesan(''); } else tkPesan(tkPesanSebab(g, s.id) + ' — lepas = balik ke tempat terakhir yang muat', 'seret');
+    tkTaruh(s.id, v);
+    if (TK.pesanJenis === 'seret' && !g) TK.pesan = '';
+    tkRender();
+    return;
+  }
+  /* pointerup / pointercancel */
+  TK.seret = null;
+  if (s.gerak) {
+    if (!s.sah) tkPesan('Nggak muat di situ — dibalikin ke tempat terakhir yang muat', 'tolak'); else tkPesan('');
+    tkPasang(TK.tata);
+    tkSimpanNanti();
+  }
+  tkRender();
+}
+['pointerdown', 'pointermove', 'pointerup', 'pointercancel'].forEach(function (n) { window.addEventListener(n, tkPointer, true); });
+function tkPutarBarang() {
+  var id = TK.pilih, T = TATA_KAMAR; if (!TK.aktif || !id || !TK.tata[id] || TK.seret) return;
+  var b = T.B[id], v = TK.tata[id], lain = tkSalin(TK.tata); delete lain[id];
+  if (b.j === 'alas') return;
+  TK.pulihTanya = 0;
+  for (var i = 1; i <= 3; i++) {
+    var r = (v[2] + i) % 4, m;
+    if (b.j === 'bebas') m = [v[0], v[1], r];
+    else { var p = tataPos(id, v), u = (v[2] % 2 === 0) ? p.x / T.X : p.z / T.Z; m = (r % 2 === 0) ? [Math.round(u * T.X), 0, r] : [0, Math.round(u * T.Z), r]; }
+    m = tataRapikan(id, m);
+    var h = m && tataCariTempat(lain, id, m);
+    if (h && h[2] === r && (b.j !== 'bebas' || Math.abs(h[0] - m[0]) + Math.abs(h[1] - m[1]) <= 1200)) {
+      lain[id] = h; TK.tata = tataSusun(lain, Object.keys(lain)); tkPesan(''); tkPasang(TK.tata); tkSimpanNanti(); tkRender(); return;
+    }
+  }
+  tkPesan('Nggak muat diputar di sini — geser dulu ke tempat yang lebih lega', 'tolak'); tkRender();
+}
+function tkPulih() { /* Balikin ke awal: ketuk dua kali (yang kedua dalam 4 detik) */
+  if (!TK.aktif || TK.seret) return;
+  if (!TK.pulihTanya) { TK.pulihTanya = setTimeout(function () { TK.pulihTanya = 0; if (TK.aktif) tkRender(); }, 4000); tkRender(); return; }
+  clearTimeout(TK.pulihTanya); TK.pulihTanya = 0;
+  TK.tata = tataSusun(null, tkAda()); TK.pilih = null; tkPesan('Semua perabot balik ke tempat awal', 'info');
+  tkPasang(TK.tata); tkSimpanNanti(); tkRender();
+}
+(function () {
+  var el = function (id) { return document.getElementById(id); };
+  if (!el('tataBtn') || !el('tataPanel')) return;
+  el('tataBtn').addEventListener('click', function () { if (TK.aktif) tkTutup(); else tkBuka(); });
+  el('tataSelesai').addEventListener('click', tkTutup);
+  el('tataClose').addEventListener('click', tkTutup);
+  el('tataPutar').addEventListener('click', tkPutarBarang);
+  el('tataPulih').addEventListener('click', tkPulih);
+  el('tataDaftar').addEventListener('click', function (e) { var b = e.target.closest ? e.target.closest('.tk-chip') : null; if (!b || !TK.aktif) return; TK.pilih = b.dataset.id; TK.pulihTanya = 0; tkPesan(''); tkRender(); });
+  window.addEventListener('resize', function () { TK.kamUkuran = ''; });
+})();
+/* ==== TATA-KAMAR-UI-END ==== */
+
 function mpSaatPindahAlam() { /* kontrak §8.3: realm baru -> publish segera + snap */
   warnaKamarSelaras(); /* Warna Kamar: di kamar sendiri = warna pilihan; di luar = bahan bawaan + tombol hilang */
+  tkSelaras(); /* Tata Kamar: di kamar sendiri = tata letak pilihan; di luar = posisi bawaan + tombol hilang */
   if (!KERJA) myRealmLihat = myRealm; /* Alam Kerja (17 Nov): pindah alam biasa -> alam lihat ikut alam utama (tanpa ini myRealmLihat basi: habis masuk jalan, filter tetap 'yard' dan pemain jalan tidak tampil) */
   for (var id in remotePlayers) {
     if (remotePlayers[id].realm === myRealm) remotePlayers[id].snapped = false;
@@ -22425,6 +23097,7 @@ function animate() {
   camera.position.set(cp.x, cp.y, cp.z);
   if (myRealm === 'yard') gedungCdPerbarui(cp, avatarPos.x, avatarPos.z, avatarLevel); /* Gedung C & D: sembunyi saat kamera di dalam/belakang */
   camera.lookAt(camTarget.x, camTarget.y + 1.5, camTarget.z);
+  if (TK.aktif) tkKamera(); /* Tata Kamar: selama mode tata kamar dilihat dari atas */
   if (myRealm === 'yard') jalanLatarPerbarui(); /* Tahap 3a: latar jalan di balik pagar selatan hanya saat mungkin terlihat */
   /* Ronde 10a — label nama 3D diskalakan berdasar jarak kamera: sprite
      berukuran dunia tetap (2,4) membesar menutupi gedung/langit saat zoom
