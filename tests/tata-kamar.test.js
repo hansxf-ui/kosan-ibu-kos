@@ -287,7 +287,7 @@ test('migrasi tata_kamar: hanya menambah, room 1..60 di SEMUA tempat, RLS tanpa 
 /* ---------- kabel index.html ---------- */
 test('index.html: tombol + panel + kait terpasang; id unik; tanpa fetch( baru; tanpa lampu / tekstur baru; LED plaza + arkade + warna + kerja kota tidak disentuh', () => {
   assert.equal((HTML.match(/fetch\(/g) || []).length, 4, 'fetch( tetap 4');
-  for (const id of ['tataBtn', 'tataPanel', 'tataClose', 'tataJudul', 'tataPetunjuk', 'tataDaftar', 'tataPutar', 'tataPulih', 'tataStatus', 'tataSelesai'])
+  for (const id of ['tataBtn', 'tataAlat', 'tataDeret', 'tataPutar', 'tataPulih', 'tataPulihTeks', 'tataAtas', 'tataToast', 'tataSelesai'])
     assert.equal(HTML.split('id="' + id + '"').length - 1, 1, 'id unik: ' + id);
   assert.match(HTML, /<button id="tataBtn"[^>]*style="display:none"/, 'tombol tersembunyi sampai penghuni ada di kamarnya');
   assert.match(HTML, /warnaKamarSelaras\(\);[^\n]*\n  tkSelaras\(\);/);
@@ -306,4 +306,70 @@ test('index.html: tombol + panel + kait terpasang; id unik; tanpa fetch( baru; t
   assert.match(HTML, /var RK = new RuangModern\(tataKepalaGrup\(\), 8, 7, 3\.6\);/);
   assert.match(UI, /poseJangkar\.rotY = BEANBAG_DUDUK\.rotY; terapkanPoseKamar\(\);/, 'duduk bean bag ikut arah bean bag');
   assert.match(HTML, /avatar\.rotation\.x = 0; avatar\.rotation\.z = 0;/);
+});
+
+/* ---------- ronde 2 (vonis pemilik 27 Nov 19:05): tanpa panel, deret bawah, kamera bebas ---------- */
+test('ronde 2: panel dibuang, deret perabot + tombol mengambang + toast; kamera tata bebas (bukan dikunci dari atas)', () => {
+  for (const lama of ['tataPanel', 'tataClose', 'tataJudul', 'tataPetunjuk', 'tataDaftar', 'tataStatus', 'tk-chip', 'tk-kaki'])
+    assert.equal(HTML.includes(lama), false, 'sisa panel lama: ' + lama);
+  assert.match(HTML, /#tataDeret \{[^}]*bottom: 0;[^}]*overflow-x: auto;[^}]*touch-action: pan-x;/, 'deret di tepi bawah, bisa digeser ke samping');
+  assert.match(HTML, /body\.tata-aktif #topbar, body\.tata-aktif #actionbar, body\.tata-aktif #joy,/, 'mode tata: bilah + joystick disembunyikan (layar lega)');
+  assert.match(HTML, /#tataPutar \{[^}]*display: none;/); assert.match(HTML, /#tataPutar\.tampak \{ display: inline-flex; \}/);
+  assert.match(UI, /putar\.classList\.toggle\('tampak', !!\(b && b\.j !== 'alas'\)\)/, 'Putar hanya saat ada barang terpilih');
+  /* kamera: orbit (yaw, pitch, jarak, geser), tidak ada lagi up (0,0,-1) / kuncian */
+  assert.equal(/camera\.up\.set\(0, 0, -1\)/.test(UI), false, 'tidak ada kuncian kamera dari atas');
+  assert.match(UI, /K\.yaw -= \(e\.clientX - o\.x\) \* 0\.006; K\.pitch \+= \(e\.clientY - o\.y\) \* 0\.005;/, 'seret tempat kosong = putar + miring');
+  assert.match(UI, /K\.dist \*= c\.d \/ d;/, 'cubit = zoom');
+  assert.match(UI, /function tkDariAtas\(\)/); assert.match(UI, /function tkTitikDinding\(sinar\)/);
+  assert.match(UI, /avatar\.visible = false/); assert.match(UI, /avatar\.visible = TK\.avatarTampak !== false/, 'avatar dipulihkan saat selesai');
+  /* id unik global */
+  const ids = (HTML.match(/ id="[^"]+"/g) || []).filter((x) => /tata/i.test(x));
+  assert.equal(new Set(ids).size, ids.length, 'id tata unik');
+});
+
+/* ---------- ronde 3 (vonis pemilik 27 Nov 23:15): tanpa kotak sorot, deret pakai gambar asli perabot ---------- */
+test('ronde 3: barang terpilih ditandai di barangnya sendiri (tanpa kotak / bingkai), bahan asli dipulihkan persis', () => {
+  for (const lama of ['TK.sorot', 'TK.garis', 'BoxGeometry(1, 1, 1)', 'EdgesGeometry', 'LineSegments', 'function tkSorot'])
+    assert.equal(UI.includes(lama), false, 'sisa kotak sorot: ' + lama);
+  assert.match(UI, /function tkTandai\(\)/); assert.match(UI, /function tkTandaLepas\(\)/);
+  assert.match(UI, /var k = asli\.clone\(\),/, 'bahan asli tidak disentuh: mesh dipinjami klon');
+  assert.match(UI, /shader\.fragmentShader\.replace\('#include <opaque_fragment>'/, 'penanda = warna akhir bahan itu sendiri (rona tetap), bukan benda tambahan');
+  assert.match(UI, /k\.customProgramCacheKey = function/, 'program shader penanda di-cache terpisah dari bahan asli');
+  assert.equal(/EffectComposer|OutlinePass|WebGLRenderTarget/.test(UI), false, 'tanpa postprocessing');
+  assert.match(UI, /t\.daftar\[i\]\.m\.material = t\.daftar\[i\]\.asli;/, 'rujukan bahan asli dipasang lagi');
+  assert.match(UI, /t\.klon\[k\]\.dispose\(\)/, 'klon dibuang');
+  assert.match(UI, /if \(t\.o\) t\.o\.position\.y = t\.y0;/, 'barang turun lagi ke tinggi asal');
+  const tutup = UI.slice(UI.indexOf('function tkTutup() {'), UI.indexOf('function tkKamera() {'));
+  assert.match(tutup, /tkTandaLepas\(\);/, 'Selesai / keluar kamar memulihkan bahan');
+  /* tidak ada kerja per bingkai: tkTandai hanya dipanggil dari tkRender + saat calon seret berubah */
+  const kamera = UI.slice(UI.indexOf('function tkKamera() {'), UI.indexOf('function tkKamJepit() {'));
+  assert.equal(/tkTandai|\.clone\(/.test(kamera), false, 'penanda tidak dihitung tiap bingkai');
+  assert.equal((UI.match(/tkTandai\(\);/g) || []).length, 2);
+});
+test('ronde 3 poles (28 Nov): barang terpilih jelas — terang kebiruan + tepi bentuk berpendar + denyut, tetap tanpa kotak', () => {
+  assert.match(UI, /var TK_DENYUT = \{ value: 0\.6 \};/);
+  assert.match(UI, /shader\.uniforms\.tkDenyut = TK_DENYUT;/, 'satu angka denyut dipakai bersama');
+  assert.match(UI, /tkN = normalMatrix \* normal;/, 'tepi mengikuti bentuk barang (arah permukaan), bukan bingkai');
+  assert.match(UI, /TK_GLSL_TERANG_NYALA/, 'bagian menyala (Basic) punya sapuan sendiri');
+  const kamera = UI.slice(UI.indexOf('function tkKamera() {'), UI.indexOf('function tkKamJepit() {'));
+  assert.equal((kamera.match(/TK_DENYUT\.value = /g) || []).length, 1, 'per bingkai hanya satu penugasan angka');
+  assert.equal(UI.includes('outgoingLight * 1.9'), false, 'penanda lama yang terlalu halus dibuang');
+  const merah = UI.slice(UI.indexOf('var TK_GLSL_MERAH'), UI.indexOf('function tkTandaLepas'));
+  assert.match(merah, /vec3\( 1\.0, 0\.13, 0\.09 \)/, 'tidak sah tetap kemerahan');
+});
+test('ronde 3: deret perabot memakai gambar asli tiap perabot (ditanam, tanpa berkas / permintaan baru)', () => {
+  assert.equal(UI.includes('TK_IKON'), false, 'ikon garis dibuang');
+  const awal = HTML.indexOf('var TK_FOTO = {'); assert.ok(awal > 0);
+  const foto = HTML.slice(awal, HTML.indexOf('\n};', awal));
+  for (const id of SEMUA) {
+    const m = foto.match(new RegExp('\\b' + id + ": 'data:image/webp;base64,([A-Za-z0-9+/=]+)'"));
+    assert.ok(m, 'gambar: ' + id);
+    const b = Buffer.from(m[1], 'base64');
+    assert.equal(b.slice(0, 4).toString('latin1'), 'RIFF'); assert.equal(b.slice(8, 12).toString('latin1'), 'WEBP');
+    assert.ok(b.length > 800 && b.length < 9000, 'ukuran gambar ' + id + ' wajar: ' + b.length);
+  }
+  assert.ok(foto.length < 80000, 'seluruh gambar deret < 80 KB teks');
+  assert.match(UI, /g\.src = TK_FOTO\[id\]/); assert.match(UI, /document\.createElement\('img'\)/);
+  assert.match(HTML, /\.tk-item img \{[^}]*object-fit: contain;[^}]*pointer-events: none;/);
+  assert.match(HTML, /img-src 'self' data: blob:|TK_FOTO/); /* CSP (vercel.json) sudah mengizinkan data: untuk gambar */
 });
