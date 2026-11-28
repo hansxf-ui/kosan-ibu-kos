@@ -1717,6 +1717,8 @@
     body.ada-tata #emoteBtn { font-size: 0; display: inline-flex; align-items: center; justify-content: center; padding: 6px 9px; min-height: 31px; }
     body.ada-tata #emoteBtn .uicon { width: 16px; height: 16px; }
   }
+  /* 28 Nov — menu garis tiga: tinggi maks setengah layar + bisa digulir (dulu memanjang lewat tepi bawah di HP miring, Keluar tak terjangkau). */
+  #menuDrop { max-height: 50vh; max-height: 50svh; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; -webkit-overflow-scrolling: touch; }
 </style>
 <script type="importmap">
 {
@@ -12757,6 +12759,7 @@ function menuTutup() {
 }
 if (menuBtn) menuBtn.addEventListener('click', function () {
   var buka = menuDrop.classList.toggle('open');
+  menuDrop.style.right = ''; if (buka) { menuDrop.scrollTop = 0; var mdKiri = menuDrop.getBoundingClientRect().left; if (mdKiri < 8) menuDrop.style.right = (mdKiri - 8) + 'px'; }
   menuBtn.setAttribute('aria-expanded', buka ? 'true' : 'false');
 });
 if (menuDrop) menuDrop.addEventListener('click', function () { menuTutup(); });
