@@ -52,7 +52,44 @@ const BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', '
 
 const punya = (o, k) => typeof k === 'string' && Object.prototype.hasOwnProperty.call(o, k);
 function pekerjaanDari(id) { return punya(PEKERJAAN, id) ? PEKERJAAN[id] : null; }
-function barangDari(id) { return punya(KATALOG, id) ? KATALOG[id] : null; }
+/* ==== BUTIK-LUNA-START ==== */
+/* Butik Maison Luna (28 Nov: "Gas, butik Maison Luna") — busana premium yang TIDAK ada di menu Tampilan gratis. Dibeli pakai Rupiah
+   di butik Kota (server yang memotong saldo + mencatat kepemilikan di kosan_barang, lewat /api/belanja {aksi:'beli'}); bisa dicoba
+   gratis selama di butik. Blok ini MURNI dan sama persis di index.html dan api/_lib/kerja.js (tests/butik-luna.test.js).
+   Satu slot = satu barang. Indeks slot dikirim ke pemain lain sebagai field opsional bAtasan / bBawahan / bAlas / bTopi / bTas. */
+var BUSANA = {
+  luna_baret: { nama: 'Baret wol', harga: 30000, jenis: 'busana', slot: 'topi' },
+  luna_loafers: { nama: 'Loafers kulit', harga: 45000, jenis: 'busana', slot: 'alas' },
+  luna_kulot: { nama: 'Kulot', harga: 50000, jenis: 'busana', slot: 'bawahan' },
+  luna_heels: { nama: 'Heels', harga: 55000, jenis: 'busana', slot: 'alas' },
+  luna_batik: { nama: 'Kemeja batik', harga: 60000, jenis: 'busana', slot: 'atasan' },
+  luna_rok: { nama: 'Rok panjang', harga: 65000, jenis: 'busana', slot: 'bawahan' },
+  luna_cardigan: { nama: 'Cardigan rajut', harga: 70000, jenis: 'busana', slot: 'atasan' },
+  luna_blazer: { nama: 'Blazer', harga: 90000, jenis: 'busana', slot: 'atasan' },
+  luna_tas: { nama: 'Tas tangan', harga: 100000, jenis: 'busana', slot: 'tas' },
+  luna_jaket: { nama: 'Jaket kulit', harga: 120000, jenis: 'busana', slot: 'atasan' }
+};
+var BUSANA_URUT = ['luna_baret', 'luna_loafers', 'luna_kulot', 'luna_heels', 'luna_batik', 'luna_rok', 'luna_cardigan', 'luna_blazer', 'luna_tas', 'luna_jaket'];
+/* indeks yang dikirim ke pemain lain = urutan di sini (JANGAN diubah urutannya: klien lama + baru harus sepakat) */
+var BUSANA_SLOT = { atasan: ['luna_blazer', 'luna_jaket', 'luna_batik', 'luna_cardigan'], bawahan: ['luna_kulot', 'luna_rok'], alas: ['luna_heels', 'luna_loafers'], topi: ['luna_baret'], tas: ['luna_tas'] };
+var BUSANA_KUNCI = { atasan: 'bAtasan', bawahan: 'bBawahan', alas: 'bAlas', topi: 'bTopi', tas: 'bTas' };
+function busanaDari(id) { return (typeof id === 'string' && Object.prototype.hasOwnProperty.call(BUSANA, id)) ? BUSANA[id] : null; }
+function busanaIndeks(id) { var b = busanaDari(id); return b ? BUSANA_SLOT[b.slot].indexOf(id) : -1; }
+function busanaBaca(m) { /* -> { bAtasan, bBawahan, bAlas, bTopi, bTas }: indeks sah, selain itu -1 */
+  var o = {}, ada = m && typeof m === 'object';
+  Object.keys(BUSANA_SLOT).forEach(function (s) { var k = BUSANA_KUNCI[s], v = ada ? m[k] : -1; o[k] = (typeof v === 'number' && Math.floor(v) === v && v >= 0 && v < BUSANA_SLOT[s].length) ? v : -1; });
+  return o;
+}
+function busanaSusun(pilih, milik) { /* pilihan pakai { slot: id } + daftar milik [id] -> { bAtasan: indeks, ... } (hanya yang DIMILIKI) */
+  var o = {}, p = (pilih && typeof pilih === 'object') ? pilih : {}, m = Array.isArray(milik) ? milik : [];
+  Object.keys(BUSANA_SLOT).forEach(function (s) {
+    var id = Object.prototype.hasOwnProperty.call(p, s) ? p[s] : null, b = busanaDari(id);
+    if (b && b.slot === s && m.indexOf(id) >= 0) o[BUSANA_KUNCI[s]] = BUSANA_SLOT[s].indexOf(id);
+  });
+  return o;
+}
+/* ==== BUTIK-LUNA-END ==== */
+function barangDari(id) { return punya(KATALOG, id) ? KATALOG[id] : busanaDari(id); } /* Butik Maison Luna: busana butik lewat endpoint belanja yang sama */
 function pangkatDari(shiftTotal) {
   const n = Number.isInteger(shiftTotal) && shiftTotal > 0 ? shiftTotal : 0;
   return n >= PANGKAT_SHIFT[2] ? 2 : (n >= PANGKAT_SHIFT[1] ? 1 : 0);
@@ -81,5 +118,5 @@ function bulanWib(ms) { return tanggalWib(ms).slice(0, 7); }
 function bulanLabel(bulan) { const m = /^(\d{4})-(\d{2})$/.exec(String(bulan)); return m ? BULAN[+m[2] - 1] + ' ' + m[1] : ''; }
 function rondaBuka(ms) { const j = jamWib(ms); return j >= RONDA_JAM.mulai || j < RONDA_JAM.selesai; }
 
-module.exports = { PEKERJAAN, PANGKAT_SHIFT, BATAS_KERJA, RONDA_JAM, SEWA_HARGA, KATALOG, BULAN,
+module.exports = { PEKERJAAN, PANGKAT_SHIFT, BATAS_KERJA, RONDA_JAM, SEWA_HARGA, KATALOG, BULAN, BUSANA, BUSANA_URUT, BUSANA_SLOT, BUSANA_KUNCI, busanaDari, busanaIndeks, busanaBaca, busanaSusun,
   pekerjaanDari, barangDari, pangkatDari, upahShift, jamWib, tanggalWib, bulanWib, bulanLabel, rondaBuka };

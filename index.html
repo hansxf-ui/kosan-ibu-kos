@@ -1719,6 +1719,78 @@
   }
   /* 28 Nov — menu garis tiga: tinggi maks setengah layar + bisa digulir (dulu memanjang lewat tepi bawah di HP miring, Keluar tak terjangkau). */
   #menuDrop { max-height: 50vh; max-height: 50svh; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; -webkit-overflow-scrolling: touch; }
+  /* ===== Butik Maison Luna (28 Nov) — toko busana premium di butik Kota. Layar tetap lega: tombol kecil di atas + deret tipis di bawah
+     (pola Tata Kamar: "gak usah pake panel, ribet, bikin sempit layar"); gambar tiap barang = render asli model 3D game. ===== */
+  #lunaTombol { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(274px + env(safe-area-inset-bottom, 0px)); z-index: 28; display: none;
+    align-items: center; gap: 8px; padding: 10px 18px 10px 14px; border: 0; border-radius: 999px; cursor: pointer;
+    font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 15px; font-weight: 800; white-space: nowrap; color: #fff4dc; background: linear-gradient(180deg, #8f2a39, #6a1a27);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35), inset 0 0 0 1.5px rgba(232, 196, 110, 0.85), inset 0 -3px 0 rgba(40, 6, 12, 0.35); }
+  #lunaTombol.tampil { display: inline-flex; }
+  #lunaTombol svg { width: 20px; height: 20px; flex: none; color: #f0cf7e; }
+  @media (orientation: landscape) and (max-height: 520px) { #lunaTombol { bottom: calc(112px + env(safe-area-inset-bottom, 0px)); padding: 8px 16px 8px 12px; font-size: 14px; } }
+  body.luna-aktif #topbar, body.luna-aktif #actionbar, body.luna-aktif #joy, body.luna-aktif #hint, body.luna-aktif #hintToggle, body.luna-aktif #toast,
+  body.luna-aktif #kkTombol, body.luna-aktif #lunaTombol { display: none !important; } /* mode belanja: hanya avatar + deret + tombol kecil */
+  #lunaAlat { display: none; }
+  body.luna-aktif #lunaAlat { display: block; }
+  #lunaAlat > * { position: fixed; z-index: 35; }
+  #lunaMerek, #lunaSaldo, #lunaSelesai { top: calc(10px + env(safe-area-inset-top, 0px)); height: 42px; border-radius: 21px; display: inline-flex; align-items: center; white-space: nowrap; box-shadow: 0 2px 10px rgba(0,0,0,.32); }
+  #lunaMerek { left: calc(10px + env(safe-area-inset-left, 0px)); padding: 0 14px; background: linear-gradient(180deg, #8f2a39, #6a1a27); color: #fff4dc;
+    font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 15px; font-weight: 800; box-shadow: 0 2px 10px rgba(0,0,0,.32), inset 0 0 0 1.5px rgba(232,196,110,.85); }
+  #lunaSaldo { left: calc(132px + env(safe-area-inset-left, 0px)); padding: 0 12px; background: rgba(255,255,255,.94); color: #1d6b45; font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 900; }
+  #lunaSaldo:empty { display: none; }
+  #lunaSelesai { right: calc(10px + env(safe-area-inset-right, 0px)); padding: 0 18px; border: none; cursor: pointer;
+    font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 15px; font-weight: 800; color: #fff; background: linear-gradient(180deg, #3a8de6, #1f6fc9); }
+  #lunaBilah { left: 0; right: 0; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 0 calc(10px + env(safe-area-inset-right, 0px)) 0 calc(10px + env(safe-area-inset-left, 0px)); pointer-events: none; }
+  #lunaBilah > * { pointer-events: auto; }
+  #lunaKet { min-width: 0; max-width: 100%; padding: 8px 13px; border-radius: 18px; background: rgba(19,37,58,.86); color: #fff; overflow: hidden; text-align: center;
+    font-family: 'Nunito', sans-serif; font-size: 12.5px; font-weight: 800; line-height: 1.25; white-space: normal; } /* pesan panjang turun baris, tidak dipotong */
+  #lunaKet.ok { background: rgba(22,128,78,.94); }
+  #lunaKet.tolak { background: rgba(200,52,36,.94); }
+  #lunaAksi { flex: none; height: 40px; padding: 0 16px; border: none; border-radius: 20px; cursor: pointer; white-space: nowrap;
+    font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 15px; font-weight: 800; color: #3a2a06; background: linear-gradient(180deg, #ffe08a, #f4b93a);
+    box-shadow: 0 3px 12px rgba(0,0,0,.36), inset 0 -3px 0 rgba(150,95,0,.35); }
+  #lunaAksi[hidden] { display: none; }
+  #lunaAksi.polos { color: var(--kb-biru); background: #fff; box-shadow: 0 3px 12px rgba(0,0,0,.36), inset 0 0 0 2px var(--kb-biru-2); }
+  #lunaAksi.yakin { color: #fff; background: linear-gradient(180deg, #2fa56a, #1c7f4d); box-shadow: 0 3px 12px rgba(0,0,0,.36), inset 0 -3px 0 rgba(0,60,30,.35); }
+  #lunaAksi:disabled { opacity: .6; cursor: default; }
+  #lunaDeret { left: 0; right: 0; bottom: 0; display: flex; gap: 6px; padding: 8px calc(10px + env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) calc(10px + env(safe-area-inset-left, 0px));
+    overflow-x: auto; overflow-y: hidden; overscroll-behavior: contain; touch-action: pan-x; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    background: linear-gradient(rgba(12,22,36,0), rgba(12,22,36,.62) 45%); }
+  #lunaDeret::-webkit-scrollbar { display: none; }
+  .luna-item { position: relative; flex: none; width: 74px; height: 68px; min-width: 0; padding: 3px 2px 4px; border: none; border-radius: 14px; cursor: pointer; overflow: hidden;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; background: rgba(255,255,255,.93); color: var(--kb-teks-2);
+    font-family: 'Nunito', sans-serif; font-size: 10px; font-weight: 800; line-height: 1.12; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,.28); }
+  .luna-item img { width: 40px; height: 40px; flex: none; object-fit: contain; pointer-events: none; -webkit-user-drag: none; user-select: none; } /* gambar asli barang */
+  .luna-item span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .luna-item .luna-harga { font-size: 9.5px; font-weight: 900; color: #8a5a00; }
+  .luna-item .luna-harga.milik { color: #1d6b45; }
+  .luna-item[aria-selected="true"] { background: #fff; color: var(--kb-biru); box-shadow: 0 2px 8px rgba(0,0,0,.28), inset 0 0 0 2.5px var(--kb-biru-2); }
+  .luna-item .luna-cap { position: absolute; top: 3px; right: 3px; padding: 1px 5px; border-radius: 999px; font-size: 8.5px; font-weight: 900; line-height: 1.3; color: #fff; background: #c98a16; }
+  .luna-item .luna-cap.pakai { background: #1c7f4d; }
+  @media (max-height: 500px) and (orientation: landscape) { /* HP rebah: deret lebih tipis, tombol atas lebih pendek */
+    #lunaDeret { padding-top: 5px; padding-bottom: calc(5px + env(safe-area-inset-bottom, 0px)); }
+    .luna-item { width: 132px; height: 44px; flex-direction: row; flex-wrap: wrap; align-content: center; justify-content: flex-start; column-gap: 4px; padding: 2px 5px 2px 3px; text-align: left; }
+    .luna-item img { width: 36px; height: 36px; }
+    .luna-item .luna-teks { display: flex; flex-direction: column; min-width: 0; flex: 1 1 0; }
+    #lunaBilah { bottom: calc(58px + env(safe-area-inset-bottom, 0px)); justify-content: flex-end; }
+    #lunaAksi { height: 36px; }
+    #lunaMerek, #lunaSaldo, #lunaSelesai { top: calc(8px + env(safe-area-inset-top, 0px)); height: 38px; }
+  }
+  .luna-item .luna-teks { display: contents; }
+  @media (max-height: 500px) and (orientation: landscape) { .luna-item .luna-teks { display: flex; } }
+  /* panel Tampilan: busana Maison Luna yang sudah dibeli (pakai / lepas) */
+  #rupaLuna[hidden] { display: none; }
+  #rupaLunaDeret { display: flex; gap: 6px; overflow-x: auto; overflow-y: hidden; touch-action: pan-x; scrollbar-width: none; padding: 2px 2px 4px; }
+  #rupaLunaDeret::-webkit-scrollbar { display: none; }
+  #rupaLunaDeret button { position: relative; flex: none; width: 66px; height: 60px; padding: 2px 2px 3px; border: none; border-radius: 12px; cursor: pointer; overflow: hidden;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--kb-isi); color: var(--kb-teks-2);
+    font-family: 'Nunito', sans-serif; font-size: 10px; font-weight: 800; line-height: 1.1; white-space: nowrap; box-shadow: inset 0 0 0 1px rgba(19,37,58,.06); }
+  #rupaLunaDeret button img { width: 38px; height: 38px; object-fit: contain; pointer-events: none; }
+  #rupaLunaDeret button span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  #rupaLunaDeret button[aria-pressed="true"] { background: #fbeee0; color: #6a1a27; box-shadow: inset 0 0 0 2px #b5803a; }
+  .rupa-label .luna-tanda { display: inline-block; margin-right: 6px; padding: 1px 7px; border-radius: 999px; background: #6a1a27; color: #f6dfa4; font-size: 10px; letter-spacing: .02em; }
+  @media (max-height: 500px) and (orientation: landscape) { #rupaLunaDeret button { width: 60px; height: 50px; } #rupaLunaDeret button img { width: 30px; height: 30px; } }
 </style>
 <script type="importmap">
 {
@@ -1973,6 +2045,14 @@
   <button id="tataPutar" type="button" title="Putar perabot terpilih / pindah ke dinding berikutnya"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 5v5h-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M19.4 10A8 8 0 1 0 18 16.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg> Putar</button>
   <div id="tataDeret" role="listbox" aria-label="Perabot di kamar"></div>
 </div>
+<button id="lunaTombol" type="button" aria-label="Belanja di Maison Luna"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1.2 11.2a1.5 1.5 0 0 1-1.5 1.3H7.7a1.5 1.5 0 0 1-1.5-1.3zM9 8V6.5a3 3 0 0 1 6 0V8" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Belanja di Maison Luna</span></button>
+<div id="lunaAlat" aria-label="Butik Maison Luna">
+  <div id="lunaMerek">Maison Luna</div>
+  <div id="lunaSaldo" aria-live="polite"></div>
+  <button id="lunaSelesai" type="button">Selesai</button>
+  <div id="lunaBilah"><div id="lunaKet" role="status" aria-live="polite"></div><button id="lunaAksi" type="button" hidden></button></div>
+  <div id="lunaDeret" role="listbox" aria-label="Busana Maison Luna"></div>
+</div>
 <div id="rupaPanel" role="dialog" aria-modal="false" aria-labelledby="rupaJudul">
   <button id="rupaClose" type="button" aria-label="Tutup"><svg class="kb-x" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button>
   <h2 id="rupaJudul">Tampilan</h2>
@@ -2002,6 +2082,10 @@
   <div class="rupa-isi" id="rupaIsi-alas" role="tabpanel" aria-labelledby="rupaTab-alas" hidden>
     <p class="rupa-label">Alas kaki</p>
     <div id="rupaAlas" class="rupa-model" role="radiogroup" aria-label="Alas kaki"></div>
+  </div>
+  <div id="rupaLuna" hidden>
+    <p class="rupa-label"><span class="luna-tanda">Maison Luna</span>Busana butik punyamu — ketuk buat pakai / lepas</p>
+    <div id="rupaLunaDeret" role="group" aria-label="Busana Maison Luna punyamu"></div>
   </div>
   <p class="rupa-note">Tersimpan di HP ini. Pemain lain langsung melihat tampilan barumu.</p>
   <button id="rupaSelesai" type="button">Selesai</button>
@@ -2895,6 +2979,24 @@ function mpAksesoriSama(a, b) {
   var x = mpBacaAksesori(a), y = mpBacaAksesori(b);
   return x.topi === y.topi && x.kacamata === y.kacamata && x.tas === y.tas && x.kerja === y.kerja;
 }
+/* Butik Maison Luna (28 Nov) — busana butik (blazer, kulot, heels, baret, tas tangan, ...: indeks BUSANA_SLOT di blok BUTIK-LUNA,
+   dibeli pakai Rupiah di butik Kota). Field OPSIONAL di pos + presence (pola aksesori); klien lama mengabaikannya, nilai asing = -1.
+   Kosmetik saja: field ini tidak membuktikan kepemilikan dan tidak pernah memicu apa pun di server. */
+var MP_BUSANA_KUNCI = [['bAtasan', 4], ['bBawahan', 2], ['bAlas', 2], ['bTopi', 1], ['bTas', 1]];
+function mpBacaBusana(m) { /* -> { bAtasan, bBawahan, bAlas, bTopi, bTas }: indeks sah, selain itu -1 */
+  var o = {}, ada = m && typeof m === 'object';
+  MP_BUSANA_KUNCI.forEach(function (k) { o[k[0]] = ada ? mpRupaDikenal(m[k[0]], k[1]) : -1; });
+  return o;
+}
+function mpPasangBusana(o, b) { /* field sah saja ikut (tanpa busana butik = field tidak dikirim) */
+  var x = mpBacaBusana(b);
+  MP_BUSANA_KUNCI.forEach(function (k) { if (x[k[0]] >= 0) o[k[0]] = x[k[0]]; });
+  return o;
+}
+function mpBusanaSama(a, b) {
+  var x = mpBacaBusana(a), y = mpBacaBusana(b);
+  return MP_BUSANA_KUNCI.every(function (k) { return x[k[0]] === y[k[0]]; });
+}
 function gayaEfektif(gender, simpan) {
   /* bawaan = tampilan lama: cewek rambut panjang + rok, cowok rambut pendek + celana pendek; kaus + sneakers */
   var o = mpBacaGaya(simpan), cowok = gender === 'cowok';
@@ -2955,7 +3057,8 @@ function mpValidasiPos(m, selfId) {
     baju: mpRupaDikenal(m.baju, RUPA_BAJU.length), rambut: mpRupaDikenal(m.rambut, RUPA_RAMBUT.length), /* Karakter v2 */
     potong: mpRupaDikenal(m.potong, GAYA_RAMBUT.length), atasan: mpRupaDikenal(m.atasan, GAYA_ATASAN.length),
     bawahan: mpRupaDikenal(m.bawahan, GAYA_BAWAHAN.length), alas: mpRupaDikenal(m.alas, GAYA_ALAS.length), /* Perabot modern — gaya (-1 = bawaan) */
-    topi: mpRupaDikenal(m.topi, 2), kacamata: mpRupaDikenal(m.kacamata, 2), tas: mpRupaDikenal(m.tas, 2), kerja: mpKerjaDikenal(m.kerja) }; /* Kerja & Belanja — aksesori + status kerja (-1 / null = tidak ada) */
+    topi: mpRupaDikenal(m.topi, 2), kacamata: mpRupaDikenal(m.kacamata, 2), tas: mpRupaDikenal(m.tas, 2), kerja: mpKerjaDikenal(m.kerja), /* Kerja & Belanja — aksesori + status kerja (-1 / null = tidak ada) */
+    bAtasan: mpRupaDikenal(m.bAtasan, 4), bBawahan: mpRupaDikenal(m.bBawahan, 2), bAlas: mpRupaDikenal(m.bAlas, 2), bTopi: mpRupaDikenal(m.bTopi, 1), bTas: mpRupaDikenal(m.bTas, 1) }; /* Butik Maison Luna — busana butik (-1 = tidak ada) */
 }
 function mpValidasiPresence(m, selfId) {
   if (!m || typeof m !== 'object') return null;
@@ -2970,6 +3073,7 @@ function mpValidasiPresence(m, selfId) {
     potong: mpRupaDikenal(m.potong, GAYA_RAMBUT.length), atasan: mpRupaDikenal(m.atasan, GAYA_ATASAN.length),
     bawahan: mpRupaDikenal(m.bawahan, GAYA_BAWAHAN.length), alas: mpRupaDikenal(m.alas, GAYA_ALAS.length), /* Perabot modern — gaya (-1 = bawaan) */
     topi: mpRupaDikenal(m.topi, 2), kacamata: mpRupaDikenal(m.kacamata, 2), tas: mpRupaDikenal(m.tas, 2), kerja: mpKerjaDikenal(m.kerja), /* Kerja & Belanja */
+    bAtasan: mpRupaDikenal(m.bAtasan, 4), bBawahan: mpRupaDikenal(m.bBawahan, 2), bAlas: mpRupaDikenal(m.bAlas, 2), bTopi: mpRupaDikenal(m.bTopi, 1), bTas: mpRupaDikenal(m.bTas, 1), /* Butik Maison Luna */
     foto: (typeof m.foto === 'string' && m.foto.length <= 300 && /^https:\/\/[^ \t\r\n]+$/.test(m.foto)) ? m.foto : null }; /* Foto profil (18 Nov) — URL https saja, maks 300 karakter */
 }
 function mpProsesPesan(topik, teks, selfId) {
@@ -7247,17 +7351,332 @@ JalanKumpul.prototype.selesai = function (bayangan) { /* -> { uuid material: mes
    celemek + sanggul + kacamata). Perabot modern: tiap model dibangun dari potongan yang
    digabung per bahan (jumlah mesh tetap ~17-19 per avatar; Kuncir +2 di poros ekor yang
    berayun saat jalan). Sendi, proporsi, dan tinggi TIDAK berubah. */
+/* ==== BUTIK-LUNA-START ==== */
+/* Butik Maison Luna (28 Nov: "Gas, butik Maison Luna") — busana premium yang TIDAK ada di menu Tampilan gratis. Dibeli pakai Rupiah
+   di butik Kota (server yang memotong saldo + mencatat kepemilikan di kosan_barang, lewat /api/belanja {aksi:'beli'}); bisa dicoba
+   gratis selama di butik. Blok ini MURNI dan sama persis di index.html dan api/_lib/kerja.js (tests/butik-luna.test.js).
+   Satu slot = satu barang. Indeks slot dikirim ke pemain lain sebagai field opsional bAtasan / bBawahan / bAlas / bTopi / bTas. */
+var BUSANA = {
+  luna_baret: { nama: 'Baret wol', harga: 30000, jenis: 'busana', slot: 'topi' },
+  luna_loafers: { nama: 'Loafers kulit', harga: 45000, jenis: 'busana', slot: 'alas' },
+  luna_kulot: { nama: 'Kulot', harga: 50000, jenis: 'busana', slot: 'bawahan' },
+  luna_heels: { nama: 'Heels', harga: 55000, jenis: 'busana', slot: 'alas' },
+  luna_batik: { nama: 'Kemeja batik', harga: 60000, jenis: 'busana', slot: 'atasan' },
+  luna_rok: { nama: 'Rok panjang', harga: 65000, jenis: 'busana', slot: 'bawahan' },
+  luna_cardigan: { nama: 'Cardigan rajut', harga: 70000, jenis: 'busana', slot: 'atasan' },
+  luna_blazer: { nama: 'Blazer', harga: 90000, jenis: 'busana', slot: 'atasan' },
+  luna_tas: { nama: 'Tas tangan', harga: 100000, jenis: 'busana', slot: 'tas' },
+  luna_jaket: { nama: 'Jaket kulit', harga: 120000, jenis: 'busana', slot: 'atasan' }
+};
+var BUSANA_URUT = ['luna_baret', 'luna_loafers', 'luna_kulot', 'luna_heels', 'luna_batik', 'luna_rok', 'luna_cardigan', 'luna_blazer', 'luna_tas', 'luna_jaket'];
+/* indeks yang dikirim ke pemain lain = urutan di sini (JANGAN diubah urutannya: klien lama + baru harus sepakat) */
+var BUSANA_SLOT = { atasan: ['luna_blazer', 'luna_jaket', 'luna_batik', 'luna_cardigan'], bawahan: ['luna_kulot', 'luna_rok'], alas: ['luna_heels', 'luna_loafers'], topi: ['luna_baret'], tas: ['luna_tas'] };
+var BUSANA_KUNCI = { atasan: 'bAtasan', bawahan: 'bBawahan', alas: 'bAlas', topi: 'bTopi', tas: 'bTas' };
+function busanaDari(id) { return (typeof id === 'string' && Object.prototype.hasOwnProperty.call(BUSANA, id)) ? BUSANA[id] : null; }
+function busanaIndeks(id) { var b = busanaDari(id); return b ? BUSANA_SLOT[b.slot].indexOf(id) : -1; }
+function busanaBaca(m) { /* -> { bAtasan, bBawahan, bAlas, bTopi, bTas }: indeks sah, selain itu -1 */
+  var o = {}, ada = m && typeof m === 'object';
+  Object.keys(BUSANA_SLOT).forEach(function (s) { var k = BUSANA_KUNCI[s], v = ada ? m[k] : -1; o[k] = (typeof v === 'number' && Math.floor(v) === v && v >= 0 && v < BUSANA_SLOT[s].length) ? v : -1; });
+  return o;
+}
+function busanaSusun(pilih, milik) { /* pilihan pakai { slot: id } + daftar milik [id] -> { bAtasan: indeks, ... } (hanya yang DIMILIKI) */
+  var o = {}, p = (pilih && typeof pilih === 'object') ? pilih : {}, m = Array.isArray(milik) ? milik : [];
+  Object.keys(BUSANA_SLOT).forEach(function (s) {
+    var id = Object.prototype.hasOwnProperty.call(p, s) ? p[s] : null, b = busanaDari(id);
+    if (b && b.slot === s && m.indexOf(id) >= 0) o[BUSANA_KUNCI[s]] = BUSANA_SLOT[s].indexOf(id);
+  });
+  return o;
+}
+/* ==== BUTIK-LUNA-END ==== */
+/* ==== BUTIK-LUNA-GEO-START ==== */
+/* Busana Maison Luna di badan avatar. Sendi, proporsi, badan (krGeoBadan), lengan, dan kaki TIDAK berubah: atasan premium = badan +
+   lengan yang sama dengan bahan sendiri + detail yang MENEMPEL di permukaan badan (lunaTempel: tambalan yang mengikuti lengkung badan,
+   tepinya masuk ke dalam badan — tidak ada bidang melayang / menembus), jadi perilaku di semua pose sama dengan atasan gratis.
+   Jumlah mesh per avatar tidak naik (badan + gelap + detail berwarna verteks, seperti kemeja); rok panjang +1, baret +1, tas +1. */
+var busanaTitip = null; /* busana pemain lain untuk makeKosanAvatar berikutnya (sekali pakai) */
+var LUNA_W = { emas: 0xc9a24a, perak: 0xc9ced6, gading: 0xf1e8d6, marun: 0x7a1f2b, marunGelap: 0x561520, noir: 0x1b1b21, noirGelap: 0x101014, kayu: 0x7a4f2c };
+function lunaP(th, t, d) { /* titik di permukaan badan atasan + d: silinder r 0,27 (y <= 1,18), di atasnya kubah bola r 0,27 berpusat y 1,18; t = tinggi busur */
+  var R = 0.27 + d, f;
+  if (t <= 1.18) return [R * Math.sin(th), t, R * Math.cos(th)];
+  f = Math.min(Math.PI / 2, (t - 1.18) / 0.27);
+  return [R * Math.cos(f) * Math.sin(th), 1.18 + R * Math.sin(f), R * Math.cos(f) * Math.cos(th)];
+}
+function lunaTempel(c00, c10, c11, c01, d, nu, nv, su, sv) { /* tambalan segi empat [sudut, tinggi busur] setinggi d di atas badan; tepi turun ke dalam badan */
+  nu = nu || 4; nv = nv || 4;
+  var pos = [], uv = [], idx = [], i, j, k, n1 = nu + 1;
+  function titik(u, v, dd) {
+    var a = (1 - u) * (1 - v), b = u * (1 - v), c = u * v, e = (1 - u) * v;
+    var p = lunaP(c00[0] * a + c10[0] * b + c11[0] * c + c01[0] * e, c00[1] * a + c10[1] * b + c11[1] * c + c01[1] * e, dd);
+    pos.push(p[0], p[1], p[2]); uv.push(u * (su || 1), v * (sv || 1));
+  }
+  for (j = 0; j <= nv; j++) for (i = 0; i <= nu; i++) titik(i / nu, j / nv, d);
+  for (j = 0; j < nv; j++) for (i = 0; i < nu; i++) { var a = j * n1 + i, b = a + 1, c = a + n1 + 1, e = a + n1; idx.push(a, b, e, b, c, e); }
+  var tepi = [];
+  for (i = 0; i <= nu; i++) tepi.push([i / nu, 0]);
+  for (j = 1; j <= nv; j++) tepi.push([1, j / nv]);
+  for (i = nu - 1; i >= 0; i--) tepi.push([i / nu, 1]);
+  for (j = nv - 1; j >= 1; j--) tepi.push([0, j / nv]);
+  var dasar = pos.length / 3;
+  tepi.forEach(function (q) { titik(q[0], q[1], d); titik(q[0], q[1], -0.016); });
+  for (k = 0; k < tepi.length; k++) { var k2 = (k + 1) % tepi.length, p0 = dasar + 2 * k, p1 = dasar + 2 * k2; idx.push(p0, p0 + 1, p1, p1, p0 + 1, p1 + 1); }
+  if ((c10[0] - c00[0]) * (c01[1] - c00[1]) - (c10[1] - c00[1]) * (c01[0] - c00[0]) < 0) for (k = 0; k < idx.length; k += 3) { var t = idx[k + 1]; idx[k + 1] = idx[k + 2]; idx[k + 2] = t; } /* putaran segitiga selalu menghadap keluar */
+  var g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+function lunaLukisBlazer(ctx, w, h) { /* wol navy + garis kapur tipis */
+  ctx.fillStyle = '#25345a'; ctx.fillRect(0, 0, w, h);
+  var r = acak(311), i;
+  for (i = 0; i < 500; i++) { ctx.fillStyle = r() < 0.5 ? 'rgba(255,255,255,0.035)' : 'rgba(0,0,0,0.06)'; ctx.fillRect(r() * w, r() * h, 1, 2); }
+  ctx.fillStyle = 'rgba(214,222,240,0.2)';
+  for (i = 0; i < 4; i++) ctx.fillRect(Math.round((i + 0.5) * w / 4), 0, 1, h);
+}
+function lunaLukisKulit(ctx, w, h) { /* kulit hitam: serat halus + kilap lembut */
+  ctx.fillStyle = '#2b2725'; ctx.fillRect(0, 0, w, h);
+  var r = acak(733), i;
+  for (i = 0; i < 900; i++) { var t = r(); ctx.fillStyle = t < 0.5 ? 'rgba(255,240,225,0.05)' : 'rgba(0,0,0,0.12)'; ctx.fillRect(r() * w, r() * h, 1 + r() * 2, 1); }
+  var gr = ctx.createLinearGradient(0, 0, w, 0);
+  gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(0.5, 'rgba(255,245,235,0.1)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = gr; ctx.fillRect(0, 0, w, h);
+}
+function lunaLukisBatik(ctx, w, h) { /* batik kawung sogan: empat kelopak lonjong + titik tengah, berulang rapat */
+  ctx.fillStyle = '#4a2a18'; ctx.fillRect(0, 0, w, h);
+  var n = 2, s = w / n, i, j, k;
+  for (j = -1; j <= n; j++) for (i = -1; i <= n; i++) {
+    var cx = (i + 0.5) * s, cy = (j + 0.5) * s;
+    for (k = 0; k < 4; k++) {
+      var a = Math.PI / 4 + k * Math.PI / 2, px = cx + Math.cos(a) * s * 0.26, py = cy + Math.sin(a) * s * 0.26;
+      ctx.fillStyle = '#e9d3a2'; ctx.beginPath(); ctx.ellipse(px, py, s * 0.25, s * 0.125, a, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#b9853a'; ctx.beginPath(); ctx.ellipse(px, py, s * 0.13, s * 0.05, a, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = '#c9a24a'; ctx.beginPath(); ctx.arc(cx, cy, s * 0.05, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#1f120a'; ctx.beginPath(); ctx.arc(cx + s / 2, cy + s / 2, s * 0.06, 0, Math.PI * 2); ctx.fill();
+  }
+}
+function lunaLukisRajut(ctx, w, h) { /* rajut gading: rusuk tegak + simpul V */
+  ctx.fillStyle = '#e6d8bd'; ctx.fillRect(0, 0, w, h);
+  var i, j;
+  for (i = 0; i < 4; i++) {
+    var x = i * w / 4;
+    ctx.fillStyle = 'rgba(120,92,52,0.2)'; ctx.fillRect(x, 0, 1.5, h);
+    ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fillRect(x + w / 8 - 1, 0, 2, h);
+    ctx.strokeStyle = 'rgba(120,92,52,0.16)'; ctx.lineWidth = 1;
+    for (j = 0; j < 4; j++) { var y = j * h / 4; ctx.beginPath(); ctx.moveTo(x + 1.5, y); ctx.lineTo(x + w / 8, y + h / 8); ctx.lineTo(x + w / 4, y); ctx.stroke(); }
+  }
+}
+function lunaLukisKulot(ctx, w, h) { /* kulot karamel: kepar halus + garis setrika depan-belakang + keliman (v 0 = bawah) */
+  ctx.fillStyle = '#b98852'; ctx.fillRect(0, 0, w, h);
+  ctx.strokeStyle = 'rgba(255,240,215,0.08)'; ctx.lineWidth = 1;
+  for (var d = -h; d < w; d += 4) { ctx.beginPath(); ctx.moveTo(d, 0); ctx.lineTo(d + h, h); ctx.stroke(); }
+  [0, w / 2].forEach(function (x) { ctx.fillStyle = 'rgba(255,238,205,0.34)'; ctx.fillRect(x - 1, 0, 2.5, h); ctx.fillStyle = 'rgba(70,40,12,0.25)'; ctx.fillRect(x + 1.5, 0, 1.5, h); });
+  ctx.fillStyle = 'rgba(70,40,12,0.28)'; ctx.fillRect(0, h * 0.925, w, 2);
+  ctx.fillStyle = 'rgba(255,240,215,0.14)'; ctx.fillRect(0, h * 0.94, w, h * 0.06);
+}
+function lunaLukisRok(ctx, w, h) { /* satin marun: lipit jatuh lembut + garis emas di keliman (v 0 = keliman bawah) */
+  ctx.fillStyle = '#7a1f2b'; ctx.fillRect(0, 0, w, h);
+  for (var i = 0; i < 14; i++) {
+    var x = i * w / 14, gr = ctx.createLinearGradient(x, 0, x + w / 14, 0);
+    gr.addColorStop(0, 'rgba(30,4,10,0.34)'); gr.addColorStop(0.5, 'rgba(255,190,190,0.18)'); gr.addColorStop(1, 'rgba(30,4,10,0.1)');
+    ctx.fillStyle = gr; ctx.fillRect(x, 0, w / 14, h);
+  }
+  ctx.fillStyle = '#c9a24a'; ctx.fillRect(0, h * 0.925, w, h * 0.022);
+  ctx.fillStyle = 'rgba(30,4,10,0.3)'; ctx.fillRect(0, h * 0.955, w, h * 0.045);
+}
+function lunaMat(kunci, lukis, w, h, ulang, dua) {
+  return krMat('luna:' + kunci, function () { return new THREE.MeshLambertMaterial({ map: teksturLukis(w, h, lukis, ulang), side: dua ? THREE.DoubleSide : THREE.FrontSide }); });
+}
+function lunaAtasanMat(j) {
+  return j === 0 ? lunaMat('blazer', lunaLukisBlazer, 64, 64, [10, 4]) : (j === 1 ? lunaMat('kulit', lunaLukisKulit, 64, 64, [3, 3])
+    : (j === 2 ? lunaMat('batik', lunaLukisBatik, 128, 128, [6, 2]) : lunaMat('rajut', lunaLukisRajut, 64, 64, [8, 3])));
+}
+function lunaAtasanGelap(j) { return krPolos('luna:gelap' + j, [0x172038, 0x131110, 0x2e1a10, 0xc7b086][j]); }
+function lunaLenganPanjang(j) { return j !== 2; } /* kemeja batik lengan pendek */
+function lunaAtasan(j, warnaDalam, badan, gelap, terang, vb) {
+  /* j: 0 blazer, 1 jaket kulit, 2 kemeja batik, 3 cardigan. warnaDalam = warna kaus pilihan pemain (kelihatan di balik bukaan). */
+  var T = lunaTempel, W = LUNA_W, PI = Math.PI;
+  function g(geo) { return krBagian(geo, 0, 0, 0); }
+  function v(warna, geo) { return vb(warna, geo, 0, 0, 0); }
+  function bola(warna, th, t, d, r, pipih) { var p = lunaP(th, t, d); return vb(warna, new THREE.SphereGeometry(r, 8, 6), p[0], p[1], p[2], 0, th, 0, 1, 1, pipih || 0.55); }
+  function kerahBuka(R, pipa, celah) { return krBagian(new THREE.TorusGeometry(R, pipa, 5, 18, PI * 2 - 2 * celah), 0, 1.36, 0.01, PI / 2 - 0.12, 0, PI / 2 + celah); } /* kerah terbuka di depan */
+  var kelim = krBagian(new THREE.TorusGeometry(0.27, 0.022, 4, 18), 0, 0.84, 0, PI / 2);
+  if (j === 0) { /* blazer navy: bukaan V + kerah jas (lapel) + 2 kancing emas + 2 tutup saku + saku dada dengan sapu tangan + belahan punggung */
+    badan.push(kelim); badan.push(kerahBuka(0.172, 0.03, 0.62));
+    terang.push(v(warnaDalam, T([-0.035, 1.0], [0.035, 1.0], [0.4, 1.5], [-0.4, 1.5], 0.004, 6, 8)));
+    [-1, 1].forEach(function (s) {
+      gelap.push(g(T([s * 0.0, 0.985], [s * 0.1, 1.03], [s * 0.6, 1.33], [s * 0.3, 1.46], 0.011, 3, 8)));
+      gelap.push(g(T([s * 0.4, 0.918], [s * 0.82, 0.918], [s * 0.82, 0.962], [s * 0.4, 0.962], 0.009, 5, 1)));
+    });
+    gelap.push(g(T([-0.01, 0.835], [0.032, 0.835], [0.032, 0.99], [-0.01, 0.99], 0.007, 1, 3)));
+    gelap.push(g(T([0.4, 1.158], [0.68, 1.158], [0.68, 1.178], [0.4, 1.178], 0.008, 4, 1)));
+    gelap.push(g(T([PI - 0.012, 0.835], [PI + 0.012, 0.835], [PI + 0.012, 0.99], [PI - 0.012, 0.99], 0.006, 1, 3)));
+    terang.push(v(W.gading, T([0.45, 1.176], [0.63, 1.176], [0.6, 1.214], [0.5, 1.222], 0.011, 2, 2)));
+    terang.push(bola(W.emas, 0.045, 0.955, 0.012, 0.018)); terang.push(bola(W.emas, 0.045, 0.885, 0.012, 0.018));
+  } else if (j === 1) { /* jaket kulit biker: kerah lebar + ritsleting miring perak + kancing jepret + saku ritsleting + sabuk pinggang berkepala perak */
+    gelap.push(krBagian(new THREE.TorusGeometry(0.272, 0.032, 5, 20), 0, 0.842, 0, PI / 2));
+    gelap.push(kerahBuka(0.176, 0.036, 0.55));
+    terang.push(v(warnaDalam, T([0.03, 1.1], [0.1, 1.1], [0.42, 1.5], [-0.36, 1.5], 0.004, 6, 8)));
+    gelap.push(g(T([0.075, 1.09], [0.17, 1.075], [0.66, 1.34], [0.36, 1.47], 0.011, 3, 8)));
+    gelap.push(g(T([0.055, 1.09], [-0.04, 1.075], [-0.6, 1.34], [-0.3, 1.47], 0.011, 3, 8)));
+    terang.push(v(W.perak, T([-0.045, 0.88], [-0.02, 0.88], [0.075, 1.1], [0.05, 1.1], 0.008, 1, 5)));
+    terang.push(bola(W.perak, 0.56, 1.325, 0.014, 0.012)); terang.push(bola(W.perak, -0.5, 1.325, 0.014, 0.012));
+    [-1, 1].forEach(function (s) { terang.push(v(W.perak, T([s * 0.48, 0.925], [s * 0.505, 0.92], [s * 0.72, 1.01], [s * 0.695, 1.015], 0.008, 1, 3))); });
+    terang.push(v(W.perak, T([0.44, 1.15], [0.66, 1.172], [0.66, 1.186], [0.44, 1.164], 0.008, 3, 1)));
+    terang.push(vb(W.perak, geoEmpukBaru(0.062, 0.05, 0.014, 0.005), 0, 0.845, 0.3));
+    terang.push(vb(W.noirGelap, geoEmpukBaru(0.034, 0.026, 0.016, 0.004), 0, 0.845, 0.302));
+  } else if (j === 2) { /* kemeja batik kawung lengan pendek: kerah tegak + 2 ujung kerah + plaket polos + 4 kancing + saku dada */
+    badan.push(kelim);
+    badan.push(krBagian(new THREE.TorusGeometry(0.168, 0.03, 5, 18), 0, 1.36, 0.01, PI / 2 - 0.12));
+    [-1, 1].forEach(function (s) { gelap.push(krBagian(geoEmpukBaru(0.085, 0.07, 0.014, 0.005), s * 0.062, 1.312, 0.212, -0.5, s * 0.35, s * 0.55)); });
+    gelap.push(g(T([-0.055, 0.835], [0.055, 0.835], [0.055, 1.42], [-0.055, 1.42], 0.006, 2, 8)));
+    gelap.push(g(T([0.34, 1.15], [0.66, 1.15], [0.66, 1.172], [0.34, 1.172], 0.008, 4, 1)));
+    badan.push(g(T([0.36, 1.045], [0.64, 1.045], [0.64, 1.152], [0.36, 1.152], 0.006, 4, 3, 0.2, 0.12)));
+    [1.16, 1.06, 0.96, 0.87].forEach(function (y) { terang.push(bola(W.gading, 0, y, 0.011, 0.013)); });
+  } else { /* cardigan rajut gading terbuka: kaus dalam kelihatan + pita kancing rib + 4 kancing kayu + 2 saku tempel + kerah syal + rib bawah */
+    gelap.push(krBagian(new THREE.TorusGeometry(0.272, 0.03, 5, 20, PI * 2 - 0.36), 0, 0.842, 0, PI / 2, 0, PI / 2 + 0.18));
+    gelap.push(kerahBuka(0.176, 0.036, 0.6));
+    terang.push(v(warnaDalam, T([-0.18, 0.832], [0.18, 0.832], [0.42, 1.5], [-0.42, 1.5], 0.004, 6, 10)));
+    [-1, 1].forEach(function (s) {
+      gelap.push(g(T([s * 0.13, 0.828], [s * 0.225, 0.828], [s * 0.6, 1.36], [s * 0.3, 1.47], 0.011, 2, 10)));
+      badan.push(g(T([s * 0.4, 0.875], [s * 0.82, 0.875], [s * 0.82, 0.99], [s * 0.4, 0.99], 0.008, 5, 2, 0.16, 0.1)));
+      gelap.push(g(T([s * 0.39, 0.985], [s * 0.83, 0.985], [s * 0.83, 1.012], [s * 0.39, 1.012], 0.011, 5, 1)));
+    });
+    [0.9, 0.99, 1.08, 1.17].forEach(function (t) { var u = (t - 0.828) / (1.415 - 0.828); terang.push(bola(W.kayu, 0.1775 + (0.45 - 0.1775) * u, t, 0.017, 0.017)); });
+  }
+}
+/* kulot: tabung lebar sebetis di tiap kaki (ikut sendi pinggul) + panggul + ban pinggang berkepala emas */
+function lunaGeoKulot(sx) { /* sx: -1 kaki kiri, 1 kanan — melebar ke LUAR + depan-belakang (sisi dalam tetap lurus: dua kaki tidak saling tembus) */
+  var pr = [[0.135, -0.46], [0.142, -0.475], [0.166, -0.5], [0.168, -0.47], [0.158, -0.36], [0.142, -0.2], [0.126, -0.06], [0.118, 0.03]];
+  var geo = new THREE.LatheGeometry(pr.map(function (q) { return new THREE.Vector2(q[0], q[1]); }), 16);
+  krUVTinggi(geo);
+  var P = geo.attributes.position;
+  for (var i = 0; i < P.count; i++) {
+    var x = P.getX(i), y = P.getY(i), z = P.getZ(i), r = Math.sqrt(x * x + z * z) || 1, lebih = Math.max(0, r - 0.118);
+    P.setXYZ(i, x / r * 0.118 + (x / r) * lebih * 0.35 + sx * lebih * 0.65, y, z / r * (0.118 + lebih * 0.8));
+  }
+  geo.computeVertexNormals();
+  return geo;
+}
+function lunaKulotMat() { return lunaMat('kulot', lunaLukisKulot, 64, 128, null, true); }
+function lunaRokMat() { return lunaMat('rok', lunaLukisRok, 256, 128, null, true); }
+function lunaBawahan(j, parts, tubuh, vb) { /* j: 0 kulot (kaki tabungnya dipasang di lunaKaki), 1 rok panjang */
+  if (j === 0) {
+    var m = new THREE.Mesh(krGabung([krBagian(geoEmpukBaru(0.46, 0.26, 0.31, 0.06), 0, 0.7, 0)]), krPolos('luna:kulotPanggul', 0xb98852));
+    m.castShadow = true; tubuh.add(m);
+    krPasangV([vb(0x8f6537, geoEmpukBaru(0.47, 0.06, 0.32, 0.022), 0, 0.82, 0), vb(LUNA_W.emas, geoEmpukBaru(0.06, 0.05, 0.012, 0.004), 0, 0.82, 0.163),
+      vb(0x8f6537, geoEmpukBaru(0.022, 0.07, 0.01, 0.003), -0.13, 0.82, 0.162), vb(0x8f6537, geoEmpukBaru(0.022, 0.07, 0.01, 0.003), 0.13, 0.82, 0.162)], tubuh);
+    return;
+  }
+  /* rok panjang A-line sampai atas mata kaki (y 0,10..0,86): kaki berayun 0,55 rad tetap di dalam (jari-jari keliman 0,47 > 0,445).
+     Duduk: kerucut kaku diganti rok duduk (lunaRokTick) yang mengikuti arah kaki — kaki tidak menembus depan rok. */
+  var geo = new THREE.CylinderGeometry(0.29, 0.47, 0.76, 28, 1, true, Math.PI, Math.PI * 2);
+  krUVTinggi(geo);
+  var rok = new THREE.Mesh(krGabung([krBagian(geo, 0, 0.48, 0)]), lunaRokMat());
+  rok.castShadow = true; tubuh.add(rok);
+  krPasangV([vb(LUNA_W.marunGelap, new THREE.TorusGeometry(0.288, 0.03, 5, 22), 0, 0.85, 0, Math.PI / 2), vb(LUNA_W.emas, geoEmpukBaru(0.05, 0.04, 0.012, 0.004), 0, 0.85, 0.312)], tubuh);
+  parts.lunaRok = { berdiri: rok, duduk: null, tubuh: tubuh, asal: new Float32Array(rok.geometry.attributes.position.array), ayunA: 0, ayunB: 0 };
+}
+function lunaGeoRokDuduk() { /* selubung dua paha sepanjang arah kaki (sumbu -y lokal poros pinggul), penampang lonjong; atas = depan kaki */
+  var L = 0.6, cincin = 7, seg = 24, pos = [], uv = [], idx = [], i, k;
+  for (i = 0; i <= cincin; i++) {
+    var u = i / cincin, s = -0.03 + (L + 0.03) * u, Wd = 0.238 + 0.1 * u, F = 0.128 + 0.035 * u, Bk = 0.106 + 0.01 * u;
+    for (k = 0; k <= seg; k++) {
+      var q = k / seg * Math.PI * 2, c = Math.cos(q), sn = Math.sin(q);
+      pos.push(Wd * (c < 0 ? -1 : 1) * Math.pow(Math.abs(c), 0.62), -s, (sn >= 0 ? F : Bk) * (sn < 0 ? -1 : 1) * Math.pow(Math.abs(sn), 0.62));
+      uv.push(k / seg, 1 - u);
+    }
+  }
+  for (i = 0; i < cincin; i++) for (k = 0; k < seg; k++) { var a = i * (seg + 1) + k, b = a + 1, c2 = a + seg + 2, d = a + seg + 1; idx.push(a, b, d, b, c2, d); }
+  var g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+function lunaRokTick(parts) { /* tiap frame: dua kaki sama-sama terangkat ke depan (duduk / lesehan) -> rok duduk mengikuti kaki; selain itu kerucut berdiri */
+  var R = parts && parts.lunaRok;
+  if (!R || !parts.legL || !parts.legR) return;
+  var a = parts.legL.rotation.x, b = parts.legR.rotation.x, duduk = a < -0.45 && b < -0.45;
+  if (duduk && !R.duduk) {
+    var p = new THREE.Group(); p.position.set(0, 0.72, 0);
+    var sel = new THREE.Mesh(lunaGeoRokDuduk(), lunaRokMat()); sel.castShadow = true; p.add(sel);
+    var pg = new THREE.Mesh(new THREE.SphereGeometry(1, 18, 10), lunaRokMat()); pg.scale.set(0.3, 0.172, 0.25); pg.position.set(0, 0.72, -0.015); pg.castShadow = true;
+    R.tubuh.add(p); R.tubuh.add(pg); R.duduk = p; R.pinggul = pg;
+  }
+  R.berdiri.visible = !duduk;
+  if (!duduk && (Math.abs(a - R.ayunA) > 0.012 || Math.abs(b - R.ayunB) > 0.012)) { /* melangkah: kain ikut terdorong kaki depan + belakang (kaki & sepatu tidak pernah menembus rok) */
+    R.ayunA = a; R.ayunB = b;
+    var P = R.berdiri.geometry.attributes.position, A = R.asal, tf = Math.tan(Math.min(1.0, Math.max(0, -Math.min(a, b)))), tb = Math.tan(Math.min(1.0, Math.max(0, Math.max(a, b))));
+    for (var i = 0; i < P.count; i++) {
+      var y = A[i * 3 + 1], z = A[i * 3 + 2], t = Math.min(1, Math.max(0, (0.86 - y) / 0.76)), r = 0.29 + 0.18 * t, dl = Math.max(0, 0.72 - y);
+      var perlu = z >= 0 ? (tf > 0.02 ? dl * tf + 0.14 + 0.2 * t * t * t : 0) : (tb > 0.02 ? dl * tb + 0.14 + 0.1 * t * t * t : 0);
+      P.setZ(i, z * Math.max(1, perlu / r));
+    }
+    P.needsUpdate = true;
+  }
+  if (R.duduk) { R.duduk.visible = duduk; R.pinggul.visible = duduk; if (duduk) R.duduk.rotation.x = (a + b) / 2; }
+}
+function lunaAlas(j, leg, vb) { /* j: 0 heels marun bertumit emas, 1 loafers kulit cokelat + besi kuda emas. Koordinat poros pinggul: lantai y -0,72, depan +z */
+  var W = LUNA_W;
+  if (j === 0) {
+    krPasangV([vb(KR_SKIN, new THREE.SphereGeometry(1, 10, 8), 0, -0.645, 0.045, 0.3, 0, 0, 0.05, 0.036, 0.125),
+      vb(W.marun, new THREE.SphereGeometry(1, 12, 8), 0, -0.692, 0.13, 0.14, 0, 0, 0.058, 0.031, 0.09),
+      vb(W.marun, new THREE.SphereGeometry(1, 10, 8), 0, -0.63, -0.055, 0, 0, 0, 0.052, 0.05, 0.05),
+      vb(W.marunGelap, geoEmpukBaru(0.088, 0.013, 0.255, 0.005), 0, -0.678, 0.05, 0.3, 0, 0),
+      vb(W.emas, new THREE.CylinderGeometry(0.021, 0.011, 0.085, 8), 0, -0.6775, -0.068)], leg);
+  } else {
+    krPasangV([vb(0x8a5a2b, geoEmpukBaru(0.172, 0.085, 0.3, 0.04), 0, -0.668, 0.045),
+      vb(0x2a1c12, geoEmpukBaru(0.18, 0.024, 0.312, 0.008), 0, -0.708, 0.045),
+      vb(0x9c6a35, new THREE.SphereGeometry(1, 12, 6), 0, -0.632, 0.105, 0, 0, 0, 0.068, 0.02, 0.085),
+      vb(0x6b4220, geoEmpukBaru(0.152, 0.02, 0.042, 0.006), 0, -0.624, 0.058),
+      vb(W.emas, geoEmpukBaru(0.07, 0.012, 0.014, 0.004), 0, -0.613, 0.06),
+      vb(0x3a2412, new THREE.CylinderGeometry(0.058, 0.058, 0.012, 12), 0, -0.6245, -0.03, 0, 0, 0, 1, 1, 1.15)], leg);
+  }
+}
+function busanaPasang(parts) {
+  /* baret + tas tangan (slot topi / tas butik). Mesh lama dibuang dulu (geometri per avatar, bahan dipakai bersama). */
+  if (!parts || !parts.tubuh) return;
+  (parts.bus || []).forEach(function (m) { if (m.parent) m.parent.remove(m); m.traverse(function (c) { if (c.geometry) c.geometry.dispose(); }); });
+  parts.bus = []; parts.lunaTas = null;
+  var x = parts.busKini || busanaBaca(null), W = LUNA_W;
+  function vb(warna, geo, px, py, pz, rx, ry, rz, sx, sy, sz) { return { geo: geo, x: px || 0, y: py || 0, z: pz || 0, rx: rx, ry: ry, rz: rz, sx: sx, sy: sy, sz: sz, warna: warna }; }
+  if (x.bTopi === 0) { /* baret wol marun: piringan menggembung miring + pita tepi + tangkai kecil; puncak < 1,95 (di bawah label nama) */
+    var pr = [[0.24, -0.115], [0.328, -0.108], [0.368, -0.062], [0.388, -0.012], [0.374, 0.034], [0.322, 0.074], [0.215, 0.098], [0.09, 0.107], [0.0001, 0.109]];
+    var topi = new THREE.Group(); topi.position.set(0.02, 1.785, -0.015); topi.rotation.set(0.04, 0, 0.14); topi.scale.set(1, 1, 1.04);
+    if (parts.potong === 5) { topi.position.y = 1.817; topi.scale.set(1.03, 1.3, 1.07); } /* keriting: ikal sampai y 1,91 — mahkota ditinggikan supaya tidak tembus */
+    if (parts.potong === 4) { topi.position.set(0.02, 1.805, -0.07); topi.rotation.set(0.03, 0, 0.1); topi.scale.set(1, 1.05, 1.24); } /* cepol di belakang kepala: baret menjulur ke belakang menutup cepol (tidak tembus) */
+    krPasangV([vb(0x8a2433, new THREE.LatheGeometry(pr.map(function (q) { return new THREE.Vector2(q[0], q[1]); }), 28)),
+      vb(W.marunGelap, new THREE.TorusGeometry(0.326, 0.017, 5, 28), 0, -0.106, 0, Math.PI / 2),
+      vb(0x8a2433, new THREE.CylinderGeometry(0.009, 0.013, 0.04, 6), 0, 0.124, 0, 0, 0, 0.2)], topi);
+    parts.tubuh.add(topi); parts.bus.push(topi);
+  }
+  if (x.bTas === 0 && parts.armL) { /* tas tangan "Luna Noir": badan + tutup + kunci emas + 2 gagang, dijinjing tangan (lengan di sisi x negatif) */
+    var gt = new THREE.Group(); gt.position.set(-0.012, -0.5, 0.005); gt.rotation.set(0, 0.3, -0.22); gt.scale.setScalar(1.3); /* poros = puncak gagang di genggaman; tas mengayun sedikit ke luar */ /* sedikit serong: mukanya kelihatan dari depan, tidak menyentuh rok */
+    var tas = krPasangV([vb(W.noir, geoEmpukBaru(0.088, 0.15, 0.21, 0.03), 0, -0.143, 0),
+      vb(W.noirGelap, geoEmpukBaru(0.094, 0.07, 0.216, 0.02), 0, -0.1, 0),
+      vb(W.emas, geoEmpukBaru(0.014, 0.034, 0.034, 0.005), -0.048, -0.128, 0),
+      vb(W.emas, geoEmpukBaru(0.09, 0.008, 0.2, 0.003), 0, -0.216, 0),
+      vb(W.noirGelap, new THREE.TorusGeometry(0.066, 0.008, 5, 14, Math.PI), 0.023, -0.066, 0, 0, Math.PI / 2, 0),
+      vb(W.noirGelap, new THREE.TorusGeometry(0.066, 0.008, 5, 14, Math.PI), -0.023, -0.066, 0, 0, Math.PI / 2, 0)], gt);
+    parts.armL.add(gt); tas = gt; gt.userData.lunaGrup = true;
+    parts.bus.push(tas); parts.lunaTas = tas;
+  }
+}
+function lunaTasTampil(parts, tampil) { if (parts && parts.lunaTas && parts.lunaTas.visible !== tampil) parts.lunaTas.visible = tampil; } /* tas dijinjing hanya saat berdiri / jalan (duduk, tidur, kerja: ditaruh) */
+/* ==== BUTIK-LUNA-GEO-END ==== */
 function makeKosanAvatar(gender, rupa, opt) {
   opt = opt || {};
   var ibu = !!opt.ibu;
   gender = typeof gender === 'string' ? gender.toLowerCase() : gender; /* normalisasi gender (19 Nov): 'Cowok' kapital tetap cowok */
   var isF = ibu || gender !== 'cowok'; /* default cewek */
+  var bus = busanaBaca(ibu ? null : (busanaTitip || rupa)); busanaTitip = null; /* Butik Maison Luna — busana butik per slot (-1 = tidak ada); pemain lain: dititipkan pemanggil */
   var gaya = gayaEfektif(isF ? 'cewek' : 'cowok', rupa); /* Perabot modern — model rambut/atasan/bawahan/alas kaki */
   rupa = rupaEfektif(isF ? 'cewek' : 'cowok', rupa);
   var g = new THREE.Group();
   var tubuh = new THREE.Group();
   g.add(tubuh);
   var parts = { g: g, tubuh: tubuh, legL: null, legR: null, armL: null, armR: null, ekor: null };
+  parts.busKini = bus;
   function pivot(x, y, z, rz) {
     var p = new THREE.Group();
     p.position.set(x, y, z);
@@ -7274,11 +7693,12 @@ function makeKosanAvatar(gender, rupa, opt) {
   function vb(warna, geo, x, y, z, rx, ry, rz, sx, sy, sz) { return { geo: geo, x: x, y: y, z: z, rx: rx, ry: ry, rz: rz, sx: sx, sy: sy, sz: sz, warna: warna }; }
   var kulit = krKulit();
   var potong = ibu ? -1 : gaya.potong, atasan = ibu ? -1 : gaya.atasan, bawahan = ibu ? -1 : gaya.bawahan, alas = ibu ? -1 : gaya.alas;
-  var bajuMat = ibu ? krBatik() : krBaju(rupa.baju);
-  var bajuGelap = ibu ? krPolos('ibuGelap', 0x1f4466) : krBajuGelap(rupa.baju);
+  var bajuMat = ibu ? krBatik() : (bus.bAtasan >= 0 ? lunaAtasanMat(bus.bAtasan) : krBaju(rupa.baju));
+  var bajuGelap = ibu ? krPolos('ibuGelap', 0x1f4466) : (bus.bAtasan >= 0 ? lunaAtasanGelap(bus.bAtasan) : krBajuGelap(rupa.baju));
   var rambutMat = ibu ? krPolos('ibuRambut', 0x3a2a1e) : krRambut(rupa.rambut);
-  var lenganPanjang = atasan === 2 || atasan === 4; /* hoodie, jaket */
-  var celanaPanjang = bawahan === 2 || bawahan === 4; /* jins, jogger */
+  var lenganPanjang = bus.bAtasan >= 0 ? lunaLenganPanjang(bus.bAtasan) : (atasan === 2 || atasan === 4); /* hoodie, jaket */
+  var celanaPanjang = bus.bBawahan < 0 && (bawahan === 2 || bawahan === 4); /* jins, jogger */
+  if (bus.bAtasan >= 0) atasan = 9; if (bus.bBawahan >= 0) bawahan = 9; if (bus.bAlas >= 0) alas = 9; parts.potong = potong; /* Butik Maison Luna: slot diisi busana butik (9 = bukan model gratis mana pun) */
   var PUTIH = 0xf3f0e8;
 
   /* kaki: pivot pinggul (+-0,12, 0,72, 0) — kaki (atau kaki celana panjang) + alas kaki (ibu: sandal) */
@@ -7289,9 +7709,11 @@ function makeKosanAvatar(gender, rupa, opt) {
       pasang([krBagian(new THREE.BoxGeometry(0.17, 0.035, 0.3), 0, -0.705, 0.04), krBagian(new THREE.BoxGeometry(0.15, 0.02, 0.04), 0, -0.68, 0.1)], krPolos('sandal', 0x7c5227), leg);
     } else {
       var sandal = alas === 2;
-      if (celanaPanjang) pasang([{ geo: krGeoCelana(sandal ? -0.64 : (alas === 1 ? -0.63 : -0.6), bawahan === 4), m: new THREE.Matrix4() }], bawahan === 4 ? krJogger() : krDenim(), leg); /* kaki celana panjang menggantikan kaki */
-      else pasang([{ geo: krGeoKaki(sandal ? -0.69 : -0.63, isF), m: new THREE.Matrix4() }], (sandal || alas === 3) ? kulit : krKakiMat(), leg); /* kaki berlekuk (revisi Ryan); sandal/boots tanpa kaus kaki */
-      if (alas === 0) { /* sneakers bertekstur (tampilan lama) */
+      if (celanaPanjang) pasang([{ geo: krGeoCelana(sandal ? -0.64 : ((alas === 1 || bus.bAlas >= 0) ? -0.63 : -0.6), bawahan === 4), m: new THREE.Matrix4() }], bawahan === 4 ? krJogger() : krDenim(), leg); /* kaki celana panjang menggantikan kaki */
+      else pasang([{ geo: krGeoKaki(sandal ? -0.69 : (bus.bAlas === 0 ? -0.66 : -0.63), isF), m: new THREE.Matrix4() }], (sandal || alas === 3 || bus.bAlas >= 0) ? kulit : krKakiMat(), leg); /* kaki berlekuk (revisi Ryan); sandal/boots tanpa kaus kaki */
+      if (bus.bBawahan === 0) pasang([{ geo: lunaGeoKulot(sx), m: new THREE.Matrix4() }], lunaKulotMat(), leg); /* Butik: kaki kulot (tabung lebar sebetis) */
+      if (bus.bAlas >= 0) lunaAlas(bus.bAlas, leg, vb); /* Butik: heels / loafers */
+      else if (alas === 0) { /* sneakers bertekstur (tampilan lama) */
         var sepatu = new THREE.Mesh(geoEmpukBaru(0.18, 0.12, 0.32, 0.045), krSepatu());
         sepatu.position.set(0, -0.66, 0.045); sepatu.castShadow = true; leg.add(sepatu);
       } else if (alas === 1) { /* sepatu kanvas rendah: hitam + sol karet putih */
@@ -7317,6 +7739,7 @@ function makeKosanAvatar(gender, rupa, opt) {
     pasang([krBagian(new THREE.CylinderGeometry(0.31, 0.5, 0.92, 16, 1, false, Math.PI, Math.PI * 2), 0, 0.6, 0)], bajuMat); /* daster panjang */
     pasang([krBagian(geoEmpukBaru(0.42, 0.5, 0.03, 0.012), 0, 0.62, 0.395, -0.17)], krCelemek()); /* celemek */
     pasang([krBagian(new THREE.BoxGeometry(0.05, 0.36, 0.02), -0.13, 1.06, 0.255, 0.1, 0, 0.2), krBagian(new THREE.BoxGeometry(0.05, 0.36, 0.02), 0.13, 1.06, 0.255, 0.1, 0, -0.2)], krCelemek()); /* tali celemek */
+  } else if (bus.bBawahan >= 0) { lunaBawahan(bus.bBawahan, parts, tubuh, vb); /* Butik: kulot / rok panjang */
   } else if (bawahan === 0) { /* rok biru lipit (tampilan lama cewek) */
     parts.rok = pasang([krBagian(new THREE.CylinderGeometry(0.30, 0.46, 0.52, 16, 1, false, Math.PI, Math.PI * 2), 0, 0.6, 0)], krRok()); parts.rokJenis = 0; /* Toko Perabot: dicatat untuk rok duduk di bean bag (avatarRokBean) */
     pasang([krBagian(new THREE.TorusGeometry(0.29, 0.03, 4, 20), 0, 0.85, 0, Math.PI / 2)], krPolos('rokPinggang', 0x1f5fa8));
@@ -7367,11 +7790,12 @@ function makeKosanAvatar(gender, rupa, opt) {
   });
   /* badan per model atasan: kapsul (+ kelim) + detail gelap (kerah/rib/saku) + detail terang (kancing/tali/kaus dalam) */
   var badanGeo = krGeoBadan(), badan = [], gelap = [], terang = [];
-  if (atasan === 3) krUVTinggi(badanGeo); /* garis belang rata sepanjang tinggi badan */
+  if (atasan === 3 || atasan === 9) krUVTinggi(badanGeo); /* garis belang rata sepanjang tinggi badan (juga motif busana butik: tidak melar di bagian lurus) */
   badan.push(krBagian(badanGeo, 0, 0, 0));
   var kelim = krBagian(new THREE.TorusGeometry(0.27, 0.022, 4, 18), 0, 0.84, 0, Math.PI / 2);
   var kerahKaus = krBagian(new THREE.TorusGeometry(0.17, 0.032, 5, 18), 0, 1.355, 0.01, Math.PI / 2 - 0.12);
-  if (atasan === 1) { /* kemeja: kerah berdiri + 2 ujung kerah, plaket + 4 kancing, saku dada */
+  if (bus.bAtasan >= 0) lunaAtasan(bus.bAtasan, RUPA_BAJU[rupa.baju].warna, badan, gelap, terang, vb); /* Butik: blazer / jaket kulit / kemeja batik / cardigan */
+  else if (atasan === 1) { /* kemeja: kerah berdiri + 2 ujung kerah, plaket + 4 kancing, saku dada */
     badan.push(kelim);
     badan.push(krBagian(new THREE.TorusGeometry(0.168, 0.03, 5, 18), 0, 1.36, 0.01, Math.PI / 2 - 0.12));
     [-1, 1].forEach(function (s) { badan.push(krBagian(geoEmpukBaru(0.085, 0.07, 0.014, 0.005), s * 0.062, 1.312, 0.212, -0.5, s * 0.35, s * 0.55)); });
@@ -7484,6 +7908,7 @@ function makeKosanAvatar(gender, rupa, opt) {
   } else if (jepit) {
     pasang([krBagian(new THREE.SphereGeometry(1, 6, 5), jepit[0], jepit[1], jepit[2], 0, 0, 0.5, 0.05, 0.03, 0.035), krBagian(new THREE.SphereGeometry(1, 5, 4), jepit[0] + 0.035, jepit[1] - 0.02, jepit[2] - 0.03, 0, 0, 0, 0.025, 0.025, 0.025)], krPolos('jepit', 0xff7a9a)); /* jepit rambut */
   }
+  busanaPasang(parts); /* Butik Maison Luna — baret + tas tangan */
   g.scale.setScalar(ibu ? 1.0 : 1.1); /* tinggi ~2,06 m (Ibu ~1,87 m) */
   return parts;
 }
@@ -7566,7 +7991,7 @@ function rupaMentah() { /* Perabot modern — isi 'kosan3d-rupa' yang PERNAH dip
     return mpPasangGaya(o, p);
   } catch (e) { return {}; }
 }
-function rupaSaya() { return mpPasangGaya(rupaEfektif(visitorGender, rupaBaca()), gayaEfektif(visitorGender, rupaMentah())); } /* warna + gaya efektif */
+function rupaSaya() { return mpPasangBusana(mpPasangGaya(rupaEfektif(visitorGender, rupaBaca()), gayaEfektif(visitorGender, rupaMentah())), busanaSayaTampil()); } /* warna + gaya efektif */
 function rupaSet(bagian, i) {
   var n = bagian === 'baju' ? RUPA_BAJU.length : RUPA_RAMBUT.length;
   if (mpRupaDikenal(i, n) < 0) return;
@@ -7582,6 +8007,7 @@ function gayaSet(bagian, i) { /* Perabot modern — pilih model rambut/atasan/ba
   if (!k || mpRupaDikenal(i, k[1].length) < 0) return;
   var r = rupaMentah();
   r[bagian] = i;
+  busanaLepasSlot(bagian); /* Butik Maison Luna: memilih model gratis = busana butik di slot itu dilepas */
   try { localStorage.setItem('kosan3d-rupa', JSON.stringify(r)); } catch (e) { /* abaikan */ }
   buildVisitorAvatar();
   if (typeof mpKirimPresence === 'function') { mpKirimPresence(); mpKirimPos(); }
@@ -10048,6 +10474,7 @@ function aksesoriPakai(id, pakai, diam) {
   if (!it || it.jenis !== 'aksesori') return;
   var p = aksesoriPilihan(); p[it.slot] = pakai ? id : null;
   try { localStorage.setItem('kosan3d-aksesori', JSON.stringify(p)); } catch (e) { /* abaikan */ }
+  if (pakai && busanaLepasSlot(it.slot)) buildVisitorAvatar(); /* Butik Maison Luna: topi / tas toko dipakai -> baret / tas tangan butik dilepas */
   aksesoriSayaTerapkan(); mpKirimPresence(); mpKirimPos();
   if (!diam) toastKosan(pakai ? '🛍 ' + it.nama + ' dipakai' : '🛍 ' + it.nama + ' dilepas');
   if (dompetTerbuka()) dompetRender();
@@ -10087,6 +10514,7 @@ function aksesoriPasang(parts, a) {
   (parts.aks || []).forEach(function (m) { if (m.parent) m.parent.remove(m); if (m.geometry) m.geometry.dispose(); });
   parts.aks = [];
   var x = mpBacaAksesori(a);
+  if (parts.busKini) { if (parts.busKini.bTopi >= 0) x.topi = -1; if (parts.busKini.bTas >= 0) x.tas = -1; } /* Butik Maison Luna: satu slot satu barang */
   function pasang(list, mat, induk) { var m = new THREE.Mesh(krGabung(list), mat); m.castShadow = true; (induk || parts.tubuh).add(m); parts.aks.push(m); return m; }
   var lam = function (k, c) { return krMat('aks:' + k, function () { return new THREE.MeshLambertMaterial({ color: c }); }); };
   /* topi menutup SEMUA model rambut (poni bob jangkauan ~0,333 dari poros, ikal keriting ~0,356 dari pusat kepala 1,555):
@@ -12415,6 +12843,7 @@ window.addEventListener('popstate', function () {
   var profilO = document.getElementById('profilOverlay');
   if (profilO && profilO.classList.contains('open')) { dorongStateLagi(); profilTutup(); return; }
   if (KK.aktif) { dorongStateLagi(); kkKembali(); return; } /* Kerja di Kota */
+  if (LUNA.aktif) { dorongStateLagi(); lunaTutup(); return; } /* Butik Maison Luna */
   if (TK.aktif) { dorongStateLagi(); tkTutup(); return; } /* Tata Kamar */
   if (WK.buka) { dorongStateLagi(); warnaTutup(); return; } /* Warna Kamar */
   if (rupaPanel && rupaPanel.classList.contains('open')) { dorongStateLagi(); rupaTutup(); return; } /* Karakter v2 */
@@ -13580,6 +14009,7 @@ function rupaRender() {
     var isi = document.getElementById('rupaIsi-' + b.dataset.tab);
     if (isi) isi.hidden = !aktif;
   });
+  lunaRupaRender(); /* Butik Maison Luna — busana butik punyamu */
 }
 function rupaFokus() { /* Perabot modern — kamera pratinjau per tab: rambut/atasan = badan atas,
    bawahan/alas kaki = seluruh badan sampai kaki di atas panel (HP tegak) / di kiri panel (mendatar) */
@@ -14330,6 +14760,7 @@ function mpPasangPenangan(c) {
   });
 }
 function mpBuatRemote(id, nama, gender, realm, x, z, rot, baju, rambut, gaya) {
+  busanaTitip = gaya; /* Butik Maison Luna — busana butik pemain ini (dibaca + dikosongkan makeKosanAvatar) */
   var parts = makeKosanAvatar(gender, mpPasangGaya({ baju: baju, rambut: rambut }, gaya)); /* Karakter v2 + gaya (Perabot modern) */
   aksesoriPasang(parts, gaya); /* Kerja & Belanja — topi/kacamata/tas + celemek/kentongan (field opsional pesan) */
   var label = makeLabel('@' + nama); /* Ronde 54 — label pemain remote = @username */
@@ -14343,6 +14774,7 @@ function mpBuatRemote(id, nama, gender, realm, x, z, rot, baju, rambut, gaya) {
     baju: typeof baju === 'number' ? baju : -1, rambut: typeof rambut === 'number' ? rambut : -1, /* Karakter v2 */
     gaya: mpBacaGaya(gaya), /* Perabot modern — model rambut/atasan/bawahan/alas (-1 = bawaan) */
     aks: mpBacaAksesori(gaya), /* Kerja & Belanja — aksesori + status kerja */
+    bus: mpBacaBusana(gaya), /* Butik Maison Luna — busana butik (-1 = tidak ada) */
     foto: (gaya && typeof gaya.foto === 'string') ? gaya.foto : null, /* Foto profil (18 Nov) — dari presence, null kalau belum pasang */
     lastSeen: Date.now(), snapped: true, punyaPos: true, bot: false };
   remotePlayers[id] = entri;
@@ -14352,6 +14784,7 @@ function mpBuatRemote(id, nama, gender, realm, x, z, rot, baju, rambut, gaya) {
 }
 function mpBangunUlangRemote(entri) { /* gender berubah: rebuild avatar, label tetap */
   var lama = entri.group;
+  busanaTitip = entri.bus; /* Butik Maison Luna — busana butik pemain ini */
   var parts = makeKosanAvatar(entri.gender, mpPasangGaya({ baju: entri.baju, rambut: entri.rambut }, entri.gaya)); /* Karakter v2 + gaya */
   aksesoriPasang(parts, entri.aks); /* Kerja & Belanja — aksesori ikut dibangun ulang */
   var g = parts.g;
@@ -14433,8 +14866,8 @@ function mpTerimaPos(m) {
   emoteTerimaRemote(entri, m, Date.now()); /* Tahap 2 — emote (sudah divalidasi: id dari daftar tetap) */
   if (!entri.punyaPos) { entri.snapped = false; entri.punyaPos = true; }
   if (m.nama !== entri.nama) { entri.nama = m.nama; perbaruiLabelDuplikat(); }
-  if (m.gender !== entri.gender || m.baju !== entri.baju || m.rambut !== entri.rambut || !mpGayaSama(m, entri.gaya)) { /* gender / tampilan / gaya berubah (Karakter v2 + Perabot modern) */
-    entri.gender = m.gender; entri.baju = m.baju; entri.rambut = m.rambut; entri.gaya = mpBacaGaya(m); mpBangunUlangRemote(entri);
+  if (m.gender !== entri.gender || m.baju !== entri.baju || m.rambut !== entri.rambut || !mpGayaSama(m, entri.gaya) || !mpBusanaSama(m, entri.bus)) { /* gender / tampilan / gaya berubah (Karakter v2 + Perabot modern) */
+    entri.gender = m.gender; entri.baju = m.baju; entri.rambut = m.rambut; entri.gaya = mpBacaGaya(m); entri.bus = mpBacaBusana(m); mpBangunUlangRemote(entri);
   }
   if (!mpAksesoriSama(m, entri.aks)) { entri.aks = mpBacaAksesori(m); aksesoriPasang(entri.parts, entri.aks); } /* Kerja & Belanja — pasang ulang aksesori saja (tanpa bangun ulang avatar) */
   if (m.foto !== entri.foto) entri.foto = m.foto || null; /* Foto profil (18 Nov) — presence baru membawa URL foto */
@@ -14451,8 +14884,8 @@ function mpTerimaPresence(m) {
   }
   mpPindahRealmRemote(entri, m.realm, m.ts);
   if (m.nama !== entri.nama) { entri.nama = m.nama; perbaruiLabelDuplikat(); }
-  if (m.gender !== entri.gender || m.baju !== entri.baju || m.rambut !== entri.rambut || !mpGayaSama(m, entri.gaya)) { /* gender / tampilan / gaya berubah (Karakter v2 + Perabot modern) */
-    entri.gender = m.gender; entri.baju = m.baju; entri.rambut = m.rambut; entri.gaya = mpBacaGaya(m); mpBangunUlangRemote(entri);
+  if (m.gender !== entri.gender || m.baju !== entri.baju || m.rambut !== entri.rambut || !mpGayaSama(m, entri.gaya) || !mpBusanaSama(m, entri.bus)) { /* gender / tampilan / gaya berubah (Karakter v2 + Perabot modern) */
+    entri.gender = m.gender; entri.baju = m.baju; entri.rambut = m.rambut; entri.gaya = mpBacaGaya(m); entri.bus = mpBacaBusana(m); mpBangunUlangRemote(entri);
   }
   if (!mpAksesoriSama(m, entri.aks)) { entri.aks = mpBacaAksesori(m); aksesoriPasang(entri.parts, entri.aks); } /* Kerja & Belanja — pasang ulang aksesori saja (tanpa bangun ulang avatar) */
   entri.lastSeen = Date.now();
@@ -14497,6 +14930,7 @@ function mpKirimPos() {
     emoteAktifSaya(Date.now()) ? emoteSaya.id : null, emoteAktifSaya(Date.now()) ? emoteSaya.emoteTs : 0, /* Tahap 2 — emote aktif ikut */
     rupaSaya().baju, rupaSaya().rambut, rupaMentah()); /* Karakter v2 — tampilan; Perabot modern — gaya yang dipilih (opsional) */
   mpPasangAksesori(msg, aksesoriSayaMp()); /* Kerja & Belanja — aksesori + status kerja (field opsional) */
+  mpPasangBusana(msg, busanaSayaMp()); /* Butik Maison Luna — busana butik MILIK sendiri yang dipakai (field opsional) */
   try { klien.publish(MP_TOPICS.pos, JSON.stringify(msg)); } catch (e) {}
   lastPosSent = Date.now();
 }
@@ -14506,6 +14940,7 @@ function mpKirimPresence() {
   var msg = mpBangunPresence(playerId, visitorName, visitorGender, kerjaRealmSiaran(), Date.now(), r.baju, r.rambut); /* Karakter v2 — Alam Kerja (17 Nov): siaran di alam dasar (pekerja pertama) atau alam privat 'kerja-<job>-<id>' */
   mpPasangGaya(msg, rupaMentah()); /* Perabot modern — gaya yang dipilih (field opsional) */
   mpPasangAksesori(msg, aksesoriSayaMp()); /* Kerja & Belanja — aksesori + status kerja (field opsional) */
+  mpPasangBusana(msg, busanaSayaMp()); /* Butik Maison Luna — busana butik MILIK sendiri yang dipakai (field opsional) */
   if (fotoSaya) msg.foto = fotoSaya; /* Foto profil (18 Nov) — URL publik ikut presence (retained, ditulis ulang tiap 30 dtk) */
   try { klien.publish(MP_TOPICS.presence + playerId, JSON.stringify(msg), { retain: true }); } catch (e) {}
   lastPresenceSent = Date.now();
@@ -15704,6 +16139,264 @@ function tkPulih() { /* Balikin ke awal: ketuk dua kali (yang kedua dalam 4 deti
 })();
 /* ==== TATA-KAMAR-UI-END ==== */
 
+/* Butik Maison Luna — gambar asli tiap busana untuk deret toko + panel Tampilan: dirender dari model 3D game sendiri (alat/lembar.js thumb), 120x120 WebP.
+   Jangan disunting tangan: rakit ulang lewat alat/thumb-rakit.py. */
+var LUNA_THUMB = {
+  luna_baret: 'data:image/webp;base64,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',
+  luna_loafers: 'data:image/webp;base64,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',
+  luna_kulot: 'data:image/webp;base64,UklGRhwQAABXRUJQVlA4WAoAAAAQAAAAdwAAdwAAQUxQSDMHAAABsIXtnyFJ1u8fEdVjz9q2bdu2bdu2bdu2bY1tY92nKyL+v4vKyq6Oir07FxExAWiooM90KjOq1aVhkaLBysxL5NaJOOzDyJwGnprMJfRZ8XwiEYsHMhM5oAskARH5gjEzvxqTBFpGU7OiOnlVmASMLN6aGSp/P0Wk4yzm+ic39JxYgXSUoO+5npkNkYfCooONrDyOmhvyJlh03KrT1GuTaSynrY+sB0HHW2zzF3Oo9ZSz+8IhRYPFDxrAWEc1vchPPqCyZOCm1iYBA7zPUKcZAx926638EH2JA5CImG7DGQuU00ZQ03sOwI6MJS5IBj2mUwsC33iAIb1npJNZvMoSD6RisHgocc19TQEL+Ymx3nswqaypJXa9t0ksHqUvihzWHZKEw0GMrFUNSzzUFMY6HMtQb9JciVRwIn1B5Gg80gxPo2KwgrJYtW1JmCQcbmC1IPCJrj8zpqY6YzNYdB7BWMDITWCTsHiQvs5NbzAyeeWsHY3FqwxFgccmIniboYDhJUY2oecTtgVna4lL4FIQmJ8Ya5R/zXmRhvQin2sRhy2pRZ4vpNIynloTORKb0ycX4hcViMFcs6kFgZ8bkQQM5v+nKPARWXACY2qe58FBjHzIUBA5oDPSWK6tyPMIYL1ZbEuryq/mNQI4XK1FyllzwSRgsTW1QP16cJh3jbcY0wn8bNkuEAAWe7CI5CpJOOzNSJLK6b0gDjuGqOkoWxeGBQCDhf9ULVDdGTaBCk5mtSbyK0CseYqeCSt3EVcj6DSAoSDEE5KwuIG+xvNWWAi+YkypylNRqYHF4/V4ByoJGNyioSbwMDhBrynUlAIfhKlzaJ3qkKthk1inSiWVfmkYg+VaU3u2jsEKVCUZw9qwSOIBBpKeL4mBwWohtafriPR+hbGGX3cWSQCdJzGSDHwXgMFS/zQLLB5lIEnlWjAdZ7B+UJKMHNgCEcw1o2kMvi0Kegpcx1lsUG9AwTwzm0XE/cxY43kXKh1nsEqkkvR8AhZN9kO9e1IQ9BnPSDLwRDgI5k3umTqwuJeh6M4UADekIHI/WAj6z0jtsTL7FUXuCdtxgv6zqCS9ngMHAEMZU6ryCrh6y7dRSQaeC9dxEHwefQ23hwUMXowhpchdyqynBV7vRyUBhwNJHyK/7WYEcLiKPiHlv4vCFBks16o1gZfCJQCRs2aSfGkhGABGFh2mMaU/5oQUifQbRU9Gr6vApgDBQgcfvj4gqLXYm0n5VWCLYLAvGZW8GAZpWtQaFDo5hCElblICFgdPICcdBSOJwDhnBcUVnEmfDgP3gasHg+6bbrQgBE3pcHtSVZ6BSgkYALBoTsErDAl53glbBmKtQXMKzPeMCQU+A1OqiQV2ZFKRn0JyMedf1KRGI5MGS7UmpZzcIxMWGzOxf5eGyYLDnoxMKqyRiQqOok+JkTvBZsHhXFaT8jwYLgsWN9IndjZsFgyeYkgq8O5MCD5hTOz+TAADk3sPJg8tkxKLHADJgWCeGdTERnWFZMBgudbElLMXhsmAxeZUJta6fBYcdmZMLHJzuCycTJ8WPXfLgsX5TXAsbBauZ0gs8KIsGLzcBLdn4q0meCYLgh8Zk/sIpvkEPcY1wQ8iOeg9ITnluD4wTWew5J/U5KbNmwGLtdkEfy+eAYetGZh65HqwGdiZPrnAjbOwU2yMaogdsVcWtmObD1pYJrBDAw/NgMHiY9nYqQ89EGOjfNw1AwD6nnDPpxP++qetTODDa/fFWgwhantUY/DkulkQAOg032LLb7jln9QajVwbYrt+wXZq8J61/9zcIpIBiLMo/pWxgP9byVhB92PeGPlnmcI/Rj135NLIqIgx1rzPUBM5ZU4IBECnDf6kFkR+c9nRO629eBcAJiO1Bs/SF43qCgHEWrhRjAVVno1C4wwy63B3vd9grQCAkd/qeB5mOztrBNmVLnIlqzWBH1QASA0+ZCiI3AMO+RVrAVxGX0O2jnvkgBYIYOSZOoyrSovkRiyAOY9890+WftdCpAV3FCnbVgUgeRHAbXv3VJZW73lvNwfYJ4vIOPGNU/tAcmLQ+dTvSYagJUhGboCe+37sWfq7vpB8iLS8QGpQtjfEMw4aztIa2vistfkw9mlWAxuorJIxliHpuRVsLix2p2ejY2R7g56ekydjaJSy/Z4PweVCzDeMjWqk5535QMuoRmhsVNBD82HwsYb2aGCjo3JFmFxYXMaqltJA/jFEG+LJE4xBNqXzIGoIUQvUk7/fvOhuGtoXIycfCkE+DVb5qI21GkIk/7hxIWBVtks9+dYycMipAKtf8caIf1n7180LA872+phtsYxGctBmgEVejQDoNtcqOx9/9O6LA85A0PdXMnofYlTVQE46vQuMQXaNE9S1BgAMFrpxCEvqI/MDFnkWMdY5a1AsQK+dz7r29a8nzv5nyivrAk7wHykWhT0XWnZOwAj+Q8U6awS1Fv/BYozg/+ECAFZQOCDCCAAAsCcAnQEqeAB4AD5VKJFGI6KhoScSSjhwColAGqBAL+A7Kbc3s+Qy4riUvvOX/Or6EvMA51PmK/ZT1WvRh6AH9R/xXWQegB+znpxexT+537ke0h//8KA4+fkvqZ7mD3X7Zcs/5nwfl+XKP6vxI6Y/9q/1XsAfxr+yfrF+M3yl6BHqT9l/gD/lf9U3xP9cF7A/ezpyOCx5IfnAG0VeRgCB86hn/e+xWwGyXCwpQ0IsIQHAtZ7314P+I/EBdZtM9wjpwWg9dDanvF5c1eM40E+FKcL3WrJ9GPBgWHQGP+//oYTu3o22ogV3reSeNbPNk18KDNf9jKWBPkxYSwiY46CBTRpE9jn1Gz/82tiiknEF9QEtHPrVtXn9IjSkP0RWu0+8+CUtptgFYUkCEdqxo3XhEaliaVzROTdDUsiqgzMHDS3lwYP4UaAA/v58xz+eFTIhreRXBkhuR2bdvP2OfnjgG5WzBieMyNOfrVYYdQLGldPy/Nur09FN842DMBCtlbmkFuqKdwCXZRr/0aplf5xlt3jNvgduVPlsan5B5+F+2FdNVpqOde9PjNwv75a5rELHrvdnymHi7iE0P3QxvmGyKcLL6LDHT85zJr7AKRzQ15jWGhZRvnyPxP6DDbvxxaI2Vt7IMpX/XE7eRqV1MNP9H7oblT4B05Dt6odB3/7DYKqj9z/I/coJHIKB4N8ojxANZlCTzjWteupvzJOEwhBL5/2uIVccPgYLzbnme1jJZnJQbTWVwUdicRPH9JnO6PBPqpkN4K+UlG0PHbqe2RF0UAqi7CKfFf5bBNf1QtnkWb/BrLtK73mflOk4EwckMO0+BdR9dUGf/0RowOCcJe8nrN1kGrdsKtfI4L0TC5/hZWPhipfy6FIDWKg9IAXetd1mQrOwIGeF/6GEX5rCr1hfjTFEWNVu7fFWqPxMG/m0WJOkLo+4GXhcdfZK21g3zs7JLt60Q1eEEVwu43qrGdi8MeaOmExst5znTzewJMedfbEuusaW5TiN5qI9Zc5aPdD9+sNdOCTLJjJLrIoIu/divLTjAgirJsGo7n/l/2HYrY2hbX6T191XKI0DAjTD8PDwyIeZOpyY/bqh6AEe2ch6SzbyBSoLp6IzdGSNtlDl3dXdrKeK4VPQ/2whbkx1fxueaDgcGX8l0lS+W3cNd0JyrzW7M0AVbOMlTOnGf24g6MtEK3gKAF2Kl5quDJw48cy6+z44cElATqph7h6qbZAjJLWbm/hdDZ8jFHsNmmXEhtg/grLD530ww13b0xV1hFrM98iefPVevfiVtyWtcBwSAT+gs+VLGdUCUedNMYs4mx1Xgi9URceko/GfBuENJLO2HRjqAhd8mtXN97Yp/X+vZ1KzH2VU4Jp7i5iJBV5uHuL1VI7IvRxCUuc7GCFsO0hNryPO3pga7kO5HWEZngLvFtxlsxOd5DQMB/fQao77oH8VaGv+E2DTW1UKmMped/A8g02TvfFKUzi+lARJCgBRMTVaEAaBzc8KiDY5lz8XjAcIZDue524FoyvNQKONiJqrT4tc05cZs+eHqRLbL+YykGIBGZYLuU5rqOR5ltv3hmMDDSC0lTSv3JCfs1rS1I1i1IF6hTuMsZfzb9VefvcIjOJAV9x0gqFxoo0vyzqdmVTlVRJcdUxZshP1ebwDfnO5NHzgpgz4epubUNs51o1rtf36/pT7w9l8J26bxgSOq8mAGfXoA3YLqidvH1bn5xOIseHoBrmOmt9R1tbLO2hJ2sot6HCBlD7C7C/AdgXGYQB6j6KpYmqAp30LIW5/p0KZjbcAN14mnlbsh3F6fOidUpUUpjqDqrAeIJlGPNrTHRc/ZFEaDhTftO+PaK3+UB34LzcD2Pm9pbUNpvugOCkwPVe93g7fPvBANOIbdkCfCeVfNJLQU1ErvijG6jSis9Rm4QTmshdHq7Q8/q4nUx4qvL0plw2/VTWANtm+/l+T4AANXmR3kXFzgmOUBoAc9XPtvsOM8Aov2j1OuzVnl7hYdcsqYt+mkBTUwqClhCeHqCXjvQzTBISV/f86NStk4Wx3Jhfuq5Gxv5zIBtsu5ueGz5U+9o6JnR81P2sWdrxeSdcspJYiSoKJrHaVEZmOtm6qpNZU4/pnPezyPZOjB4dqYC9no0GAMw27uLtDk9/t4KwHQFwnLCulIuQ7Kvw6pLn8Qcc1AS60khYDCcBH8oSmuO2ZYShCC2hkpbNVBBOXJNW0ZzTqor6MeuC68FK7DA8MNQiJ1uRxuh+Uv7ZWAt8XwnyfBybENd2YDPftGP23G8mFMIUjgs0og0ImxFGK19ubx4jlrKKKkrhWy7FaeeOd+C0LTBJxYlXGY8pve3R7RW/tjdAq3EW4f3Ja5VLDttxwnzaYHY+FbUhy0wT9EdoLXGi9SxYZB6jLwo/3ab7GM6f6Ws7yj9pqiv8FrCwbVLaHjIq1JpoDMD4S4fJqHvp77NsCA61h/Bf6hO/LMAiwTBb1TxmQFBMuWStmGetFZ0ckjfDn/DM96RNxJKpO521fJRXhRLBcXCKfa4a74gWDg9/Hgq0Ls3BU7yDKeKVB9wqhEJ55uXCqpr1/LJqbU+6BLSXubsxq2dx+KBo+e0ad+uqC8Y1qinbWu5lh/F5B3KT7R+vCkATa9dc6llzaXYnnejH8EB+EWI/az0X6vlHw3d78H3fMKyTUWIjnJ1GasOkggksACelHv9OIZD7og7ojIsPfU3YCzR9i/yENXW82JP6c1v7ywvzxGrw5KEWIQPJblUxj5BpE31XRoNK7yxBjoyrh1OJr0Uy+HTcwdtJC26H6nuVKsj27gT//Hf+c3nHXDOrFM2UO7iFxFJ19yI2JkWMszDZm5CYIXXXcIvRiYdnp+I2FulnixGdtTCT9i726QL2hYMxnwTavAfHZO2GlxV+ORpNfOWVihg7Rn2liPACUM5QYDaM1KvyegqZlzV/BXMwaFA5mgMCMLVfbm1Kmndyfq0fuKy70f2VJ5AAAAAAAAA==',
+  luna_heels: 'data:image/webp;base64,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',
+  luna_batik: 'data:image/webp;base64,UklGRlYXAABXRUJQVlA4WAoAAAAQAAAAdwAAdwAAQUxQSDUHAAABoEXbtmlXmmvtEzwrZdu2bdu2bdu2bdu2+Vi2ndLde6/5cc9NXtY5Vd8RMQHwKAIMXvrcf4x9aXbXNAiCWhVgi+s+MPa18bPVAK0TUZxPkqmvmMkLhkDrQwLOY4yZDnPmyFmgtaE4ipFeGxw1IbQmAnZgpN8GnwoqtaCY8e9sjph4Q6FSBwGz/ZvpOvJSFFIDgsGfpeSKDe6HUANQ3EtmVzn/MDu0BkS6zvqN5omJ76pK9Zpnf8CyJyaeDa0DacNFTK4sNWaC1kCQRVM2V0y8SkId4FJG+jb7qUu0coppu82cMeWtESpX4EAmes8cM1CkYiIdb1p2x8xVESqmmD3S/CU7snIBm8fvae4i76qBi9a9hcld5gcDIdUSvWyG0czuSM4IrZRimnNm/YfmL3MLhIoteNLazPSfeDiKis172v1M/1GP/2c9+j/rsMrNd/pTFTm6cnNcvotVIXO7ikEGXbHQLzR/5BzQagVctfhLzO6M34yonByzzpFM7hIfg0rFsPpRCzL7s/NRoNqKOW8Z+jvNW+aWCBWDFpdNdD6js2w/TAatWsA6+02ezHwlnoCAyoveMuntTL7y37NIDQQcstn8OfuxmP7hY6qovsikl+itjG5Kl0OoAQDTtU/0IbOPzG/223WdxVGTAsVGOZoHi3EV1KmiwCVMHhJPR3soQm0AEjqfYe67zBs7g6BeC5zD1HeJV6BAvSpW/z1b3zFxSxS1ohj2DTMdWupeAaFGRPo9xESXiW8PVKmPgL0Z6TTxDojUhaD945y9mNms0LoIWIxGt5GnI1RPREWguMeSn8wvB0EqJoUAQJt0ddP8MHMDFNUKALqmnAjAYUx0nOyNQgANIahUQjH8gMe/s1+eP6zrNWZPZlwERUBpEH+KbT5j+Zfd9B1tCwUmXnTD9ebuBNSbYl8yJqOlRO+RR2DeW78hyfe374T6Ukz3d04sN3OWeNmBv5A5JSNfnAnqKuBaRlb3DzIZSebIL6YSdSQY/q1ZhWjGlpGviYgfxaJmrLCxp5HbSfBTYEfmKvU82VsQT6cx1oWxe0qIG9EH64PZVkbwIhj4NXNtRB7ladIGrTYSb/ITsIJZfWS+p+KlDQczsjaNv0wNdRJwRZ0wNxZF8CHA88w1ErmLnwHf0Gok8RwvitkaNfO8qo8CazOzRo3fTgh1cghjrVhjbi96Wr0wcW0EF8C1TDVzrA8dcko21szDLgIOY4P1mjluEKTvVKb4mI26+WRQcADFfN/RqmT86zdaj8y+mwUeEDDv3bmVNXIFvvyIuUc0frmGqgMUGNqglZGM3jLfPac3TEzDIA5UlzKWGn84cfN9mLy9t1FvEnmQKBwW2JS5JPE2YDNGX8avXqP1yPjvWRDx0IYDGUsitymKrb2VpmStst01FxQuC5zXwhoLAO4yRx7GHkcehDb4VFxXlvnVIMGazN7exWKHnP8hrSzxhhB8CPQ15qbEx1BgFZq3kQHA6Wy0ehrqJXxYFnkIOnQZf+9r0RE2ZC7L/GgwxEnX77SmzDXQiX2ZvY1EUEzxF63E+OPkUBcB88QS429TAttEM19mf2+DAHmTuYQ5zYvgosDqNJLMfF6wbTajc2PeGm24mLEscRMnbdiJsanBs4ALLdJ95I3owCbMrQ5zUuB4NpoStwYWYXaXc54dBWbOtBaXOAm4gJGk8d/pEcIxjWS+kvEwqKAYydziUSeCZ5hJZn7QhoBhf9F7PBgKFLiCscWb7SIeIB+VRN4oARp2/OLP6Mes++S5oGjakbkk8/tJ4EEw6V80kom7oQCAgYv9TnPDP9pRAIBivsRyizMjOEDofzMTm+eDAmjHusx0vIRqk6B9FHNJ5so+pP/LzKTxly4IgDY5gtFP4tYomhBwJ2NJ4u4uApaisenfiUsCrvUUeUGLAnsztTgJhYuDGEvipE0CeZXZ0+UIJQHzZyuJvAfBxQVMJDO/H1rW+S3N02UtBIM+YW5KfE5FPBzHSDLxFg1o6vdTNRBwu6Um44/DoB7WZy45DUXZj5U5giU53jZIxMO6JdFubtH5XUUUc/xqRpr9PgkUfV9gW4tNPAZtJfous6dLW0HxAhPJxA0RHCjmZEoWrXsqaNnbvq4cL6egcADFlWzeDYqydz0lHoiihehrLR6DigPRtgM+/vqFXaEok1cdmdnCCGWCttHMJU9BPDQPmQhQlCtuZ/STfxsOKYPiPqaSZ7xIABDQssCB5qfB5wtpFbB7SeRVKOBUVNA6YHlmL4ljpxVBywJrMJZc76eXGs5kw1xkjpkSitYBKzAbmfgMRKogwGN0afbJlAjooWLOhhkZ7T4EVFIx4VPd5iDxCbShpyL9x7CRY+K6VYEAWzH1JmUbD7dq6BEUy/9MkidBUdUCy/VufCZeg15AMcs1b9+/JASVDViauRfdj7/907/WZ1CgA1BUaR7SepI5sq1jwrk/YO7Fib2DBmjA+AQAVlA4IPoPAABQPwCdASp4AHgAPlUkjkUjoiEVTVWsOAVEoNveWoHEkRdUtDjUB9R5Gf0A7Lo2HaHnP9BH+A9QT+39CrzD/sf+0fus+jH+9+oB/XP6r6z3qa+hF+x3p0+xr/af+l+6PuS/37/6dYBwAHbv/gPCf8Z+a/wf5af2n2oMydp/8s+9n5Dzc/1Xib8Pf8T1CPxz+Y/5/z/YY2knoEewH0v/m+Edqcd8f+N7gH8p/nv+w/tHrv/hv9546P13/K/7j+5fAB/Lf6l/0f7j7pf8v/5/9B5yvzT/A/+f/KfAL/KP65/1f7/7aPsX/cL2R/2xas/XI7oIztJM4m0V4EgPUpD+Z0NkPc1ZwsOtpMMsH0mg2uxH+azuPku9qYeKFh4VxpcLXkVuOW0VKfnwu0EL+kc0sjto2+BYHBQKD3i4BXnmZvVpJlLr+nUMpbwnD8/FdV+dgXEq3umJOcWzdiff0W2c0/Tv+lvetkOqPqueLj31E9DPkh71SvE+2nO3XFCU3rUfZf/D/fTCefh+5hSShTwkJI9gmITXS4/C1mxj9qDW+/bgFRstUZR4eYyNk411FsuRBDlYVFDsxZrLJS3kRbGnNnG2u3mWT4ckLjAZtgOWca5mQz9oP5BxFG2qhvX2Rxl9xX2rSQPFg7y13Jon1dUNTB/44M9KcpAe4W4QY5pTBrAyImI1gAD+/tAy2+jkn/VUiqAByfTwg8X4yDjyIJyu0VfXK5xte/L3JJXD6vvA9cTpAj5goScgxtkHaJGmRvjfwdFU0G2MeFiPn5erKT/5xtQFxMsdKpHsGsEQG2IYqxLlYLH8d128ljVoNrNIcfTfoyrUVH1+U37uBgbfz0ru1QdQ0xPvG/ZXto3LpbqPImnyE9Bv++APYmYm1a++7lD/GPGOeB/KkiV5RZYf5+0qomhTtEJcZQEEjky/JgELAAiYjgTXdRA+wIYw+7wIH8Lmn3vTTMR3jtQm0KfxCRNLSp0jTWkpexE+DsVWUnGIji2P72H8QesjSF1jAFMYvuynnRNyBWiVhb4HCJu6uZH2R1GmPnW57RzXJvtZUOhElTiABqLgCGqIj+JfkQki5DzAar7eG32Jyud8Bawp9JMNM2EuodvBwaFBAicNlTFJminYVE3cleULkmhdS5uqD/V+AONeTGCwtN+sm1REp1yNkG518e7iD7FhQuxRiKOsqZXvpLV5LRmYpEWdfbwpxZHlIAJs6xWmAFsYJ7zsjNG6Qgv1kLxBpTlvRCCSB5/EwuBV9xbc7D8zzR7nu6bH5Z52srrbuVe1cTfuWO8KblHZHWIufImQlT4GYnItt3VoCy/zLVVohyp3vLec+d711qpQOsxT31tzPkylyMpGjBu5yBDTzTmexGBUgMoZVDYdTWq2IT4LEesWhQFa4IOMpCxcL8x4qZ7sN+GxNgW9esvvzE5Eb77FQlk0rLr82Nd8vObowpnBV6vqpR0+RJLX+gqTJxiiBe9UT7V55o91t5Zt+HlJ81XpFLi7b4uO0CUgSn/gEsryMYyHR4r8ceW2qHwHkeWkAWkhIiktnZpb+kRZjFROcRSCCQEW1bHLNxUw7x2fhLxv976t+OH80Dt2xbtGGjvDnfwe0a81cX7tCD6Q1lFZInywodOT2HLnDQVtEcGev+MMyhX9bZ2gK7B4BBWGCkWpResdQrkak2L+FfI8Zpleimbu0j5FsSewCoXHAN3bvox3Dj6PjhKFypH5t+b96kgk5Q2D8bglIbQdIM+Mt/+pyC5SN1KYmzltA/a8C9hHtYrtZeRvk90fYXUTkOWDY8WdJBYYxH9Y6KQmsMfIN8h4eumcwwKPgJb+BdfRbKkpjjX9/4saWLSEEfSYfjWW17KDZsZ5HBD97P47dayuE6zyf72upy1d3FbGPkv2hqYfdFIWlAuQeWF+8Z1QOUZPU0JyOXRgT1zcC+BPwF5brMNH17/N3Jpr9INPrb8fhbHT782yzyUrdMyJYS7Ava30nbMK9OGPgdq7MLbrnXQOwTqFAlpv1YmycSW7u3HACKIVH8VMod0pI4AWsNSie9+PdWBLbf46GTMOnV+HHeMBSCv+HnIOso5mc8NZF77yTlLS5or2VXF7oHlYvJP2dMvsOS12IPaOzhBObMGrXuCNa/rG5ghcxnOakcG52Dxe76nJtqvVPp9iBFwP0q9NGv6HT2xi42MAYC9aKH22D340H45V8Kbu5PbYRqP6t5S1PL69lqkU7zr62Ya8aks3BFuCldebCAlJtk0tPHQPgI7zkmd3gdR8Y09yZgaV35SP/rWOBY21zwGCu6jBFX7Iyap2swZ9p3+MQgdPVKDr5h8SpYGeUZN7wF6B0KABjVKq6qfuUe+Ijz+SaafYKX//0GevQpKQnZsLtxycwuWnQon2s4xPwP586lf3BT3v4MSn5QBMSjPfc7lOKJPr7ag8Nhbi4WgC22yFzO4VLBMfM+kLrV4+ebv915qAehPViaXfoobz/VLJiGLCEa8gEoMQQ4KIZge4YMCPlg3tiiXY5mOj3Om62W3KJLDZWfSGsNCBi8ZBpg8Pfxt9JmMom99LDPChcU0VXUv0yX6UAsMPW+X1fnxY1LP7MYnDkfKovd3u+A056xtA2MZd4Pi3KQDsfh4qnTAud7uzyWhStEljVrdb2oSlYrPkJNwX5eIDpGlNn8Gr2blvTkTkaMBHKZgO0441V7BcbXQ4q4whJV74OJOw9yyqVR2M/wm+GJlKXeZ/DLMUdA4ifCw3PrI43nu0I1FwL6l2mcIygpaxvRHsAZbPNvQeftx4X6Bua8jzMbagfmOzoCTFb8n5yn4oPi+YEnYvyYp0pynjY3/hu6d/ly6wq7+ZJfSZNN9+hbw/YMabZCPct/n32mKlSrzvShaRF/coY+qluoO5I8gb81UhK0p/Getw5ms9tob3cIsv70QRvoLQlNKBhKxAMLSQzBHGrSQaYVFT+Uhy/Jwvtfnn1V77DhBmAdckTU3X85Op2O5CVWBvhgqPx/UkrrXNBaa1PEBHM7QFE4DN3YsUm0Lvios+83KS5zTVWksqKS67vNxLi5fE7wy14nf/JD2YiJjVlOYSGhE2xygtWMcA0+5H2RzsNBQG2dLuKoM+MrcyL8+62xbdvxqLeSvSvQaboEtKTIEV0858apOk8IxOIM+KzMJqDK7oUjSFr3KW9KyCUywvxeNY351ot32iegYXdVltRYaVlu0VlnoKr0N6Uo1z2SWk6nBlQSlPdc0O2c5k8zAS4tbtgu2kwrVY/YbBgcf7xYw/zogZPAJIds1dVpK+byOILzIp3IBQM3iJg0/EANsxehRXK7Wa/m6QE5AfS8rZRolZyLWZkrEcLkAVZrVvbmLhli26LiRdUlekPANhhZSFr1FysNX7RPT3HD1Xeo/Mm7NA6ZJmyl4LBzSeVoCtO4S+8MeSP1TgmSA9E7oY9W5VA9vB0Dk5Pg/CS06fV95+yFdWA55wkZ5FDEWQTH9W+tXbnvhOsn/6ULSxyPq0aaZ9u7K9LR2oDweQ1IQraQXgpzX/+zG/iB0LVpejCYcHG26sKS5s4W9msTI4TIPrLkRZU6jQDPgLUggEe6FJ9AkBvPX4exjJkdZeng4/48TX0ArcNXICS2MNcdBrgpJ8WFYJYWVwU6CNdjBKQUNpXCFX/7YzttU4DOXVY053fM176CAbLg/3+zl3iNm0Qcpi9pyZgFnhhECzelDmKwlgi3yiQXOvOJZyMwTs10SAm1RdbA6ZNd8nIK53PkF+tZjRipN2nVc5vFYa60oES8UKDmNRnCSK81gdrHEq1iI4poaiNEx5DFI6o7s/OnSh1TnUJdD/TZ6OEKFwwp4MWfk2NYpX3Rh51lNYFHn69UARXl7d56f26qTO5JkjBsgZqcTrtUQBh2Yd3ptI/IcjmblnQfIAnkdsDQQb/ApuL0Agp5paNfB3ZOU/NqSaM1SAjK7DaCUt06R6sGbwErZ6M6sX2eE6Tppu/4wVFOHq6agOLWFjevdDSPVVTAMCeoGeAOT6ZnzRUDIARFmp7xb+vSGOlEEe8WP63Cvyp5lIwayvWpdMj/XFjZTizsJ+kXNCtRX+4IdWrTEW8tJFyattGdlsUQiRQ2CWb83mN7k3w9Lmk4Dp4u6JCM/PSX/gIx8wRViS/b/fWp6Jtn29Y1EgHQU0dm68jTU8U8GFkI/Gf+9BsVF7f/kUAAxNf4VBzF6PTxeKXkz/T2i6ollh19iVqpJToIYeN/+bNRUv/hM9NCqdcQrZJcgXQ1F89ydQFKlJJJV8UOoYn7bk/t2zVDSy+d3Xhf9LVV5fRfVfTiqcRoXfzGAFE92QmOU6KAc6tYiEZvGWuCWJpwmLPBmNI3kF/lVpy3fZAHHUpw6BG4Rpara95zXwE2Sj9ZbNb9ZXqH754SFgj494WGhjIywoIglP8OtOCujGXtV7XDMyusVqQ3cAulQSGOR0YKbCs+2F49K/mN+ZclTyQdgCmd8qQu74yuBV57VcH9Ex7Z1wy276/may6aWGrRPNKWglx/2JBlqVfQJK1Zn2W+vshk95SoQ+I7b+l0k1DKk5bAMfSfG7BDiL+SHWLlZprAQq3mK2TF1x9s7J2QmLerJox7SUBbRaxvIUaNNZwGXmUDtCDZiwpLPG+rQqalBl9kjtZptix/pnb52ilO39ZWgFWwLeOMLX6usYAX25P7eTye3455iRp2hnpMPn6su1aOlP8VE349T5BWGDy2RJM5ETAWeMOf+odh9NMF5+CKMS1Xp61GAfo3ilx81HLbaI5AoGHgYlvGc9OqpH4ACy93XnONmuQ/kGpokb1wu+FrO5oU1hcZy+odBRRmAW/GqRWLLBvWv1oQH22F/8j9+IY0zmlhl91fievGRZxM5f1vPeileyCgoVZiAqHuONoqqBSeRKw/q6er+cZE17Wftta2mWG7DSGAyCNiIBa+p5qzkWa9UhbdWv0ltFrTAAIOHKok3V73Fok4haMDcYhoTmFqYNkzRM+nyP+XHpCbqKwqY9l3xpEtZJxkCus9fUDlYz9bdiHceoLaWKshrA2Z2nVwY5qPYrVxshMDYdP+O35NYiG+mC/bBA+HsnJ/69Y0YxF/yX0yk/juSCzCF/5XL//5lefjef97gd1Xzk+10cd68EaNjiGrUkEJgQWVELLFQmVwBr3mY2o41Zb4fJZt2wrn1EYDb1FHGapDZddaS0QbYoQcPpBFjYsF2QW5Qw5+EdvDhF+yhinwVc5KlUNXYQ46hDVn6SMc8Lz1/F7JflXPZsazUWVR6aEEzYIBJJgKp1JnJJ0IM0bXTsnXrlIIMs3KbEjmS2bt4RTNM+ozF8KwjnYhN/+Lz2BK3dwHbcxgy/1MS3yWO0j9Z9+46xiOmfhC7Hty3BT9FWwwsbCPHnHs3iuIVoV7Z+j5Smv7n0QGwCSh1UUZAx2j2rUJCEIi7ZmfcGUBYlThzRKB9LFA1ep6xRnJsCVi3APsAAAAAA',
+  luna_rok: 'data:image/webp;base64,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',
+  luna_cardigan: 'data:image/webp;base64,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',
+  luna_blazer: 'data:image/webp;base64,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',
+  luna_tas: 'data:image/webp;base64,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',
+  luna_jaket: 'data:image/webp;base64,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'
+};
+/* ==== BUTIK-LUNA-UI-START ==== */
+/* Butik Maison Luna — pilihan pakai (HP ini), pratinjau "coba dulu" (hanya selama di butik, tidak disiarkan), beli (server), toko layar lega. */
+var LUNA = { aktif: false, coba: {}, pilih: '', sibuk: false, yakin: '', yakinT: 0, kamAsal: null, pesan: '', pesanJenis: '', pesanT: 0, siap: false };
+function busanaPilihan() { /* { atasan, bawahan, alas, topi, tas: id | null } — pilihan pakai, disimpan di HP */
+  var p = {}, o = {};
+  try { p = JSON.parse(localStorage.getItem('kosan3d-busana') || '{}') || {}; } catch (e) { p = {}; }
+  Object.keys(BUSANA_SLOT).forEach(function (s) { o[s] = typeof p[s] === 'string' && BUSANA_SLOT[s].indexOf(p[s]) >= 0 ? p[s] : null; });
+  return o;
+}
+function busanaSimpan(p) { try { localStorage.setItem('kosan3d-busana', JSON.stringify(p)); } catch (e) { /* abaikan */ } }
+function busanaMilik() { /* busana yang DIMILIKI (kata server) — tamu: kosong */
+  if (typeof DOMPET === 'undefined' || !DOMPET || typeof ktaIsResident !== 'function' || !ktaIsResident()) return [];
+  var d = DOMPET.data;
+  return (d && Array.isArray(d.barang)) ? d.barang.filter(function (b) { return !!busanaDari(b); }) : [];
+}
+function busanaSayaMp() { return busanaSusun(busanaPilihan(), busanaMilik()); } /* yang disiarkan ke pemain lain: DIMILIKI + dipakai saja */
+function busanaSayaTampil() { /* yang terlihat di avatar sendiri: milik yang dipakai + barang yang sedang dicoba di butik */
+  if (typeof BUSANA_SLOT === 'undefined' || !BUSANA_SLOT || typeof LUNA === 'undefined' || !LUNA) return {}; /* dipanggil saat avatar pertama dibangun */
+  var o = busanaSayaMp();
+  Object.keys(LUNA.coba).forEach(function (s) { var id = LUNA.coba[s], b = busanaDari(id); if (b && b.slot === s) o[BUSANA_KUNCI[s]] = BUSANA_SLOT[s].indexOf(id); });
+  return o;
+}
+function busanaSegar(diam) { /* bangun ulang avatar sendiri + kabari pemain lain */
+  if (typeof avatar === 'undefined' || !avatar) return;
+  buildVisitorAvatar();
+  if (!diam && typeof mpKirimPresence === 'function') { mpKirimPresence(); mpKirimPos(); }
+}
+function busanaLepasSlot(slot) { /* slot dipakai barang lain (model gratis / aksesori toko): busana butik di slot itu dilepas. true = ada yang berubah */
+  if (!Object.prototype.hasOwnProperty.call(BUSANA_SLOT, slot)) return false;
+  var p = busanaPilihan(), ubah = !!p[slot] || !!LUNA.coba[slot];
+  if (p[slot]) { p[slot] = null; busanaSimpan(p); }
+  delete LUNA.coba[slot];
+  return ubah;
+}
+function busanaPakai(id, pakai, diam) { /* pakai / lepas busana MILIK sendiri (satu slot satu barang; topi / tas butik menggantikan topi / tas toko) */
+  var b = busanaDari(id);
+  if (!b || busanaMilik().indexOf(id) < 0) return;
+  var p = busanaPilihan(); p[b.slot] = pakai ? id : null; busanaSimpan(p);
+  delete LUNA.coba[b.slot];
+  if (pakai && (b.slot === 'topi' || b.slot === 'tas')) {
+    var a = aksesoriPilihan();
+    if (a[b.slot]) { a[b.slot] = null; try { localStorage.setItem('kosan3d-aksesori', JSON.stringify(a)); } catch (e) { /* abaikan */ } }
+  }
+  busanaSegar();
+  if (!diam) toastKosan(pakai ? '👗 ' + b.nama + ' dipakai' : '👗 ' + b.nama + ' dilepas');
+}
+function lunaEl(id) { return document.getElementById(id); }
+function lunaDiButik() { return typeof kotaRuangKini !== 'undefined' && kotaRuangKini === 'butik' && String(myRealm).indexOf('kota') === 0; }
+function lunaPesan(teks, jenis, lama) {
+  LUNA.pesan = teks || ''; LUNA.pesanJenis = jenis || '';
+  clearTimeout(LUNA.pesanT);
+  if (teks) LUNA.pesanT = setTimeout(function () { LUNA.pesan = ''; LUNA.pesanJenis = ''; if (LUNA.aktif) lunaRender(); }, lama || 3200);
+  if (LUNA.aktif) lunaRender();
+}
+function lunaKeadaan(id) { /* 'pakai' | 'milik' | 'coba' | '' */
+  var b = busanaDari(id); if (!b) return '';
+  if (busanaMilik().indexOf(id) >= 0) return busanaPilihan()[b.slot] === id && !LUNA.coba[b.slot] ? 'pakai' : 'milik';
+  return LUNA.coba[b.slot] === id ? 'coba' : '';
+}
+function lunaRender() {
+  if (!LUNA.siap) return;
+  var deret = lunaEl('lunaDeret'), ket = lunaEl('lunaKet'), aksi = lunaEl('lunaAksi'), penghuni = ktaIsResident(), d = DOMPET.data;
+  lunaEl('lunaSaldo').textContent = penghuni && d ? rupiah(d.saldo) : '';
+  if (deret.children.length !== BUSANA_URUT.length) {
+    deret.innerHTML = '';
+    BUSANA_URUT.forEach(function (id) {
+      var b = BUSANA[id], t = document.createElement('button');
+      t.type = 'button'; t.className = 'luna-item'; t.setAttribute('role', 'option'); t.setAttribute('data-luna', id);
+      t.innerHTML = '<img alt="" src="' + (LUNA_THUMB[id] || '') + '"><span class="luna-teks"><span>' + escapeHtml(b.nama) + '</span><span class="luna-harga"></span></span><span class="luna-cap" hidden></span>';
+      deret.appendChild(t);
+    });
+  }
+  [].forEach.call(deret.children, function (t) {
+    var id = t.getAttribute('data-luna'), k = lunaKeadaan(id), h = t.querySelector('.luna-harga'), cap = t.querySelector('.luna-cap');
+    t.setAttribute('aria-selected', id === LUNA.pilih ? 'true' : 'false');
+    h.textContent = (k === 'pakai' || k === 'milik') ? 'Punyamu' : rupiah(BUSANA[id].harga);
+    h.className = 'luna-harga' + ((k === 'pakai' || k === 'milik') ? ' milik' : '');
+    cap.hidden = !(k === 'pakai' || k === 'coba');
+    cap.textContent = k === 'pakai' ? 'Dipakai' : 'Dicoba'; cap.className = 'luna-cap' + (k === 'pakai' ? ' pakai' : '');
+  });
+  var b = busanaDari(LUNA.pilih), k = b ? lunaKeadaan(LUNA.pilih) : '';
+  aksi.className = ''; aksi.disabled = false;
+  if (!b) { aksi.hidden = true; ket.textContent = LUNA.pesan || 'Ketuk barang buat nyoba — gratis selama di butik'; }
+  else if (k === 'pakai' || k === 'milik') {
+    aksi.hidden = false; aksi.className = 'polos'; aksi.textContent = k === 'pakai' ? 'Lepas' : 'Pakai';
+    ket.textContent = LUNA.pesan || (b.nama + ' · punyamu');
+  } else if (!penghuni) {
+    aksi.hidden = true; ket.textContent = LUNA.pesan || (b.nama + ' · ' + rupiah(b.harga) + ' · Khusus penghuni kos');
+  } else {
+    aksi.hidden = false; aksi.disabled = LUNA.sibuk;
+    if (LUNA.sibuk) aksi.textContent = 'Membeli…';
+    else if (LUNA.yakin === LUNA.pilih) { aksi.className = 'yakin'; aksi.textContent = 'Yakin? ' + rupiah(b.harga); }
+    else aksi.textContent = 'Beli ' + rupiah(b.harga);
+    ket.textContent = LUNA.pesan || (b.nama + (k === 'coba' ? ' · lagi dicoba' : ''));
+  }
+  ket.className = LUNA.pesan ? LUNA.pesanJenis : '';
+}
+var LUNA_HALANG = [[-2.45, 2.45, -1.65, 0.65], [-2.05, 2.05, -6, -3.75], [3.6, 5.6, -2.9, -0.7], [-5.25, -3.75, 1.95, 3.45], [3.75, 5.25, 1.95, 3.45]]; /* x0, x1, z0, z1: meja pajang, kasir, sofa, 2 podium manekin */
+function lunaKamera() { /* kamera terbang ke DEPAN avatar (seluruh badan di atas deret); sesudah sampai, seret layar tetap memutar kamera seperti biasa */
+  var portrait = isPortrait(), dy = portrait ? -0.62 : -0.5, dist = portrait ? 5.6 : 4.3, pitch = portrait ? 0.2 : 0.12;
+  /* hadapkan avatar ke arah yang kameranya tetap di dalam ruang (tidak menembus dinding / rak) */
+  /* tiap arah: jarak terjauh yang kameranya masih di dalam ruang (jauh dari rak dinding / kaca) dan garis pandangnya tidak melintasi meja pajang / kasir / sofa / podium manekin. Arah pertama yang muat jarak penuh menang; kalau tidak ada, arah terlega dipakai dengan jarak diperpendek (kamera tidak pernah keluar ruang / masuk rak). */
+  var bt = kotaRuangBatas('butik'), dasar = avatar.rotation.y, pilih = dasar, i, terbaik = -1, penuh = dist;
+  for (i = 0; i < 8; i++) {
+    var y = dasar + i * Math.PI / 4 * (i % 2 ? 1 : -1), sx = Math.sin(y), cz0 = Math.cos(y), muat = 0, d, h, px, pz, ok;
+    for (d = 0.2; d <= penuh + 0.45; d += 0.1) {
+      px = avatarPos.x + sx * d; pz = avatarPos.z + cz0 * d; ok = px > bt.minX + 0.75 && px < bt.maxX - 0.75 && pz > bt.minZ + 0.4 && pz < bt.maxZ - 0.3;
+      for (h = 0; ok && h < LUNA_HALANG.length; h++) if (px > LUNA_HALANG[h][0] && px < LUNA_HALANG[h][1] && pz > LUNA_HALANG[h][2] && pz < LUNA_HALANG[h][3]) ok = false;
+      if (!ok) break;
+      muat = d;
+    }
+    muat = Math.min(penuh, muat - 0.4); /* sisakan jarak dari halangan di belakang kamera */
+    if (muat > terbaik + 0.05) { terbaik = muat; pilih = y; }
+    if (muat >= penuh) break;
+  }
+  if (terbaik < penuh) { dist = Math.max(2.6, terbaik); dy = portrait ? dy * dist / penuh : (1.32 + dy) * dist / penuh - 1.32; } /* lebih dekat: titik pandang ikut naik supaya kaki tetap di atas deret */
+  avatar.rotation.y = pilih;
+  rupaGeserY = dy;
+  flyTarget = { camTarget: new THREE.Vector3(avatarPos.x, avatar.position.y + dy, avatarPos.z), camYaw: pilih, camPitch: pitch, camDist: dist, luna: true };
+  flyKeep = true;
+}
+function lunaTerbangTick() { /* terbang kamera toko selesai begitu sudut + jarak sampai — tidak bergantung posisi kamera, yang bisa didekatkan penghindar halangan Kota sehingga terbang tak pernah dianggap sampai */
+  var f = flyTarget;
+  if (!f || !f.luna) return;
+  if (Math.abs(mpBungkusSudut(f.camYaw - camYaw)) < 0.03 && Math.abs(f.camDist - camDist) < 0.06 && Math.abs(f.camPitch - camPitch) < 0.02) {
+    camTarget.copy(f.camTarget); camYaw = f.camYaw; camPitch = f.camPitch; camDist = f.camDist; flyTarget = null; flyKeep = false;
+  }
+}
+function lunaSiap() {
+  if (LUNA.siap) return;
+  LUNA.siap = true;
+  lunaEl('lunaSelesai').addEventListener('click', function () { lunaTutup(); });
+  lunaEl('lunaDeret').addEventListener('click', function (e) { var t = e.target.closest ? e.target.closest('button[data-luna]') : null; if (t) lunaKetuk(t.getAttribute('data-luna')); });
+  lunaEl('lunaAksi').addEventListener('click', function () { lunaAksi(); });
+}
+function lunaBuka() {
+  if (LUNA.aktif || !entered || !lunaDiButik()) return;
+  if (KK.aktif || ARK.aktif) return;
+  if (KERJA && !KERJA.beres) { toastKosan('💼 Lagi kerja — belanja sesudah shift ya'); return; }
+  lunaSiap();
+  if (typeof closeCard === 'function') closeCard();
+  if (rupaPanel && rupaPanel.classList.contains('open')) rupaTutup();
+  if (dompetTerbuka()) dompetTutup();
+  resetJoy(); keys.up = keys.down = keys.left = keys.right = false;
+  LUNA.aktif = true; LUNA.yakin = ''; LUNA.sibuk = false; LUNA.pesan = '';
+  if (!busanaDari(LUNA.pilih)) LUNA.pilih = '';
+  LUNA.kamAsal = { camYaw: camYaw, camPitch: camPitch, camDist: camDist };
+  document.body.classList.add('luna-aktif');
+  lunaKamera(); lunaRender(); lunaSegar();
+  if (ktaIsResident()) dompetMuat().then(function () { if (LUNA.aktif) lunaRender(); });
+}
+function lunaTutup() {
+  if (!LUNA.aktif) return;
+  LUNA.aktif = false; LUNA.yakin = ''; clearTimeout(LUNA.yakinT);
+  document.body.classList.remove('luna-aktif');
+  rupaGeserY = 0;
+  if (LUNA.kamAsal) {
+    flyTarget = { camTarget: new THREE.Vector3(avatarPos.x, avatar.position.y, avatarPos.z), camYaw: LUNA.kamAsal.camYaw, camPitch: LUNA.kamAsal.camPitch, camDist: LUNA.kamAsal.camDist, luna: true };
+    flyKeep = true; LUNA.kamAsal = null;
+  }
+  if (Object.keys(LUNA.coba).length && lunaDiButik()) toastKosan('👗 Yang kamu coba masih nempel — lepas sendiri pas keluar butik');
+  lunaSegar();
+}
+function lunaLepasCoba(diam) { /* keluar butik / batal: semua barang yang belum dibeli lepas */
+  if (!Object.keys(LUNA.coba).length) return false;
+  LUNA.coba = {}; LUNA.pilih = ''; busanaSegar(true); /* pilihan di deret ikut kosong: tidak ada kartu menyala untuk barang yang sudah dikembalikan */
+  if (!diam) toastKosan('👗 Barang yang dicoba dikembalikan ke rak');
+  return true;
+}
+function lunaKetuk(id) { /* ketuk barang di deret: belum punya = coba / lepas coba; sudah punya = pilih saja (pakai / lepas lewat tombol) */
+  var b = busanaDari(id); if (!b || LUNA.sibuk) return;
+  var sama = LUNA.pilih === id;
+  LUNA.pilih = id; LUNA.yakin = ''; LUNA.pesan = '';
+  if (busanaMilik().indexOf(id) < 0) {
+    if (sama && LUNA.coba[b.slot] === id) { delete LUNA.coba[b.slot]; lunaPesan(b.nama + ' dilepas', '', 1600); }
+    else LUNA.coba[b.slot] = id;
+    busanaSegar(true);
+  } else if (LUNA.coba[b.slot]) { delete LUNA.coba[b.slot]; busanaSegar(true); }
+  lunaRender();
+}
+function lunaAksi() {
+  var id = LUNA.pilih, b = busanaDari(id), d = DOMPET.data;
+  if (!b || LUNA.sibuk) return;
+  var k = lunaKeadaan(id);
+  if (k === 'pakai') { busanaPakai(id, false, true); lunaPesan(b.nama + ' dilepas', '', 1800); return; }
+  if (k === 'milik') { busanaPakai(id, true, true); lunaPesan(b.nama + ' dipakai', 'ok', 1800); return; }
+  if (!ktaIsResident()) { lunaPesan('Khusus penghuni kos', 'tolak'); return; }
+  if (!d) { lunaPesan('Dompet lagi dimuat, sebentar ya', ''); dompetMuat().then(function () { if (LUNA.aktif) lunaRender(); }); return; }
+  if (d.saldo < b.harga) { lunaPesan('Saldo kurang ' + rupiah(b.harga - d.saldo), 'tolak', 4200); return; }
+  if (LUNA.yakin !== id) { /* ketukan pertama minta yakin (barang mahal: tidak terbeli karena salah ketuk) */
+    LUNA.yakin = id; clearTimeout(LUNA.yakinT);
+    LUNA.yakinT = setTimeout(function () { LUNA.yakin = ''; if (LUNA.aktif) lunaRender(); }, 4000);
+    lunaRender(); return;
+  }
+  var untuk = DOMPET.untuk;
+  LUNA.yakin = ''; clearTimeout(LUNA.yakinT); LUNA.sibuk = true; lunaRender();
+  apiKosan('POST', '/api/belanja', { aksi: 'beli', barang: id }).then(function (r) {
+    LUNA.sibuk = false;
+    if (untuk !== DOMPET.untuk) { lunaRender(); return; } /* ganti akun saat membeli */
+    if (r.status !== 200 || !r.data) {
+      if (r.status === 409 || (r.data && r.data.galat === 'saldo_kurang')) dompetMuat().then(function () { if (LUNA.aktif) lunaRender(); });
+      lunaPesan(pesanApi(r), 'tolak', 4200); return;
+    }
+    dompetBerubah();
+    d.saldo = r.data.saldo;
+    if (d.barang.indexOf(id) < 0) d.barang.push(id);
+    bunyi('kasir'); dompetHudPerbarui();
+    busanaPakai(id, true, true);
+    lunaPesan(b.nama + ' jadi punyamu, langsung dipakai', 'ok', 4200);
+    dompetMuat().then(function () { if (LUNA.aktif) lunaRender(); });
+  });
+}
+function lunaSegar() { /* tiap 400 md: tombol "Belanja di Maison Luna" + barang cobaan lepas begitu tidak di butik lagi */
+  var b = lunaEl('lunaTombol'); if (!b) return;
+  var di = lunaDiButik();
+  if (!di) { if (LUNA.aktif) lunaTutup(); lunaLepasCoba(); }
+  if (typeof avPartsSaya !== 'undefined' && avPartsSaya && entered && !mpBusanaSama(busanaSayaTampil(), avPartsSaya.busKini)) busanaSegar(); /* dompet baru dimuat / ganti akun / keluar: avatar ikut */
+  var tampil = di && entered && !LUNA.aktif && !KK.aktif && !ARK.aktif && !(KERJA && !KERJA.beres)
+    && !document.querySelector('#dompetPanel.open, #kerjaPanel.open, #rupaPanel.open') && !document.body.classList.contains('card-open');
+  if (b.classList.contains('tampil') !== tampil) b.classList.toggle('tampil', tampil);
+}
+function lunaRupaRender() { /* panel Tampilan: deret busana butik MILIK sendiri (pakai / lepas); model gratis di slot yang dipakai busana butik tidak ditandai terpilih */
+  var kotak = lunaEl('rupaLuna'), deret = lunaEl('rupaLunaDeret'); if (!kotak || !deret) return;
+  var milik = BUSANA_URUT.filter(function (id) { return busanaMilik().indexOf(id) >= 0; }), p = busanaPilihan();
+  kotak.hidden = !milik.length;
+  deret.innerHTML = '';
+  milik.forEach(function (id) {
+    var b = BUSANA[id], t = document.createElement('button'), pakai = p[b.slot] === id;
+    t.type = 'button'; t.setAttribute('aria-pressed', pakai ? 'true' : 'false'); t.setAttribute('data-luna', id); t.title = b.nama + (pakai ? ' (dipakai)' : '');
+    t.innerHTML = '<img alt="" src="' + (LUNA_THUMB[id] || '') + '"><span>' + escapeHtml(b.nama) + '</span>';
+    t.addEventListener('click', function () { busanaPakai(id, !pakai); rupaRender(); });
+    deret.appendChild(t);
+  });
+  [['atasan', 'rupaAtasan'], ['bawahan', 'rupaBawahan'], ['alas', 'rupaAlas']].forEach(function (q) {
+    var w = lunaEl(q[1]); if (!w || !p[q[0]] || milik.indexOf(p[q[0]]) < 0) return;
+    [].forEach.call(w.querySelectorAll('button[aria-checked="true"]'), function (x) { x.setAttribute('aria-checked', 'false'); });
+  });
+}
+(function () {
+  var t = lunaEl('lunaTombol'); if (t) t.addEventListener('click', function () { lunaBuka(); });
+  setInterval(lunaSegar, 400);
+})();
+/* ==== BUTIK-LUNA-UI-END ==== */
+
 function mpSaatPindahAlam() { /* kontrak §8.3: realm baru -> publish segera + snap */
   warnaKamarSelaras(); /* Warna Kamar: di kamar sendiri = warna pilihan; di luar = bahan bawaan + tombol hilang */
   tkSelaras(); /* Tata Kamar: di kamar sendiri = tata letak pilihan; di luar = posisi bawaan + tombol hilang */
@@ -16613,7 +17306,8 @@ var KOTA_RUANG_STAF = { /* staf berdiri di balik meja (pose jaga), rangka = rang
 var KOTA_RUANG_OBJEK = { /* objek interaktif di dalam (x, z lokal ruang = titik berdiri pemain) */
   hotel: [{ id: 'bel', nama: 'Bel resepsionis', x: 0, z: -5.0, jarak: 2.6 }, { id: 'pianoLobi', nama: 'Grand piano', x: -8.1, z: -3.9, jarak: 2.8 }],
   kafe: [{ id: 'mesinKopi', nama: 'Mesin espresso', x: -3.6, z: -3.4, jarak: 2.8 }],
-  butik: [{ id: 'cermin', nama: 'Cermin besar', x: 6.6, z: -4.2, jarak: 2.8 }, { id: 'tas', nama: 'Tas pajangan', x: 0, z: 1.0, jarak: 2.8 }],
+  butik: [{ id: 'cermin', nama: 'Cermin besar', x: 6.6, z: -4.2, jarak: 2.8 }, { id: 'tas', nama: 'Tas pajangan', x: 0, z: 1.0, jarak: 2.8 },
+    { id: 'manekinA', nama: 'Manekin', x: -3.3, z: 2.7, jarak: 3.0 }, { id: 'manekinB', nama: 'Manekin', x: 3.3, z: 2.7, jarak: 3.0 }], /* Butik Maison Luna: manekin = pintu toko */
   arkade: [{ id: 'capitDalam', nama: 'Mesin capit raksasa', x: -1.8, z: -4.6, jarak: 2.6 }, { id: 'balap', nama: 'Mesin balap', x: 2.8, z: 1.5, jarak: 2.6 }, { id: 'dansa', nama: 'Mesin dansa', x: -6.0, z: 1.4, jarak: 2.6 }]
 };
 function kotaRuangBatas(id) { var R = KOTA_RUANG[id]; return { minX: -R.W / 2 + KOTA_R, maxX: R.W / 2 - KOTA_R, minZ: -R.D / 2 + KOTA_R, maxZ: R.D / 2 - KOTA_R }; }
@@ -20531,7 +21225,7 @@ function kotaMesinCapitBesar(B, x, z) {
 /* sasaran ketuk objek interior = badan objek sebenarnya [x, y, z, lebar, tinggi, dalam, rot] (titik berdiri = KOTA_RUANG_OBJEK) */
 var KOTA_RUANG_SASARAN = {
   bel: [0, 1.2, -6.0, 2.2, 1.0, 1.2, 0], pianoLobi: [-9.6, 1.0, -6.1, 1.8, 2.0, 2.8, 0.35], mesinKopi: [-3.6, 1.4, -4.45, 1.4, 1.0, 1.0, 0],
-  cermin: [7.85, 1.7, -4.2, 0.4, 3.0, 2.1, 0], tas: [0, 1.25, -0.5, 4.4, 1.0, 1.9, 0],
+  cermin: [7.85, 1.7, -4.2, 0.4, 3.0, 2.1, 0], tas: [0, 1.25, -0.5, 4.4, 1.0, 1.9, 0], manekinA: [-4.5, 1.1, 2.7, 1.1, 2.2, 1.1, 0], manekinB: [4.5, 1.1, 2.7, 1.1, 2.2, 1.1, 0],
   capitDalam: [-1.8, 1.55, -6.0, 2.2, 3.1, 1.2, 0], balap: [2.8, 1.05, -0.3, 2.4, 2.1, 2.6, 0], dansa: [-7.75, 1.15, 1.4, 2.4, 2.3, 1.9, 0]
 };
 /* efek reaksi ketuk (satu mesh kecil per ruang, muncul + naik 2 dtk): not musik / uap kopi / kilau */
@@ -20605,6 +21299,7 @@ var kotaRuangAnim = { capit: null };
 function kotaEfekMulai(id) { var R = KOTA_RUANG_EFEK[kotaRuangKini], e = R && R[id]; if (e) e.mulai = performance.now(); }
 function kotaKetukRuang(id) {
   var R = kotaRuangKini, daftar = KOTA_RUANG_OBJEK[R] || [], o = null, now = performance.now();
+  if (LUNA.aktif) return; /* Butik Maison Luna: selama toko terbuka, ketukan di ruang tidak memicu apa-apa */
   daftar.forEach(function (q) { if (q.id === id) o = q; });
   if (!o) return;
   if (Math.hypot(avatarPos.x - o.x, avatarPos.z - o.z) > o.jarak) { toastKosan('🚶 Jalan ke ' + o.nama.toLowerCase() + ' dulu ya'); return; }
@@ -20617,7 +21312,7 @@ function kotaKetukRuang(id) {
   if (id === 'bel') { bunyi('bel'); toastKosan('🛎 Ting! Resepsionis: "Selamat datang di Hotel Kencana"'); }
   else if (id === 'pianoLobi') { bunyi('piano'); toastKosan('🎹 ♪ Lagu lembut mengalun di lobi'); }
   else if (id === 'mesinKopi') { bunyi('mesinKopi'); toastKosan('☕ Barista menyeduh espresso — aroma kopinya harum'); }
-  else if (id === 'cermin') { bunyi('saklar'); toastKosan('🪞 Penampilanmu hari ini: kece maksimal!'); }
+  else if (id === 'cermin' || id === 'manekinA' || id === 'manekinB') { bunyi('saklar'); lunaBuka(); } /* Butik Maison Luna: cermin / manekin = buka toko */
   else if (id === 'tas') { bunyi('kasir'); toastKosan('👜 Tas Luna Noir — cuma dipajang, harganya bikin pusing 😄'); }
 }
 function kotaRuangTick(dt, now) {
@@ -23353,6 +24048,7 @@ function animate() {
      SETELAH animasi jalan (ayunan idle tidak menggerakkan badan rebah/duduk). */
   if (roomPose) terapkanPoseKamar();
   avatarRokBean(avPartsSaya, !!roomPose && poseTempat === 'beanbag'); /* Toko Perabot: rok rebah di atas bean bag selama duduk di situ (selain itu rok kaku biasa) */
+  lunaRokTick(avPartsSaya); lunaTasTampil(avPartsSaya, !roomPose && !(KERJA && !KERJA.beres)); lunaTerbangTick(); /* Butik Maison Luna */
   /* Perabot modern — bawa keranjang cucian: dua tangan memegang keranjang (lengan tidak berayun) */
   jemuranPoseBawa(dt);
   kerjaPoseTick(dt); /* Kerja & Belanja — lengan meraih / mengocok / menyajikan / memukul kentongan (tanpa naik-turun badan) */
@@ -23421,6 +24117,7 @@ function animate() {
       re.group.rotation.y += mpBungkusSudut(re.trot - re.group.rotation.y) * mpK;
     }
     mpTerapkanPoseRemote(re); /* Ronde 15a — pose pemain lain (sleep/sit/stand) */
+    lunaRokTick(re.parts); lunaTasTampil(re.parts, re.pose === 'stand' && !(re.aks && re.aks.kerja)); /* Butik Maison Luna */
     kerjaAngkatRemote(re); /* Kerja & Belanja — barista di teras Kedai Kopi (juga di layar hasil shift) */
     if (re.aks && re.aks.kerja) kerjaPoseRemote(re); /* Kerja & Belanja — gerak tangan saat bekerja (kosmetik) */
     var rls = Math.max(0.35, Math.min(1.3, camDist / 9.5));
